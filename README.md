@@ -11,6 +11,29 @@ Interactive analytics dashboards for analyzing enrollment trends, faculty worklo
    ```
 3. Open your browser to `http://localhost:8080`
 
+## 🌐 GitHub Pages Deployment
+
+This repo now includes `/.github/workflows/deploy-pages.yml` to publish static dashboards to GitHub Pages on every push to `main`.
+
+### One-time setup
+
+1. Go to your repo: [https://github.com/sicxz/program-command/settings/pages](https://github.com/sicxz/program-command/settings/pages)
+2. Under **Build and deployment**, set **Source** to **GitHub Actions**
+3. Push to `main` (or run the workflow manually in Actions)
+4. Your site will publish at:
+   - [https://sicxz.github.io/program-command/](https://sicxz.github.io/program-command/)
+
+### Important limitation
+
+GitHub Pages is static-only. Features that depend on server routes (for example `/api/ai/*` and `/api/export-to-sheets`) require `api-server.js` and will not run on Pages.
+
+For full functionality (AI chat, Sheets export), run locally:
+
+```bash
+npm install
+npm run serve
+```
+
 ## 📊 Dashboards
 
 ### Schedule Analyzer (Main)

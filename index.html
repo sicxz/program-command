@@ -7497,6 +7497,11 @@
         // ============================================
 
         async function exportToGoogleSheets() {
+            if (window.location.hostname.endsWith('github.io')) {
+                showToast('Google Sheets export needs the Node API server and is unavailable on GitHub Pages.', 'error');
+                return;
+            }
+
             showToast('Exporting to Google Sheets...');
             
             try {

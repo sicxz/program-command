@@ -12,6 +12,19 @@ const ClaudeService = (function() {
     const OPENAI_DEFAULT_MODEL = 'gpt-4o-mini';
     const ANTHROPIC_DEFAULT_MODEL = 'claude-sonnet-4-5';
 
+    function isGitHubPagesHost() {
+        return typeof window !== 'undefined' &&
+            typeof window.location?.hostname === 'string' &&
+            window.location.hostname.endsWith('github.io');
+    }
+
+    function backendRequiredMessage(featureLabel = 'AI features') {
+        if (isGitHubPagesHost()) {
+            return `${featureLabel} are disabled on GitHub Pages because this app's /api endpoints need the Node API server. Run locally with "npm run serve" or deploy api-server.js separately.`;
+        }
+        return `${featureLabel} require the Node API server. Start it with "npm run serve".`;
+    }
+
     function obfuscate(str) {
         return btoa(str.split('').reverse().join(''));
     }
@@ -135,6 +148,10 @@ const ClaudeService = (function() {
     }
 
     async function request(endpoint, payload = {}) {
+        if (isGitHubPagesHost()) {
+            throw new Error(backendRequiredMessage('AI features'));
+        }
+
         const apiKey = getApiKey();
         const headers = {
             'Content-Type': 'application/json'
