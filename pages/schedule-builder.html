@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schedule Builder - Design Scheduler</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="../css/schedule-builder.css">
+    <link rel="stylesheet" href="../css/program-command-dashboard-theme.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="builder-header">
+            <a href="../index.html" class="back-link">&larr; Back to Schedule</a>
+            <h1>Create New Schedule</h1>
+            <p class="subtitle">AI-Powered Schedule Generation Based on Enrollment Trends</p>
+        </header>
+
+        <!-- Controls -->
+        <div class="controls-bar">
+            <div class="control-group">
+                <label for="sourceYear">Copy From Year</label>
+                <select id="sourceYear">
+                    <option value="2025-26">2025-26 (Current)</option>
+                    <option value="2024-25">2024-25</option>
+                    <option value="2023-24">2023-24</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="academicYear">Target Year</label>
+                <select id="academicYear">
+                    <option value="2026-27">2026-27 (New)</option>
+                </select>
+            </div>
+            <button id="generateBtn" class="btn-primary" onclick="handleLoadAndAnalyze()">
+                Load & Analyze
+            </button>
+            <button class="btn-secondary" onclick="window.location.href='pamcam-playground.html'">
+                PamCam Lab
+            </button>
+        </div>
+
+        <!-- Faculty Selection Panel -->
+        <div class="faculty-selection-panel">
+            <button class="faculty-panel-toggle" onclick="toggleFacultyPanel()">
+                <span>👥 Faculty Selection for Next Year</span>
+                <span class="toggle-icon">▼</span>
+            </button>
+            <div class="faculty-panel-content" id="facultyPanelContent">
+                <p class="helper-text" style="margin-bottom: 16px; color: #6b7280; font-size: 13px;">
+                    Select which faculty will be available for the next academic year. Full-time faculty (professors, lecturers) are prioritized; adjuncts serve as placeholders when full-time faculty are unavailable.
+                </p>
+                <div id="facultySelectionContainer">
+                    <p style="color: #6b7280; text-align: center; padding: 20px;">Loading faculty data...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Predictive Faculty Build Panel -->
+        <div class="build-scenario-panel">
+            <div class="scenario-header">
+                <div>
+                    <h2>Predictive Faculty Build</h2>
+                    <p>Set annual credits, inload, and DESN 499 assumptions used for auto-assignment.</p>
+                </div>
+                <label class="scenario-toggle">
+                    <input type="checkbox" id="includeArielScenario" onchange="handleArielScenarioToggle(this.checked)">
+                    Include Optional Lecturer
+                </label>
+            </div>
+
+            <div class="scenario-metrics">
+                <div class="scenario-metric">
+                    <div class="scenario-metric-label">Included Faculty</div>
+                    <div class="scenario-metric-value" id="scenarioFacultyCount">0</div>
+                </div>
+                <div class="scenario-metric">
+                    <div class="scenario-metric-label">Annual Target Credits</div>
+                    <div class="scenario-metric-value" id="scenarioAnnualTarget">0</div>
+                </div>
+                <div class="scenario-metric">
+                    <div class="scenario-metric-label">Annual Scheduled Capacity</div>
+                    <div class="scenario-metric-value" id="scenarioAnnualScheduled">0</div>
+                </div>
+                <div class="scenario-metric">
+                    <div class="scenario-metric-label">Quarterly Scheduled Capacity</div>
+                    <div class="scenario-metric-value" id="scenarioQuarterlyScheduled">0</div>
+                </div>
+            </div>
+
+            <div class="scenario-table-wrapper">
+                <table class="scenario-table">
+                    <thead>
+                        <tr>
+                            <th>Faculty</th>
+                            <th>Annual Credits</th>
+                            <th>Inload</th>
+                            <th>DESN 499 / Quarter</th>
+                            <th>Annual Scheduled</th>
+                            <th>Quarterly Scheduled</th>
+                        </tr>
+                    </thead>
+                    <tbody id="facultyBuildRows">
+                        <tr>
+                            <td colspan="6" style="text-align:center; color:#6b7280; padding:14px;">Loading scenario...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="scenario-footer">
+                <button class="btn-small" onclick="resetFacultyBuildScenario()">Reset Defaults</button>
+                <span id="scenarioDeltaText">With optional lecturer vs without optional lecturer capacity delta: --</span>
+            </div>
+            <p class="scenario-assignment-note" id="scenarioAssignmentSummary">Load a schedule to compare demand against this scenario.</p>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="summary-cards" id="summaryCards">
+            <div class="summary-card">
+                <div class="card-icon">📚</div>
+                <div class="card-value" id="totalSections">--</div>
+                <div class="card-label">Total Sections</div>
+            </div>
+            <div class="summary-card">
+                <div class="card-icon">👨‍🏫</div>
+                <div class="card-value" id="facultyCapacity">--</div>
+                <div class="card-label">Sections Assigned</div>
+            </div>
+            <div class="summary-card">
+                <div class="card-icon">🔥</div>
+                <div class="card-value" id="highDemand">--</div>
+                <div class="card-label">High Demand</div>
+            </div>
+            <div class="summary-card warning">
+                <div class="card-icon">⚠️</div>
+                <div class="card-value" id="warnings">--</div>
+                <div class="card-label">Capacity Warnings</div>
+            </div>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div class="loading-container" id="loadingContainer" style="display: none;">
+            <div class="loading-spinner"></div>
+            <p>Loading previous year schedule and analyzing...</p>
+        </div>
+
+        <!-- Analysis Dashboard (shown after loading) -->
+        <div class="analysis-dashboard" id="analysisDashboard" style="display: none;">
+            <div class="analysis-header">
+                <h2>Schedule Analysis - <span id="analysisSourceYear">2025-26</span> to <span id="analysisTargetYear">2026-27</span></h2>
+                <p class="analysis-subtitle">Review recommendations before proceeding to grid editing</p>
+            </div>
+
+            <!-- Analysis Summary Cards -->
+            <div class="analysis-summary">
+                <div class="analysis-stat">
+                    <span class="stat-value" id="totalIssues">0</span>
+                    <span class="stat-label">Issues Found</span>
+                </div>
+                <div class="analysis-stat warning">
+                    <span class="stat-value" id="capacityWarnings">0</span>
+                    <span class="stat-label">Capacity Warnings</span>
+                </div>
+                <div class="analysis-stat success">
+                    <span class="stat-value" id="coursesLoaded">0</span>
+                    <span class="stat-label">Courses Loaded</span>
+                </div>
+            </div>
+
+            <!-- Recommendations with Toggles -->
+            <div class="recommendations-panel">
+                <!-- Enrollment Recommendations -->
+                <div class="recommendation-section" id="enrollmentSection">
+                    <div class="section-title">
+                        <span class="section-icon">📈</span>
+                        <h3>Enrollment Recommendations</h3>
+                        <span class="section-count" id="enrollmentCount">0</span>
+                    </div>
+                    <div class="recommendation-list" id="enrollmentRecommendations">
+                        <!-- Dynamically populated with checkboxes -->
+                    </div>
+                </div>
+
+                <!-- Conflict Warnings -->
+                <div class="recommendation-section" id="conflictSection">
+                    <div class="section-title">
+                        <span class="section-icon">⚠️</span>
+                        <h3>Conflict Warnings</h3>
+                        <span class="section-count" id="conflictCount">0</span>
+                    </div>
+                    <div class="recommendation-list" id="conflictRecommendations">
+                        <!-- Dynamically populated with checkboxes -->
+                    </div>
+                </div>
+
+                <!-- Missing Courses -->
+                <div class="recommendation-section" id="missingSection">
+                    <div class="section-title">
+                        <span class="section-icon">➕</span>
+                        <h3>Missing/Required Courses</h3>
+                        <span class="section-count" id="missingCount">0</span>
+                    </div>
+                    <div class="recommendation-list" id="missingRecommendations">
+                        <!-- Dynamically populated with checkboxes -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="analysis-actions">
+                <button class="btn-secondary" onclick="selectAllRecommendations()">Select All</button>
+                <button class="btn-secondary" onclick="deselectAllRecommendations()">Deselect All</button>
+                <button class="btn-primary" onclick="applySelectedRecommendations()">Apply Selected</button>
+                <button class="btn-primary" onclick="proceedToGrid()">Proceed to Grid</button>
+            </div>
+        </div>
+
+        <!-- Projected Demand Section (shown after generation) -->
+        <div class="projected-demand-section" id="projectedDemandSection" style="display: none;">
+            <div class="demand-header">
+                <h2>Projected Demand - <span id="demandQuarterYear">Fall 2026</span></h2>
+            </div>
+            <div class="demand-grid">
+                <!-- High Demand Courses -->
+                <div class="demand-card high-demand">
+                    <h3>🔥 High Demand Courses</h3>
+                    <p class="card-subtitle">Predicted enrollment &gt;90% capacity</p>
+                    <div class="demand-list" id="highDemandList">
+                        <!-- Dynamically populated -->
+                    </div>
+                </div>
+
+                <!-- Case-by-Case Courses -->
+                <div class="demand-card case-by-case">
+                    <h3>📋 Case-by-Case Courses</h3>
+                    <p class="card-subtitle">Not scheduled in grid - handled individually</p>
+                    <div class="demand-list" id="caseByeCaseList">
+                        <!-- Dynamically populated -->
+                    </div>
+                </div>
+
+                <!-- Curriculum Recommendations -->
+                <div class="demand-card recommendations">
+                    <h3>💡 Curriculum Recommendations</h3>
+                    <p class="card-subtitle">Based on faculty capacity and program needs</p>
+                    <div class="recommendation-list" id="curriculumRecommendations">
+                        <!-- Dynamically populated -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="builder-content" id="builderContent" style="display: none;">
+            <!-- Schedule Grid View -->
+            <div class="grid-section">
+                <div class="section-header">
+                    <h2 id="gridTitle">Schedule Grid - Fall 2026</h2>
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <button class="btn-add-course" onclick="openAddCourseModal()">+ Add Course</button>
+                        <div class="view-toggle">
+                            <button class="view-btn active" onclick="setView('grid')" id="gridViewBtn">Grid View</button>
+                            <button class="view-btn" onclick="setView('list')" id="listViewBtn">List View</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Grid View -->
+                <div class="schedule-grid" id="scheduleGrid">
+                    <!-- Dynamically populated -->
+                </div>
+
+                <!-- List View (hidden by default) -->
+                <div class="list-view" id="listView" style="display: none;">
+                    <div class="recommendations-list" id="recommendationsList">
+                        <!-- Dynamically populated -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar with Unassigned and Summary -->
+            <div class="sidebar-panel">
+                <div class="panel-section">
+                    <h3>Unassigned Courses</h3>
+                    <p class="helper-text">Drag courses to the grid to assign time slots</p>
+                    <div class="unassigned-list" id="unassignedList">
+                        <!-- Dynamically populated -->
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h3 style="margin: 0;">Faculty Workload</h3>
+                        <button class="btn-small" onclick="openFacultyPreferencesModal()">Edit Preferences</button>
+                    </div>
+                    <div class="faculty-summary" id="facultySummary">
+                        <!-- Dynamically populated -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div class="empty-state" id="emptyState">
+            <div class="empty-icon">📅</div>
+            <h2>Ready to Build Your Schedule</h2>
+            <p>Select an academic year and quarter, then click "Generate Schedule" to get AI-powered recommendations based on:</p>
+            <ul class="features-list">
+                <li>📊 3+ years of enrollment history</li>
+                <li>🔗 Prerequisite flow patterns</li>
+                <li>👨‍🏫 Historical faculty assignments</li>
+                <li>📈 Course demand predictions</li>
+            </ul>
+        </div>
+
+        <!-- Action Bar -->
+        <div class="action-bar" id="actionBar" style="display: none;">
+            <button class="btn-secondary" onclick="saveDraft()">
+                💾 Save Draft
+            </button>
+            <button class="btn-primary" onclick="saveToDatabase()" id="saveToCloudBtn">
+                ☁️ Save to Cloud
+            </button>
+            <button class="btn-ai" onclick="evaluateWithAI()">
+                ✨ Evaluate with AI
+            </button>
+            <button class="btn-secondary" onclick="exportJSON()">
+                📥 Export JSON
+            </button>
+            <button class="btn-primary" onclick="exportToEditor()">
+                Open in Main Schedule →
+            </button>
+            <button class="btn-settings" onclick="openApiSettingsModal()" title="API Settings">
+                ⚙️
+            </button>
+        </div>
+
+        <!-- Toast Notification -->
+        <div class="toast" id="toast">
+            <span id="toastMessage"></span>
+        </div>
+
+        <!-- Add Course Modal -->
+        <div class="modal-overlay" id="addCourseModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h2 class="modal-title">Add Course to Schedule</h2>
+                    <button class="modal-close" onclick="closeAddCourseModal()">&times;</button>
+                </div>
+                <form id="addCourseForm" onsubmit="handleAddCourse(event)">
+                    <div class="form-group">
+                        <label for="addCourseCode">Course</label>
+                        <select id="addCourseCode" required>
+                            <option value="">Select a course...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="addCourseSection">Section</label>
+                        <input type="text" id="addCourseSection" placeholder="001" maxlength="3" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="addCourseDays">Days</label>
+                        <select id="addCourseDays" required>
+                            <option value="MW">Monday/Wednesday</option>
+                            <option value="TR">Tuesday/Thursday</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="addCourseTime">Time</label>
+                        <select id="addCourseTime" required>
+                            <option value="10:00-12:20">10:00 AM - 12:20 PM</option>
+                            <option value="13:00-15:20">1:00 PM - 3:20 PM</option>
+                            <option value="16:00-18:20">4:00 PM - 6:20 PM</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="addCourseRoom">Room</label>
+                        <select id="addCourseRoom" required>
+                            <optgroup label="Catalyst (Spokane)">
+                                <option value="206">206 - UX Lab</option>
+                                <option value="209">209 - Mac Lab</option>
+                                <option value="210">210 - Mac Lab</option>
+                                <option value="212">212 - Project Lab</option>
+                            </optgroup>
+                            <optgroup label="Cheney (Main)">
+                                <option value="CEB 102">CEB 102</option>
+                                <option value="CEB 104">CEB 104</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="addCourseFaculty">Faculty</label>
+                        <select id="addCourseFaculty">
+                            <option value="">TBD</option>
+                        </select>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" onclick="closeAddCourseModal()">Cancel</button>
+                        <button type="submit" class="btn-primary">Add Course</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Faculty Preferences Modal -->
+        <div class="modal-overlay" id="facultyPreferencesModal">
+            <div class="modal" style="max-width: 600px;">
+                <div class="modal-header">
+                    <h2 class="modal-title">Faculty Preferences</h2>
+                    <button class="modal-close" onclick="closeFacultyPreferencesModal()">&times;</button>
+                </div>
+                <form id="facultyPreferencesForm" onsubmit="handleSaveFacultyPreferences(event)">
+                    <div class="form-group">
+                        <label for="prefFacultyName">Faculty Member</label>
+                        <select id="prefFacultyName" required onchange="loadFacultyPreferences()">
+                            <option value="">Select faculty...</option>
+                        </select>
+                    </div>
+
+                    <div class="preferences-grid">
+                        <div class="pref-section">
+                            <h4>Time Preferences</h4>
+                            <div class="checkbox-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" name="timePref" value="morning"> Morning (10:00-12:20)
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" name="timePref" value="afternoon"> Afternoon (1:00-3:20)
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" name="timePref" value="evening"> Evening (4:00-6:20)
+                                </label>
+                            </div>
+                            <label class="small-label">Blocked Times</label>
+                            <div class="checkbox-group">
+                                <label class="checkbox-label blocked">
+                                    <input type="checkbox" name="timeBlocked" value="morning"> Morning
+                                </label>
+                                <label class="checkbox-label blocked">
+                                    <input type="checkbox" name="timeBlocked" value="afternoon"> Afternoon
+                                </label>
+                                <label class="checkbox-label blocked">
+                                    <input type="checkbox" name="timeBlocked" value="evening"> Evening
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="pref-section">
+                            <h4>Day Preferences</h4>
+                            <div class="checkbox-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" name="dayPref" value="MW"> Mon/Wed
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" name="dayPref" value="TR"> Tue/Thu
+                                </label>
+                            </div>
+                            <label class="small-label">Blocked Days</label>
+                            <div class="checkbox-group">
+                                <label class="checkbox-label blocked">
+                                    <input type="checkbox" name="dayBlocked" value="MW"> Mon/Wed
+                                </label>
+                                <label class="checkbox-label blocked">
+                                    <input type="checkbox" name="dayBlocked" value="TR"> Tue/Thu
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="prefCampus">Campus Assignment</label>
+                        <select id="prefCampus">
+                            <option value="any">Any Campus</option>
+                            <option value="catalyst">Catalyst (Spokane) Only</option>
+                            <option value="cheney">Cheney Only</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="prefNotes">Notes</label>
+                        <textarea id="prefNotes" rows="3" placeholder="Any scheduling notes or constraints..."></textarea>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" onclick="closeFacultyPreferencesModal()">Cancel</button>
+                        <button type="submit" class="btn-primary">Save Preferences</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- API Settings Modal -->
+        <div class="modal-overlay" id="apiSettingsModal">
+            <div class="modal" style="max-width: 500px;">
+                <div class="modal-header">
+                    <h2 class="modal-title">AI API Settings (OpenAI or Claude)</h2>
+                    <button class="modal-close" onclick="closeApiSettingsModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="apiKeyInput">API Key</label>
+                        <div class="api-key-input-group">
+                            <input type="password" id="apiKeyInput" placeholder="sk-... or sk-ant-..." autocomplete="off">
+                            <button type="button" class="btn-small" onclick="toggleApiKeyVisibility()">👁️</button>
+                        </div>
+                        <p class="helper-text">Use either <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI API keys</a> or <a href="https://console.anthropic.com/settings/keys" target="_blank">Anthropic API keys</a></p>
+                    </div>
+                    <div id="apiKeyStatus" class="api-key-status"></div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-danger" onclick="clearApiKey()">Clear Key</button>
+                    <button type="button" class="btn-secondary" onclick="testApiConnection()">Test Connection</button>
+                    <button type="button" class="btn-primary" onclick="saveApiKey()">Save</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Analysis Results Panel -->
+        <div class="ai-results-panel" id="aiResultsPanel">
+            <div class="ai-results-header">
+                <h3>AI Schedule Analysis</h3>
+                <button class="panel-close" onclick="closeAiResultsPanel()">&times;</button>
+            </div>
+            <div class="ai-results-loading" id="aiResultsLoading" style="display: none;">
+                <div class="loading-spinner"></div>
+                <p>Analyzing schedule with ChatGPT...</p>
+            </div>
+            <div class="ai-results-content" id="aiResultsContent">
+                <!-- Health Score -->
+                <div class="health-score-section" id="healthScoreSection">
+                    <div class="health-score-circle">
+                        <span class="health-score-value" id="healthScoreValue">--</span>
+                    </div>
+                    <p class="health-score-label">Schedule Health</p>
+                    <p class="health-score-assessment" id="healthScoreAssessment"></p>
+                </div>
+
+                <!-- Conflicts Section -->
+                <div class="ai-section" id="conflictsSection">
+                    <div class="ai-section-header">
+                        <span class="ai-section-icon">🔴</span>
+                        <h4>Conflicts</h4>
+                        <span class="ai-section-count" id="conflictsCount">0</span>
+                    </div>
+                    <div class="ai-section-items" id="conflictsList"></div>
+                </div>
+
+                <!-- Optimizations Section -->
+                <div class="ai-section" id="optimizationsSection">
+                    <div class="ai-section-header">
+                        <span class="ai-section-icon">🟡</span>
+                        <h4>Optimizations</h4>
+                        <span class="ai-section-count" id="optimizationsCount">0</span>
+                    </div>
+                    <div class="ai-section-items" id="optimizationsList"></div>
+                </div>
+
+                <!-- Workload Section -->
+                <div class="ai-section" id="workloadSection">
+                    <div class="ai-section-header">
+                        <span class="ai-section-icon">🟢</span>
+                        <h4>Workload</h4>
+                        <span class="ai-section-count" id="workloadCount">0</span>
+                    </div>
+                    <div class="ai-section-items" id="workloadList"></div>
+                </div>
+            </div>
+            <div class="ai-results-actions">
+                <button class="btn-secondary" onclick="closeAiResultsPanel()">Dismiss</button>
+                <button class="btn-primary" onclick="exportAiReport()">Export Report</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <!-- Supabase Client Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/supabase-config.js"></script>
+    <script src="../js/db-service.js"></script>
+    <!-- OpenAI Integration -->
+    <script src="../js/claude-service.js"></script>
+    <script src="../js/schedule-evaluator.js"></script>
+    <!-- Application Scripts -->
+    <script src="../js/constraints-engine.js"></script>
+    <script src="../js/prerequisite-graph.js"></script>
+    <script src="../js/demand-predictor.js"></script>
+    <script src="../js/schedule-generator.js"></script>
+    <script src="../js/schedule-analyzer.js"></script>
+    <script src="../js/faculty-manager.js"></script>
+    <script src="schedule-builder.js"></script>
+    <script>
+        // Initialize faculty panel
+        async function initFacultyPanel() {
+            if (typeof FacultyManager !== 'undefined') {
+                await FacultyManager.init({ workloadPath: '../workload-data.json' });
+                FacultyManager.renderSelectionUI('facultySelectionContainer');
+            }
+        }
+        
+        function toggleFacultyPanel() {
+            const content = document.getElementById('facultyPanelContent');
+            const toggle = document.querySelector('.faculty-panel-toggle');
+            content.classList.toggle('collapsed');
+            toggle.classList.toggle('collapsed');
+        }
+        
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', initFacultyPanel);
+    </script>
+</body>
+</html>

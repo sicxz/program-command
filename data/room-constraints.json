@@ -1,0 +1,108 @@
+{
+  "campuses": {
+    "catalyst": {
+      "name": "Catalyst (Spokane)",
+      "rooms": [
+        {
+          "id": "206",
+          "name": "206 UX Lab",
+          "type": "computer-lab",
+          "capacity": 24
+        },
+        {
+          "id": "207",
+          "name": "207 Media Lab",
+          "type": "flex-space",
+          "capacity": 24,
+          "excludeFromGrid": true,
+          "note": "Not used for scheduled courses"
+        },
+        {
+          "id": "209",
+          "name": "209 Mac Lab",
+          "type": "computer-lab",
+          "capacity": 24
+        },
+        {
+          "id": "210",
+          "name": "210 Mac Lab",
+          "type": "computer-lab",
+          "capacity": 24
+        },
+        {
+          "id": "212",
+          "name": "212 Project Lab",
+          "type": "project-space",
+          "capacity": 24,
+          "hasComputers": false,
+          "allowedCourses": ["DESN 301", "DESN 359", "DESN 401"],
+          "overflowCourses": ["DESN 100", "DESN 200"],
+          "note": "100/200 only when CEB rooms are full"
+        }
+      ]
+    },
+    "cheney": {
+      "name": "Cheney (Main Campus)",
+      "rooms": [
+        {
+          "id": "CEB 102",
+          "name": "CEB 102",
+          "type": "computer-lab",
+          "capacity": 24
+        },
+        {
+          "id": "CEB 104",
+          "name": "CEB 104",
+          "type": "classroom",
+          "capacity": 30
+        }
+      ]
+    }
+  },
+  "courseRoomRules": {
+    "cheneyOnly": {
+      "courses": ["DESN 100", "DESN 200", "DESN 216"],
+      "reason": "Freshman/sophomore courses taken on main campus",
+      "validRooms": ["CEB 102", "CEB 104"],
+      "overflowRoom": "212",
+      "overflowNote": "Use 212 only when CEB rooms are full"
+    },
+    "room212Only": {
+      "courses": ["DESN 301", "DESN 359", "DESN 401"],
+      "reason": "Project-based courses assigned to Room 212",
+      "validRooms": ["212"]
+    },
+    "excludeFromGrid": {
+      "rooms": ["207"],
+      "reason": "Room 207 is not used for scheduled courses"
+    },
+    "itgsCheneyOnly": {
+      "pattern": "ITGS",
+      "reason": "All ITGS courses can only be offered in Cheney, no evening classes",
+      "validRooms": ["CEB 102", "CEB 104"],
+      "blockedTimes": ["evening"]
+    }
+  },
+  "caseByCase": {
+    "courses": ["DESN 495", "DESN 491", "DESN 499", "DESN 399", "DESN 396"],
+    "descriptions": {
+      "DESN 495": "Internship",
+      "DESN 491": "Practicum",
+      "DESN 499": "Independent Study",
+      "DESN 399": "Directed Study",
+      "DESN 396": "Experimental Courses (added manually)"
+    },
+    "reason": "Not scheduled in regular grid - handled individually per student"
+  },
+  "curriculumFlags": {
+    "DESN 384": {
+      "recommendation": "Consider removal from curriculum",
+      "reason": "Not a focus of any full-time faculty",
+      "impact": "Would free capacity for courses we value"
+    }
+  },
+  "travelTime": {
+    "cheneyToCatalyst": "30+ minutes",
+    "note": "Faculty should not be scheduled back-to-back at different campuses"
+  }
+}
