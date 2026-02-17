@@ -67,6 +67,21 @@ const ConflictEngine = (function() {
         adjunctOverloadWarning: 2
     };
 
+    const CONSTRAINT_TYPE_ALIASES = {
+        faculty_conflict: 'faculty_double_book',
+        faculty_double_booking: 'faculty_double_book',
+        room_conflict: 'room_double_book',
+        room_double_booking: 'room_double_book',
+        student_pathway_conflict: 'student_conflict',
+        pathway_conflict: 'student_conflict',
+        student_scheduling_conflict: 'student_conflict'
+    };
+
+    function normalizeConstraintType(type) {
+        const normalized = String(type || '').trim().toLowerCase();
+        return CONSTRAINT_TYPE_ALIASES[normalized] || normalized;
+    }
+
     function getIssueSeverityRank(severity) {
         if (severity === 'critical') return 2;
         if (severity === 'warning') return 1;
@@ -394,12 +409,14 @@ const ConflictEngine = (function() {
 
         // Run each enabled constraint checker
         (constraints || []).filter(c => c.enabled).forEach(constraint => {
-            const checker = checkers[constraint.constraint_type];
+            const normalizedConstraintType = normalizeConstraintType(constraint.constraint_type);
+            const checker = checkers[normalizedConstraintType];
             if (checker) {
                 const issues = checker(schedule, constraint.rule_details, constraint, context);
                 issues.forEach(issue => {
                     issue.constraintId = constraint.id;
-                    issue.constraintType = constraint.constraint_type;
+                    issue.constraintType = normalizedConstraintType;
+                    issue.constraintTypeOriginal = constraint.constraint_type;
 
                     if (issue.severity === 'critical') {
                         results.conflicts.push(issue);

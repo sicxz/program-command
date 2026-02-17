@@ -22,7 +22,7 @@ const ConstraintsService = (function() {
             }
         }
 
-        if (!supabase) {
+        if (typeof supabase === 'undefined' || !supabase) {
             console.warn('Supabase not configured, using fallback constraints');
             return getFallbackConstraints();
         }
@@ -52,6 +52,10 @@ const ConstraintsService = (function() {
      */
     async function loadEnabledConstraints() {
         const all = await loadConstraints();
+        if (!Array.isArray(all) || all.length === 0) {
+            // Defensive fallback for empty/unseeded remote table.
+            return getFallbackConstraints().filter(c => c.enabled);
+        }
         return all.filter(c => c.enabled);
     }
 

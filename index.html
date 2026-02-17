@@ -8491,6 +8491,55 @@
             return list;
         }
 
+        function ensureCoreConflictConstraints(constraints) {
+            const list = Array.isArray(constraints) ? [...constraints] : [];
+            const existingTypes = new Set(
+                list.map((constraint) => String(constraint?.constraint_type || '').trim().toLowerCase())
+            );
+            const hasAnyType = (...types) => types.some((type) => existingTypes.has(type));
+
+            if (!hasAnyType('student_conflict', 'pathway_conflict', 'student_pathway_conflict', 'student_scheduling_conflict')) {
+                list.push({
+                    id: 'local-student-conflict',
+                    enabled: true,
+                    constraint_type: 'student_conflict',
+                    description: 'Graduation pathway pairings cannot overlap in the same slot',
+                    rule_details: {
+                        severity: 'critical',
+                        message: 'Courses in the same graduation pathway are scheduled at the same time.'
+                    }
+                });
+            }
+
+            if (!hasAnyType('faculty_double_book', 'faculty_conflict', 'faculty_double_booking')) {
+                list.push({
+                    id: 'local-faculty-double-book',
+                    enabled: true,
+                    constraint_type: 'faculty_double_book',
+                    description: 'Faculty cannot be double-booked in the same slot',
+                    rule_details: {
+                        severity: 'critical',
+                        message: 'Instructor is scheduled in multiple rooms at the same time.'
+                    }
+                });
+            }
+
+            if (!hasAnyType('room_double_book', 'room_conflict', 'room_double_booking')) {
+                list.push({
+                    id: 'local-room-double-book',
+                    enabled: true,
+                    constraint_type: 'room_double_book',
+                    description: 'A room can only host one class per time slot',
+                    rule_details: {
+                        severity: 'critical',
+                        message: 'Multiple courses share the same room/time slot.'
+                    }
+                });
+            }
+
+            return list;
+        }
+
         // Winter 2026 enrollment data for predictions
         let winterEnrollmentData = null;
 
@@ -8539,6 +8588,7 @@
                 console.warn('Failed to load constraints, using fallback:', err);
                 constraints = ConstraintsService.getFallbackConstraints();
             }
+            constraints = ensureCoreConflictConstraints(constraints);
             constraints = ensureAySetupConstraint(constraints);
 
             // Run the conflict engine
