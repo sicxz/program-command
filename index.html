@@ -293,98 +293,106 @@
             box-shadow: 0 0 0 3px rgba(161, 0, 34, 0.15);
         }
 
-        /* Floating Action Button - Primer ActionMenu style */
-        .fab-container {
-            position: fixed;
-            bottom: var(--space-4);
-            right: var(--space-4);
-            z-index: 1000;
-        }
-
-        .fab-main {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            background: var(--ewu-red);
-            color: var(--color-fg-on-emphasis);
-            border: none;
-            font-size: 1.25em;
-            cursor: pointer;
-            box-shadow: var(--shadow-lg);
-            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        .header-shell {
             display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
         }
 
-        .fab-main:hover {
-            transform: scale(1.05);
-            box-shadow: var(--shadow-xl);
-            background: var(--ewu-red-dark);
-        }
-
-        .fab-icon {
-            transition: transform 0.2s ease;
-        }
-
-        .fab-container.open .fab-icon {
-            transform: rotate(45deg);
-        }
-
-        .fab-menu {
-            position: absolute;
-            bottom: 56px;
-            right: 0;
+        .header-copy {
             display: flex;
             flex-direction: column;
-            gap: var(--space-1);
-            opacity: 0;
-            visibility: hidden;
-            transform: translateY(8px);
-            transition: all 0.15s ease;
-            background: var(--color-canvas-default);
-            border: 1px solid var(--color-border-default);
-            border-radius: var(--radius-2);
-            padding: var(--space-1);
-            box-shadow: var(--shadow-lg);
-            min-width: 160px;
+            gap: 6px;
+            min-width: 0;
         }
 
-        .fab-container.open .fab-menu {
-            opacity: 1;
-            visibility: visible;
-            transform: translateY(0);
-        }
-
-        .fab-item {
+        .header-actions {
+            position: relative;
             display: flex;
             align-items: center;
-            gap: var(--space-2);
-            padding: var(--space-2) var(--space-2);
-            background: transparent;
-            border: none;
-            border-radius: var(--radius-2);
-            cursor: pointer;
-            transition: background 0.15s ease;
-            white-space: nowrap;
-            font-weight: 500;
-            font-size: 14px;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .header-settings-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            height: 36px;
+            padding: 0 12px;
+            border-radius: 8px;
+            border: 1px solid var(--color-border-default);
+            background: var(--color-canvas-default);
             color: var(--color-fg-default);
-            text-align: left;
-            width: 100%;
+            font-weight: 600;
         }
 
-        .fab-item:hover {
+        .header-settings-button:hover {
             background: var(--color-canvas-subtle);
-            transform: none;
-            box-shadow: none;
+            border-color: #afb8c1;
         }
 
-        .fab-item-icon {
-            font-size: 16px;
-            width: 20px;
+        .header-settings-menu {
+            position: absolute;
+            right: 0;
+            top: calc(100% + 8px);
+            z-index: 1100;
+            width: 280px;
+            padding: 8px;
+            display: none;
+            flex-direction: column;
+            gap: 4px;
+            border: 1px solid var(--color-border-default);
+            border-radius: 10px;
+            background: var(--color-canvas-default);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .header-actions.open .header-settings-menu {
+            display: flex;
+        }
+
+        .header-settings-section-label {
+            margin: 4px 4px 2px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-weight: 700;
+            color: var(--color-fg-muted);
+        }
+
+        .header-settings-divider {
+            height: 1px;
+            margin: 4px 2px;
+            background: var(--color-border-muted);
+        }
+
+        .header-settings-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            height: 34px;
+            padding: 0 10px;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            background: transparent;
+            color: var(--color-fg-default);
+            font-size: 14px;
+            font-weight: 500;
+            justify-content: flex-start;
+            text-align: left;
+        }
+
+        .header-settings-item:hover {
+            background: var(--color-canvas-subtle);
+            border-color: var(--color-border-muted);
+        }
+
+        .header-settings-item-icon {
+            width: 18px;
             text-align: center;
+            flex-shrink: 0;
         }
 
         @keyframes slideDown {
@@ -455,7 +463,7 @@
         }
 
         /* Primary button */
-        button.btn-primary, .fab-main {
+        button.btn-primary {
             background: var(--ewu-red);
             color: var(--color-fg-on-emphasis);
             border: none;
@@ -2743,7 +2751,7 @@
 
         .copy-year-btn,
         .btn-secondary,
-        .fab-item,
+        .header-settings-item,
         .nav-link {
             border-color: var(--ewu-line);
             color: var(--ewu-black);
@@ -2752,7 +2760,7 @@
 
         .copy-year-btn:hover,
         .btn-secondary:hover,
-        .fab-item:hover,
+        .header-settings-item:hover,
         .nav-link:hover {
             background: var(--ewu-stone);
             border-color: #c8c1ba;
@@ -3076,14 +3084,12 @@
             border-bottom: 1px solid var(--ewu-line);
         }
 
-        .fab-main,
         button.btn-primary {
             background: var(--ewu-red);
             border: 1px solid var(--ewu-red-dark);
             color: #fff;
         }
 
-        .fab-main:hover,
         button.btn-primary:hover {
             background: var(--ewu-red-dark);
         }
@@ -3258,7 +3264,7 @@
 
         .copy-year-btn,
         .btn-secondary,
-        .fab-item,
+        .header-settings-item,
         .nav-link {
             border: 1px solid var(--primer-border-default);
             color: var(--primer-fg-default);
@@ -3269,7 +3275,7 @@
 
         .copy-year-btn:hover,
         .btn-secondary:hover,
-        .fab-item:hover,
+        .header-settings-item:hover,
         .nav-link:hover {
             background: var(--primer-bg-subtle);
             border-color: #afb8c1;
@@ -3585,6 +3591,19 @@
             header {
                 padding: 1.4rem 1rem 1.2rem;
             }
+            .header-shell {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+            }
+            .header-actions {
+                align-self: flex-start;
+            }
+            .header-settings-menu {
+                right: auto;
+                left: 0;
+                width: min(92vw, 320px);
+            }
             h1 {
                 font-size: 1.55rem;
             }
@@ -3678,9 +3697,56 @@
 
     <div class="container">
         <header>
-            <div class="header-eyebrow">EWU DESIGN · PROGRAM COMMAND</div>
-            <h1>Program Command</h1>
-            <p class="subtitle">Design Program Planning, Scheduling, and Scenario Control</p>
+            <div class="header-shell">
+                <div class="header-copy">
+                    <div class="header-eyebrow">EWU DESIGN · PROGRAM COMMAND</div>
+                    <h1>Program Command</h1>
+                    <p class="subtitle">Design Program Planning, Scheduling, and Scenario Control</p>
+                </div>
+                <div class="header-actions" id="headerActions">
+                    <button class="header-settings-button" id="headerSettingsButton" type="button" onclick="toggleHeaderSettingsMenu(event)" aria-haspopup="true" aria-expanded="false" title="Open settings and actions">
+                        <span aria-hidden="true">⚙️</span>
+                        <span>Settings</span>
+                    </button>
+                    <div class="header-settings-menu" id="headerSettingsMenu" role="menu" aria-label="Program command settings">
+                        <div class="header-settings-section-label">Schedule</div>
+                        <button class="header-settings-item" type="button" onclick="runHeaderSettingsAction('save')">
+                            <span class="header-settings-item-icon">💾</span>
+                            <span>Save Schedule</span>
+                        </button>
+                        <button class="header-settings-item" type="button" onclick="runHeaderSettingsAction('conflicts')">
+                            <span class="header-settings-item-icon">🔍</span>
+                            <span>Detect Conflicts</span>
+                        </button>
+                        <button class="header-settings-item" type="button" onclick="runHeaderSettingsAction('ai')">
+                            <span class="header-settings-item-icon">✨</span>
+                            <span>AI Analysis</span>
+                        </button>
+                        <button class="header-settings-item" type="button" onclick="runHeaderSettingsAction('print')">
+                            <span class="header-settings-item-icon">🖨️</span>
+                            <span>Print Schedule</span>
+                        </button>
+                        <button class="header-settings-item" type="button" onclick="runHeaderSettingsAction('sheets')">
+                            <span class="header-settings-item-icon">📊</span>
+                            <span>Export to Sheets</span>
+                        </button>
+                        <div class="header-settings-divider"></div>
+                        <div class="header-settings-section-label">Configuration</div>
+                        <button class="header-settings-item" type="button" onclick="runHeaderSettingsAction('rules')">
+                            <span class="header-settings-item-icon">📋</span>
+                            <span>Constraint Rules</span>
+                        </button>
+                        <button class="header-settings-item" type="button" onclick="runHeaderSettingsAction('api')">
+                            <span class="header-settings-item-icon">🔐</span>
+                            <span>API Connections</span>
+                        </button>
+                        <button class="header-settings-item" type="button" onclick="runHeaderSettingsAction('accounts')">
+                            <span class="header-settings-item-icon">👤</span>
+                            <span>Users & Accounts</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
         </header>
 
         <!-- Year and Quarter Navigation -->
@@ -3771,43 +3837,6 @@
             <option value="winter">Winter 2026</option>
             <option value="spring" selected>Spring 2026</option>
         </select>
-
-        <!-- Floating Action Button -->
-        <div class="fab-container" id="fabContainer">
-            <button class="fab-main" onclick="toggleFabMenu()" title="Actions">
-                <span class="fab-icon">⚡</span>
-            </button>
-            <div class="fab-menu" id="fabMenu">
-                <button class="fab-item" onclick="saveScheduleChanges()" title="Save Changes">
-                    <span class="fab-item-icon">💾</span>
-                    <span class="fab-item-label">Save</span>
-                </button>
-                <button class="fab-item" onclick="runConflictDetection()" title="Detect Conflicts">
-                    <span class="fab-item-icon">🔍</span>
-                    <span class="fab-item-label">Conflicts</span>
-                </button>
-                <button class="fab-item" onclick="evaluateScheduleWithAI()" title="AI Analysis">
-                    <span class="fab-item-icon">✨</span>
-                    <span class="fab-item-label">AI Analysis</span>
-                </button>
-                <button class="fab-item" onclick="openConstraintsModal()" title="Rules">
-                    <span class="fab-item-icon">📋</span>
-                    <span class="fab-item-label">Rules</span>
-                </button>
-                <button class="fab-item" onclick="openApiSettingsModal()" title="Settings">
-                    <span class="fab-item-icon">⚙️</span>
-                    <span class="fab-item-label">Settings</span>
-                </button>
-                <button class="fab-item" onclick="exportToGoogleSheets()" title="Export to Google Sheets">
-                    <span class="fab-item-icon">📊</span>
-                    <span class="fab-item-label">Export to Sheets</span>
-                </button>
-                <button class="fab-item" onclick="openPrintDialog()" title="Print Schedule">
-                    <span class="fab-item-icon">🖨️</span>
-                    <span class="fab-item-label">Print</span>
-                </button>
-            </div>
-        </div>
 
         <!-- Dashboard Navigation -->
         <div class="dashboard-nav">
@@ -4133,17 +4162,73 @@
             panel.classList.toggle('collapsed');
         }
 
-        // Floating action button menu toggle
-        function toggleFabMenu() {
-            const container = document.getElementById('fabContainer');
-            container.classList.toggle('open');
+        function toggleHeaderSettingsMenu(event) {
+            if (event) event.stopPropagation();
+
+            const container = document.getElementById('headerActions');
+            const button = document.getElementById('headerSettingsButton');
+            if (!container || !button) return;
+
+            const willOpen = !container.classList.contains('open');
+            container.classList.toggle('open', willOpen);
+            button.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
         }
 
-        // Close FAB menu when clicking outside
+        function closeHeaderSettingsMenu() {
+            const container = document.getElementById('headerActions');
+            const button = document.getElementById('headerSettingsButton');
+            if (!container || !button) return;
+
+            container.classList.remove('open');
+            button.setAttribute('aria-expanded', 'false');
+        }
+
+        function runHeaderSettingsAction(action) {
+            closeHeaderSettingsMenu();
+
+            if (action === 'save') {
+                saveScheduleChanges();
+                return;
+            }
+            if (action === 'conflicts') {
+                runConflictDetection();
+                return;
+            }
+            if (action === 'ai') {
+                evaluateScheduleWithAI();
+                return;
+            }
+            if (action === 'print') {
+                openPrintDialog();
+                return;
+            }
+            if (action === 'sheets') {
+                exportToGoogleSheets();
+                return;
+            }
+            if (action === 'rules') {
+                openConstraintsModal();
+                return;
+            }
+            if (action === 'api') {
+                openApiSettingsModal();
+                return;
+            }
+            if (action === 'accounts') {
+                showToast('Users & accounts is the next build step: add Supabase Auth + role-based permissions.', 'success');
+            }
+        }
+
         document.addEventListener('click', function(e) {
-            const fabContainer = document.getElementById('fabContainer');
-            if (fabContainer && !fabContainer.contains(e.target)) {
-                fabContainer.classList.remove('open');
+            const headerActions = document.getElementById('headerActions');
+            if (headerActions && !headerActions.contains(e.target)) {
+                closeHeaderSettingsMenu();
+            }
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeHeaderSettingsMenu();
             }
         });
 
@@ -9424,7 +9509,7 @@ RESPONSE FORMAT:
             const quarterLabel = document.getElementById('quarterSelect').options[document.getElementById('quarterSelect').selectedIndex].text;
             document.getElementById('printCurrentLabel').textContent = quarterLabel;
             modal.classList.add('active');
-            toggleFabMenu();
+            closeHeaderSettingsMenu();
         }
 
         function closePrintDialog() {
