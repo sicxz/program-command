@@ -293,6 +293,34 @@
             box-shadow: 0 0 0 3px rgba(161, 0, 34, 0.15);
         }
 
+        .filters-actions {
+            display: flex;
+            align-items: flex-end;
+            justify-content: flex-start;
+            gap: 8px;
+        }
+
+        .lens-status {
+            margin-top: var(--space-2);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--color-fg-muted);
+        }
+
+        .lens-chip {
+            display: inline-flex;
+            align-items: center;
+            border: 1px solid var(--color-border-default);
+            border-radius: 999px;
+            padding: 2px 8px;
+            background: var(--color-canvas-subtle);
+            color: var(--color-fg-default);
+            font-weight: 600;
+            font-size: 12px;
+        }
+
         .header-shell {
             display: flex;
             align-items: flex-start;
@@ -3773,47 +3801,11 @@
         <!-- Collapsible Filters Panel -->
         <div class="filters-panel collapsed" id="filtersPanel">
             <div class="filters-toggle" onclick="toggleFiltersPanel()">
-                <span>🎯 Filters & Options</span>
+                <span>🎯 Advising Lens</span>
                 <span class="toggle-icon">▼</span>
             </div>
             <div class="filters-content" id="filtersContent">
                 <div class="filters-grid">
-                    <div class="filter-group">
-                        <label for="courseFilter">Filter by Course:</label>
-                        <select id="courseFilter">
-                            <option value="all">All Courses</option>
-                            <option value="DESN 401">DESN 401 - Imaginary Worlds</option>
-                            <option value="DESN 463">DESN 463 - Community Design</option>
-                            <option value="DESN 379">DESN 379 - Web Dev 2</option>
-                        </select>
-                    </div>
-
-                    <div class="filter-group">
-                        <label for="roomFilter">Filter by Room:</label>
-                        <select id="roomFilter">
-                            <option value="all">All Rooms</option>
-                            <option value="206">206 UX Lab</option>
-                            <option value="207">207 Media Lab</option>
-                            <option value="209">209 Mac Lab</option>
-                            <option value="210">210 Mac Lab</option>
-                            <option value="212">212 Project Lab</option>
-                            <option value="CEB">CEB Rooms</option>
-                        </select>
-                    </div>
-
-                    <div class="filter-group">
-                        <label for="minorFilter">Filter by Minor:</label>
-                        <select id="minorFilter">
-                            <option value="all">All Courses</option>
-                            <option value="ux">UX/Interaction Design</option>
-                            <option value="animation">Animation</option>
-                            <option value="gameDesign">Game Design</option>
-                            <option value="graphicDesign">Graphic Design</option>
-                            <option value="photography">Photography</option>
-                            <option value="webDevelopment">Web Development</option>
-                        </select>
-                    </div>
-
                     <div class="filter-group">
                         <label for="trackFilter">Student Track:</label>
                         <select id="trackFilter">
@@ -3827,7 +3819,25 @@
                             <option value="photography">Photography</option>
                         </select>
                     </div>
+
+                    <div class="filter-group">
+                        <label for="minorFilter">Program / Minor Lens:</label>
+                        <select id="minorFilter">
+                            <option value="all">No Minor Lens</option>
+                            <option value="ux">UX/Interaction Design</option>
+                            <option value="animation">Animation</option>
+                            <option value="gameDesign">Game Design</option>
+                            <option value="graphicDesign">Graphic Design</option>
+                            <option value="photography">Photography</option>
+                            <option value="webDevelopment">Web Development</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group filters-actions">
+                        <button class="btn-secondary" type="button" onclick="resetLensFilters()">Clear Lens</button>
+                    </div>
                 </div>
+                <div class="lens-status" id="lensStatus">No advising lens active.</div>
             </div>
         </div>
 
@@ -4413,6 +4423,7 @@
 
         // Load dynamic enrollment data from JSON file
         let enrollmentData = {};
+        const NEW_COURSE_CODES = new Set(['DESN 345', 'DESN 369', 'DESN 379']);
 
         async function loadEnrollmentData() {
             try {
@@ -4798,13 +4809,27 @@
                             let displayEnrollment = enrollment.average; // fallback
                             let tooltipText = 'Avg enrollment: ' + enrollment.average;
                             let showYearIndicator = false;
+                            const hasPriorQuarterSample = Boolean(
+                                prevYearQuarter
+                                && enrollment.quarterly
+                                && enrollment.quarterly[prevYearQuarter] !== undefined
+                            );
+                            const treatAsNewCourse = Boolean(
+                                NEW_COURSE_CODES.has(normalizeCourseCode(course.code))
+                                ||
+                                enrollment.isNew
+                                || enrollment.trend === 'new'
+                                || (!hasPriorQuarterSample
+                                    && Number(enrollment.average) === 0
+                                    && Number(enrollment.peak) === 0)
+                            );
 
-                            if (prevYearQuarter && enrollment.quarterly && enrollment.quarterly[prevYearQuarter]) {
+                            if (hasPriorQuarterSample) {
                                 const prevYearData = enrollment.quarterly[prevYearQuarter];
                                 displayEnrollment = typeof prevYearData === 'object' ? prevYearData.total : prevYearData;
                                 tooltipText = quarter.charAt(0).toUpperCase() + quarter.slice(1) + ' 2025: ' + displayEnrollment + ' students';
                                 showYearIndicator = true;
-                            } else if (enrollment.isNew) {
+                            } else if (treatAsNewCourse) {
                                 displayEnrollment = 'NEW';
                                 tooltipText = 'New course - no historical data';
                             }
@@ -6431,7 +6456,9 @@
         }
 
         function isCourseInMinor(courseCode, minorKey) {
-            return minors[minorKey].courses.includes(courseCode);
+            const normalizedCode = normalizeCourseCode(courseCode);
+            return (minors[minorKey]?.courses || [])
+                .some((code) => normalizeCourseCode(code) === normalizedCode);
         }
 
         function displayMinorInfo(minorKey) {
@@ -6529,6 +6556,44 @@
             document.getElementById('minorFilter').dispatchEvent(new Event('change'));
         }
 
+        function resetLensFilters() {
+            const minorFilter = document.getElementById('minorFilter');
+            const trackFilter = document.getElementById('trackFilter');
+            if (minorFilter) minorFilter.value = 'all';
+            if (trackFilter) trackFilter.value = 'all';
+
+            displayMinorInfo('all');
+            highlightMinorCourses('all');
+            displayTrackSuggestions('all');
+            updateLensStatus();
+        }
+
+        function updateLensStatus() {
+            const status = document.getElementById('lensStatus');
+            if (!status) return;
+
+            const minorKey = document.getElementById('minorFilter')?.value || 'all';
+            const trackKey = document.getElementById('trackFilter')?.value || 'all';
+            const chips = [];
+
+            if (trackKey !== 'all' && studentTracks[trackKey]) {
+                chips.push(`<span class="lens-chip">Track: ${escapeHtml(studentTracks[trackKey].name)}</span>`);
+            }
+
+            if (minorKey !== 'all' && minors[minorKey]) {
+                const highlightedCount = document.querySelectorAll('.course-block.minor-highlight').length;
+                chips.push(`<span class="lens-chip">Minor: ${escapeHtml(minors[minorKey].name)}</span>`);
+                chips.push(`<span class="lens-chip">${highlightedCount} highlighted sections</span>`);
+            }
+
+            if (!chips.length) {
+                status.textContent = 'No advising lens active.';
+                return;
+            }
+
+            status.innerHTML = chips.join('');
+        }
+
         function highlightMinorCourses(minorKey) {
             const courseBlocks = document.querySelectorAll('.course-block');
             courseBlocks.forEach(block => {
@@ -6537,12 +6602,16 @@
 
             if (minorKey !== 'all') {
                 courseBlocks.forEach(block => {
-                    const courseCode = block.querySelector('.course-name').textContent;
+                    const courseCode = normalizeCourseCode(
+                        block.dataset.courseCode || block.querySelector('.course-name')?.textContent || ''
+                    );
                     if (isCourseInMinor(courseCode, minorKey)) {
                         block.classList.add('minor-highlight');
                     }
                 });
             }
+
+            updateLensStatus();
         }
 
         // Current course being viewed/edited
@@ -6859,6 +6928,7 @@
         document.getElementById('trackFilter').addEventListener('change', function() {
             const trackKey = this.value;
             displayTrackSuggestions(trackKey);
+            updateLensStatus();
         });
 
         // ============================================
