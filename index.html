@@ -1322,19 +1322,19 @@
         }
 
         /* Faculty color coding */
-        .faculty-masingale { border-left-color: #667eea !important; }
-        .faculty-durr { border-left-color: #e67e22 !important; }
-        .faculty-manikoth { border-left-color: #27ae60 !important; }
-        .faculty-mills { border-left-color: #9b59b6 !important; }
-        .faculty-lybbert { border-left-color: #e74c3c !important; }
-        .faculty-hustrulid { border-left-color: #f39c12 !important; }
-        .faculty-sopu { border-left-color: #3498db !important; }
-        .faculty-norris { border-left-color: #1abc9c !important; }
-        .faculty-braukmann { border-left-color: #34495e !important; }
-        .faculty-allison { border-left-color: #d35400 !important; }
-        .faculty-online { border-left-color: #7f8c8d !important; }
-        .faculty-adjunct { border-left-color: #95a5a6 !important; }
-        .faculty-tbd { border-left-color: #bdc3c7 !important; }
+        .faculty-masingale { --faculty-accent: #667eea; --faculty-glow: rgba(102, 126, 234, 0.28); border-left-color: #667eea !important; }
+        .faculty-durr { --faculty-accent: #e67e22; --faculty-glow: rgba(230, 126, 34, 0.28); border-left-color: #e67e22 !important; }
+        .faculty-manikoth { --faculty-accent: #27ae60; --faculty-glow: rgba(39, 174, 96, 0.28); border-left-color: #27ae60 !important; }
+        .faculty-mills { --faculty-accent: #9b59b6; --faculty-glow: rgba(155, 89, 182, 0.28); border-left-color: #9b59b6 !important; }
+        .faculty-lybbert { --faculty-accent: #e74c3c; --faculty-glow: rgba(231, 76, 60, 0.28); border-left-color: #e74c3c !important; }
+        .faculty-hustrulid { --faculty-accent: #f39c12; --faculty-glow: rgba(243, 156, 18, 0.28); border-left-color: #f39c12 !important; }
+        .faculty-sopu { --faculty-accent: #3498db; --faculty-glow: rgba(52, 152, 219, 0.28); border-left-color: #3498db !important; }
+        .faculty-norris { --faculty-accent: #1abc9c; --faculty-glow: rgba(26, 188, 156, 0.28); border-left-color: #1abc9c !important; }
+        .faculty-braukmann { --faculty-accent: #34495e; --faculty-glow: rgba(52, 73, 94, 0.28); border-left-color: #34495e !important; }
+        .faculty-allison { --faculty-accent: #d35400; --faculty-glow: rgba(211, 84, 0, 0.28); border-left-color: #d35400 !important; }
+        .faculty-online { --faculty-accent: #7f8c8d; --faculty-glow: rgba(127, 140, 141, 0.28); border-left-color: #7f8c8d !important; }
+        .faculty-adjunct { --faculty-accent: #95a5a6; --faculty-glow: rgba(149, 165, 166, 0.28); border-left-color: #95a5a6 !important; }
+        .faculty-tbd { --faculty-accent: #bdc3c7; --faculty-glow: rgba(189, 195, 199, 0.28); border-left-color: #bdc3c7 !important; }
 
         .faculty-legend {
             display: flex;
@@ -3361,15 +3361,40 @@
         }
 
         .course-block {
+            --faculty-accent: var(--ewu-red);
+            --faculty-glow: rgba(161, 0, 34, 0.22);
             border-radius: 8px;
             border: 1px solid var(--primer-border-default);
-            border-left: 3px solid var(--ewu-red);
-            box-shadow: 0 1px 0 rgba(27, 31, 36, 0.04);
+            border-left: 3px solid var(--faculty-accent);
+            box-shadow: 0 1px 0 rgba(27, 31, 36, 0.04), 0 0 0 2px var(--faculty-glow);
         }
 
         .course-block:hover {
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(31, 35, 40, 0.12);
+            box-shadow: 0 4px 12px rgba(31, 35, 40, 0.12), 0 0 0 2px var(--faculty-glow);
+        }
+
+        .course-name {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            width: fit-content;
+            max-width: 100%;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: var(--faculty-accent);
+            color: #ffffff;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+        }
+
+        .course-name .enrollment-badge {
+            color: rgba(255, 255, 255, 0.9) !important;
+            font-size: 0.74em;
+            margin-left: 0;
+        }
+
+        .course-details {
+            margin-top: 4px;
         }
 
         .btn-ewu-accent {
