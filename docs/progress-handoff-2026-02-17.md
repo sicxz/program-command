@@ -2,8 +2,8 @@
 
 ## Current status
 - Branch used for work: `codex/item6-ay-workload`
-- Latest pushed commit before this pass: `9de2093`
-- This pass includes additional unpushed fixes in `index.html`.
+- Latest pushed commit: `09bfecb`
+- This report reflects the current pushed state on `main`.
 
 ## What was changed in this pass
 - Reverted schedule card styling back to the cleaner UI treatment.
@@ -42,3 +42,13 @@
 - Continue AY setup + schedule + workload integration polish.
 - Add/finish workload detail workflows for independent study/internship/senior project reconciliation rates.
 - Keep conflict detection tuned with annual-first and quarter-second review flow.
+
+## Tomorrow notes (requested)
+- Investigate and clarify the top dashboard counters panel (Critical, Conflicts, Courses, Utilization), especially when the summary count does not match visible registered conflicts.
+- Review the header settings `Conflicts` action and define expected behavior (what it opens/highlights, and whether it should jump to quarter/detail context).
+- Plan and implement a dedicated Room Dashboard with room-level scheduling constraints:
+  - Computer/equipment profile by room.
+  - What can be taught in each room (allowed courses/course types).
+  - What should be taught in each room (preferred course-to-room matching).
+  - Preferred rooms by course and preferred rooms by instructor.
+  - Constraint outputs wired into scheduling recommendations and conflict scoring.
