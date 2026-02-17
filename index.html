@@ -3362,39 +3362,15 @@
 
         .course-block {
             --faculty-accent: var(--ewu-red);
-            --faculty-glow: rgba(161, 0, 34, 0.22);
             border-radius: 8px;
             border: 1px solid var(--primer-border-default);
             border-left: 3px solid var(--faculty-accent);
-            box-shadow: 0 1px 0 rgba(27, 31, 36, 0.04), 0 0 0 2px var(--faculty-glow);
+            box-shadow: 0 1px 0 rgba(27, 31, 36, 0.04);
         }
 
         .course-block:hover {
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(31, 35, 40, 0.12), 0 0 0 2px var(--faculty-glow);
-        }
-
-        .course-name {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            width: fit-content;
-            max-width: 100%;
-            padding: 2px 8px;
-            border-radius: 999px;
-            background: var(--faculty-accent);
-            color: #ffffff;
-            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
-        }
-
-        .course-name .enrollment-badge {
-            color: rgba(255, 255, 255, 0.9) !important;
-            font-size: 0.74em;
-            margin-left: 0;
-        }
-
-        .course-details {
-            margin-top: 4px;
+            box-shadow: 0 4px 12px rgba(31, 35, 40, 0.12);
         }
 
         .btn-ewu-accent {
@@ -4448,14 +4424,28 @@
 
         // Load dynamic enrollment data from JSON file
         let enrollmentData = {};
-        const NEW_COURSE_CODES = new Set(['DESN 345', 'DESN 369', 'DESN 379']);
+        let enrollmentDataByCode = {};
+        const NEW_COURSE_CODES = new Set(
+            ['DESN 345', 'DESN 369', 'DESN 379'].map((code) => normalizeCourseCode(code))
+        );
+
+        function rebuildEnrollmentLookup() {
+            enrollmentDataByCode = {};
+            Object.entries(enrollmentData || {}).forEach(([code, stats]) => {
+                enrollmentDataByCode[normalizeCourseCode(code)] = stats;
+            });
+        }
 
         async function loadEnrollmentData() {
             try {
                 const response = await fetch('./enrollment-dashboard-data.json');
                 if (response.ok) {
                     const data = await response.json();
-                    enrollmentData = data.courseStats || {};
+                    enrollmentData = {
+                        ...fallbackEnrollmentData,
+                        ...(data.courseStats || {})
+                    };
+                    rebuildEnrollmentLookup();
                     console.log('✅ Loaded dynamic enrollment data');
                     console.log(`   Total courses: ${Object.keys(enrollmentData).length}`);
                     return true;
@@ -4465,6 +4455,7 @@
             }
             // Fallback to hardcoded data if JSON fails
             enrollmentData = fallbackEnrollmentData;
+            rebuildEnrollmentLookup();
             return false;
         }
 
@@ -4530,7 +4521,10 @@
         }
 
         function getEnrollmentData(courseCode) {
-            return enrollmentData[courseCode] || { average: 0, peak: 0, trend: "unknown", peakQuarter: "" };
+            const normalizedCode = normalizeCourseCode(courseCode);
+            return enrollmentDataByCode[normalizedCode]
+                || enrollmentData[courseCode]
+                || { average: 0, peak: 0, trend: "unknown", peakQuarter: "" };
         }
 
         const scheduleData = {
@@ -5443,7 +5437,13 @@
                     if (!unique.find(c => c.code === course.code)) unique.push(course);
                     return unique;
                 }, [])
-                .sort((a, b) => parseInt(a.code.split(' ')[1]) - parseInt(b.code.split(' ')[1]));
+                .sort((a, b) => {
+                    const aMatch = normalizeCourseCode(a.code).match(/\d{3}[A-Z]?/);
+                    const bMatch = normalizeCourseCode(b.code).match(/\d{3}[A-Z]?/);
+                    const aValue = parseInt(aMatch ? aMatch[0] : '0', 10);
+                    const bValue = parseInt(bMatch ? bMatch[0] : '0', 10);
+                    return aValue - bValue;
+                });
 
             const quarterName = quarter.charAt(0).toUpperCase() + quarter.slice(1);
             const q2023Key = quarter + '-2023';
@@ -5513,6 +5513,11 @@
                 const tbody = document.createElement('tbody');
                 coursesWithHistory.forEach(c => {
                     const enrollment = getEnrollmentData(c.code);
+                    const isNewCourse = Boolean(
+                        enrollment.isNew
+                        || enrollment.trend === 'new'
+                        || NEW_COURSE_CODES.has(normalizeCourseCode(c.code))
+                    );
                     const quarterly = enrollment.quarterly || {};
                     const row = document.createElement('tr');
 
@@ -5521,7 +5526,7 @@
                     const codeStrong = document.createElement('strong');
                     codeStrong.textContent = c.code;
                     codeCell.appendChild(codeStrong);
-                    if (enrollment.isNew) {
+                    if (isNewCourse) {
                         const badge = document.createElement('span');
                         badge.className = 'course-note-badge';
                         badge.textContent = 'NEW';
@@ -5535,15 +5540,16 @@
                     instructorCell.textContent = c.instructor;
 
                     const trendCell = document.createElement('td');
-                    const trendIcon = enrollment.trend === 'declining' ? '📉' : enrollment.trend === 'growing' ? '📈' : enrollment.trend === 'new' ? '✨' : '➡️';
-                    trendCell.textContent = trendIcon + ' ' + enrollment.trend;
+                    const trendValue = isNewCourse ? 'new' : enrollment.trend;
+                    const trendIcon = trendValue === 'declining' ? '📉' : trendValue === 'growing' ? '📈' : trendValue === 'new' ? '✨' : '➡️';
+                    trendCell.textContent = trendIcon + ' ' + trendValue;
 
                     row.appendChild(codeCell);
                     row.appendChild(nameCell);
                     row.appendChild(instructorCell);
-                    row.appendChild(createQuarterCell(quarterly[q2023Key], enrollment.isNew));
-                    row.appendChild(createQuarterCell(quarterly[q2024Key], enrollment.isNew));
-                    row.appendChild(createQuarterCell(quarterly[q2025Key], enrollment.isNew));
+                    row.appendChild(createQuarterCell(quarterly[q2023Key], isNewCourse));
+                    row.appendChild(createQuarterCell(quarterly[q2024Key], isNewCourse));
+                    row.appendChild(createQuarterCell(quarterly[q2025Key], isNewCourse));
                     row.appendChild(trendCell);
                     tbody.appendChild(row);
                 });
@@ -5627,10 +5633,36 @@
         }
 
         function normalizeCourseCode(courseCode) {
-            return String(courseCode || '')
+            const upper = String(courseCode || '')
                 .toUpperCase()
                 .replace(/\s+/g, ' ')
                 .trim();
+
+            return upper.replace(/^([A-Z]{2,5})\s*(\d)/, '$1 $2');
+        }
+
+        function normalizeScheduleCourseCodes(data) {
+            const quarters = ['fall', 'winter', 'spring'];
+
+            quarters.forEach((quarter) => {
+                const quarterData = data?.[quarter];
+                if (!quarterData || typeof quarterData !== 'object') return;
+
+                Object.values(quarterData).forEach((timeBucket) => {
+                    if (!timeBucket || typeof timeBucket !== 'object') return;
+
+                    Object.values(timeBucket).forEach((courses) => {
+                        if (!Array.isArray(courses)) return;
+                        courses.forEach((course) => {
+                            if (course && typeof course === 'object') {
+                                course.code = normalizeCourseCode(course.code);
+                            }
+                        });
+                    });
+                });
+            });
+
+            return data;
         }
 
         function getCourseDisplayLabel(course) {
@@ -7500,7 +7532,7 @@
         function handleAddCourseSubmit(e) {
             e.preventDefault();
 
-            const courseCode = document.getElementById('addCourseCode').value;
+            const courseCode = normalizeCourseCode(document.getElementById('addCourseCode').value);
             const courseName = document.getElementById('addCourseCode').options[document.getElementById('addCourseCode').selectedIndex].text.split(' - ')[1] || '';
             const section = document.getElementById('addSection').value;
             const credits = parseInt(document.getElementById('addCredits').value);
@@ -7555,6 +7587,7 @@
 
         function saveScheduleData() {
             try {
+                normalizeScheduleCourseCodes(scheduleData);
                 localStorage.setItem(getStorageKey(), JSON.stringify(scheduleData));
                 console.log('Schedule data saved for year:', currentAcademicYear);
             } catch (e) {
@@ -7604,6 +7637,7 @@
                 if (saved) {
                     let parsed = JSON.parse(saved);
                     parsed = migrateTimeSlots(parsed);
+                    parsed = normalizeScheduleCourseCodes(parsed);
                     for (const quarter of ['fall', 'winter', 'spring']) {
                         if (parsed[quarter]) {
                             scheduleData[quarter] = parsed[quarter];
