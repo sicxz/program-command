@@ -6409,6 +6409,152 @@
             });
         }
 
+        const UTILIZATION_ROOMS = ['206', '209', '210', '212', 'CEB 102', 'CEB 104'];
+        const UTILIZATION_DAYS = ['MW', 'TR'];
+        const UTILIZATION_TIMES = ['10:00-12:20', '13:00-15:20', '16:00-18:20'];
+        const CHENEY_ONLY_COURSES = new Set(['DESN 100', 'DESN 200', 'DESN 216']);
+        const ROOM_212_ONLY_COURSES = new Set(['DESN 301', 'DESN 359', 'DESN 401']);
+        const ROOM_212_OVERFLOW_COURSES = new Set(['DESN 100', 'DESN 200']);
+
+        function getQuarterSchedulableCourses(data) {
+            return flattenQuarterData(data || {})
+                .filter((course) =>
+                    isSchedulableDay(course.day)
+                    && UTILIZATION_TIMES.includes(course.time)
+                    && UTILIZATION_ROOMS.includes(String(course.room || '').trim())
+                )
+                .map((course) => ({
+                    ...course,
+                    code: normalizeCourseCode(course.code),
+                    credits: Number(course.credits) || 5
+                }));
+        }
+
+        function isRoomPlacementCompatible(course) {
+            const code = normalizeCourseCode(course.code);
+            const room = String(course.room || '').trim();
+            const time = String(course.time || '').trim();
+            const isEvening = time.startsWith('16:');
+
+            if (!UTILIZATION_ROOMS.includes(room)) return false;
+
+            if (code.startsWith('ITGS')) {
+                return (room === 'CEB 102' || room === 'CEB 104') && !isEvening;
+            }
+
+            if (ROOM_212_ONLY_COURSES.has(code)) {
+                return room === '212';
+            }
+
+            if (room === '212') {
+                return ROOM_212_ONLY_COURSES.has(code) || ROOM_212_OVERFLOW_COURSES.has(code);
+            }
+
+            if (CHENEY_ONLY_COURSES.has(code)) {
+                return room === 'CEB 102' || room === 'CEB 104' || room === '212';
+            }
+
+            return true;
+        }
+
+        function buildCapacityUtilizationSnapshot(quarter, data) {
+            const aySetup = readAySetupDataForYear(currentAcademicYear) || {};
+            const facultyRecords = Array.isArray(aySetup.faculty) ? aySetup.faculty : [];
+            const adjunctTarget = Number(aySetup?.adjunctTargets?.[quarter]) || 0;
+
+            const capacityByFaculty = new Map();
+            const adjunctFacultyNames = new Set();
+            let fullTimeCapacityCredits = 0;
+            let adjunctRosterCapacityCredits = 0;
+
+            facultyRecords.forEach((record) => {
+                const canonicalName = getCanonicalFacultyName(record.name || '');
+                if (!canonicalName || canonicalName === 'TBD') return;
+
+                const annualTarget = Number(record.annualTargetCredits) || 0;
+                const releaseCredits = Number(record.releaseCredits) || 0;
+                const ftePercent = Number(record.ftePercent);
+                const fteFactor = Number.isFinite(ftePercent) && ftePercent > 0 ? Math.min(1, ftePercent / 100) : 1;
+                const quarterlyCapacity = Math.max(0, (annualTarget - releaseCredits) / 3) * fteFactor;
+                const roleText = String(record.role || '').toLowerCase();
+                const isAdjunct = canonicalName === 'Adjunct' || roleText.includes('adjunct');
+
+                capacityByFaculty.set(canonicalName, {
+                    quarterlyCapacity,
+                    isAdjunct
+                });
+
+                if (isAdjunct) {
+                    adjunctFacultyNames.add(canonicalName);
+                    adjunctRosterCapacityCredits += quarterlyCapacity;
+                } else {
+                    fullTimeCapacityCredits += quarterlyCapacity;
+                }
+            });
+
+            const allQuarterCourses = flattenQuarterData(data || {}).map((course) => ({
+                ...course,
+                instructor: getCanonicalFacultyName(course.instructor || 'TBD'),
+                credits: Number(course.credits) || 5
+            }));
+
+            let totalAssignedTeachingCredits = 0;
+            let assignedAdjunctCredits = 0;
+            let implicitUnknownFacultyCapacity = 0;
+
+            allQuarterCourses.forEach((course) => {
+                if (!course.instructor || course.instructor === 'TBD') return;
+                totalAssignedTeachingCredits += course.credits;
+
+                const knownFaculty = capacityByFaculty.get(course.instructor);
+                if (course.instructor === 'Adjunct' || knownFaculty?.isAdjunct || adjunctFacultyNames.has(course.instructor)) {
+                    assignedAdjunctCredits += course.credits;
+                    return;
+                }
+
+                if (!knownFaculty) {
+                    // Neutral treatment for instructors missing from AY setup to reduce hidden bias.
+                    implicitUnknownFacultyCapacity += course.credits;
+                }
+            });
+
+            const schedulableCourses = getQuarterSchedulableCourses(data);
+            const compatiblePlacements = schedulableCourses.filter(isRoomPlacementCompatible).length;
+            const roomFitRate = schedulableCourses.length > 0 ? compatiblePlacements / schedulableCourses.length : 1;
+
+            const usedRoomSlots = new Set(
+                schedulableCourses.map((course) => `${course.day}|${course.time}|${course.room}`)
+            ).size;
+            const totalRoomSlots = UTILIZATION_ROOMS.length * UTILIZATION_DAYS.length * UTILIZATION_TIMES.length;
+            const roomUtilizationRate = totalRoomSlots > 0 ? usedRoomSlots / totalRoomSlots : 0;
+
+            const adjunctCapacityCredits = Math.max(adjunctTarget, adjunctRosterCapacityCredits, assignedAdjunctCredits);
+            const totalFacultyCapacityCredits =
+                fullTimeCapacityCredits + adjunctCapacityCredits + implicitUnknownFacultyCapacity;
+            const facultyUtilizationRate = totalFacultyCapacityCredits > 0
+                ? totalAssignedTeachingCredits / totalFacultyCapacityCredits
+                : 0;
+
+            const compositeRate =
+                (Math.min(1.2, facultyUtilizationRate) * 0.55)
+                + (roomUtilizationRate * 0.30)
+                + (roomFitRate * 0.15);
+
+            return {
+                utilizationPercent: Math.max(0, Math.round(compositeRate * 100)),
+                facultyUtilizationRate,
+                roomUtilizationRate,
+                roomFitRate,
+                totalAssignedTeachingCredits,
+                totalFacultyCapacityCredits,
+                assignedAdjunctCredits,
+                adjunctTarget,
+                usedRoomSlots,
+                totalRoomSlots,
+                implicitUnknownFacultyCapacity
+            };
+        }
+
         function updateStats(quarter) {
             const data = scheduleData[quarter];
             refreshConflictData();
@@ -6422,37 +6568,28 @@
             });
 
             const criticalConflicts = conflicts.filter(c => c.severity === 'critical').length;
-
-            // Calculate room utilization (excludes Room 207 - dedicated project room)
-            const rooms = ['206', '209', '210', '212', 'CEB 102', 'CEB 104'];
-            const times = ['10:00-12:20', '13:00-15:20', '16:00-18:20'];
-            const days = ['MW', 'TR'];
-
-            let totalSlots = 0;
-            let filledSlots = 0;
-
-            days.forEach(day => {
-                if (data[day]) {
-                    times.forEach(time => {
-                        if (data[day][time]) {
-                            rooms.forEach(room => {
-                                totalSlots++;
-                                const coursesInRoom = data[day][time].filter(c => c.room === room);
-                                if (coursesInRoom.length > 0) {
-                                    filledSlots++;
-                                }
-                            });
-                        }
-                    });
-                }
-            });
-
-            const utilizationRate = totalSlots > 0 ? Math.round((filledSlots / totalSlots) * 100) : 0;
+            const snapshot = buildCapacityUtilizationSnapshot(quarter, data);
+            const utilizationRate = snapshot.utilizationPercent;
 
             document.getElementById('criticalConflicts').textContent = criticalConflicts;
             document.getElementById('totalConflicts').textContent = conflicts.length;
             document.getElementById('totalCourses').textContent = totalCourses;
             document.getElementById('utilizationRate').textContent = utilizationRate + '%';
+
+            const utilizationEl = document.getElementById('utilizationRate');
+            if (utilizationEl) {
+                utilizationEl.title =
+                    `Capacity-aware utilization\n`
+                    + `Faculty load: ${snapshot.totalAssignedTeachingCredits.toFixed(1)} / ${snapshot.totalFacultyCapacityCredits.toFixed(1)} credits `
+                    + `(${Math.round(snapshot.facultyUtilizationRate * 100)}%)\n`
+                    + `Room slots used: ${snapshot.usedRoomSlots} / ${snapshot.totalRoomSlots} `
+                    + `(${Math.round(snapshot.roomUtilizationRate * 100)}%)\n`
+                    + `Room fit score: ${Math.round(snapshot.roomFitRate * 100)}%\n`
+                    + `Adjunct assigned/target: ${snapshot.assignedAdjunctCredits.toFixed(1)} / ${snapshot.adjunctTarget.toFixed(1)} credits`
+                    + (snapshot.implicitUnknownFacultyCapacity > 0
+                        ? `\nImplicit capacity from non-AY faculty: ${snapshot.implicitUnknownFacultyCapacity.toFixed(1)} credits`
+                        : '');
+            }
         }
 
         function isCourseInMinor(courseCode, minorKey) {
