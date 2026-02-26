@@ -7781,6 +7781,7 @@
             winter: 'Winter',
             spring: 'Spring'
         };
+        const CLSS_WORKLOAD_IMPORT_STORAGE_KEY = 'programCommandClssWorkloadImport';
         const CLSS_IMPORT_STATUS_LABELS = {
             ready: 'Ready',
             online: 'Online',
@@ -7792,6 +7793,7 @@
         let clssImportPreviewRows = [];
         let clssImportOcrInProgress = false;
         let clssImportOcrLibraryPromise = null;
+        let clssImportPriorYearPlacementIndexCache = new Map();
 
         function openClssImportModal() {
             const modal = document.getElementById('clssImportModal');
@@ -7800,6 +7802,7 @@
                 quarterSelect.value = (window.StateManager?.get('currentQuarter')) || 'spring';
             }
             populateClssImportTargetYearOptions();
+            refreshClssImportModeUi();
             toggleClssImportInputMode();
             handleClssImportPngSelection();
             modal?.classList.add('active');
@@ -7831,6 +7834,33 @@
             return document.getElementById('clssImportScope')?.value === 'all' ? 'all' : 'single';
         }
 
+        function getClssImportBuildMode() {
+            return document.getElementById('clssImportBuildMode')?.value === 'workloads' ? 'workloads' : 'schedule';
+        }
+
+        function refreshClssImportModeUi() {
+            const mode = getClssImportBuildMode();
+            const applyBtn = document.getElementById('clssImportApplyButton');
+            const helpEl = document.getElementById('clssImportModeHelp');
+            const resolveColHeader = document.getElementById('clssImportResolveHeader');
+
+            if (applyBtn) {
+                applyBtn.textContent = mode === 'workloads' ? 'Build Workloads' : 'Apply Import';
+            }
+
+            if (helpEl) {
+                helpEl.textContent = mode === 'workloads'
+                    ? 'Workloads mode imports CLSS rows into a workload handoff dataset. It does not require room/slot placement.'
+                    : 'Schedule mode imports rows into scheduler grid/online/arranged sections and uses slot/room placement logic.';
+            }
+
+            if (resolveColHeader) {
+                resolveColHeader.textContent = mode === 'workloads' ? 'Optional Resolve' : 'Resolve';
+            }
+
+            refreshClssImportPreviewReview();
+        }
+
         function toggleClssImportInputMode() {
             const scope = getClssImportScope();
             const singleField = document.getElementById('clssImportSingleTextField');
@@ -7854,6 +7884,7 @@
         function applyClssRolloutPreset() {
             const yearModeSelect = document.getElementById('clssImportTargetYearMode');
             const scopeSelect = document.getElementById('clssImportScope');
+            const buildModeSelect = document.getElementById('clssImportBuildMode');
             const replaceCheckbox = document.getElementById('clssImportReplaceQuarter');
 
             if (yearModeSelect) {
@@ -7862,10 +7893,14 @@
             if (scopeSelect) {
                 scopeSelect.value = 'all';
             }
+            if (buildModeSelect) {
+                buildModeSelect.value = 'schedule';
+            }
             if (replaceCheckbox) {
                 replaceCheckbox.checked = false;
             }
 
+            refreshClssImportModeUi();
             toggleClssImportInputMode();
             invalidateClssImportPreview();
             refreshClssImportPreviewReview();
@@ -7902,6 +7937,20 @@
             const end = Number(parts[1]);
             if (!Number.isFinite(start) || !Number.isFinite(end)) return null;
             return `${start + 1}-${end + 1}`;
+        }
+
+        function getPreviousAcademicYearFromLabel(academicYear) {
+            const parts = String(academicYear || '').split('-');
+            if (parts.length !== 2) return null;
+
+            const start = Number(parts[0]);
+            const end = Number(parts[1]);
+            if (!Number.isFinite(start) || !Number.isFinite(end)) return null;
+            return `${start - 1}-${end - 1}`;
+        }
+
+        function invalidateClssImportPriorYearPlacementCache() {
+            clssImportPriorYearPlacementIndexCache = new Map();
         }
 
         function handleClssImportPngSelection() {
@@ -7956,6 +8005,7 @@
             }
 
             const parseResult = parseClssImportSources(parseSources);
+            applyClssPriorYearAutoSuggestionsToRows(parseResult.rows, getClssImportTargetAcademicYear());
             clssImportPreviewRows = parseResult.rows;
             renderClssImportReview(clssImportPreviewRows, parseResult.meta);
 
@@ -7964,8 +8014,9 @@
                 return;
             }
 
-            const readyCount = clssImportPreviewRows.filter((row) => row.status === 'ready').length;
-            const needsReviewCount = clssImportPreviewRows.filter((row) => row.status === 'needs-review').length;
+            const effectiveRows = clssImportPreviewRows.map((row) => getClssImportRowEffectiveState(row));
+            const readyCount = effectiveRows.filter((row) => row.effectiveStatus === 'ready').length;
+            const needsReviewCount = effectiveRows.filter((row) => row.effectiveStatus === 'needs-review').length;
             showToast(`Parsed ${clssImportPreviewRows.length} row${clssImportPreviewRows.length === 1 ? '' : 's'} (${readyCount} ready${needsReviewCount ? `, ${needsReviewCount} needs review` : ''})`);
         }
 
@@ -8212,6 +8263,142 @@
                 rows: combinedRows,
                 meta: { warnings }
             };
+        }
+
+        function buildClssImportPriorYearPlacementIndexForTargetYear(targetYear) {
+            const cacheKey = String(targetYear || '').trim();
+            if (!cacheKey) return null;
+            if (clssImportPriorYearPlacementIndexCache.has(cacheKey)) {
+                return clssImportPriorYearPlacementIndexCache.get(cacheKey);
+            }
+
+            const previousYear = getPreviousAcademicYearFromLabel(cacheKey);
+            if (!previousYear) {
+                clssImportPriorYearPlacementIndexCache.set(cacheKey, null);
+                return null;
+            }
+
+            const previousSchedule = loadScheduleDataSnapshotForYear(previousYear);
+            const byQuarter = { fall: [], winter: [], spring: [] };
+
+            CLSS_IMPORT_QUARTERS.forEach((quarter) => {
+                const quarterData = previousSchedule?.[quarter];
+                if (!quarterData || typeof quarterData !== 'object') return;
+
+                Object.entries(quarterData).forEach(([day, dayData]) => {
+                    if (!isSchedulableDay(day) || !dayData || typeof dayData !== 'object') return;
+                    Object.entries(dayData).forEach(([time, courses]) => {
+                        if (!Array.isArray(courses)) return;
+                        courses.forEach((course, index) => {
+                            const normalizedCode = normalizeCourseCode(course?.code);
+                            if (!normalizedCode) return;
+                            byQuarter[quarter].push({
+                                id: `${previousYear}-${quarter}-${day}-${time}-${index}`,
+                                year: previousYear,
+                                quarter,
+                                code: normalizedCode,
+                                section: String(course?.section || '').trim(),
+                                instructor: getCanonicalFacultyName(course?.instructor || 'TBD'),
+                                day,
+                                time,
+                                room: String(course?.room || '').trim()
+                            });
+                        });
+                    });
+                });
+            });
+
+            const index = { previousYear, byQuarter };
+            clssImportPriorYearPlacementIndexCache.set(cacheKey, index);
+            return index;
+        }
+
+        function findClssPriorYearPlacementSuggestion(row, targetYear) {
+            const quarter = row?.reviewQuarter || row?.targetQuarter;
+            if (!CLSS_IMPORT_QUARTERS.includes(quarter)) return null;
+
+            const code = normalizeCourseCode(row?.code);
+            if (!code) return null;
+
+            const index = buildClssImportPriorYearPlacementIndexForTargetYear(targetYear);
+            const candidates = Array.isArray(index?.byQuarter?.[quarter]) ? index.byQuarter[quarter] : [];
+            if (!candidates.length) return null;
+
+            const canonicalInstructor = getCanonicalFacultyName(row?.instructor || 'TBD');
+            const section = String(row?.section || '').trim();
+            const desiredDay = String(row?.reviewDay || row?.schedulerDay || '').trim();
+            const desiredTime = String(row?.reviewTime || row?.schedulerTime || '').trim();
+
+            const scored = candidates
+                .filter((candidate) => candidate.code === code)
+                .map((candidate) => {
+                    let score = 0;
+                    if (canonicalInstructor && canonicalInstructor !== 'TBD' && candidate.instructor === canonicalInstructor) score += 100;
+                    if (section && candidate.section && candidate.section === section) score += 60;
+                    if (desiredDay && candidate.day === desiredDay) score += 30;
+                    if (desiredTime && candidate.time === desiredTime) score += 30;
+                    if (desiredDay && desiredTime && candidate.day === desiredDay && candidate.time === desiredTime) score += 25;
+                    if (candidate.room && CLSS_IMPORT_ALLOWED_ROOMS.has(candidate.room)) score += 5;
+                    return { candidate, score };
+                })
+                .sort((a, b) => b.score - a.score);
+
+            if (!scored.length) return null;
+
+            const best = scored[0].candidate;
+            return {
+                sourceYear: index?.previousYear || '',
+                quarter: best.quarter,
+                day: best.day,
+                time: best.time,
+                room: CLSS_IMPORT_ALLOWED_ROOMS.has(best.room) ? best.room : '',
+                matchedInstructor: best.instructor === canonicalInstructor && canonicalInstructor !== 'TBD',
+                matchedSection: Boolean(section && best.section && best.section === section)
+            };
+        }
+
+        function applyClssPriorYearAutoSuggestionsToRows(rows, targetYear) {
+            const list = Array.isArray(rows) ? rows : [];
+            if (!list.length) return;
+
+            list.forEach((row) => {
+                if (!row || row.status === 'error' || row.status === 'online' || row.status === 'arranged') return;
+
+                const hasManualReviewOverride = Boolean(
+                    row.reviewPlacement || row.reviewDay || row.reviewTime || row.reviewRoom
+                );
+                if (hasManualReviewOverride) return;
+
+                const suggestion = findClssPriorYearPlacementSuggestion(row, targetYear);
+                if (!suggestion) return;
+
+                const rowHasParsedSlot = Boolean(row.schedulerDay && row.schedulerTime);
+                const shouldFillSlotFromHistory = !rowHasParsedSlot;
+                const shouldFillRoomFromHistory = !row.schedulerRoom;
+
+                if (!shouldFillSlotFromHistory && !shouldFillRoomFromHistory) {
+                    return;
+                }
+
+                row.reviewPlacement = 'inperson';
+                if (shouldFillSlotFromHistory) {
+                    row.reviewDay = suggestion.day || '';
+                    row.reviewTime = suggestion.time || '';
+                } else {
+                    row.reviewDay = row.schedulerDay || row.reviewDay || '';
+                    row.reviewTime = row.schedulerTime || row.reviewTime || '';
+                }
+                row.reviewRoom = suggestion.room || 'AUTO';
+                row.reviewQuarter = row.targetQuarter || row.reviewQuarter || 'spring';
+
+                const suggestionDetails = [
+                    suggestion.sourceYear ? `from ${suggestion.sourceYear}` : 'from prior year',
+                    suggestion.day && suggestion.time ? `${suggestion.day} ${suggestion.time}` : '',
+                    suggestion.room ? suggestion.room : 'auto room'
+                ].filter(Boolean).join(' • ');
+
+                row.notes = [...new Set([...(row.notes || []), `Auto-matched prior-year placement (${suggestionDetails})`])];
+            });
         }
 
         function getClssImportRowEffectiveState(row) {
@@ -8530,6 +8717,7 @@
             }, {});
 
             const scope = getClssImportScope();
+            const buildMode = getClssImportBuildMode();
             const targetYear = getClssImportTargetAcademicYear();
             const selectedQuarterLabel = ((document.getElementById('clssImportQuarter')?.value) || 'spring')
                 .replace(/^./, (m) => m.toUpperCase());
@@ -8546,6 +8734,7 @@
 
             const summaryPills = [
                 `${rows.length} row${rows.length === 1 ? '' : 's'}`,
+                `Mode: ${buildMode === 'workloads' ? 'Build Workloads' : 'Build Schedule'}`,
                 `Year: ${targetYear}`,
                 `Scope: ${scope === 'all' ? 'All quarters' : 'Single quarter'}`,
                 `Quarter${importedQuarters.length > 1 ? 's' : ''}: ${quarterLabel}`,
@@ -9071,9 +9260,148 @@
             return { raw: '', mappedRoom: '', isOnline: false, note: '' };
         }
 
+        function readClssWorkloadImportPayload() {
+            try {
+                const raw = localStorage.getItem(CLSS_WORKLOAD_IMPORT_STORAGE_KEY);
+                return raw ? JSON.parse(raw) : null;
+            } catch (error) {
+                console.warn('Could not parse CLSS workload import payload:', error);
+                return null;
+            }
+        }
+
+        function writeClssWorkloadImportPayload(payload) {
+            try {
+                localStorage.setItem(CLSS_WORKLOAD_IMPORT_STORAGE_KEY, JSON.stringify(payload));
+            } catch (error) {
+                console.warn('Could not persist CLSS workload import payload:', error);
+            }
+        }
+
+        function clearClssWorkloadImportPayloadForYear(year) {
+            const existing = readClssWorkloadImportPayload();
+            if (!existing || !year) return;
+            if (String(existing.targetYear || '') !== String(year)) return;
+            localStorage.removeItem(CLSS_WORKLOAD_IMPORT_STORAGE_KEY);
+        }
+
+        function buildClssWorkloadImportRowsFromPreview(targetYear) {
+            return clssImportPreviewRows
+                .map((sourceRow) => {
+                    const effective = getClssImportRowEffectiveState(sourceRow);
+                    if (!effective || effective.effectiveDisposition === 'skip' || effective.effectiveStatus === 'error') {
+                        return null;
+                    }
+
+                    const quarter = effective.effectiveQuarter || sourceRow.targetQuarter || 'spring';
+                    if (!CLSS_IMPORT_QUARTERS.includes(quarter)) return null;
+
+                    const disposition = effective.effectiveDisposition;
+                    const modality = disposition === 'online'
+                        ? 'online'
+                        : disposition === 'arranged'
+                            ? 'arranged'
+                            : 'in-person';
+
+                    return {
+                        id: `clss_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+                        source: 'clss-import',
+                        targetYear,
+                        quarter,
+                        courseCode: normalizeCourseCode(effective.code),
+                        title: String(effective.title || '').trim(),
+                        section: String(effective.section || '001').trim() || '001',
+                        instructor: getCanonicalFacultyName(effective.instructor || 'TBD'),
+                        assignedFaculty: getCanonicalFacultyName(effective.instructor || 'TBD'),
+                        credits: Number(effective.credits) || 5,
+                        modality,
+                        day: String(effective.effectiveDay || '').trim(),
+                        time: String(effective.effectiveTime || '').trim(),
+                        room: String(effective.effectiveRoom || '').trim(),
+                        rawMeeting: String(effective.meetingLabel || '').trim(),
+                        rawRoom: String(effective.roomLabel || '').trim()
+                    };
+                })
+                .filter(Boolean);
+        }
+
+        function summarizeClssWorkloadImportRows(rows) {
+            const stats = {
+                total: 0,
+                byQuarter: { fall: 0, winter: 0, spring: 0 },
+                byModality: { 'in-person': 0, online: 0, arranged: 0 },
+                assignedFaculty: 0,
+                unassignedFaculty: 0
+            };
+
+            (Array.isArray(rows) ? rows : []).forEach((row) => {
+                stats.total += 1;
+                if (stats.byQuarter[row.quarter] !== undefined) stats.byQuarter[row.quarter] += 1;
+                if (stats.byModality[row.modality] !== undefined) stats.byModality[row.modality] += 1;
+                if (getCanonicalFacultyName(row.assignedFaculty || row.instructor || 'TBD') === 'TBD') {
+                    stats.unassignedFaculty += 1;
+                } else {
+                    stats.assignedFaculty += 1;
+                }
+            });
+
+            return stats;
+        }
+
+        function applyClssWorkloadImport() {
+            const targetYear = getClssImportTargetAcademicYear();
+            const rows = buildClssWorkloadImportRowsFromPreview(targetYear);
+            if (!rows.length) {
+                showToast('No CLSS rows were eligible for workload import. Resolve or parse rows first.', 'error');
+                return;
+            }
+
+            const stats = summarizeClssWorkloadImportRows(rows);
+            const summary = [
+                `Build workloads from CLSS import for ${targetYear}?`,
+                '',
+                `Rows: ${stats.total}`,
+                `Fall/Winter/Spring: ${stats.byQuarter.fall}/${stats.byQuarter.winter}/${stats.byQuarter.spring}`,
+                `In-person/Online/Arranged: ${stats.byModality['in-person']}/${stats.byModality.online}/${stats.byModality.arranged}`,
+                `Assigned faculty rows: ${stats.assignedFaculty}`,
+                `TBD/Staff rows: ${stats.unassignedFaculty}`,
+                '',
+                'This mode creates a workload handoff dataset and opens the workload dashboard. It does not place courses into the scheduler grid.'
+            ].join('\n');
+
+            if (!window.confirm(summary)) {
+                return;
+            }
+
+            const payload = {
+                source: 'clss-import',
+                mode: 'workloads',
+                active: true,
+                overrideScheduler: true,
+                targetYear,
+                generatedAt: new Date().toISOString(),
+                rows
+            };
+            writeClssWorkloadImportPayload(payload);
+
+            showToast(`CLSS workload import staged for ${targetYear}: ${stats.total} row${stats.total === 1 ? '' : 's'}`);
+            clssImportPreviewRows = [];
+            renderClssImportReview([]);
+            closeClssImportModal();
+
+            if (window.confirm(`CLSS workload import prepared for ${targetYear}. Open workload dashboard now?`)) {
+                openWorkloadReviewFromScheduler({ yearOverride: targetYear, skipScheduleSave: true, clssWorkloadImport: true });
+            }
+        }
+
         function applyClssImport() {
             if (!clssImportPreviewRows.length) {
                 showToast('Parse a CLSS preview before applying', 'error');
+                return;
+            }
+
+            if (getClssImportBuildMode() === 'workloads') {
+                applyClssWorkloadImport();
                 return;
             }
 
@@ -9109,7 +9437,9 @@
                 arrangedPlaced: 0,
                 skipped: 0,
                 collisionsDisplaced: 0,
-                unresolved: 0
+                unresolved: 0,
+                leftoverToTray: 0,
+                roomFallbackPlacements: 0
             };
 
             if (replaceQuarter) {
@@ -9181,14 +9511,8 @@
                 if (effectiveRow.effectiveDisposition === 'ready') {
                     const placed = placeClssImportedCourseInGrid(targetQuarterBucket, rowForApply, counts);
                     if (!placed) {
-                        sourceRow.notes = [...new Set([...(sourceRow.notes || []), 'No open room available in selected slot; review and re-apply'])];
-                        sourceRow.reviewPlacement = 'inperson';
-                        sourceRow.reviewQuarter = rowQuarter;
-                        sourceRow.reviewDay = rowForApply.schedulerDay || sourceRow.reviewDay || '';
-                        sourceRow.reviewTime = rowForApply.schedulerTime || sourceRow.reviewTime || '';
-                        sourceRow.reviewRoom = sourceRow.reviewRoom || 'AUTO';
-                        remainingRows.push(sourceRow);
-                        counts.unresolved += 1;
+                        addImportedRowToDisplacedTray(rowForApply, targetYear, rowQuarter, 'No open room in slot');
+                        counts.leftoverToTray += 1;
                     }
                     return;
                 }
@@ -9211,6 +9535,7 @@
 
             const currentQuarter = (window.StateManager?.get('currentQuarter')) || 'spring';
             if (importingToCurrentYear) {
+                clearClssWorkloadImportPayloadForYear(targetYear);
                 saveScheduleData();
                 setScheduleDirty(true);
                 renderSchedule(currentQuarter);
@@ -9219,6 +9544,7 @@
                 renderConflicts(currentQuarter);
                 updateStats(currentQuarter);
             } else {
+                clearClssWorkloadImportPayloadForYear(targetYear);
                 saveScheduleDataSnapshotForYear(targetYear, targetSchedule);
             }
 
@@ -9226,7 +9552,7 @@
             const impactedQuarterLabel = impactedQuarters.length > 1
                 ? impactedQuarters.map((q) => CLSS_IMPORT_QUARTER_LABELS[q]).join(', ')
                 : (CLSS_IMPORT_QUARTER_LABELS[impactedQuarters[0]] || CLSS_IMPORT_QUARTER_LABELS[quarter] || quarter);
-            showToast(`CLSS import applied to ${targetYear} (${impactedQuarterLabel}): ${totalApplied} imported${counts.unresolved ? `, ${counts.unresolved} still need review` : ''}${counts.skipped ? `, ${counts.skipped} skipped` : ''}`);
+            showToast(`CLSS import applied to ${targetYear} (${impactedQuarterLabel}): ${totalApplied} imported${counts.roomFallbackPlacements ? `, ${counts.roomFallbackPlacements} room fallback` : ''}${counts.leftoverToTray ? `, ${counts.leftoverToTray} to displaced tray` : ''}${counts.unresolved ? `, ${counts.unresolved} still need review` : ''}${counts.skipped ? `, ${counts.skipped} skipped` : ''}`);
 
             clssImportPreviewRows = remainingRows;
             renderClssImportReview(clssImportPreviewRows);
@@ -9447,14 +9773,18 @@
             }
 
             const slotCourses = quarterBucket[row.schedulerDay][row.schedulerTime];
-            const resolvedRoom = row.schedulerRoom || getAutoAssignableImportRoom(slotCourses);
+            const resolvedRoom = resolveBestImportRoomForSlot(slotCourses, row.schedulerRoom || '');
             if (!resolvedRoom) {
                 return false;
             }
 
             const duplicateExisting = slotCourses.find((course) =>
                 normalizeCourseCode(course.code) === normalizeCourseCode(row.code)
-                && String(course.room || '') === resolvedRoom
+                && (
+                    !String(course.section || '').trim()
+                    || !String(row.section || '').trim()
+                    || String(course.section || '').trim() === String(row.section || '').trim()
+                )
                 && getCanonicalFacultyName(course.instructor || 'TBD') === getCanonicalFacultyName(row.instructor || 'TBD')
             );
 
@@ -9463,43 +9793,34 @@
                 return true;
             }
 
-            const conflictingCourses = slotCourses.filter((course) => String(course.room || '') === resolvedRoom);
-            conflictingCourses.forEach((existing) => {
-                addToDisplacedTray({
-                    code: existing.code,
-                    name: existing.name,
-                    instructor: existing.instructor,
-                    credits: existing.credits,
-                    originalDay: row.schedulerDay,
-                    originalTime: row.schedulerTime,
-                    originalRoom: resolvedRoom
-                });
-
-                const idx = slotCourses.findIndex((course) =>
-                    normalizeCourseCode(course.code) === normalizeCourseCode(existing.code)
-                    && String(course.room || '') === String(existing.room || '')
-                    && String(course.instructor || '') === String(existing.instructor || '')
-                );
-                if (idx >= 0) {
-                    slotCourses.splice(idx, 1);
-                    counts.collisionsDisplaced += 1;
-                }
-            });
-
             slotCourses.push(buildImportedScheduleCourse(row, resolvedRoom));
+            if (row.schedulerRoom && resolvedRoom !== row.schedulerRoom) {
+                counts.roomFallbackPlacements = (counts.roomFallbackPlacements || 0) + 1;
+            }
             counts.readyPlaced += 1;
             return true;
         }
 
-        function getAutoAssignableImportRoom(slotCourses) {
+        function resolveBestImportRoomForSlot(slotCourses, preferredRoom = '') {
+            const preferred = String(preferredRoom || '').trim();
+            const roomOrder = ['206', '207', '209', '210', '212', 'CEB 102', 'CEB 104'];
+            const candidates = [];
+            if (preferred && CLSS_IMPORT_ALLOWED_ROOMS.has(preferred)) {
+                candidates.push(preferred);
+            }
+            roomOrder.forEach((room) => {
+                if (!candidates.includes(room)) {
+                    candidates.push(room);
+                }
+            });
+
             const occupiedRooms = new Set(
                 (Array.isArray(slotCourses) ? slotCourses : [])
                     .map((course) => String(course.room || '').trim())
                     .filter(Boolean)
             );
 
-            const preferredRoomOrder = ['206', '207', '209', '210', '212', 'CEB 102', 'CEB 104'];
-            for (const room of preferredRoomOrder) {
+            for (const room of candidates) {
                 if (!occupiedRooms.has(room)) {
                     return room;
                 }
@@ -9715,21 +10036,34 @@
             }
         }
 
-        function openWorkloadReviewFromScheduler() {
-            try {
-                saveScheduleData();
-            } catch (error) {
-                console.warn('Could not persist schedule before workload handoff:', error);
+        function openWorkloadReviewFromScheduler(options = {}) {
+            const {
+                yearOverride = null,
+                skipScheduleSave = false,
+                clssWorkloadImport = false
+            } = options || {};
+
+            if (!skipScheduleSave) {
+                try {
+                    saveScheduleData();
+                } catch (error) {
+                    console.warn('Could not persist schedule before workload handoff:', error);
+                }
             }
 
             const navComponent = document.getElementById('mainQuarterNav');
-            const academicYear = navComponent ? navComponent.currentYear : (window.StateManager?.get('currentAcademicYear') || currentAcademicYear || '2025-26');
+            const academicYear = yearOverride
+                || (navComponent ? navComponent.currentYear : (window.StateManager?.get('currentAcademicYear') || currentAcademicYear || '2025-26'));
             if (!academicYear) {
                 showToast('Could not determine academic year for workload review', 'critical');
                 return;
             }
 
-            window.location.href = `pages/workload-dashboard.html?year=${encodeURIComponent(academicYear)}`;
+            const params = new URLSearchParams({ year: academicYear });
+            if (clssWorkloadImport) {
+                params.set('clssImport', 'workloads');
+            }
+            window.location.href = `pages/workload-dashboard.html?${params.toString()}`;
         }
 
         function migrateTimeSlots(data) {
@@ -10195,8 +10529,10 @@
             closeClssImportModal,
             handleClssImportPngSelection,
             invalidateClssImportPreview,
+            invalidateClssImportPriorYearPlacementCache,
             refreshClssImportPreviewReview,
             toggleClssImportInputMode,
+            refreshClssImportModeUi,
             applyClssRolloutPreset,
             parseClssImportPreview,
             applyClssImport,
@@ -10427,6 +10763,16 @@
                             <h4>Import Options</h4>
                             <div class="clss-import-inline-controls">
                                 <div class="clss-import-field">
+                                    <label for="clssImportBuildMode">Import mode</label>
+                                    <select id="clssImportBuildMode" onchange="refreshClssImportModeUi()">
+                                        <option value="schedule">Build Schedule</option>
+                                        <option value="workloads">Build Workloads</option>
+                                    </select>
+                                    <div class="clss-import-help-text" id="clssImportModeHelp" style="margin-top: 6px;">
+                                        Schedule mode imports rows into scheduler grid/online/arranged sections and uses slot/room placement logic.
+                                    </div>
+                                </div>
+                                <div class="clss-import-field">
                                     <button type="button" class="btn-secondary" onclick="applyClssRolloutPreset()">Use Rollout Mode Preset</button>
                                     <div class="clss-import-help-text" style="margin-top: 6px;">
                                         Sets <strong>Next academic year</strong> + <strong>All three quarters</strong> for department rollout imports. Replace remains off unless you opt in.
@@ -10434,7 +10780,7 @@
                                 </div>
                                 <div class="clss-import-field">
                                     <label for="clssImportTargetYearMode">Target academic year</label>
-                                    <select id="clssImportTargetYearMode" onchange="refreshClssImportPreviewReview()">
+                                    <select id="clssImportTargetYearMode" onchange="invalidateClssImportPriorYearPlacementCache(); refreshClssImportPreviewReview()">
                                         <option value="current">This academic year</option>
                                         <option value="next">Next academic year</option>
                                     </select>
@@ -10483,7 +10829,7 @@
                                         <th>Meeting</th>
                                         <th>Room</th>
                                         <th>Scheduler Slot</th>
-                                        <th>Resolve</th>
+                                        <th id="clssImportResolveHeader">Resolve</th>
                                         <th>Notes</th>
                                     </tr>
                                 </thead>

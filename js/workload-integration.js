@@ -9,6 +9,7 @@ const WorkloadIntegration = (function() {
     const AY_SETUP_STORAGE_KEY = 'programCommandAySetup';
     const SCHEDULE_STORAGE_PREFIX = 'designSchedulerData_';
     const DETAIL_STORAGE_KEY = 'programCommandFacultyWorkloadDetails';
+    const CLSS_WORKLOAD_IMPORT_STORAGE_KEY = 'programCommandClssWorkloadImport';
 
     const APPLIED_LEARNING_COURSES = {
         'DESN 399': { title: 'Independent Study', rate: 0.2 },
@@ -255,37 +256,89 @@ const WorkloadIntegration = (function() {
         return parseStorageJSON(getScheduleStorageKey(year), null);
     }
 
+    function readClssWorkloadImportPayload() {
+        return parseStorageJSON(CLSS_WORKLOAD_IMPORT_STORAGE_KEY, null);
+    }
+
+    function getClssWorkloadImportCourses(year) {
+        const payload = readClssWorkloadImportPayload();
+        if (!payload || payload.source !== 'clss-import' || payload.mode !== 'workloads' || payload.active !== true) {
+            return { courses: [], overrideScheduler: false };
+        }
+
+        const targetYear = String(payload.targetYear || '').trim();
+        if (!targetYear || targetYear !== String(year || '').trim()) {
+            return { courses: [], overrideScheduler: false };
+        }
+
+        const rows = Array.isArray(payload.rows) ? payload.rows : [];
+        const courses = rows
+            .map((row, index) => {
+                const courseCode = normalizeCourseCode(row.courseCode || row.code);
+                if (!courseCode) return null;
+
+                const quarter = normalizeQuarterName(row.quarter);
+                return {
+                    id: String(row.id || `clss-workload-${targetYear}-${index}`),
+                    courseCode,
+                    title: String(row.title || row.name || '').trim(),
+                    credits: Number(row.credits) || 5,
+                    assignedFaculty: String(row.assignedFaculty || row.instructor || 'TBD').trim() || 'TBD',
+                    instructor: String(row.assignedFaculty || row.instructor || 'TBD').trim() || 'TBD',
+                    room: String(row.room || (row.modality === 'online' ? 'ONLINE' : (row.modality === 'arranged' ? 'ARRANGED' : ''))).trim(),
+                    day: String(row.day || '').trim(),
+                    time: String(row.time || '').trim(),
+                    quarter
+                };
+            })
+            .filter(Boolean);
+
+        return {
+            courses,
+            overrideScheduler: payload.overrideScheduler === true
+        };
+    }
+
     function getProgramCommandScheduleCourses(year) {
         const schedule = readProgramCommandSchedule(year);
-        if (!schedule || typeof schedule !== 'object') return [];
 
         const courses = [];
-        ['fall', 'winter', 'spring'].forEach((quarterKey) => {
-            const quarterData = schedule[quarterKey];
-            if (!quarterData || typeof quarterData !== 'object') return;
+        if (schedule && typeof schedule === 'object') {
+            ['fall', 'winter', 'spring'].forEach((quarterKey) => {
+                const quarterData = schedule[quarterKey];
+                if (!quarterData || typeof quarterData !== 'object') return;
 
-            Object.entries(quarterData).forEach(([day, dayData]) => {
-                if (!dayData || typeof dayData !== 'object') return;
+                Object.entries(quarterData).forEach(([day, dayData]) => {
+                    if (!dayData || typeof dayData !== 'object') return;
 
-                Object.entries(dayData).forEach(([time, list]) => {
-                    if (!Array.isArray(list)) return;
-                    list.forEach((course, index) => {
-                        courses.push({
-                            id: `${year}-${quarterKey}-${day}-${time}-${index}`,
-                            courseCode: normalizeCourseCode(course?.code),
-                            title: String(course?.name || course?.title || '').trim(),
-                            credits: Number(course?.credits) || 5,
-                            assignedFaculty: String(course?.instructor || 'TBD').trim(),
-                            instructor: String(course?.instructor || 'TBD').trim(),
-                            room: String(course?.room || '').trim(),
-                            day: String(day || '').trim(),
-                            time: String(time || '').trim(),
-                            quarter: QUARTER_KEY_TO_NAME[quarterKey]
+                    Object.entries(dayData).forEach(([time, list]) => {
+                        if (!Array.isArray(list)) return;
+                        list.forEach((course, index) => {
+                            courses.push({
+                                id: `${year}-${quarterKey}-${day}-${time}-${index}`,
+                                courseCode: normalizeCourseCode(course?.code),
+                                title: String(course?.name || course?.title || '').trim(),
+                                credits: Number(course?.credits) || 5,
+                                assignedFaculty: String(course?.instructor || 'TBD').trim(),
+                                instructor: String(course?.instructor || 'TBD').trim(),
+                                room: String(course?.room || '').trim(),
+                                day: String(day || '').trim(),
+                                time: String(time || '').trim(),
+                                quarter: QUARTER_KEY_TO_NAME[quarterKey]
+                            });
                         });
                     });
                 });
             });
-        });
+        }
+
+        const clssImport = getClssWorkloadImportCourses(year);
+        if (clssImport.overrideScheduler && clssImport.courses.length > 0) {
+            return clssImport.courses;
+        }
+        if (clssImport.courses.length > 0) {
+            return [...courses, ...clssImport.courses];
+        }
 
         return courses;
     }
