@@ -1694,6 +1694,250 @@
             margin-bottom: 6px;
         }
 
+        .clss-import-modal {
+            width: min(96vw, 1100px);
+            max-width: 1100px;
+        }
+
+        .clss-import-layout {
+            display: grid;
+            gap: 16px;
+        }
+
+        .clss-import-top-row {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 12px;
+            align-items: start;
+        }
+
+        .clss-import-panel {
+            border: 1px solid #d0d7de;
+            border-radius: 10px;
+            background: #fff;
+            padding: 12px;
+        }
+
+        .clss-import-panel h4 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #24292f;
+        }
+
+        .clss-import-panel label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #57606a;
+            margin-bottom: 6px;
+        }
+
+        .clss-import-field {
+            margin-bottom: 10px;
+        }
+
+        .clss-import-field:last-child {
+            margin-bottom: 0;
+        }
+
+        .clss-import-panel input[type="file"],
+        .clss-import-panel select,
+        .clss-import-panel textarea {
+            width: 100%;
+            border: 1px solid #d0d7de;
+            border-radius: 8px;
+            background: #fff;
+            color: #24292f;
+            font: inherit;
+            padding: 8px 10px;
+        }
+
+        .clss-import-panel textarea {
+            min-height: 220px;
+            resize: vertical;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 12px;
+            line-height: 1.45;
+        }
+
+        .clss-import-inline-controls {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .clss-import-checkbox {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            font-size: 13px;
+            color: #24292f;
+            line-height: 1.35;
+        }
+
+        .clss-import-checkbox input {
+            margin-top: 2px;
+        }
+
+        .clss-import-help-text {
+            font-size: 12px;
+            color: #57606a;
+            line-height: 1.35;
+        }
+
+        .clss-import-file-list {
+            margin-top: 8px;
+            font-size: 12px;
+            color: #57606a;
+            background: #f6f8fa;
+            border: 1px solid #d8dee4;
+            border-radius: 8px;
+            padding: 8px;
+            min-height: 38px;
+        }
+
+        .clss-import-review-summary {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .clss-import-summary-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 8px;
+            border-radius: 999px;
+            border: 1px solid #d0d7de;
+            background: #f6f8fa;
+            font-size: 12px;
+            color: #24292f;
+        }
+
+        .clss-import-table-wrap {
+            border: 1px solid #d0d7de;
+            border-radius: 10px;
+            overflow: auto;
+            max-height: 360px;
+            background: #fff;
+        }
+
+        .clss-import-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            min-width: 900px;
+        }
+
+        .clss-import-table th,
+        .clss-import-table td {
+            border-bottom: 1px solid #eaeef2;
+            padding: 8px;
+            vertical-align: top;
+            text-align: left;
+        }
+
+        .clss-import-table th {
+            position: sticky;
+            top: 0;
+            background: #f6f8fa;
+            z-index: 1;
+            color: #57606a;
+            font-weight: 600;
+        }
+
+        .clss-import-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .clss-import-status {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 2px 8px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+            border: 1px solid transparent;
+            white-space: nowrap;
+        }
+
+        .clss-import-status.ready {
+            color: #116329;
+            background: #dafbe1;
+            border-color: #a7d7a9;
+        }
+
+        .clss-import-status.online {
+            color: #0969da;
+            background: #ddf4ff;
+            border-color: #9ecbff;
+        }
+
+        .clss-import-status.arranged {
+            color: #8250df;
+            background: #fbefff;
+            border-color: #d8b9ff;
+        }
+
+        .clss-import-status.needs-review {
+            color: #9a6700;
+            background: #fff8c5;
+            border-color: #eac54f;
+        }
+
+        .clss-import-status.error {
+            color: #cf222e;
+            background: #ffebe9;
+            border-color: #ffb3ad;
+        }
+
+        .clss-import-notes {
+            display: grid;
+            gap: 4px;
+            max-width: 280px;
+        }
+
+        .clss-import-note-item {
+            color: #57606a;
+        }
+
+        .clss-import-raw {
+            margin-top: 2px;
+        }
+
+        .clss-import-raw summary {
+            cursor: pointer;
+            color: #0969da;
+        }
+
+        .clss-import-raw pre {
+            white-space: pre-wrap;
+            margin: 6px 0 0 0;
+            padding: 6px;
+            background: #f6f8fa;
+            border-radius: 6px;
+            border: 1px solid #eaeef2;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        .clss-import-empty {
+            padding: 16px;
+            border: 1px dashed #d0d7de;
+            border-radius: 8px;
+            color: #57606a;
+            background: #f6f8fa;
+            font-size: 13px;
+        }
+
+        @media (max-width: 900px) {
+            .clss-import-top-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
         .api-provider-type {
             margin-top: 12px;
             margin-bottom: 8px;
@@ -3894,6 +4138,9 @@
                     </button>
                     <button class="btn-ewu-accent btn-add-course-main" onclick="openAddCourseModal()">
                         <span class="btn-add-icon">+</span> Add Course
+                    </button>
+                    <button class="btn-ewu-accent btn-add-course-main" onclick="openClssImportModal()">
+                        📥 Import CLSS
                     </button>
                     <button class="btn-ewu-accent btn-add-course-main" onclick="openWorkloadReviewFromScheduler()">
                         👥 Make Workloads
@@ -7448,6 +7695,849 @@
         }
 
         // ============================================
+        // CLSS IMPORT (REVIEW-FIRST)
+        // ============================================
+
+        const CLSS_IMPORT_ALLOWED_ROOMS = new Set(['206', '207', '209', '210', '212', 'CEB 102', 'CEB 104']);
+        const CLSS_IMPORT_STATUS_LABELS = {
+            ready: 'Ready',
+            online: 'Online',
+            arranged: 'Arranged',
+            'needs-review': 'Needs Review',
+            error: 'Error'
+        };
+
+        let clssImportPreviewRows = [];
+
+        function openClssImportModal() {
+            const modal = document.getElementById('clssImportModal');
+            const quarterSelect = document.getElementById('clssImportQuarter');
+            if (quarterSelect) {
+                quarterSelect.value = (window.StateManager?.get('currentQuarter')) || 'spring';
+            }
+            handleClssImportPngSelection();
+            modal?.classList.add('active');
+        }
+
+        function closeClssImportModal(event) {
+            if (event && event.target && event.target !== event.currentTarget) {
+                return;
+            }
+            document.getElementById('clssImportModal')?.classList.remove('active');
+        }
+
+        function invalidateClssImportPreview() {
+            if (!clssImportPreviewRows.length) {
+                return;
+            }
+            clssImportPreviewRows = [];
+            renderClssImportReview([]);
+        }
+
+        function refreshClssImportPreviewReview() {
+            if (!clssImportPreviewRows.length) {
+                return;
+            }
+            renderClssImportReview(clssImportPreviewRows);
+        }
+
+        function handleClssImportPngSelection() {
+            const input = document.getElementById('clssImportPngInput');
+            const summaryEl = document.getElementById('clssImportPngSummary');
+            if (!summaryEl) return;
+
+            const files = Array.from(input?.files || []);
+            if (!files.length) {
+                summaryEl.textContent = 'No screenshots selected.';
+                return;
+            }
+
+            const previewNames = files.slice(0, 4).map((file) => file.name);
+            const remaining = files.length - previewNames.length;
+            const suffix = remaining > 0 ? ` (+${remaining} more)` : '';
+            summaryEl.textContent = `${files.length} PNG screenshot${files.length === 1 ? '' : 's'} selected: ${previewNames.join(', ')}${suffix}. Paste OCR text below to parse (OCR extraction is deferred).`;
+
+            invalidateClssImportPreview();
+        }
+
+        function parseClssImportPreview() {
+            const textInput = document.getElementById('clssImportText');
+            const text = String(textInput?.value || '').trim();
+            const pngCount = (document.getElementById('clssImportPngInput')?.files || []).length;
+
+            if (!text) {
+                renderClssImportReview([]);
+                if (pngCount > 0) {
+                    showToast('PNG selected. Paste OCR/CLSS text to parse (image OCR deferred).', 'error');
+                } else {
+                    showToast('Paste CLSS/OCR text to parse a review preview', 'error');
+                }
+                return;
+            }
+
+            const parseResult = parseClssImportText(text);
+            clssImportPreviewRows = parseResult.rows;
+            renderClssImportReview(clssImportPreviewRows, parseResult.meta);
+
+            if (!clssImportPreviewRows.length) {
+                showToast('No CLSS-style rows detected. Check pasted text formatting.', 'error');
+                return;
+            }
+
+            const readyCount = clssImportPreviewRows.filter((row) => row.status === 'ready').length;
+            const needsReviewCount = clssImportPreviewRows.filter((row) => row.status === 'needs-review').length;
+            showToast(`Parsed ${clssImportPreviewRows.length} row${clssImportPreviewRows.length === 1 ? '' : 's'} (${readyCount} ready${needsReviewCount ? `, ${needsReviewCount} needs review` : ''})`);
+        }
+
+        function renderClssImportReview(rows, meta = {}) {
+            const summaryEl = document.getElementById('clssImportSummary');
+            const tableWrap = document.getElementById('clssImportTableWrap');
+            const emptyState = document.getElementById('clssImportEmptyState');
+            const tbody = document.getElementById('clssImportReviewBody');
+            const applyBtn = document.getElementById('clssImportApplyButton');
+
+            if (!summaryEl || !tableWrap || !emptyState || !tbody || !applyBtn) {
+                return;
+            }
+
+            summaryEl.innerHTML = '';
+            tbody.innerHTML = '';
+            applyBtn.disabled = !rows.length;
+
+            if (!rows.length) {
+                tableWrap.style.display = 'none';
+                emptyState.style.display = '';
+                emptyState.innerHTML = 'Paste CLSS/OCR text, then click <strong>Parse Preview</strong>. No schedule data will be changed until you click <strong>Apply Import</strong>.';
+                return;
+            }
+
+            const statusCounts = rows.reduce((acc, row) => {
+                acc[row.status] = (acc[row.status] || 0) + 1;
+                return acc;
+            }, {});
+
+            const quarterLabel = ((document.getElementById('clssImportQuarter')?.value) || 'spring')
+                .replace(/^./, (m) => m.toUpperCase());
+            const modeLabel = document.getElementById('clssImportReplaceQuarter')?.checked ? 'Replace quarter' : 'Append / displace';
+            const pngCount = (document.getElementById('clssImportPngInput')?.files || []).length;
+
+            const summaryPills = [
+                `${rows.length} row${rows.length === 1 ? '' : 's'}`,
+                `Target: ${quarterLabel}`,
+                modeLabel
+            ];
+
+            if (pngCount > 0) {
+                summaryPills.push(`PNG: ${pngCount}`);
+            }
+
+            Object.entries(CLSS_IMPORT_STATUS_LABELS).forEach(([status, label]) => {
+                if (statusCounts[status]) {
+                    summaryPills.push(`${label}: ${statusCounts[status]}`);
+                }
+            });
+
+            if (Array.isArray(meta.warnings)) {
+                meta.warnings.forEach((warning) => summaryPills.push(warning));
+            }
+
+            summaryPills.forEach((text) => {
+                const pill = document.createElement('span');
+                pill.className = 'clss-import-summary-pill';
+                pill.textContent = text;
+                summaryEl.appendChild(pill);
+            });
+
+            rows.forEach((row) => {
+                const tr = document.createElement('tr');
+
+                const statusTd = document.createElement('td');
+                const statusBadge = document.createElement('span');
+                statusBadge.className = `clss-import-status ${row.status}`;
+                statusBadge.textContent = CLSS_IMPORT_STATUS_LABELS[row.status] || row.status;
+                statusTd.appendChild(statusBadge);
+                tr.appendChild(statusTd);
+
+                const courseTd = document.createElement('td');
+                courseTd.innerHTML = `<strong>${escapeHtml(row.code)}</strong><div style="color:#57606a; margin-top:2px;">${escapeHtml(row.title || '')}</div>`;
+                tr.appendChild(courseTd);
+
+                const sectionTd = document.createElement('td');
+                sectionTd.textContent = row.section || '—';
+                tr.appendChild(sectionTd);
+
+                const instructorTd = document.createElement('td');
+                instructorTd.textContent = row.instructor || 'TBD';
+                tr.appendChild(instructorTd);
+
+                const meetingTd = document.createElement('td');
+                meetingTd.textContent = row.meetingLabel || '—';
+                tr.appendChild(meetingTd);
+
+                const roomTd = document.createElement('td');
+                roomTd.textContent = row.roomLabel || '—';
+                tr.appendChild(roomTd);
+
+                const slotTd = document.createElement('td');
+                slotTd.textContent = row.schedulerSlotLabel || '—';
+                tr.appendChild(slotTd);
+
+                const notesTd = document.createElement('td');
+                const notesWrap = document.createElement('div');
+                notesWrap.className = 'clss-import-notes';
+                (row.notes || []).forEach((note) => {
+                    const noteDiv = document.createElement('div');
+                    noteDiv.className = 'clss-import-note-item';
+                    noteDiv.textContent = `• ${note}`;
+                    notesWrap.appendChild(noteDiv);
+                });
+
+                const rawDetails = document.createElement('details');
+                rawDetails.className = 'clss-import-raw';
+                const rawSummary = document.createElement('summary');
+                rawSummary.textContent = 'Raw row text';
+                const rawPre = document.createElement('pre');
+                rawPre.textContent = row.rawText || '';
+                rawDetails.appendChild(rawSummary);
+                rawDetails.appendChild(rawPre);
+                notesWrap.appendChild(rawDetails);
+
+                notesTd.appendChild(notesWrap);
+                tr.appendChild(notesTd);
+
+                tbody.appendChild(tr);
+            });
+
+            emptyState.style.display = 'none';
+            tableWrap.style.display = '';
+        }
+
+        function parseClssImportText(rawText) {
+            const lines = String(rawText || '')
+                .split(/\r?\n/)
+                .map((line) => line.replace(/\u00a0/g, ' ').trim())
+                .filter((line) => line.length > 0);
+
+            const rows = [];
+            const warnings = [];
+            let currentCourse = null;
+            let currentRowBuffer = '';
+            let detectedHeaders = 0;
+            let orphanLineCount = 0;
+
+            const flushBufferedRow = () => {
+                if (!currentCourse || !currentRowBuffer) {
+                    currentRowBuffer = '';
+                    return;
+                }
+                rows.push(parseClssDetailRow(currentCourse, currentRowBuffer));
+                currentRowBuffer = '';
+            };
+
+            lines.forEach((line) => {
+                const header = parseClssCourseHeaderLine(line);
+                if (header) {
+                    flushBufferedRow();
+                    currentCourse = {
+                        code: header.code,
+                        title: header.title
+                    };
+                    detectedHeaders += 1;
+                    if (header.inlineRowText) {
+                        currentRowBuffer = header.inlineRowText;
+                    }
+                    return;
+                }
+
+                if (!currentCourse) {
+                    orphanLineCount += 1;
+                    return;
+                }
+
+                if (isClssSectionRowStart(line)) {
+                    flushBufferedRow();
+                    currentRowBuffer = line;
+                    return;
+                }
+
+                if (currentRowBuffer) {
+                    currentRowBuffer = `${currentRowBuffer} ${line}`.replace(/\s+/g, ' ').trim();
+                } else {
+                    currentCourse.title = `${currentCourse.title} ${line}`.replace(/\s+/g, ' ').trim();
+                }
+            });
+
+            flushBufferedRow();
+
+            if (!rows.length && lines.length) {
+                warnings.push('No parsable section rows found');
+            }
+            if (detectedHeaders === 0 && lines.length) {
+                warnings.push('No course headers detected');
+            }
+            if (orphanLineCount > 0) {
+                warnings.push(`Ignored ${orphanLineCount} orphan line${orphanLineCount === 1 ? '' : 's'} before course headers`);
+            }
+
+            return {
+                rows,
+                meta: { warnings }
+            };
+        }
+
+        function parseClssCourseHeaderLine(line) {
+            const match = String(line || '').match(/^([A-Z]{2,5}\s*\d{3}[A-Z]?)\s*-\s*(.+)$/i);
+            if (!match) {
+                return null;
+            }
+
+            const code = normalizeCourseCode(match[1]);
+            let titleAndMaybeRow = match[2].replace(/\s+/g, ' ').trim();
+            let inlineRowText = '';
+
+            const sectionIndex = titleAndMaybeRow.search(/\b\d{3}[A-Z]?\b/);
+            if (sectionIndex > 1) {
+                const candidateTitle = titleAndMaybeRow.slice(0, sectionIndex).trim();
+                const candidateRow = titleAndMaybeRow.slice(sectionIndex).trim();
+                if (candidateTitle && isClssSectionRowStart(candidateRow)) {
+                    titleAndMaybeRow = candidateTitle;
+                    inlineRowText = candidateRow;
+                }
+            }
+
+            return {
+                code,
+                title: titleAndMaybeRow,
+                inlineRowText
+            };
+        }
+
+        function isClssSectionRowStart(line) {
+            return /^\d{3}[A-Z]?(?:\s*\([^)]*\))?\b/i.test(String(line || '').trim());
+        }
+
+        function parseClssDetailRow(course, rawRowText) {
+            const rawText = String(rawRowText || '').replace(/\s+/g, ' ').trim();
+            const notes = [];
+            const code = normalizeCourseCode(course?.code || '');
+            const title = String(course?.title || '').trim();
+
+            const sectionMatch = rawText.match(/\b(\d{3}[A-Z]?)(?:\s*\(([^)]+)\))?/i);
+            const section = sectionMatch?.[1] || '';
+            if (!section) {
+                notes.push('Section code not detected');
+            }
+
+            const detailType = (rawText.match(/\b(PAS|IND|LEC|LAB|SEM|STU|PRA|PRC)\b/i)?.[1] || '').toUpperCase();
+            const credits = extractClssCredits(rawText);
+
+            const instructorSource = extractClssInstructorSource(rawText);
+            const instructor = normalizeClssInstructorName(instructorSource);
+            if (instructor === 'TBD' && !/\b(staff|tba|tbd)\b/i.test(rawText)) {
+                notes.push('Instructor not recognized');
+            }
+
+            const meeting = extractClssMeetingInfo(rawText);
+            if (meeting.note) {
+                notes.push(meeting.note);
+            }
+
+            const room = extractClssRoomInfo(rawText, meeting.matchEndIndex);
+            if (room.note) {
+                notes.push(room.note);
+            }
+
+            let status = 'needs-review';
+            let schedulerDay = '';
+            let schedulerTime = '';
+            let schedulerRoom = '';
+            let schedulerSlotLabel = '';
+
+            const onlineHint = meeting.classification === 'online' || room.isOnline || /\b(online|web|async|asynch|asynchronous)\b/i.test(rawText);
+            const arrangedHint = meeting.classification === 'arranged' || /does\s+not\s+meet/i.test(rawText) || (detailType === 'IND' && !meeting.dayPattern);
+
+            if (onlineHint) {
+                status = 'online';
+                schedulerRoom = 'ONLINE';
+                schedulerSlotLabel = 'ONLINE / async';
+                if (!room.raw && !meeting.raw) {
+                    notes.push('Online row inferred from keywords');
+                }
+            } else if (arrangedHint) {
+                status = 'arranged';
+                schedulerRoom = 'ARRANGED';
+                schedulerSlotLabel = 'ARRANGED';
+            } else if (meeting.dayPattern) {
+                schedulerDay = meeting.dayPattern;
+                if (meeting.timeSlot) {
+                    schedulerTime = meeting.timeSlot;
+                } else {
+                    notes.push('Meeting time did not map to scheduler slots');
+                }
+
+                if (room.mappedRoom) {
+                    schedulerRoom = room.mappedRoom;
+                } else {
+                    notes.push('Room not mapped to scheduler grid');
+                }
+
+                if (schedulerDay && schedulerTime && schedulerRoom) {
+                    status = 'ready';
+                    schedulerSlotLabel = `${schedulerDay} ${schedulerTime} • ${schedulerRoom}`;
+                }
+            } else if (!meeting.raw) {
+                notes.push('Meeting pattern not found');
+            }
+
+            if (meeting.singleDay) {
+                status = 'needs-review';
+                schedulerDay = '';
+                schedulerTime = '';
+                schedulerRoom = '';
+                schedulerSlotLabel = '';
+                notes.push('Single-day meeting requires manual placement');
+            }
+
+            if (!code || !title) {
+                status = 'error';
+                if (!code) notes.push('Course code missing');
+                if (!title) notes.push('Course title missing');
+            }
+
+            if (status === 'ready' && !section) {
+                notes.push('Section missing (course still placeable)');
+            }
+
+            return {
+                status,
+                code,
+                title,
+                section,
+                credits,
+                detailType,
+                instructor,
+                meetingLabel: meeting.raw || '—',
+                roomLabel: room.raw || '—',
+                schedulerDay,
+                schedulerTime,
+                schedulerRoom,
+                schedulerSlotLabel,
+                notes: [...new Set(notes.filter(Boolean))],
+                rawText
+            };
+        }
+
+        function extractClssCredits(rawText) {
+            const match = String(rawText || '').match(/\b([1-9]|1[0-5])(?:\.0)?\s*(?:cr|credits?)\b/i);
+            return match ? Number(match[1]) : 5;
+        }
+
+        function extractClssInstructorSource(rawText) {
+            if (/\b(staff|tba|tbd)\b/i.test(rawText)) {
+                return 'TBD';
+            }
+
+            const nameMatch = String(rawText || '').match(/([A-Z][A-Za-z'`.\-]+(?:\s+[A-Z][A-Za-z'`.\-]+)*,\s*[A-Z][A-Za-z'`.\-]+(?:\s+[A-Z][A-Za-z'`.\-]+)*)(?:\s*\([^)]*\))?/);
+            return nameMatch ? nameMatch[1] : '';
+        }
+
+        function normalizeClssInstructorName(rawName) {
+            const source = String(rawName || '').replace(/\([^)]*\)/g, '').trim();
+            if (!source || /^TBD$/i.test(source) || /\b(staff|tba)\b/i.test(source)) {
+                return 'TBD';
+            }
+
+            if (source.includes(',')) {
+                const [lastNameRaw, firstNameRaw] = source.split(',');
+                const lastName = String(lastNameRaw || '').trim();
+                const firstName = String(firstNameRaw || '').trim();
+                const firstInitial = firstName.charAt(0).toUpperCase();
+                if (lastName && firstInitial) {
+                    const alias = `${firstInitial}.${lastName.replace(/\s+/g, '')}`;
+                    return getCanonicalFacultyName(alias);
+                }
+            }
+
+            return getCanonicalFacultyName(source);
+        }
+
+        function extractClssMeetingInfo(rawText) {
+            const text = String(rawText || '').replace(/\s+/g, ' ').trim();
+            if (!text) {
+                return { raw: '', classification: 'none', dayPattern: '', timeSlot: '', matchEndIndex: -1, singleDay: false };
+            }
+
+            if (/\b(online|web|async|asynch|asynchronous)\b/i.test(text) && !/\b(MW|TR|WM|RT|M|T|W|R|F)\b\s*\d/i.test(text)) {
+                return {
+                    raw: 'Online / Async',
+                    classification: 'online',
+                    dayPattern: '',
+                    timeSlot: '',
+                    matchEndIndex: -1,
+                    singleDay: false
+                };
+            }
+
+            if (/does\s+not\s+meet/i.test(text)) {
+                return {
+                    raw: 'Does Not Meet',
+                    classification: 'arranged',
+                    dayPattern: '',
+                    timeSlot: '',
+                    matchEndIndex: text.search(/does\s+not\s+meet/i) + 'Does Not Meet'.length,
+                    singleDay: false
+                };
+            }
+
+            const meetingMatch = text.match(/\b(MW|WM|TR|RT|TH|TTH|M|T|W|R|F)\b\s*([0-9]{1,2}(?::[0-9]{2})?\s*[APap]\.?\s*M?\.?)\s*[-–]\s*([0-9]{1,2}(?::[0-9]{2})?\s*[APap]\.?\s*M?\.?)/);
+            if (!meetingMatch) {
+                return { raw: '', classification: 'none', dayPattern: '', timeSlot: '', matchEndIndex: -1, singleDay: false };
+            }
+
+            const dayToken = meetingMatch[1];
+            const startToken = meetingMatch[2];
+            const endToken = meetingMatch[3];
+            const dayInfo = normalizeClssMeetingDays(dayToken);
+            const timeInfo = mapClssMeetingTimes(startToken, endToken);
+            const raw = `${dayToken} ${startToken}-${endToken}`.replace(/\s+/g, ' ').trim();
+            const notes = [dayInfo.note, timeInfo.note].filter(Boolean);
+
+            return {
+                raw,
+                classification: 'scheduled',
+                dayPattern: dayInfo.dayPattern,
+                timeSlot: timeInfo.timeSlot,
+                matchEndIndex: meetingMatch.index + meetingMatch[0].length,
+                singleDay: dayInfo.singleDay,
+                note: notes[0] || ''
+            };
+        }
+
+        function normalizeClssMeetingDays(rawDayToken) {
+            const normalized = String(rawDayToken || '')
+                .toUpperCase()
+                .replace(/\s+/g, '')
+                .replace(/TH/g, 'R');
+
+            if (normalized === 'MW' || normalized === 'WM') {
+                return { dayPattern: 'MW', singleDay: false, note: '' };
+            }
+
+            if (normalized === 'TR' || normalized === 'RT') {
+                return { dayPattern: 'TR', singleDay: false, note: '' };
+            }
+
+            if (['M', 'T', 'W', 'R', 'F'].includes(normalized)) {
+                return { dayPattern: '', singleDay: true, note: `Single-day pattern (${normalized})` };
+            }
+
+            return { dayPattern: '', singleDay: false, note: `Unsupported day pattern (${rawDayToken})` };
+        }
+
+        function mapClssMeetingTimes(startToken, endToken) {
+            const startMinutes = parseClssClockTimeToMinutes(startToken);
+            const endMinutes = parseClssClockTimeToMinutes(endToken);
+            if (startMinutes == null || endMinutes == null) {
+                return { timeSlot: '', note: 'Could not parse meeting time' };
+            }
+
+            const timeKey = `${formatClssMinutes(startMinutes)}-${formatClssMinutes(endMinutes)}`;
+            const mapped = ({
+                '10:00-12:20': '10:00-12:20',
+                '13:00-15:20': '13:00-15:20',
+                '16:00-18:20': '16:00-18:20'
+            })[timeKey];
+
+            if (!mapped) {
+                return { timeSlot: '', note: `Unsupported time (${timeKey})` };
+            }
+
+            return { timeSlot: mapped, note: '' };
+        }
+
+        function parseClssClockTimeToMinutes(timeToken) {
+            const compact = String(timeToken || '')
+                .toLowerCase()
+                .replace(/\s+/g, '')
+                .replace(/\./g, '');
+
+            const match = compact.match(/^(\d{1,2})(?::(\d{2}))?(am|pm)$/);
+            if (!match) {
+                return null;
+            }
+
+            let hours = Number(match[1]);
+            const minutes = Number(match[2] || '0');
+            const meridiem = match[3];
+
+            if (minutes > 59 || hours < 1 || hours > 12) {
+                return null;
+            }
+
+            if (meridiem === 'pm' && hours !== 12) {
+                hours += 12;
+            }
+            if (meridiem === 'am' && hours === 12) {
+                hours = 0;
+            }
+
+            return (hours * 60) + minutes;
+        }
+
+        function formatClssMinutes(totalMinutes) {
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = totalMinutes % 60;
+            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+        }
+
+        function extractClssRoomInfo(rawText, meetingMatchEndIndex = -1) {
+            const text = String(rawText || '').replace(/\s+/g, ' ').trim();
+            if (!text) {
+                return { raw: '', mappedRoom: '', isOnline: false, note: '' };
+            }
+
+            if (/\b(online|web|async|asynch|asynchronous)\b/i.test(text)) {
+                return { raw: 'ONLINE', mappedRoom: 'ONLINE', isOnline: true, note: '' };
+            }
+
+            const searchCandidates = [];
+            if (Number.isInteger(meetingMatchEndIndex) && meetingMatchEndIndex >= 0 && meetingMatchEndIndex < text.length) {
+                searchCandidates.push(text.slice(meetingMatchEndIndex));
+            }
+            searchCandidates.push(text);
+
+            for (const candidate of searchCandidates) {
+                const roomMatch = candidate.match(/\bCEB\s*(102|104)\b|\b(?:CEB\s*)?(206|207|209|210|212)\b/i);
+                if (!roomMatch) {
+                    continue;
+                }
+
+                let mappedRoom = '';
+                if (roomMatch[1]) {
+                    mappedRoom = `CEB ${roomMatch[1]}`;
+                } else if (roomMatch[2]) {
+                    mappedRoom = roomMatch[2];
+                }
+
+                const rawRoom = roomMatch[0].replace(/\s+/g, ' ').trim().toUpperCase();
+                if (mappedRoom && CLSS_IMPORT_ALLOWED_ROOMS.has(mappedRoom)) {
+                    return { raw: rawRoom, mappedRoom, isOnline: false, note: '' };
+                }
+            }
+
+            if (/does\s+not\s+meet/i.test(text)) {
+                return { raw: 'Does Not Meet', mappedRoom: 'ARRANGED', isOnline: false, note: '' };
+            }
+
+            return { raw: '', mappedRoom: '', isOnline: false, note: '' };
+        }
+
+        function applyClssImport() {
+            if (!clssImportPreviewRows.length) {
+                showToast('Parse a CLSS preview before applying', 'error');
+                return;
+            }
+
+            const quarter = document.getElementById('clssImportQuarter')?.value || 'spring';
+            const replaceQuarter = Boolean(document.getElementById('clssImportReplaceQuarter')?.checked);
+            const reviewRows = clssImportPreviewRows.slice();
+
+            const applySummary = buildClssApplySummary(reviewRows, quarter, replaceQuarter);
+            if (!window.confirm(applySummary)) {
+                return;
+            }
+
+            if (replaceQuarter) {
+                scheduleData[quarter] = createEmptyQuarterScheduleBucket();
+            }
+
+            const targetQuarter = ensureQuarterScheduleBucket(quarter);
+            const counts = {
+                readyPlaced: 0,
+                onlinePlaced: 0,
+                arrangedPlaced: 0,
+                displaced: 0,
+                skipped: 0,
+                collisionsDisplaced: 0
+            };
+
+            reviewRows.forEach((row) => {
+                if (!row || row.status === 'error') {
+                    counts.skipped += 1;
+                    return;
+                }
+
+                if (row.status === 'ready') {
+                    const placed = placeClssImportedCourseInGrid(targetQuarter, row, counts);
+                    if (!placed) {
+                        addImportedRowToDisplacedTray(row, quarter, 'Could not place in grid');
+                        counts.displaced += 1;
+                    }
+                    return;
+                }
+
+                if (row.status === 'online') {
+                    targetQuarter.ONLINE.async.push(buildImportedScheduleCourse(row, 'ONLINE'));
+                    counts.onlinePlaced += 1;
+                    return;
+                }
+
+                if (row.status === 'arranged') {
+                    targetQuarter.ARRANGED.arranged.push(buildImportedScheduleCourse(row, 'ARRANGED'));
+                    counts.arrangedPlaced += 1;
+                    return;
+                }
+
+                addImportedRowToDisplacedTray(row, quarter, 'Needs review');
+                counts.displaced += 1;
+            });
+
+            saveScheduleData();
+            setScheduleDirty(true);
+
+            const currentQuarter = (window.StateManager?.get('currentQuarter')) || 'spring';
+            renderSchedule(currentQuarter);
+            renderOnlineCourses(currentQuarter);
+            renderArrangedCourses(currentQuarter);
+            renderConflicts(currentQuarter);
+            updateStats(currentQuarter);
+
+            const totalApplied = counts.readyPlaced + counts.onlinePlaced + counts.arrangedPlaced;
+            showToast(`CLSS import applied to ${quarter}: ${totalApplied} placed, ${counts.displaced} to displaced tray${counts.skipped ? `, ${counts.skipped} skipped` : ''}`);
+
+            clssImportPreviewRows = [];
+            renderClssImportReview([]);
+            closeClssImportModal();
+        }
+
+        function buildClssApplySummary(rows, quarter, replaceQuarter) {
+            const counts = rows.reduce((acc, row) => {
+                acc[row.status] = (acc[row.status] || 0) + 1;
+                return acc;
+            }, {});
+
+            const lines = [
+                `Apply CLSS import to ${quarter.toUpperCase()}?`,
+                '',
+                `Rows: ${rows.length}`,
+                `Ready: ${counts.ready || 0}`,
+                `Online: ${counts.online || 0}`,
+                `Arranged: ${counts.arranged || 0}`,
+                `Needs review (will go to displaced tray): ${counts['needs-review'] || 0}`,
+                `Errors (skipped): ${counts.error || 0}`
+            ];
+
+            if (replaceQuarter) {
+                lines.push('', 'Target quarter will be cleared first.');
+            }
+
+            return lines.join('\n');
+        }
+
+        function createEmptyQuarterScheduleBucket() {
+            return {
+                MW: {},
+                TR: {},
+                ONLINE: { async: [] },
+                ARRANGED: { arranged: [] }
+            };
+        }
+
+        function ensureQuarterScheduleBucket(quarter) {
+            if (!scheduleData[quarter] || typeof scheduleData[quarter] !== 'object') {
+                scheduleData[quarter] = createEmptyQuarterScheduleBucket();
+            }
+
+            const bucket = scheduleData[quarter];
+            if (!bucket.MW || typeof bucket.MW !== 'object') bucket.MW = {};
+            if (!bucket.TR || typeof bucket.TR !== 'object') bucket.TR = {};
+            if (!bucket.ONLINE || typeof bucket.ONLINE !== 'object') bucket.ONLINE = {};
+            if (!Array.isArray(bucket.ONLINE.async)) bucket.ONLINE.async = [];
+            if (!bucket.ARRANGED || typeof bucket.ARRANGED !== 'object') bucket.ARRANGED = {};
+            if (!Array.isArray(bucket.ARRANGED.arranged)) bucket.ARRANGED.arranged = [];
+            return bucket;
+        }
+
+        function buildImportedScheduleCourse(row, roomOverride) {
+            return {
+                code: normalizeCourseCode(row.code),
+                name: row.title || '',
+                instructor: getCanonicalFacultyName(row.instructor || 'TBD'),
+                credits: Number(row.credits) || 5,
+                room: roomOverride || row.schedulerRoom || row.roomLabel || 'TBD',
+                section: row.section || ''
+            };
+        }
+
+        function placeClssImportedCourseInGrid(quarterBucket, row, counts) {
+            if (!row.schedulerDay || !row.schedulerTime || !row.schedulerRoom) {
+                return false;
+            }
+
+            if (!isSchedulableDay(row.schedulerDay)) {
+                return false;
+            }
+
+            if (!quarterBucket[row.schedulerDay]) {
+                quarterBucket[row.schedulerDay] = {};
+            }
+            if (!Array.isArray(quarterBucket[row.schedulerDay][row.schedulerTime])) {
+                quarterBucket[row.schedulerDay][row.schedulerTime] = [];
+            }
+
+            const slotCourses = quarterBucket[row.schedulerDay][row.schedulerTime];
+            const duplicateExisting = slotCourses.find((course) =>
+                normalizeCourseCode(course.code) === normalizeCourseCode(row.code)
+                && String(course.room || '') === row.schedulerRoom
+                && getCanonicalFacultyName(course.instructor || 'TBD') === getCanonicalFacultyName(row.instructor || 'TBD')
+            );
+
+            if (duplicateExisting) {
+                counts.skipped += 1;
+                return true;
+            }
+
+            const conflictingCourses = slotCourses.filter((course) => String(course.room || '') === row.schedulerRoom);
+            conflictingCourses.forEach((existing) => {
+                addToDisplacedTray({
+                    code: existing.code,
+                    name: existing.name,
+                    instructor: existing.instructor,
+                    credits: existing.credits,
+                    originalDay: row.schedulerDay,
+                    originalTime: row.schedulerTime,
+                    originalRoom: row.schedulerRoom
+                });
+
+                const idx = slotCourses.findIndex((course) =>
+                    normalizeCourseCode(course.code) === normalizeCourseCode(existing.code)
+                    && String(course.room || '') === String(existing.room || '')
+                    && String(course.instructor || '') === String(existing.instructor || '')
+                );
+                if (idx >= 0) {
+                    slotCourses.splice(idx, 1);
+                    counts.collisionsDisplaced += 1;
+                }
+            });
+
+            slotCourses.push(buildImportedScheduleCourse(row, row.schedulerRoom));
+            counts.readyPlaced += 1;
+            return true;
+        }
+
+        function addImportedRowToDisplacedTray(row, quarter, reason) {
+            addToDisplacedTray({
+                code: normalizeCourseCode(row.code),
+                name: row.title || '',
+                instructor: getCanonicalFacultyName(row.instructor || 'TBD'),
+                credits: Number(row.credits) || 5,
+                originalDay: row.schedulerDay || `CLSS ${quarter.toUpperCase()}`,
+                originalTime: row.schedulerTime || reason || 'needs review',
+                originalRoom: row.schedulerRoom || row.roomLabel || 'TBD'
+            });
+        }
+
+        // ============================================
         // ADD COURSE FUNCTIONALITY
         // ============================================
 
@@ -8118,6 +9208,13 @@
             exportReport,
             confirmDelete,
             closeDeleteConfirm,
+            openClssImportModal,
+            closeClssImportModal,
+            handleClssImportPngSelection,
+            invalidateClssImportPreview,
+            refreshClssImportPreviewReview,
+            parseClssImportPreview,
+            applyClssImport,
             openAddCourseModal,
             closeAddCourseModal,
             closeAddFacultyModal,
@@ -8292,6 +9389,91 @@
                     <button type="submit" class="btn-primary">Save Changes</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- CLSS Import Modal -->
+    <div class="modal-overlay" id="clssImportModal" onclick="closeClssImportModal(event)">
+        <div class="modal-content clss-import-modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h2 class="modal-title">Import CLSS (Review First)</h2>
+                <button class="modal-close" onclick="closeClssImportModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="clss-import-layout">
+                    <div class="api-help">
+                        <strong>Screenshot-first import (PNG)</strong>
+                        Upload CLSS screenshots for traceability, then paste OCR/CLSS text to parse and review before applying.
+                        PDF extraction is intentionally deferred for now.
+                    </div>
+
+                    <div class="clss-import-top-row">
+                        <div class="clss-import-panel">
+                            <h4>Source Input</h4>
+                            <div class="clss-import-field">
+                                <label for="clssImportPngInput">CLSS PNG screenshots (optional, multiple)</label>
+                                <input type="file" id="clssImportPngInput" accept=".png,image/png" multiple onchange="handleClssImportPngSelection()">
+                                <div class="clss-import-file-list" id="clssImportPngSummary">No screenshots selected.</div>
+                            </div>
+                            <div class="clss-import-field">
+                                <label for="clssImportText">Paste OCR text or copied CLSS rows</label>
+                                <textarea id="clssImportText" placeholder="Paste CLSS OCR text here (course headers + section rows)..." oninput="invalidateClssImportPreview()"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="clss-import-panel">
+                            <h4>Import Options</h4>
+                            <div class="clss-import-inline-controls">
+                                <div class="clss-import-field">
+                                    <label for="clssImportQuarter">Target quarter</label>
+                                    <select id="clssImportQuarter" onchange="refreshClssImportPreviewReview()">
+                                        <option value="fall">Fall</option>
+                                        <option value="winter">Winter</option>
+                                        <option value="spring">Spring</option>
+                                    </select>
+                                </div>
+                                <label class="clss-import-checkbox" for="clssImportReplaceQuarter">
+                                    <input type="checkbox" id="clssImportReplaceQuarter" onchange="refreshClssImportPreviewReview()">
+                                    <span>Replace target quarter before import (clear existing quarter schedule buckets first)</span>
+                                </label>
+                                <div class="clss-import-help-text">
+                                    Parse first to review row-by-row status. Ready rows can be placed into the grid. Online and arranged rows route to special sections. Needs-review rows go to the displaced tray for manual placement.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="clss-import-panel">
+                        <h4>Review Parsed Rows</h4>
+                        <div class="clss-import-review-summary" id="clssImportSummary"></div>
+                        <div id="clssImportEmptyState" class="clss-import-empty">
+                            Paste CLSS/OCR text, then click <strong>Parse Preview</strong>. No schedule data will be changed until you click <strong>Apply Import</strong>.
+                        </div>
+                        <div id="clssImportTableWrap" class="clss-import-table-wrap" style="display:none;">
+                            <table class="clss-import-table" aria-label="CLSS import review table">
+                                <thead>
+                                    <tr>
+                                        <th>Status</th>
+                                        <th>Course</th>
+                                        <th>Section</th>
+                                        <th>Instructor</th>
+                                        <th>Meeting</th>
+                                        <th>Room</th>
+                                        <th>Scheduler Slot</th>
+                                        <th>Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="clssImportReviewBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="closeClssImportModal()">Close</button>
+                <button class="btn-secondary" onclick="parseClssImportPreview()">Parse Preview</button>
+                <button class="btn-ewu-accent" id="clssImportApplyButton" onclick="applyClssImport()" disabled>Apply Import</button>
+            </div>
         </div>
     </div>
 
