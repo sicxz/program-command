@@ -1814,6 +1814,32 @@
             line-height: 1.35;
         }
 
+        .clss-import-workloads-instructions {
+            margin-top: 6px;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .clss-import-workloads-instructions ul {
+            margin: 8px 0 0 16px;
+            padding: 0;
+        }
+
+        .clss-import-workloads-instructions li + li {
+            margin-top: 4px;
+        }
+
+        .clss-import-control-disabled {
+            opacity: 0.55;
+        }
+
+        .clss-import-control-disabled input,
+        .clss-import-control-disabled select,
+        .clss-import-control-disabled button,
+        .clss-import-control-disabled textarea {
+            cursor: not-allowed;
+        }
+
         .clss-import-file-list {
             margin-top: 8px;
             font-size: 12px;
@@ -1968,6 +1994,18 @@
 
         .clss-import-resolve-controls button:hover {
             background: #eef2f6;
+        }
+
+        .clss-import-resolve-controls select:disabled,
+        .clss-import-resolve-controls button:disabled {
+            background: #f6f8fa;
+            color: #8c959f;
+            border-color: #d8dee4;
+            cursor: not-allowed;
+        }
+
+        .clss-import-resolve-controls button:disabled:hover {
+            background: #f6f8fa;
         }
 
         .clss-import-resolve-label {
@@ -7843,20 +7881,42 @@
             const applyBtn = document.getElementById('clssImportApplyButton');
             const helpEl = document.getElementById('clssImportModeHelp');
             const resolveColHeader = document.getElementById('clssImportResolveHeader');
+            const yearModeSelect = document.getElementById('clssImportTargetYearMode');
+            const replaceCheckbox = document.getElementById('clssImportReplaceQuarter');
+            const replaceControl = document.getElementById('clssImportReplaceQuarterControl');
+            const scheduleModeHelp = document.getElementById('clssImportScheduleModeHelp');
+            const workloadsInstructions = document.getElementById('clssImportWorkloadsInstructions');
+            const isWorkloadsMode = mode === 'workloads';
 
             if (applyBtn) {
-                applyBtn.textContent = mode === 'workloads' ? 'Build Workloads' : 'Apply Import';
+                applyBtn.textContent = isWorkloadsMode ? 'Build Workloads' : 'Apply Import';
             }
 
             if (helpEl) {
-                helpEl.textContent = mode === 'workloads'
-                    ? 'Workloads mode imports CLSS rows into a workload handoff dataset. It does not require room/slot placement.'
+                helpEl.textContent = isWorkloadsMode
+                    ? 'Workloads mode imports CLSS rows into a workload handoff dataset for the selected academic year. It does not place courses into the scheduler grid.'
                     : 'Schedule mode imports rows into scheduler grid/online/arranged sections and uses slot/room placement logic.';
             }
 
             if (resolveColHeader) {
-                resolveColHeader.textContent = mode === 'workloads' ? 'Optional Resolve' : 'Resolve';
+                resolveColHeader.textContent = isWorkloadsMode ? 'Workload Overrides' : 'Resolve';
             }
+
+            if (isWorkloadsMode && yearModeSelect && yearModeSelect.value !== 'next') {
+                yearModeSelect.value = 'next';
+                invalidateClssImportPriorYearPlacementCache();
+            }
+
+            if (replaceCheckbox) {
+                if (isWorkloadsMode && replaceCheckbox.checked) {
+                    replaceCheckbox.checked = false;
+                }
+                replaceCheckbox.disabled = isWorkloadsMode;
+            }
+
+            replaceControl?.classList.toggle('clss-import-control-disabled', isWorkloadsMode);
+            scheduleModeHelp?.classList.toggle('clss-import-hidden', isWorkloadsMode);
+            workloadsInstructions?.classList.toggle('clss-import-hidden', !isWorkloadsMode);
 
             refreshClssImportPreviewReview();
         }
@@ -7918,6 +7978,8 @@
             const nextOpt = select.querySelector('option[value="next"]');
             if (currentOpt) currentOpt.textContent = `This academic year (${currentYearLabel})`;
             if (nextOpt) nextOpt.textContent = `Next academic year (${nextYearLabel})`;
+            const workloadsYearHint = document.getElementById('clssImportWorkloadsNextYearLabel');
+            if (workloadsYearHint) workloadsYearHint.textContent = nextYearLabel;
         }
 
         function getClssImportTargetAcademicYear() {
@@ -8584,10 +8646,11 @@
         function buildClssImportResolveControls(rowIndex, row, effectiveRow) {
             const wrapper = document.createElement('div');
             wrapper.className = 'clss-import-resolve-controls';
+            const workloadsMode = getClssImportBuildMode() === 'workloads';
 
             const label = document.createElement('div');
             label.className = 'clss-import-resolve-label';
-            label.textContent = 'Resolve before apply';
+            label.textContent = workloadsMode ? 'Optional quarter/modality overrides' : 'Resolve before apply';
             wrapper.appendChild(label);
 
             const quarterRow = document.createElement('div');
@@ -8628,7 +8691,7 @@
             wrapper.appendChild(quarterRow);
 
             const placement = String(row.reviewPlacement || '').toLowerCase();
-            const disableSlotFields = ['online', 'arranged', 'skip'].includes(placement);
+            const disableSlotFields = workloadsMode || ['online', 'arranged', 'skip'].includes(placement);
 
             const slotRow = document.createElement('div');
             slotRow.className = 'row';
@@ -8703,7 +8766,7 @@
             roomRow.appendChild(resetButton);
             wrapper.appendChild(roomRow);
 
-            if (effectiveRow.effectiveStatus === 'needs-review') {
+            if (!workloadsMode && effectiveRow.effectiveStatus === 'needs-review') {
                 const trayRow = document.createElement('div');
                 trayRow.className = 'row single';
 
@@ -8717,7 +8780,12 @@
                 wrapper.appendChild(trayRow);
             }
 
-            if (effectiveRow.effectiveStatus === 'needs-review' && !disableSlotFields) {
+            if (workloadsMode) {
+                const hintRow = document.createElement('div');
+                hintRow.className = 'clss-import-resolve-label';
+                hintRow.textContent = 'Build Workloads mode disables slot/room controls. Quarter and placement (modality) overrides still apply.';
+                wrapper.appendChild(hintRow);
+            } else if (effectiveRow.effectiveStatus === 'needs-review' && !disableSlotFields) {
                 const hintRow = document.createElement('div');
                 hintRow.className = 'clss-import-resolve-label';
                 hintRow.textContent = 'Tip: set placement to In-person, then choose MW/TR + time (room can be Auto).';
@@ -10840,12 +10908,21 @@
                                         <option value="spring">Spring</option>
                                     </select>
                                 </div>
-                                <label class="clss-import-checkbox" for="clssImportReplaceQuarter">
+                                <label class="clss-import-checkbox" id="clssImportReplaceQuarterControl" for="clssImportReplaceQuarter">
                                     <input type="checkbox" id="clssImportReplaceQuarter" onchange="refreshClssImportPreviewReview()">
                                     <span id="clssImportReplaceLabel">Replace target quarter before import (clear existing quarter schedule buckets first)</span>
                                 </label>
-                                <div class="clss-import-help-text">
+                                <div class="clss-import-help-text" id="clssImportScheduleModeHelp">
                                     Single-quarter import is safest for accuracy. Batch mode is available for rollout work and imports Fall/Winter/Spring together using the three text boxes above. Parse first to review row-by-row status. Ready rows can be placed into the grid. Online and arranged rows route to special sections. Needs-review rows go to the displaced tray for manual placement.
+                                </div>
+                                <div class="api-help clss-import-workloads-instructions clss-import-hidden" id="clssImportWorkloadsInstructions">
+                                    <strong>Chair workflow: Build Workloads</strong>
+                                    Use this mode to create a workload import handoff for the <strong>next academic year</strong> (currently <strong id="clssImportWorkloadsNextYearLabel">2026-27</strong>) without placing courses into the scheduler grid.
+                                    <ul>
+                                        <li>No room numbers or meeting times are required.</li>
+                                        <li>Review course, instructor, quarter, and modality (placement type) only.</li>
+                                        <li>Click <strong>Build Workloads</strong> to open the workload review workflow.</li>
+                                    </ul>
                                 </div>
                             </div>
                         </div>
