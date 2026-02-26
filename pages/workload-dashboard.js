@@ -11,6 +11,32 @@ let currentFilters = {
     status: 'all',
     category: 'all'
 };
+let excelJsLoadPromise = null;
+
+const WORKLOAD_EXPORT_TEMPLATE_PATH = '../docs/examples/workload/MasingaleT_Wkld_2526_20May2025.xlsx';
+const WORKLOAD_EXPORT_TEMPLATE_SHEET = 'Sheet1';
+const WORKLOAD_EXPORT_EXCELJS_URL = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+const WORKLOAD_EXPORT_FACULTY_NAME_OVERRIDES = {
+    'mindy breen': 'Breen Mindy',
+    'm.breen': 'Breen Mindy',
+    'travis masingale': 'Masingale Travis',
+    't.masingale': 'Masingale Travis',
+    'ginelle hustrulid': 'Hustrulid Ginelle',
+    'g.hustrulid': 'Hustrulid Ginelle',
+    'colin manikoth': 'Manikoth Colin',
+    'c.manikoth': 'Manikoth Colin',
+    'sonja durr': 'Durr Sonja',
+    's.durr': 'Durr Sonja',
+    'simeon mills': 'Mills Simeon',
+    'sam mills': 'Mills Simeon',
+    's.mills': 'Mills Simeon',
+    'meg lybbert': 'Lybbert Meg',
+    'meg lybert': 'Lybbert Meg',
+    'm.lybbert': 'Lybbert Meg',
+    'm.lybert': 'Lybbert Meg',
+    'ariel sopu': 'Sopu Ariel',
+    'a.sopu': 'Sopu Ariel'
+};
 
 // Chart instances
 let charts = {};
@@ -597,6 +623,13 @@ function createActionsCell(facultyName) {
     detailBtn.onclick = () => openFacultyWorkloadDetail(facultyName);
     td.appendChild(detailBtn);
 
+    const exportBtn = document.createElement('button');
+    exportBtn.className = 'btn-icon';
+    exportBtn.title = 'Export workload sheet (.xlsx)';
+    exportBtn.textContent = '⬇️';
+    exportBtn.onclick = () => exportFacultyWorkloadSheet(facultyName);
+    td.appendChild(exportBtn);
+
     const editBtn = document.createElement('button');
     editBtn.className = 'btn-icon btn-edit';
     editBtn.title = 'Edit courses';
@@ -713,6 +746,314 @@ function openFacultyWorkloadDetail(facultyName) {
         year: currentFilters.year
     });
     window.location.href = `faculty-workload-detail.html?${params.toString()}`;
+}
+
+function normalizeFacultyExportKey(value) {
+    return String(value || '')
+        .toLowerCase()
+        .replace(/[^a-z]/g, '');
+}
+
+function getTemplateFacultyName(facultyName) {
+    const raw = String(facultyName || '').trim();
+    const normalized = normalizeFacultyExportKey(raw);
+    const exactOverride = Object.entries(WORKLOAD_EXPORT_FACULTY_NAME_OVERRIDES)
+        .find(([key]) => normalizeFacultyExportKey(key) === normalized);
+    if (exactOverride) {
+        return exactOverride[1];
+    }
+
+    // Fallback: convert "First Last" => "Last First" when possible, leave initials as-is.
+    const parts = raw.split(/\s+/).filter(Boolean);
+    if (parts.length >= 2 && !parts[0].includes('.')) {
+        return `${parts.slice(1).join(' ')} ${parts[0]}`;
+    }
+    return raw;
+}
+
+function getAcademicYearYears(academicYear) {
+    const match = String(academicYear || '').match(/^(\d{4})-(\d{2})$/);
+    if (!match) {
+        const current = new Date().getFullYear();
+        return { startYear: current, endYear: current + 1, compact: `${String(current).slice(-2)}${String(current + 1).slice(-2)}` };
+    }
+    const startYear = Number(match[1]);
+    const endYear = Number(`${String(startYear).slice(0, 2)}${match[2]}`);
+    return {
+        startYear,
+        endYear,
+        compact: `${String(startYear).slice(-2)}${String(endYear).slice(-2)}`
+    };
+}
+
+function roundToTenths(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return 0;
+    return Math.round(n * 10) / 10;
+}
+
+function isAppliedLearningCode(code) {
+    const normalized = String(code || '').replace(/\s+/g, ' ').trim().toUpperCase();
+    return normalized === 'DESN 399'
+        || normalized === 'DESN 491'
+        || normalized === 'DESN 495'
+        || normalized === 'DESN 499';
+}
+
+function sortQuarterRows(rows) {
+    return rows.sort((a, b) => {
+        if ((a.sortOrder || 0) !== (b.sortOrder || 0)) {
+            return (a.sortOrder || 0) - (b.sortOrder || 0);
+        }
+        return String(a.label || '').localeCompare(String(b.label || ''));
+    });
+}
+
+function buildQuarterExportRows(facultyRecord) {
+    const quarters = { Fall: [], Winter: [], Spring: [] };
+    const appliedTotals = {
+        Fall: { credits: 0, count: 0, codes: new Set() },
+        Winter: { credits: 0, count: 0, codes: new Set() },
+        Spring: { credits: 0, count: 0, codes: new Set() }
+    };
+
+    const courses = Array.isArray(facultyRecord?.courses) ? facultyRecord.courses : [];
+    courses.forEach((course, index) => {
+        const quarter = ['Fall', 'Winter', 'Spring'].includes(course?.quarter) ? course.quarter : null;
+        if (!quarter) return;
+
+        const code = String(course?.courseCode || '').trim();
+        const workloadCredits = Number.isFinite(Number(course?.workloadCredits))
+            ? Number(course.workloadCredits)
+            : Number(course?.credits) || 0;
+
+        if (isAppliedLearningCode(code) || course?.type === 'applied-learning') {
+            appliedTotals[quarter].credits += workloadCredits;
+            appliedTotals[quarter].count += 1;
+            if (code) appliedTotals[quarter].codes.add(code);
+            return;
+        }
+
+        quarters[quarter].push({
+            label: code || 'DESN',
+            note: course?.section ? `Sec ${course.section}` : '',
+            credits: roundToTenths(workloadCredits || course?.credits || 0),
+            sortOrder: index
+        });
+    });
+
+    ['Fall', 'Winter', 'Spring'].forEach((quarter) => {
+        const applied = appliedTotals[quarter];
+        if (applied.credits > 0) {
+            const codeList = Array.from(applied.codes).sort().join('/');
+            quarters[quarter].push({
+                label: 'DESN X95/99',
+                note: codeList || 'Applied learning',
+                credits: roundToTenths(applied.credits),
+                sortOrder: 10_000
+            });
+        }
+        quarters[quarter] = sortQuarterRows(quarters[quarter]);
+        if (quarters[quarter].length > 6) {
+            throw new Error(`${quarter} has ${quarters[quarter].length} workload rows after aggregation (template supports 6).`);
+        }
+        while (quarters[quarter].length < 6) {
+            quarters[quarter].push({ label: '', note: '', credits: null, sortOrder: 99_999 });
+        }
+    });
+
+    return quarters;
+}
+
+function inferFacultyWorkloadExportRole(record) {
+    const role = String(record?.ayRole || record?.rank || '').trim();
+    if (role) {
+        if (record?.specialRole) return `${role} (${record.specialRole})`;
+        return role;
+    }
+    if (record?.category === 'adjunct') return 'Adjunct';
+    return 'Faculty';
+}
+
+function isLecturerLikeRole(record) {
+    const role = String(record?.ayRole || record?.rank || '').toLowerCase();
+    return role.includes('lecturer');
+}
+
+async function ensureExcelJsLoaded() {
+    if (typeof window.ExcelJS !== 'undefined') {
+        return window.ExcelJS;
+    }
+    if (excelJsLoadPromise) {
+        return excelJsLoadPromise;
+    }
+
+    excelJsLoadPromise = new Promise((resolve, reject) => {
+        const existing = document.querySelector('script[data-exceljs="workload-export"]');
+        if (existing) {
+            existing.addEventListener('load', () => resolve(window.ExcelJS));
+            existing.addEventListener('error', () => reject(new Error('Failed to load ExcelJS library.')));
+            return;
+        }
+
+        const script = document.createElement('script');
+        script.src = WORKLOAD_EXPORT_EXCELJS_URL;
+        script.async = true;
+        script.dataset.exceljs = 'workload-export';
+        script.onload = () => {
+            if (typeof window.ExcelJS === 'undefined') {
+                reject(new Error('ExcelJS loaded but global object was not available.'));
+                return;
+            }
+            resolve(window.ExcelJS);
+        };
+        script.onerror = () => reject(new Error('Failed to load ExcelJS library from CDN.'));
+        document.head.appendChild(script);
+    }).finally(() => {
+        // Allow retry after a failed load.
+        if (typeof window.ExcelJS === 'undefined') {
+            excelJsLoadPromise = null;
+        }
+    });
+
+    return excelJsLoadPromise;
+}
+
+function getFacultyRecordForExport(facultyName) {
+    const all = currentYearData?.all || {};
+    return all?.[facultyName] || null;
+}
+
+function getQuarterColumnMap() {
+    return {
+        Fall: { course: 'B', note: 'C', credits: 'D' },
+        Winter: { course: 'E', note: 'F', credits: 'G' },
+        Spring: { course: 'H', note: 'I', credits: 'J' }
+    };
+}
+
+function applyQuarterRowsToWorksheet(ws, quarterRowsByQuarter) {
+    const colMap = getQuarterColumnMap();
+    ['Fall', 'Winter', 'Spring'].forEach((quarter) => {
+        const rows = quarterRowsByQuarter[quarter] || [];
+        const cols = colMap[quarter];
+        for (let i = 0; i < 6; i += 1) {
+            const sheetRow = i + 2;
+            const rowData = rows[i] || { label: '', note: '', credits: null };
+            const hasCreditValue = rowData.credits !== null
+                && rowData.credits !== undefined
+                && rowData.credits !== ''
+                && Number.isFinite(Number(rowData.credits));
+            ws.getCell(`${cols.course}${sheetRow}`).value = rowData.label || null;
+            ws.getCell(`${cols.note}${sheetRow}`).value = rowData.note || null;
+            ws.getCell(`${cols.credits}${sheetRow}`).value = hasCreditValue ? Number(rowData.credits) : null;
+        }
+    });
+}
+
+function applyWorkloadSummaryAssumptions(ws, facultyRecord, quarterRowsByQuarter) {
+    const expectedTeaching = Number.isFinite(Number(facultyRecord?.ayNetTargetCredits))
+        ? Number(facultyRecord.ayNetTargetCredits)
+        : (Number.isFinite(Number(facultyRecord?.maxWorkload)) ? Number(facultyRecord.maxWorkload) : 0);
+    const explicitRelease = Number.isFinite(Number(facultyRecord?.ayReleaseCredits))
+        ? Number(facultyRecord.ayReleaseCredits)
+        : 0;
+
+    const assignedTeaching = ['Fall', 'Winter', 'Spring']
+        .flatMap((quarter) => quarterRowsByQuarter[quarter] || [])
+        .reduce((sum, row) => sum + (Number(row?.credits) || 0), 0);
+
+    const impliedReleaseShortfall = Math.max(0, expectedTeaching - assignedTeaching);
+    const assignedRelease = roundToTenths(Math.max(explicitRelease, impliedReleaseShortfall));
+
+    ws.getCell('P2').value = roundToTenths(expectedTeaching);
+    ws.getCell('P8').value = roundToTenths(explicitRelease);
+    ws.getCell('O8').value = assignedRelease;
+
+    if (isLecturerLikeRole(facultyRecord)) {
+        ['O4', 'P4', 'O6', 'P6'].forEach((cell) => {
+            ws.getCell(cell).value = 0;
+        });
+    }
+}
+
+function buildWorkloadExportFilename(facultyName, academicYear) {
+    const { compact } = getAcademicYearYears(academicYear);
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    const templateName = getTemplateFacultyName(facultyName)
+        .replace(/\s+/g, '')
+        .replace(/[^A-Za-z]/g, '') || 'Faculty';
+    return `${templateName}_Wkld_${compact}_${y}${m}${d}.xlsx`;
+}
+
+function triggerBlobDownload(blob, filename) {
+    const objectUrl = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = objectUrl;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+}
+
+async function exportFacultyWorkloadSheet(facultyName) {
+    try {
+        if (!currentFilters.year || currentFilters.year === 'all') {
+            alert('Select a single academic year before exporting a workload sheet.');
+            return;
+        }
+
+        const facultyRecord = getFacultyRecordForExport(facultyName);
+        if (!facultyRecord) {
+            alert(`Could not find workload data for ${facultyName} in AY ${currentFilters.year}.`);
+            return;
+        }
+
+        const quarterRowsByQuarter = buildQuarterExportRows(facultyRecord);
+        const ExcelJS = await ensureExcelJsLoaded();
+
+        const templateResponse = await fetch(WORKLOAD_EXPORT_TEMPLATE_PATH, { cache: 'no-store' });
+        if (!templateResponse.ok) {
+            throw new Error(`Template workbook not found (${templateResponse.status}).`);
+        }
+
+        const templateBuffer = await templateResponse.arrayBuffer();
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.load(templateBuffer);
+
+        const ws = workbook.getWorksheet(WORKLOAD_EXPORT_TEMPLATE_SHEET) || workbook.worksheets?.[0];
+        if (!ws) {
+            throw new Error('Template worksheet not found.');
+        }
+
+        const years = getAcademicYearYears(currentFilters.year);
+        ws.getCell('A1').value = inferFacultyWorkloadExportRole(facultyRecord);
+        ws.getCell('A2').value = getTemplateFacultyName(facultyName);
+        ws.getCell('B1').value = `Fall Quarter, ${years.startYear}`;
+        ws.getCell('E1').value = `Winter Quarter, ${years.endYear}`;
+        ws.getCell('H1').value = `Spring Quarter, ${years.endYear}`;
+
+        applyQuarterRowsToWorksheet(ws, quarterRowsByQuarter);
+        applyWorkloadSummaryAssumptions(ws, facultyRecord, quarterRowsByQuarter);
+
+        const fileBuffer = await workbook.xlsx.writeBuffer();
+        const filename = buildWorkloadExportFilename(facultyName, currentFilters.year);
+        triggerBlobDownload(
+            new Blob([fileBuffer], {
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            }),
+            filename
+        );
+
+        console.log(`📤 Exported workload sheet for ${facultyName}: ${filename}`);
+    } catch (error) {
+        console.error('Workload export failed:', error);
+        alert(`Workload export failed: ${error.message}`);
+    }
 }
 
 // Initialize dashboard when page loads
