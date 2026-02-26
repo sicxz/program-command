@@ -1601,6 +1601,22 @@ function ensureWorkloadPlanningStyles() {
         .workload-plan-table td.name {
             min-width: 180px;
         }
+        .workload-plan-name-link {
+            border: 0;
+            padding: 0;
+            margin: 0;
+            background: transparent;
+            color: #0f172a;
+            font: inherit;
+            font-weight: 700;
+            text-align: left;
+            cursor: pointer;
+            line-height: 1.2;
+        }
+        .workload-plan-name-link:hover {
+            color: #0969da;
+            text-decoration: underline;
+        }
         .workload-plan-sub {
             display: block;
             margin-top: 2px;
@@ -1945,6 +1961,154 @@ function ensureWorkloadPlanningStyles() {
             color: #0f172a;
             font-size: 0.9rem;
         }
+        .workload-plan-worksheet-card {
+            margin-top: 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            background: #fff;
+            padding: 10px;
+        }
+        .workload-plan-worksheet-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+        .workload-plan-worksheet-head h5 {
+            margin: 0;
+            color: #0f172a;
+            font-size: 0.9rem;
+        }
+        .workload-plan-worksheet-sub {
+            color: #64748b;
+            font-size: 0.75rem;
+            line-height: 1.35;
+        }
+        .workload-plan-worksheet-meta {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .workload-plan-worksheet-meta-item {
+            border: 1px solid rgba(15, 23, 42, 0.07);
+            border-radius: 8px;
+            background: #f8fafc;
+            padding: 7px 8px;
+        }
+        .workload-plan-worksheet-meta-item .label {
+            display: block;
+            color: #64748b;
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        .workload-plan-worksheet-meta-item .value {
+            display: block;
+            color: #0f172a;
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-top: 2px;
+        }
+        .workload-plan-worksheet-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .workload-plan-worksheet-summary-card {
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            border-radius: 8px;
+            padding: 8px;
+            background: #f8fafc;
+        }
+        .workload-plan-worksheet-summary-card .label {
+            display: block;
+            color: #64748b;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        .workload-plan-worksheet-summary-card .value {
+            display: block;
+            color: #0f172a;
+            font-size: 0.95rem;
+            font-weight: 700;
+            margin-top: 2px;
+        }
+        .workload-plan-worksheet-summary-card .sub {
+            display: block;
+            color: #64748b;
+            font-size: 0.7rem;
+            margin-top: 2px;
+            line-height: 1.25;
+        }
+        .workload-plan-quarter-course-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 8px;
+        }
+        .workload-plan-quarter-card {
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            border-radius: 8px;
+            background: #fff;
+            overflow: hidden;
+        }
+        .workload-plan-quarter-card-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 6px;
+            padding: 8px 8px 6px;
+            border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+            background: #f8fafc;
+        }
+        .workload-plan-quarter-card-head strong {
+            color: #0f172a;
+            font-size: 0.82rem;
+        }
+        .workload-plan-quarter-card-head span {
+            color: #64748b;
+            font-size: 0.72rem;
+        }
+        .workload-plan-quarter-course-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            max-height: 180px;
+            overflow: auto;
+        }
+        .workload-plan-quarter-course-item {
+            padding: 7px 8px;
+            border-bottom: 1px solid rgba(15, 23, 42, 0.05);
+            display: grid;
+            gap: 2px;
+        }
+        .workload-plan-quarter-course-item:last-child {
+            border-bottom: 0;
+        }
+        .workload-plan-quarter-course-main {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 8px;
+            font-size: 0.76rem;
+            color: #0f172a;
+        }
+        .workload-plan-quarter-course-code {
+            font-weight: 700;
+        }
+        .workload-plan-quarter-course-item .sub {
+            color: #64748b;
+            font-size: 0.69rem;
+            line-height: 1.25;
+        }
+        .workload-plan-quarter-empty {
+            padding: 10px 8px;
+            color: #64748b;
+            font-size: 0.74rem;
+        }
         .workload-plan-modal-actions {
             display: flex;
             justify-content: space-between;
@@ -1971,6 +2135,13 @@ function ensureWorkloadPlanningStyles() {
             }
             .workload-plan-derived-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            .workload-plan-worksheet-meta,
+            .workload-plan-worksheet-summary-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            .workload-plan-quarter-course-grid {
+                grid-template-columns: 1fr;
             }
         }
     `;
@@ -2423,6 +2594,17 @@ function ensureWorkloadPlanEditorModal() {
                         <div><span class="label">AY Total / Utilization</span><strong id="workloadPlanDerivedAy">0 (0%)</strong></div>
                     </div>
                 </div>
+                <div class="workload-plan-worksheet-card" id="workloadPlanWorksheetCard">
+                    <div class="workload-plan-worksheet-head">
+                        <div>
+                            <h5>Workload Worksheet Snapshot (Teaching + AY Summary)</h5>
+                            <div class="workload-plan-worksheet-sub">Chair-facing view of Fall/Winter/Spring workload and teaching assignments for the selected AY. Scholarship/service worksheet fields are still finalized outside this modal.</div>
+                        </div>
+                    </div>
+                    <div class="workload-plan-worksheet-meta" id="workloadPlanWorksheetMeta"></div>
+                    <div class="workload-plan-worksheet-summary-grid" id="workloadPlanWorksheetSummary"></div>
+                    <div class="workload-plan-quarter-course-grid" id="workloadPlanWorksheetCourses"></div>
+                </div>
                 <div class="workload-plan-modal-actions">
                     <div class="left">
                         <button type="button" class="workload-plan-btn" data-action="remove-plan-record">Remove AY Plan</button>
@@ -2467,6 +2649,8 @@ function ensureWorkloadPlanEditorModal() {
     overlay.querySelector('#workloadPlanEditorForm').addEventListener('submit', handleWorkloadPlanEditorSubmit);
     overlay.querySelector('#workloadPlanChair').addEventListener('change', handleWorkloadPlanChairToggle);
     overlay.querySelector('#workloadPlanRole').addEventListener('change', handleWorkloadPlanRoleChange);
+    overlay.querySelector('#workloadPlanFacultyName').addEventListener('input', updateWorkloadPlanDerivedPreview);
+    overlay.querySelector('#workloadPlanFte').addEventListener('input', updateWorkloadPlanDerivedPreview);
     overlay.querySelector('#workloadPlanTargetCredits').addEventListener('input', updateWorkloadPlanDerivedPreview);
     overlay.querySelector('#workloadPlanReleaseCredits').addEventListener('input', updateWorkloadPlanDerivedPreview);
     overlay.querySelector('#workloadPlanReleaseAllocationList').addEventListener('input', handleWorkloadPlanReleaseAllocationInput);
@@ -2632,7 +2816,7 @@ function renderWorkloadPlanningPanel(yearData) {
             return `${groupRowHtml}
                 <tr class="${rowChangeClass.trim()}" data-faculty-name="${escapeWorkloadPlanHtml(row.facultyName)}">
                     <td class="name">
-                        <strong>${escapeWorkloadPlanHtml(row.facultyName)}</strong>
+                        <button type="button" class="workload-plan-name-link" data-action="edit-plan" data-faculty="${escapeWorkloadPlanHtml(row.facultyName)}" title="Open workload plan for ${escapeWorkloadPlanHtml(row.facultyName)}">${escapeWorkloadPlanHtml(row.facultyName)}</button>
                         ${chairTag}
                         ${fallbackTag}
                         ${changeTag}
@@ -2917,6 +3101,141 @@ function updateWorkloadPlanDerivedPreview() {
         ? ` · adj ${formatWorkloadPlanNumber(ayUtilAdjusted)}%`
         : '';
     overlay.querySelector('#workloadPlanDerivedAy').textContent = `${formatWorkloadPlanNumber(ayTotal)} (${formatWorkloadPlanNumber(ayUtil)}%)${ayAdjustedPart}`;
+
+    renderWorkloadPlanWorksheetSnapshot(overlay, baseRow, values);
+}
+
+function getWorkloadPlanEditorQuarterCourseBuckets(workloadRecord) {
+    const buckets = {
+        Fall: [],
+        Winter: [],
+        Spring: []
+    };
+    const courses = Array.isArray(workloadRecord?.courses) ? workloadRecord.courses : [];
+    courses.forEach((course) => {
+        const quarter = String(course?.quarter || '').trim();
+        if (!Object.prototype.hasOwnProperty.call(buckets, quarter)) return;
+        buckets[quarter].push({
+            courseCode: String(course?.courseCode || '').trim(),
+            section: String(course?.section || '').trim() || '001',
+            workloadCredits: Number(course?.workloadCredits) || 0,
+            credits: Number(course?.credits) || 0,
+            source: String(course?.source || '').trim(),
+            type: String(course?.type || '').trim()
+        });
+    });
+    Object.values(buckets).forEach((items) => {
+        items.sort((a, b) => {
+            if (a.courseCode === b.courseCode) return a.section.localeCompare(b.section);
+            return a.courseCode.localeCompare(b.courseCode);
+        });
+    });
+    return buckets;
+}
+
+function renderWorkloadPlanWorksheetSnapshot(overlay, baseRow, values) {
+    if (!overlay) return;
+    const metaEl = overlay.querySelector('#workloadPlanWorksheetMeta');
+    const summaryEl = overlay.querySelector('#workloadPlanWorksheetSummary');
+    const coursesEl = overlay.querySelector('#workloadPlanWorksheetCourses');
+    if (!metaEl || !summaryEl || !coursesEl) return;
+
+    const row = baseRow || null;
+    const workloadRecord = row?.workloadRecord || null;
+    const annualTarget = Number(values?.annualTargetCredits) || Number(row?.target) || 0;
+    const releaseCredits = Number(values?.releaseCredits) || Number(row?.release) || 0;
+    const netTarget = Math.max(0, annualTarget - releaseCredits);
+    const fte = Number(values?.ftePercent);
+    const releasePercent = annualTarget > 0 ? Number(((releaseCredits / annualTarget) * 100).toFixed(1)) : 0;
+    const chairPercent = values?.isChair ? releasePercent : 0;
+    const role = String(values?.role || row?.role || '').trim() || '—';
+    const facultyName = String(values?.name || row?.facultyName || '').trim() || '—';
+    const fall = Number(row?.fall) || 0;
+    const winter = Number(row?.winter) || 0;
+    const spring = Number(row?.spring) || 0;
+    const ayTotal = Number(row?.ayTotal) || 0;
+    const ayUtil = annualTarget > 0 ? Number(((ayTotal / annualTarget) * 100).toFixed(1)) : 0;
+    const ayUtilNet = netTarget > 0 ? Number(((ayTotal / netTarget) * 100).toFixed(1)) : 0;
+    const fallUtil = inferQuarterUtilization(fall, annualTarget);
+    const winterUtil = inferQuarterUtilization(winter, annualTarget);
+    const springUtil = inferQuarterUtilization(spring, annualTarget);
+    const courseBuckets = getWorkloadPlanEditorQuarterCourseBuckets(workloadRecord);
+
+    const metaItems = [
+        { label: 'AY', value: currentFilters.year || '—' },
+        { label: 'Name', value: facultyName },
+        { label: 'Classification', value: role },
+        { label: 'Department', value: 'Design' },
+        { label: 'FTE', value: `${Number.isFinite(fte) ? formatWorkloadPlanNumber(fte, 1) : '100'}%` },
+        { label: 'Expected Workload', value: `${formatWorkloadPlanNumber(annualTarget)} credits` },
+        { label: 'Assigned / Release', value: `${formatWorkloadPlanNumber(releaseCredits)} credits (${formatWorkloadPlanNumber(releasePercent)}%)` },
+        { label: 'Chair (%)', value: `${formatWorkloadPlanNumber(chairPercent)}%` }
+    ];
+
+    metaEl.innerHTML = metaItems.map((item) => `
+        <div class="workload-plan-worksheet-meta-item">
+            <span class="label">${escapeWorkloadPlanHtml(item.label)}</span>
+            <span class="value">${escapeWorkloadPlanHtml(item.value)}</span>
+        </div>
+    `).join('');
+
+    const summaryItems = [
+        {
+            label: 'Fall (workload)',
+            value: formatWorkloadPlanNumber(fall),
+            sub: `${formatWorkloadPlanNumber(fallUtil)}% of annual target`
+        },
+        {
+            label: 'Winter (workload)',
+            value: formatWorkloadPlanNumber(winter),
+            sub: `${formatWorkloadPlanNumber(winterUtil)}% of annual target`
+        },
+        {
+            label: 'Spring (workload)',
+            value: formatWorkloadPlanNumber(spring),
+            sub: `${formatWorkloadPlanNumber(springUtil)}% of annual target`
+        },
+        {
+            label: 'AY Total / Utilization',
+            value: `${formatWorkloadPlanNumber(ayTotal)} (${formatWorkloadPlanNumber(ayUtil)}%)`,
+            sub: netTarget > 0 ? `Net target ${formatWorkloadPlanNumber(netTarget)} · adj ${formatWorkloadPlanNumber(ayUtilNet)}%` : 'No net target after release'
+        }
+    ];
+
+    summaryEl.innerHTML = summaryItems.map((item) => `
+        <div class="workload-plan-worksheet-summary-card">
+            <span class="label">${escapeWorkloadPlanHtml(item.label)}</span>
+            <span class="value">${escapeWorkloadPlanHtml(item.value)}</span>
+            <span class="sub">${escapeWorkloadPlanHtml(item.sub)}</span>
+        </div>
+    `).join('');
+
+    const quarterLabels = ['Fall', 'Winter', 'Spring'];
+    coursesEl.innerHTML = quarterLabels.map((quarter) => {
+        const items = courseBuckets[quarter] || [];
+        const totalQuarterWorkload = items.reduce((sum, item) => sum + (Number(item.workloadCredits) || 0), 0);
+        const listHtml = items.length
+            ? `<ul class="workload-plan-quarter-course-list">${items.map((item) => `
+                    <li class="workload-plan-quarter-course-item">
+                        <div class="workload-plan-quarter-course-main">
+                            <span><span class="workload-plan-quarter-course-code">${escapeWorkloadPlanHtml(item.courseCode || 'Course')}</span> · ${escapeWorkloadPlanHtml(item.section || '001')}</span>
+                            <span>WL ${escapeWorkloadPlanHtml(formatWorkloadPlanNumber(item.workloadCredits))}</span>
+                        </div>
+                        <div class="sub">${escapeWorkloadPlanHtml(formatWorkloadPlanNumber(item.credits))} SCH${item.type === 'applied-learning' ? ' · Applied learning weighted' : ''}</div>
+                    </li>
+                `).join('')}</ul>`
+            : '<div class="workload-plan-quarter-empty">No teaching assignments found for this quarter in the current schedule-derived workload data.</div>';
+
+        return `
+            <div class="workload-plan-quarter-card">
+                <div class="workload-plan-quarter-card-head">
+                    <strong>${escapeWorkloadPlanHtml(quarter)}</strong>
+                    <span>${escapeWorkloadPlanHtml(String(items.length))} course${items.length === 1 ? '' : 's'} · WL ${escapeWorkloadPlanHtml(formatWorkloadPlanNumber(totalQuarterWorkload))}</span>
+                </div>
+                ${listHtml}
+            </div>
+        `;
+    }).join('');
 }
 
 function handleWorkloadPlanChairToggle(event) {
@@ -3189,7 +3508,6 @@ function handleWorkloadPlanningPanelClick(event) {
     const facultyName = actionTarget.dataset.faculty;
 
     if (action === 'edit-plan' && facultyName) {
-        if (!assertWorkloadPlanningUnlocked('edit AY workload plans')) return;
         openWorkloadPlanEditorForFaculty(facultyName);
         return;
     }
@@ -4192,7 +4510,7 @@ function renderFacultyTable(facultyData, tableId, includeRank) {
 
         if (includeRank) {
             // Full-time faculty row with rank
-            row.appendChild(createTableCell(formatFacultyName(name, data)));
+            row.appendChild(createFacultyNameActionCell(name, formatFacultyName(name, data)));
             row.appendChild(createTableCell(data.rank || 'N/A'));
             row.appendChild(createTableCell(data.scheduledCredits || 0));
 
@@ -4228,7 +4546,7 @@ function renderFacultyTable(facultyData, tableId, includeRank) {
             row.appendChild(createActionsCell(name));
         } else {
             // Adjunct faculty row (simpler)
-            row.appendChild(createTableCell(name));
+            row.appendChild(createFacultyNameActionCell(name, name));
 
             const totalCell = document.createElement('td');
             const strong = document.createElement('strong');
@@ -4249,6 +4567,26 @@ function renderFacultyTable(facultyData, tableId, includeRank) {
 
         tbody.appendChild(row);
     });
+}
+
+function openWorkloadPlanEditorFromFacultyNameClick(facultyName) {
+    if (!currentFilters.year || currentFilters.year === 'all') {
+        alert('Select a single academic year first to view/edit an AY workload plan.');
+        return;
+    }
+    openWorkloadPlanEditorForFaculty(facultyName);
+}
+
+function createFacultyNameActionCell(facultyName, label) {
+    const td = document.createElement('td');
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'workload-plan-name-link';
+    button.title = `Open AY workload plan for ${facultyName}`;
+    button.textContent = String(label || facultyName || '');
+    button.onclick = () => openWorkloadPlanEditorFromFacultyNameClick(facultyName);
+    td.appendChild(button);
+    return td;
 }
 
 /**
