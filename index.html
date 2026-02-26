@@ -7806,6 +7806,27 @@
             refreshClssImportPreviewReview();
         }
 
+        function applyClssRolloutPreset() {
+            const yearModeSelect = document.getElementById('clssImportTargetYearMode');
+            const scopeSelect = document.getElementById('clssImportScope');
+            const replaceCheckbox = document.getElementById('clssImportReplaceQuarter');
+
+            if (yearModeSelect) {
+                yearModeSelect.value = 'next';
+            }
+            if (scopeSelect) {
+                scopeSelect.value = 'all';
+            }
+            if (replaceCheckbox) {
+                replaceCheckbox.checked = false;
+            }
+
+            toggleClssImportInputMode();
+            invalidateClssImportPreview();
+            refreshClssImportPreviewReview();
+            showToast('Rollout preset enabled: Next academic year + All three quarters');
+        }
+
         function populateClssImportTargetYearOptions() {
             const select = document.getElementById('clssImportTargetYearMode');
             if (!select) return;
@@ -9532,6 +9553,7 @@
             invalidateClssImportPreview,
             refreshClssImportPreviewReview,
             toggleClssImportInputMode,
+            applyClssRolloutPreset,
             parseClssImportPreview,
             applyClssImport,
             openAddCourseModal,
@@ -9760,6 +9782,12 @@
                         <div class="clss-import-panel">
                             <h4>Import Options</h4>
                             <div class="clss-import-inline-controls">
+                                <div class="clss-import-field">
+                                    <button type="button" class="btn-secondary" onclick="applyClssRolloutPreset()">Use Rollout Mode Preset</button>
+                                    <div class="clss-import-help-text" style="margin-top: 6px;">
+                                        Sets <strong>Next academic year</strong> + <strong>All three quarters</strong> for department rollout imports. Replace remains off unless you opt in.
+                                    </div>
+                                </div>
                                 <div class="clss-import-field">
                                     <label for="clssImportTargetYearMode">Target academic year</label>
                                     <select id="clssImportTargetYearMode" onchange="refreshClssImportPreviewReview()">
