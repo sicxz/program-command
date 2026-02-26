@@ -7967,6 +7967,32 @@
             showToast('Rollout preset enabled: Next academic year + All three quarters');
         }
 
+        function applyClssWorkloadsPreset() {
+            const yearModeSelect = document.getElementById('clssImportTargetYearMode');
+            const scopeSelect = document.getElementById('clssImportScope');
+            const buildModeSelect = document.getElementById('clssImportBuildMode');
+            const replaceCheckbox = document.getElementById('clssImportReplaceQuarter');
+
+            if (yearModeSelect) {
+                yearModeSelect.value = 'next';
+            }
+            if (scopeSelect) {
+                scopeSelect.value = 'all';
+            }
+            if (buildModeSelect) {
+                buildModeSelect.value = 'workloads';
+            }
+            if (replaceCheckbox) {
+                replaceCheckbox.checked = false;
+            }
+
+            refreshClssImportModeUi();
+            toggleClssImportInputMode();
+            invalidateClssImportPreview();
+            refreshClssImportPreviewReview();
+            showToast('Workloads preset enabled: Build Workloads + Next academic year + All three quarters');
+        }
+
         function populateClssImportTargetYearOptions() {
             const select = document.getElementById('clssImportTargetYearMode');
             if (!select) return;
@@ -10884,6 +10910,12 @@
                                     <button type="button" class="btn-secondary" onclick="applyClssRolloutPreset()">Use Rollout Mode Preset</button>
                                     <div class="clss-import-help-text" style="margin-top: 6px;">
                                         Sets <strong>Next academic year</strong> + <strong>All three quarters</strong> for department rollout imports. Replace remains off unless you opt in.
+                                    </div>
+                                </div>
+                                <div class="clss-import-field">
+                                    <button type="button" class="btn-secondary" onclick="applyClssWorkloadsPreset()">Use Workloads Preset</button>
+                                    <div class="clss-import-help-text" style="margin-top: 6px;">
+                                        Sets <strong>Build Workloads</strong> + <strong>Next academic year</strong> + <strong>All three quarters</strong>. Use this for chair workload setup (no grid placement).
                                     </div>
                                 </div>
                                 <div class="clss-import-field">
