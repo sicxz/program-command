@@ -1704,11 +1704,59 @@
             gap: 16px;
         }
 
+        .clss-import-steps {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        .clss-import-step {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 8px;
+            align-items: start;
+            padding: 9px 10px;
+            border-radius: 10px;
+            border: 1px solid #d8dee4;
+            background: #f6f8fa;
+            color: #24292f;
+            font-size: 12px;
+            line-height: 1.3;
+        }
+
+        .clss-import-step-number {
+            width: 22px;
+            height: 22px;
+            border-radius: 999px;
+            background: #0969da;
+            color: #fff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 11px;
+            flex-shrink: 0;
+        }
+
+        .clss-import-step strong {
+            display: block;
+            font-size: 12px;
+            margin-bottom: 1px;
+        }
+
         .clss-import-top-row {
             display: grid;
             grid-template-columns: 1.2fr 1fr;
             gap: 12px;
             align-items: start;
+        }
+
+        #clssImportOptionsPanel {
+            order: 1;
+        }
+
+        #clssImportSourcePanel {
+            order: 2;
         }
 
         .clss-import-panel {
@@ -1722,6 +1770,13 @@
             margin: 0 0 10px 0;
             font-size: 14px;
             color: #24292f;
+        }
+
+        .clss-import-panel-intro {
+            margin: -2px 0 10px;
+            color: #57606a;
+            font-size: 12px;
+            line-height: 1.4;
         }
 
         .clss-import-panel label {
@@ -1795,6 +1850,41 @@
             gap: 10px;
         }
 
+        .clss-import-preset-grid {
+            display: grid;
+            gap: 8px;
+        }
+
+        .clss-import-preset-button {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            text-align: left;
+        }
+
+        .clss-import-preset-button.recommended {
+            border-color: #0969da;
+            box-shadow: inset 0 0 0 1px rgba(9, 105, 218, 0.1);
+            background: #f0f7ff;
+        }
+
+        .clss-import-badge {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 2px 7px;
+            font-size: 10px;
+            line-height: 1;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            border: 1px solid #a7d7ff;
+            background: #ddf4ff;
+            color: #0550ae;
+            white-space: nowrap;
+        }
+
         .clss-import-checkbox {
             display: flex;
             align-items: flex-start;
@@ -1812,6 +1902,10 @@
             font-size: 12px;
             color: #57606a;
             line-height: 1.35;
+        }
+
+        .clss-import-help-text strong {
+            color: #24292f;
         }
 
         .clss-import-workloads-instructions {
@@ -1849,6 +1943,42 @@
             border-radius: 8px;
             padding: 8px;
             min-height: 38px;
+        }
+
+        .clss-import-advanced {
+            border: 1px solid #d8dee4;
+            border-radius: 8px;
+            background: #f6f8fa;
+            padding: 0;
+        }
+
+        .clss-import-advanced summary {
+            cursor: pointer;
+            list-style: none;
+            font-size: 12px;
+            font-weight: 700;
+            color: #24292f;
+            padding: 9px 10px;
+        }
+
+        .clss-import-advanced summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .clss-import-advanced-content {
+            border-top: 1px solid #d8dee4;
+            padding: 10px;
+            display: grid;
+            gap: 8px;
+            background: #fff;
+            border-radius: 0 0 8px 8px;
+        }
+
+        .clss-import-review-guide {
+            margin: 0 0 8px;
+            color: #57606a;
+            font-size: 12px;
+            line-height: 1.35;
         }
 
         .clss-import-review-summary {
@@ -2042,7 +2172,17 @@
             font-size: 13px;
         }
 
+        .clss-import-action-help {
+            margin-top: 8px;
+            color: #57606a;
+            font-size: 12px;
+            line-height: 1.35;
+        }
+
         @media (max-width: 900px) {
+            .clss-import-steps {
+                grid-template-columns: 1fr 1fr;
+            }
             .clss-import-top-row {
                 grid-template-columns: 1fr;
             }
@@ -7879,27 +8019,37 @@
         function refreshClssImportModeUi() {
             const mode = getClssImportBuildMode();
             const applyBtn = document.getElementById('clssImportApplyButton');
+            const previewBtn = document.getElementById('clssImportPreviewButton');
             const helpEl = document.getElementById('clssImportModeHelp');
             const resolveColHeader = document.getElementById('clssImportResolveHeader');
             const yearModeSelect = document.getElementById('clssImportTargetYearMode');
             const replaceCheckbox = document.getElementById('clssImportReplaceQuarter');
             const replaceControl = document.getElementById('clssImportReplaceQuarterControl');
+            const scheduleAdvanced = document.getElementById('clssImportScheduleAdvanced');
             const scheduleModeHelp = document.getElementById('clssImportScheduleModeHelp');
             const workloadsInstructions = document.getElementById('clssImportWorkloadsInstructions');
+            const reviewGuide = document.getElementById('clssImportReviewGuide');
+            const actionHelp = document.getElementById('clssImportActionHelp');
             const isWorkloadsMode = mode === 'workloads';
 
             if (applyBtn) {
-                applyBtn.textContent = isWorkloadsMode ? 'Build Workloads' : 'Apply Import';
+                applyBtn.textContent = isWorkloadsMode ? 'Build Workloads' : 'Build Schedule Draft';
+            }
+
+            if (previewBtn) {
+                previewBtn.textContent = isWorkloadsMode
+                    ? 'Preview Workload Rows'
+                    : 'Preview Courses';
             }
 
             if (helpEl) {
                 helpEl.textContent = isWorkloadsMode
-                    ? 'Workloads mode imports CLSS rows into a workload handoff dataset for the selected academic year. It does not place courses into the scheduler grid.'
-                    : 'Schedule mode imports rows into scheduler grid/online/arranged sections and uses slot/room placement logic.';
+                    ? 'Creates a chair review list for workload setup. It will not place courses into rooms/times in the scheduler.'
+                    : 'Creates a draft schedule from CLSS rows (grid, online, and arranged sections) after you review the rows.';
             }
 
             if (resolveColHeader) {
-                resolveColHeader.textContent = isWorkloadsMode ? 'Workload Overrides' : 'Resolve';
+                resolveColHeader.textContent = isWorkloadsMode ? 'Optional Overrides' : 'Review / Placement';
             }
 
             if (isWorkloadsMode && yearModeSelect && yearModeSelect.value !== 'next') {
@@ -7915,8 +8065,21 @@
             }
 
             replaceControl?.classList.toggle('clss-import-control-disabled', isWorkloadsMode);
+            scheduleAdvanced?.classList.toggle('clss-import-hidden', isWorkloadsMode);
             scheduleModeHelp?.classList.toggle('clss-import-hidden', isWorkloadsMode);
             workloadsInstructions?.classList.toggle('clss-import-hidden', !isWorkloadsMode);
+
+            if (reviewGuide) {
+                reviewGuide.textContent = isWorkloadsMode
+                    ? 'Step 3: Check course names, instructors, quarters, and placement type (in-person / online / arranged). You do not need rooms or times for workloads mode.'
+                    : 'Step 3: Review the rows before building a schedule draft. Ready rows will place automatically. Rows that still need help can be adjusted here or sent to the displaced tray.';
+            }
+
+            if (actionHelp) {
+                actionHelp.textContent = isWorkloadsMode
+                    ? 'Step 4: Click Build Workloads to open the workload review workflow for the selected academic year.'
+                    : 'Step 4: Click Build Schedule Draft to write reviewed rows into the scheduler draft. Nothing changes until you click that button.';
+            }
 
             refreshClssImportPreviewReview();
         }
@@ -7934,8 +8097,8 @@
 
             if (replaceLabel) {
                 replaceLabel.textContent = scope === 'all'
-                    ? 'Replace each imported quarter before import (clear Fall/Winter/Spring buckets that have pasted text)'
-                    : 'Replace target quarter before import (clear existing quarter schedule buckets first)';
+                    ? 'Replace existing draft rows in the imported quarters before building the new draft'
+                    : 'Replace the selected quarter before building the new draft';
             }
 
             refreshClssImportPreviewReview();
@@ -8839,7 +9002,7 @@
             if (!rows.length) {
                 tableWrap.style.display = 'none';
                 emptyState.style.display = '';
-                emptyState.innerHTML = 'Paste CLSS/OCR text, then click <strong>Parse Preview</strong>. No schedule data will be changed until you click <strong>Apply Import</strong>.';
+                emptyState.innerHTML = 'Start with <strong>Step 1</strong> and <strong>Step 2</strong>, then click <strong>Preview Courses</strong>. Nothing is written to the scheduler or workloads until you click the final build button.';
                 return;
             }
 
@@ -10851,53 +11014,78 @@
     <div class="modal-overlay" id="clssImportModal" onclick="closeClssImportModal(event)">
         <div class="modal-content clss-import-modal" onclick="event.stopPropagation()">
             <div class="modal-header">
-                <h2 class="modal-title">Import CLSS (Review First)</h2>
+                <h2 class="modal-title">Import CLSS Courses</h2>
                 <button class="modal-close" onclick="closeClssImportModal()">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="clss-import-layout">
                     <div class="api-help">
-                        <strong>Screenshot-first import (PNG)</strong>
-                        Upload CLSS screenshots and click Parse Preview. If the CLSS text boxes are empty, the app will OCR uploaded PNGs in-browser, then parse and review before applying.
-                        PDF extraction is intentionally deferred for now.
+                        <strong>Chair-friendly CLSS import (screenshots or pasted text)</strong>
+                        This flow lets you preview and review courses first, then build either a <strong>schedule draft</strong> or <strong>workload draft</strong>. The app can read PNG screenshots automatically when you preview.
+                        PDF import is intentionally deferred for now.
+                    </div>
+
+                    <div class="clss-import-steps" aria-label="CLSS import steps">
+                        <div class="clss-import-step">
+                            <span class="clss-import-step-number">1</span>
+                            <div><strong>Choose goal</strong> Pick Schedule or Workloads, then choose academic year and scope.</div>
+                        </div>
+                        <div class="clss-import-step">
+                            <span class="clss-import-step-number">2</span>
+                            <div><strong>Add CLSS pages</strong> Upload screenshots, paste CLSS text, or both.</div>
+                        </div>
+                        <div class="clss-import-step">
+                            <span class="clss-import-step-number">3</span>
+                            <div><strong>Review courses</strong> Confirm what will be built before anything is written.</div>
+                        </div>
+                        <div class="clss-import-step">
+                            <span class="clss-import-step-number">4</span>
+                            <div><strong>Build draft</strong> Create the schedule or workload draft for the selected year.</div>
+                        </div>
                     </div>
 
                     <div class="clss-import-top-row">
-                        <div class="clss-import-panel">
-                            <h4>Source Input</h4>
+                        <div class="clss-import-panel" id="clssImportSourcePanel">
+                            <h4>Step 2: Add CLSS Screenshots or Text</h4>
+                            <div class="clss-import-panel-intro">
+                                Upload screenshots first if you have them. You can also paste copied CLSS rows. The preview step will read screenshots automatically when the text boxes are blank.
+                            </div>
                             <div class="clss-import-field">
-                                <label for="clssImportPngInput">CLSS PNG screenshots (optional, multiple)</label>
+                                <label for="clssImportPngInput">Upload CLSS screenshots (PNG, optional, multiple)</label>
                                 <input type="file" id="clssImportPngInput" accept=".png,image/png" multiple onchange="handleClssImportPngSelection()">
                                 <div class="clss-import-file-list" id="clssImportPngSummary">No screenshots selected.</div>
                             </div>
                             <div class="clss-import-field" id="clssImportSingleTextField">
-                                <label for="clssImportText">Paste OCR text or copied CLSS rows</label>
-                                <textarea id="clssImportText" placeholder="Paste CLSS OCR text here (course headers + section rows)..." oninput="invalidateClssImportPreview()"></textarea>
+                                <label for="clssImportText">Paste copied CLSS text (optional)</label>
+                                <textarea id="clssImportText" placeholder="Paste CLSS rows here if you are not using screenshots, or to correct screenshot reading results..." oninput="invalidateClssImportPreview()"></textarea>
                             </div>
                             <div class="clss-import-field clss-import-hidden" id="clssImportBatchTextFields">
-                                <label>Paste OCR/CLSS text for all three quarters (one box per quarter)</label>
+                                <label>Paste CLSS text for all three quarters (one box per quarter)</label>
                                 <div class="clss-import-batch-grid">
                                     <div class="clss-import-batch-panel">
                                         <h5>Fall</h5>
-                                        <textarea id="clssImportTextFall" placeholder="Paste Fall CLSS/OCR text..." oninput="invalidateClssImportPreview()"></textarea>
+                                        <textarea id="clssImportTextFall" placeholder="Paste Fall CLSS rows..." oninput="invalidateClssImportPreview()"></textarea>
                                     </div>
                                     <div class="clss-import-batch-panel">
                                         <h5>Winter</h5>
-                                        <textarea id="clssImportTextWinter" placeholder="Paste Winter CLSS/OCR text..." oninput="invalidateClssImportPreview()"></textarea>
+                                        <textarea id="clssImportTextWinter" placeholder="Paste Winter CLSS rows..." oninput="invalidateClssImportPreview()"></textarea>
                                     </div>
                                     <div class="clss-import-batch-panel">
                                         <h5>Spring</h5>
-                                        <textarea id="clssImportTextSpring" placeholder="Paste Spring CLSS/OCR text..." oninput="invalidateClssImportPreview()"></textarea>
+                                        <textarea id="clssImportTextSpring" placeholder="Paste Spring CLSS rows..." oninput="invalidateClssImportPreview()"></textarea>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="clss-import-panel">
-                            <h4>Import Options</h4>
+                        <div class="clss-import-panel" id="clssImportOptionsPanel">
+                            <h4>Step 1: Choose What to Build</h4>
+                            <div class="clss-import-panel-intro">
+                                Start with a preset if you want the fastest path. You can still adjust the year, scope, and quarter afterward.
+                            </div>
                             <div class="clss-import-inline-controls">
                                 <div class="clss-import-field">
-                                    <label for="clssImportBuildMode">Import mode</label>
+                                    <label for="clssImportBuildMode">Build type</label>
                                     <select id="clssImportBuildMode" onchange="refreshClssImportModeUi()">
                                         <option value="schedule">Build Schedule</option>
                                         <option value="workloads">Build Workloads</option>
@@ -10907,15 +11095,19 @@
                                     </div>
                                 </div>
                                 <div class="clss-import-field">
-                                    <button type="button" class="btn-secondary" onclick="applyClssRolloutPreset()">Use Rollout Mode Preset</button>
-                                    <div class="clss-import-help-text" style="margin-top: 6px;">
-                                        Sets <strong>Next academic year</strong> + <strong>All three quarters</strong> for department rollout imports. Replace remains off unless you opt in.
+                                    <label>Quick presets</label>
+                                    <div class="clss-import-preset-grid">
+                                        <button type="button" class="btn-secondary clss-import-preset-button recommended" onclick="applyClssWorkloadsPreset()">
+                                            <span>Chair Workloads Preset</span>
+                                            <span class="clss-import-badge">Recommended</span>
+                                        </button>
+                                        <button type="button" class="btn-secondary clss-import-preset-button" onclick="applyClssRolloutPreset()">
+                                            <span>Department Schedule Rollout Preset</span>
+                                            <span class="clss-import-badge">Batch</span>
+                                        </button>
                                     </div>
-                                </div>
-                                <div class="clss-import-field">
-                                    <button type="button" class="btn-secondary" onclick="applyClssWorkloadsPreset()">Use Workloads Preset</button>
                                     <div class="clss-import-help-text" style="margin-top: 6px;">
-                                        Sets <strong>Build Workloads</strong> + <strong>Next academic year</strong> + <strong>All three quarters</strong>. Use this for chair workload setup (no grid placement).
+                                        Presets set year + scope + build type. <strong>Replace/overwrite stays off</strong> unless you turn it on in advanced schedule options.
                                     </div>
                                 </div>
                                 <div class="clss-import-field">
@@ -10940,13 +11132,18 @@
                                         <option value="spring">Spring</option>
                                     </select>
                                 </div>
-                                <label class="clss-import-checkbox" id="clssImportReplaceQuarterControl" for="clssImportReplaceQuarter">
-                                    <input type="checkbox" id="clssImportReplaceQuarter" onchange="refreshClssImportPreviewReview()">
-                                    <span id="clssImportReplaceLabel">Replace target quarter before import (clear existing quarter schedule buckets first)</span>
-                                </label>
-                                <div class="clss-import-help-text" id="clssImportScheduleModeHelp">
-                                    Single-quarter import is safest for accuracy. Batch mode is available for rollout work and imports Fall/Winter/Spring together using the three text boxes above. Parse first to review row-by-row status. Ready rows can be placed into the grid. Online and arranged rows route to special sections. Needs-review rows go to the displaced tray for manual placement.
-                                </div>
+                                <details class="clss-import-advanced" id="clssImportScheduleAdvanced">
+                                    <summary>Advanced schedule options (optional)</summary>
+                                    <div class="clss-import-advanced-content">
+                                        <label class="clss-import-checkbox" id="clssImportReplaceQuarterControl" for="clssImportReplaceQuarter">
+                                            <input type="checkbox" id="clssImportReplaceQuarter" onchange="refreshClssImportPreviewReview()">
+                                            <span id="clssImportReplaceLabel">Replace target quarter before import (clear existing quarter schedule buckets first)</span>
+                                        </label>
+                                        <div class="clss-import-help-text" id="clssImportScheduleModeHelp">
+                                            Use single quarter for the cleanest review pass. Batch mode is faster for rollout when you have all three quarters ready. You can preview first, then decide whether to replace existing draft rows.
+                                        </div>
+                                    </div>
+                                </details>
                                 <div class="api-help clss-import-workloads-instructions clss-import-hidden" id="clssImportWorkloadsInstructions">
                                     <strong>Chair workflow: Build Workloads</strong>
                                     Use this mode to create a workload import handoff for the <strong>next academic year</strong> (currently <strong id="clssImportWorkloadsNextYearLabel">2026-27</strong>) without placing courses into the scheduler grid.
@@ -10961,10 +11158,13 @@
                     </div>
 
                     <div class="clss-import-panel">
-                        <h4>Review Parsed Rows</h4>
+                        <h4>Step 3: Review Courses</h4>
+                        <div class="clss-import-review-guide" id="clssImportReviewGuide">
+                            Step 3: Review the rows before building a draft. Ready rows will place automatically. Rows that still need help can be adjusted here or sent to the displaced tray.
+                        </div>
                         <div class="clss-import-review-summary" id="clssImportSummary"></div>
                         <div id="clssImportEmptyState" class="clss-import-empty">
-                            Paste CLSS/OCR text, then click <strong>Parse Preview</strong>. No schedule data will be changed until you click <strong>Apply Import</strong>.
+                            Start with <strong>Step 1</strong> and <strong>Step 2</strong>, then click <strong>Preview Courses</strong>. Nothing changes until you click the final build button.
                         </div>
                         <div id="clssImportTableWrap" class="clss-import-table-wrap" style="display:none;">
                             <table class="clss-import-table" aria-label="CLSS import review table">
@@ -10986,12 +11186,15 @@
                             </table>
                         </div>
                     </div>
+                    <div class="clss-import-action-help" id="clssImportActionHelp">
+                        Step 4: Click Build Schedule Draft to write reviewed rows into the scheduler draft. Nothing changes until you click that button.
+                    </div>
                 </div>
             </div>
             <div class="modal-actions">
                 <button class="btn-secondary" onclick="closeClssImportModal()">Close</button>
-                <button class="btn-secondary" onclick="parseClssImportPreview()">Parse Preview (OCR PNGs if needed)</button>
-                <button class="btn-ewu-accent" id="clssImportApplyButton" onclick="applyClssImport()" disabled>Apply Import</button>
+                <button class="btn-secondary" id="clssImportPreviewButton" onclick="parseClssImportPreview()">Preview Courses</button>
+                <button class="btn-ewu-accent" id="clssImportApplyButton" onclick="applyClssImport()" disabled>Build Schedule Draft</button>
             </div>
         </div>
     </div>
