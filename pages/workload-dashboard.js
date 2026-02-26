@@ -142,7 +142,9 @@ const workloadPlanningUiState = {
     sortKey: 'triage',
     sortDirection: 'asc',
     groupBy: 'none',
-    modalReleaseAllocations: []
+    modalReleaseAllocations: [],
+    lockStateByYear: {},
+    lastScheduleRefreshDiffByYear: {}
 };
 
 // Chart instances
@@ -435,7 +437,8 @@ function writeWorkloadPlanUiPreferences() {
     const next = {
         sortKey: workloadPlanningUiState.sortKey,
         sortDirection: workloadPlanningUiState.sortDirection,
-        groupBy: workloadPlanningUiState.groupBy
+        groupBy: workloadPlanningUiState.groupBy,
+        lockStateByYear: workloadPlanningUiState.lockStateByYear
     };
     localStorage.setItem(WORKLOAD_PLAN_UI_STORAGE_KEY, JSON.stringify(next));
 }
@@ -455,6 +458,24 @@ function loadWorkloadPlanUiPreferences() {
     if (WORKLOAD_PLAN_GROUP_OPTIONS.some((option) => option.id === groupBy)) {
         workloadPlanningUiState.groupBy = groupBy;
     }
+    if (prefs?.lockStateByYear && typeof prefs.lockStateByYear === 'object' && !Array.isArray(prefs.lockStateByYear)) {
+        workloadPlanningUiState.lockStateByYear = { ...prefs.lockStateByYear };
+    }
+}
+
+function isWorkloadPlanningLockedForYear(year = currentFilters.year) {
+    const ay = String(year || '').trim();
+    if (!ay || ay === 'all') return true;
+    const explicit = workloadPlanningUiState.lockStateByYear[ay];
+    // Secure-by-default for review: locked unless explicitly unlocked.
+    return explicit !== false;
+}
+
+function setWorkloadPlanningLockedForYear(locked, year = currentFilters.year) {
+    const ay = String(year || '').trim();
+    if (!ay || ay === 'all') return;
+    workloadPlanningUiState.lockStateByYear[ay] = Boolean(locked);
+    writeWorkloadPlanUiPreferences();
 }
 
 function normalizeWorkloadPlanReleaseQuarter(value) {
@@ -842,6 +863,117 @@ function getWorkloadPlanningGroupLabel(row, groupBy) {
     return '';
 }
 
+function createWorkloadPlanningRowSnapshot(rows) {
+    const byKey = new Map();
+    (Array.isArray(rows) ? rows : []).forEach((row) => {
+        const key = normalizeWorkloadPlanNameKey(row?.facultyName);
+        if (!key) return;
+        byKey.set(key, {
+            facultyName: String(row.facultyName || '').trim(),
+            hasWorkloadRecord: Boolean(row.workloadRecord),
+            fall: Number(row.fall) || 0,
+            winter: Number(row.winter) || 0,
+            spring: Number(row.spring) || 0,
+            ayTotal: Number(row.ayTotal) || 0
+        });
+    });
+    return byKey;
+}
+
+function buildWorkloadPlanningScheduleRefreshDiff(beforeRows, afterRows) {
+    const before = createWorkloadPlanningRowSnapshot(beforeRows);
+    const after = createWorkloadPlanningRowSnapshot(afterRows);
+    const allKeys = new Set([...before.keys(), ...after.keys()]);
+    const changesByKey = {};
+    let added = 0;
+    let removed = 0;
+    let modified = 0;
+
+    const hasMetricChange = (a, b) => {
+        const epsilon = 0.01;
+        return (
+            Math.abs((Number(a.fall) || 0) - (Number(b.fall) || 0)) > epsilon ||
+            Math.abs((Number(a.winter) || 0) - (Number(b.winter) || 0)) > epsilon ||
+            Math.abs((Number(a.spring) || 0) - (Number(b.spring) || 0)) > epsilon ||
+            Math.abs((Number(a.ayTotal) || 0) - (Number(b.ayTotal) || 0)) > epsilon ||
+            Boolean(a.hasWorkloadRecord) !== Boolean(b.hasWorkloadRecord)
+        );
+    };
+
+    allKeys.forEach((key) => {
+        const prev = before.get(key);
+        const next = after.get(key);
+        if (!prev && next) {
+            changesByKey[key] = {
+                type: 'added',
+                facultyName: next.facultyName,
+                before: null,
+                after: next
+            };
+            added += 1;
+            return;
+        }
+        if (prev && !next) {
+            changesByKey[key] = {
+                type: 'removed',
+                facultyName: prev.facultyName,
+                before: prev,
+                after: null
+            };
+            removed += 1;
+            return;
+        }
+        if (!prev || !next) return;
+        if (!hasMetricChange(prev, next)) return;
+
+        let type = 'modified';
+        if (prev.hasWorkloadRecord && !next.hasWorkloadRecord) {
+            type = 'removed';
+        } else if (!prev.hasWorkloadRecord && next.hasWorkloadRecord) {
+            type = 'added';
+        }
+
+        changesByKey[key] = {
+            type,
+            facultyName: next.facultyName || prev.facultyName,
+            before: prev,
+            after: next
+        };
+        if (type === 'added') added += 1;
+        else if (type === 'removed') removed += 1;
+        else modified += 1;
+    });
+
+    return {
+        generatedAt: new Date().toISOString(),
+        totalChanged: added + removed + modified,
+        added,
+        removed,
+        modified,
+        changesByKey
+    };
+}
+
+function getWorkloadPlanningRefreshDiffForYear(year = currentFilters.year) {
+    const ay = String(year || '').trim();
+    if (!ay || ay === 'all') return null;
+    return workloadPlanningUiState.lastScheduleRefreshDiffByYear[ay] || null;
+}
+
+function clearWorkloadPlanningRefreshDiffForYear(year = currentFilters.year) {
+    const ay = String(year || '').trim();
+    if (!ay || ay === 'all') return;
+    delete workloadPlanningUiState.lastScheduleRefreshDiffByYear[ay];
+}
+
+function getWorkloadPlanningRowChangeInfo(row, year = currentFilters.year) {
+    const diff = getWorkloadPlanningRefreshDiffForYear(year);
+    if (!diff?.changesByKey) return null;
+    const key = normalizeWorkloadPlanNameKey(row?.facultyName);
+    if (!key) return null;
+    return diff.changesByKey[key] || null;
+}
+
 function ensureWorkloadPlanningStyles() {
     if (document.getElementById('workloadPlanningDashboardStyles')) return;
     const style = document.createElement('style');
@@ -878,6 +1010,28 @@ function ensureWorkloadPlanningStyles() {
             gap: 8px;
             flex-wrap: wrap;
             justify-content: flex-end;
+        }
+        .workload-plan-lock-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(15, 23, 42, 0.12);
+            background: #ffffff;
+            font-size: 0.75rem;
+            color: #334155;
+            font-weight: 600;
+        }
+        .workload-plan-lock-indicator.locked {
+            color: #92400e;
+            background: #fffbeb;
+            border-color: #fde68a;
+        }
+        .workload-plan-lock-indicator.unlocked {
+            color: #065f46;
+            background: #ecfdf5;
+            border-color: #a7f3d0;
         }
         .workload-plan-toolbar {
             display: flex;
@@ -926,6 +1080,17 @@ function ensureWorkloadPlanningStyles() {
         .workload-plan-btn:hover {
             filter: brightness(0.98);
         }
+        .workload-plan-btn[disabled],
+        .workload-plan-row-btn[disabled] {
+            opacity: 0.55;
+            cursor: not-allowed;
+            filter: none !important;
+        }
+        .workload-plan-btn.warn {
+            background: #fff7ed;
+            border-color: #fdba74;
+            color: #9a3412;
+        }
         .workload-plan-summary {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -956,6 +1121,23 @@ function ensureWorkloadPlanningStyles() {
         }
         .workload-plan-statusline.success { color: #065f46; }
         .workload-plan-statusline.warn { color: #92400e; }
+        .workload-plan-refresh-summary {
+            margin: 0 0 10px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid #bfdbfe;
+            background: #eff6ff;
+            color: #1e3a8a;
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+            font-size: 0.8rem;
+        }
+        .workload-plan-refresh-summary strong {
+            color: #1e3a8a;
+        }
         .workload-plan-table-wrap {
             overflow: auto;
             border: 1px solid rgba(15, 23, 42, 0.08);
@@ -996,6 +1178,15 @@ function ensureWorkloadPlanningStyles() {
             letter-spacing: 0.04em;
             border-top: 1px solid rgba(15, 23, 42, 0.08);
             border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+        }
+        .workload-plan-table tr.workload-plan-row-changed td {
+            background: rgba(219, 234, 254, 0.22);
+        }
+        .workload-plan-table tr.workload-plan-row-change-added td {
+            background: rgba(220, 252, 231, 0.22);
+        }
+        .workload-plan-table tr.workload-plan-row-change-removed td {
+            background: rgba(254, 242, 242, 0.22);
         }
         .workload-plan-table td.name {
             min-width: 180px;
@@ -1040,6 +1231,31 @@ function ensureWorkloadPlanningStyles() {
             background: #f1f5f9;
             color: #475569;
             border-color: #cbd5e1;
+        }
+        .workload-plan-change-tag {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 2px 8px;
+            border: 1px solid transparent;
+            font-size: 0.68rem;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+        .workload-plan-change-tag.modified {
+            background: #eff6ff;
+            color: #1d4ed8;
+            border-color: #bfdbfe;
+        }
+        .workload-plan-change-tag.added {
+            background: #ecfdf5;
+            color: #065f46;
+            border-color: #a7f3d0;
+        }
+        .workload-plan-change-tag.removed {
+            background: #fef2f2;
+            color: #991b1b;
+            border-color: #fecaca;
         }
         .workload-plan-row-actions {
             display: inline-flex;
@@ -1585,6 +1801,128 @@ function handleWorkloadPlanReleaseAllocationInput(event) {
     }
 }
 
+function applyWorkloadPlanEditorLockState() {
+    const overlay = getWorkloadPlanModalOverlay();
+    if (!overlay) return;
+
+    const locked = isWorkloadPlanningLockedForYear();
+    const form = overlay.querySelector('#workloadPlanEditorForm');
+    if (!form) return;
+
+    const controls = form.querySelectorAll('input, select, textarea, button');
+    controls.forEach((control) => {
+        if (!(control instanceof HTMLElement)) return;
+        const action = control.dataset?.action || '';
+        const isClose = action === 'close-plan-modal';
+        const isExportLike = false;
+        if (isClose || isExportLike) return;
+        if (control.id === 'workloadPlanRecordId' || control.id === 'workloadPlanOriginalName') return;
+
+        if (control instanceof HTMLButtonElement) {
+            // Keep only close enabled when locked.
+            if (!isClose) {
+                control.disabled = locked;
+            }
+            return;
+        }
+        if (control instanceof HTMLInputElement || control instanceof HTMLSelectElement || control instanceof HTMLTextAreaElement) {
+            control.disabled = locked;
+        }
+    });
+
+    const subtitle = overlay.querySelector('#workloadPlanEditorSubtitle');
+    if (subtitle) {
+        const base = `AY ${currentFilters.year} planning settings used for workload targets, release time, and export assumptions.`;
+        subtitle.textContent = locked ? `${base} (Locked: unlock editing in the planning dashboard to make changes.)` : base;
+    }
+}
+
+function assertWorkloadPlanningUnlocked(actionLabel = 'make changes') {
+    if (!isWorkloadPlanningLockedForYear()) return true;
+    setWorkloadPlanningStatus(`Workload planning is locked for AY ${currentFilters.year}. Unlock editing to ${actionLabel}.`, 'warn');
+    renderWorkloadPlanningPanel(currentYearData);
+    alert(`Workload planning is locked for AY ${currentFilters.year}. Unlock editing to ${actionLabel}.`);
+    return false;
+}
+
+function toggleWorkloadPlanningLock() {
+    if (!currentFilters.year || currentFilters.year === 'all') {
+        alert('Select a single academic year first.');
+        return;
+    }
+    const currentlyLocked = isWorkloadPlanningLockedForYear();
+    const nextLocked = !currentlyLocked;
+    setWorkloadPlanningLockedForYear(nextLocked);
+    setWorkloadPlanningStatus(
+        nextLocked
+            ? `Locked AY workload planning for ${currentFilters.year}.`
+            : `Unlocked AY workload planning for ${currentFilters.year}.`,
+        nextLocked ? 'info' : 'success'
+    );
+
+    if (workloadPlanningUiState.modalOpen) {
+        applyWorkloadPlanEditorLockState();
+    }
+    renderWorkloadPlanningPanel(currentYearData);
+}
+
+function resetCurrentAyWorkloadPlanEdits() {
+    if (!currentFilters.year || currentFilters.year === 'all') return;
+    if (!assertWorkloadPlanningUnlocked('reset AY workload plan edits')) return;
+
+    const { store, yearData } = readCurrentYearPlanData(false);
+    if (!yearData) {
+        setWorkloadPlanningStatus(`No AY workload plan records exist yet for ${currentFilters.year}.`, 'info');
+        renderWorkloadPlanningPanel(currentYearData);
+        return;
+    }
+
+    const facultyRecords = Array.isArray(yearData.faculty) ? yearData.faculty : [];
+    if (facultyRecords.length === 0) {
+        setWorkloadPlanningStatus(`AY workload plan is already using fallback assumptions for ${currentFilters.year}.`, 'info');
+        renderWorkloadPlanningPanel(currentYearData);
+        return;
+    }
+
+    const ok = confirm(
+        `Reset AY workload plan edits for ${currentFilters.year}? This removes ${facultyRecords.length} faculty planning record(s) and returns the workload planning panel to fallback assumptions. AY adjunct targets and year notes will be preserved.`
+    );
+    if (!ok) return;
+
+    yearData.faculty = [];
+    touchWorkloadPlanYear(yearData);
+    writeWorkloadPlanStore(store);
+    clearWorkloadPlanningRefreshDiffForYear(currentFilters.year);
+
+    setWorkloadPlanningStatus(`Reset AY workload plan edits for ${currentFilters.year}. Fallback assumptions are active again.`, 'warn');
+    reloadCurrentYearWorkloadFromIntegration();
+}
+
+function refreshCurrentAyWorkloadFromScheduleWithDiff() {
+    if (!currentFilters.year || currentFilters.year === 'all') {
+        alert('Select a single academic year first.');
+        return;
+    }
+
+    const beforeRows = currentYearData ? buildWorkloadPlanningRows(currentYearData) : [];
+    currentYearData = loadIntegratedYearData(currentFilters.year);
+    const afterRows = currentYearData ? buildWorkloadPlanningRows(currentYearData) : [];
+    const diff = buildWorkloadPlanningScheduleRefreshDiff(beforeRows, afterRows);
+
+    workloadPlanningUiState.lastScheduleRefreshDiffByYear[currentFilters.year] = diff;
+
+    if (diff.totalChanged > 0) {
+        setWorkloadPlanningStatus(
+            `Refreshed from current scheduler draft: ${diff.totalChanged} faculty changed (${diff.added} added, ${diff.removed} removed, ${diff.modified} modified).`,
+            'success'
+        );
+    } else {
+        setWorkloadPlanningStatus('Refreshed from current scheduler draft: no faculty workload changes detected.', 'info');
+    }
+
+    refreshDashboard();
+}
+
 function ensureWorkloadPlanEditorModal() {
     ensureWorkloadPlanningStyles();
     let overlay = document.getElementById('workloadPlanEditorOverlay');
@@ -1835,6 +2173,8 @@ function renderWorkloadPlanningPanel(yearData) {
     const fallbackRows = rows.filter((row) => !row.hasAyPlan);
     const inactiveRows = rows.filter((row) => !row.active);
     const unresolvedCount = Number(yearData?.meta?.unresolvedScheduleCourses?.count) || 0;
+    const planningLocked = isWorkloadPlanningLockedForYear(currentFilters.year);
+    const refreshDiff = getWorkloadPlanningRefreshDiffForYear(currentFilters.year);
 
     const activeSortOption = WORKLOAD_PLAN_SORT_OPTIONS.find((option) => option.id === workloadPlanningUiState.sortKey) || WORKLOAD_PLAN_SORT_OPTIONS[0];
     const groupByValue = workloadPlanningUiState.groupBy || 'none';
@@ -1851,6 +2191,15 @@ function renderWorkloadPlanningPanel(yearData) {
             const chairTag = row.chair ? '<span class="workload-plan-sub">Chair</span>' : '';
             const fallbackTag = row.hasAyPlan ? '' : '<span class="workload-plan-sub">Using fallback assumptions</span>';
             const releaseTag = row.releaseReason ? `<span class="workload-plan-sub">${escapeWorkloadPlanHtml(row.releaseReason)}</span>` : '';
+            const changeInfo = getWorkloadPlanningRowChangeInfo(row, currentFilters.year);
+            const changeTag = changeInfo
+                ? `<span class="workload-plan-change-tag ${escapeWorkloadPlanHtml(changeInfo.type)}">${
+                    changeInfo.type === 'added' ? 'Added / Changed' : changeInfo.type === 'removed' ? 'Removed from schedule' : 'Changed'
+                }</span>`
+                : '';
+            const rowChangeClass = changeInfo
+                ? ` workload-plan-row-changed workload-plan-row-change-${escapeWorkloadPlanHtml(changeInfo.type)}`
+                : '';
             const ayUtilSubtext = row.hasAnyRelease && Math.abs((Number(row.ayUtilizationNet) || 0) - (Number(row.ayUtilization) || 0)) > 0.05
                 ? `${formatWorkloadPlanNumber(row.ayUtilization)}% AY util · adj ${formatWorkloadPlanNumber(row.ayUtilizationNet)}%`
                 : `${formatWorkloadPlanNumber(row.ayUtilization)}% AY util`;
@@ -1862,11 +2211,12 @@ function renderWorkloadPlanningPanel(yearData) {
                 ? `Adj F ${formatWorkloadPlanNumber(row.fallUtilizationAdjusted)}% · W ${formatWorkloadPlanNumber(row.winterUtilizationAdjusted)}% · S ${formatWorkloadPlanNumber(row.springUtilizationAdjusted)}%`
                 : `W ${formatWorkloadPlanNumber(row.winterUtilization)}% · S ${formatWorkloadPlanNumber(row.springUtilization)}%`;
             return `${groupRowHtml}
-                <tr data-faculty-name="${escapeWorkloadPlanHtml(row.facultyName)}">
+                <tr class="${rowChangeClass.trim()}" data-faculty-name="${escapeWorkloadPlanHtml(row.facultyName)}">
                     <td class="name">
                         <strong>${escapeWorkloadPlanHtml(row.facultyName)}</strong>
                         ${chairTag}
                         ${fallbackTag}
+                        ${changeTag}
                     </td>
                     <td>${escapeWorkloadPlanHtml(row.role || '—')}</td>
                     <td>${row.chair ? 'Yes' : '—'}</td>
@@ -1894,7 +2244,7 @@ function renderWorkloadPlanningPanel(yearData) {
                     </td>
                     <td>
                         <div class="workload-plan-row-actions">
-                            <button type="button" class="workload-plan-row-btn edit" data-action="edit-plan" data-faculty="${escapeWorkloadPlanHtml(row.facultyName)}">Edit Plan</button>
+                            <button type="button" class="workload-plan-row-btn edit" data-action="edit-plan" data-faculty="${escapeWorkloadPlanHtml(row.facultyName)}"${planningLocked ? ' disabled title="Unlock editing to change AY plans"' : ''}>Edit Plan</button>
                             <button type="button" class="workload-plan-row-btn" data-action="export-plan-sheet" data-faculty="${escapeWorkloadPlanHtml(row.facultyName)}">Export</button>
                         </div>
                     </td>
@@ -1907,6 +2257,21 @@ function renderWorkloadPlanningPanel(yearData) {
         ? (workloadPlanningUiState.statusLevel === 'warn' ? 'warn' : workloadPlanningUiState.statusLevel === 'success' ? 'success' : '')
         : '';
     const previousAy = getPreviousAcademicYearValue(currentFilters.year);
+    const lockIndicatorClass = planningLocked ? 'locked' : 'unlocked';
+    const lockIndicatorText = planningLocked ? 'Locked' : 'Unlocked';
+    const lockButtonText = planningLocked ? 'Unlock Editing' : 'Lock Editing';
+    const refreshSummaryHtml = refreshDiff
+        ? `<div class="workload-plan-refresh-summary">
+                <div>
+                    <strong>Last refresh diff:</strong>
+                    ${refreshDiff.totalChanged} faculty changed (${refreshDiff.added} added, ${refreshDiff.removed} removed, ${refreshDiff.modified} modified)
+                    <span class="workload-plan-sub">Generated ${escapeWorkloadPlanHtml(new Date(refreshDiff.generatedAt).toLocaleString())}</span>
+                </div>
+                <div class="workload-plan-actions">
+                    <button type="button" class="workload-plan-btn" data-action="clear-refresh-diff-highlights">Clear Highlights</button>
+                </div>
+            </div>`
+        : '';
 
     panel.hidden = false;
     panel.innerHTML = `
@@ -1916,9 +2281,13 @@ function renderWorkloadPlanningPanel(yearData) {
                 <p>Chair-editable workload settings for target credits, chair/release time, and AY plan coverage. This feeds preliminary workload calculations and export sheets.</p>
             </div>
             <div class="workload-plan-actions">
+                <span class="workload-plan-lock-indicator ${lockIndicatorClass}">${planningLocked ? '🔒' : '🔓'} ${lockIndicatorText}</span>
+                <button type="button" class="workload-plan-btn" data-action="toggle-plan-lock">${lockButtonText}</button>
+                <button type="button" class="workload-plan-btn" data-action="refresh-plan-from-schedule">Refresh From Current Schedule</button>
                 <button type="button" class="workload-plan-btn primary" data-action="batch-export-plan-sheets">Export All Workload Sheets (.zip)</button>
-                <button type="button" class="workload-plan-btn" data-action="seed-plan-from-current">Seed Missing Faculty From Current AY Schedule</button>
-                <button type="button" class="workload-plan-btn" data-action="copy-prev-plan"${previousAy ? '' : ' disabled'}>Copy ${escapeWorkloadPlanHtml(previousAy || 'Previous AY')} Plan</button>
+                <button type="button" class="workload-plan-btn" data-action="seed-plan-from-current"${planningLocked ? ' disabled title="Unlock editing to seed records"' : ''}>Seed Missing Faculty From Current AY Schedule</button>
+                <button type="button" class="workload-plan-btn" data-action="copy-prev-plan"${previousAy ? '' : ' disabled'}${planningLocked ? ' disabled title="Unlock editing to copy a plan"' : ''}>Copy ${escapeWorkloadPlanHtml(previousAy || 'Previous AY')} Plan</button>
+                <button type="button" class="workload-plan-btn warn" data-action="reset-current-ay-plan"${planningLocked ? ' disabled title="Unlock editing to reset AY plan records"' : ''}>Start Over (Reset AY Plan)</button>
                 <button type="button" class="workload-plan-btn" data-action="open-ay-setup">Open AY Setup</button>
             </div>
         </div>
@@ -1966,6 +2335,7 @@ function renderWorkloadPlanningPanel(yearData) {
             <div class="workload-plan-note">Sorted by ${escapeWorkloadPlanHtml(activeSortOption.label)}${workloadPlanningUiState.groupBy !== 'none' ? ` · ${escapeWorkloadPlanHtml((WORKLOAD_PLAN_GROUP_OPTIONS.find((option) => option.id === workloadPlanningUiState.groupBy) || { label: '' }).label)}` : ''}</div>
         </div>
         <div class="workload-plan-statusline ${statusClass}">${escapeWorkloadPlanHtml(workloadPlanningUiState.statusMessage || '')}</div>
+        ${refreshSummaryHtml}
         <div class="workload-plan-table-wrap">
             <table class="workload-plan-table">
                 <thead>
@@ -2032,6 +2402,7 @@ function openWorkloadPlanEditorForFaculty(facultyName) {
     overlay.dataset.facultyName = row.facultyName;
     overlay.classList.add('active');
     refreshWorkloadPlanReleaseAllocationUi();
+    applyWorkloadPlanEditorLockState();
     updateWorkloadPlanDerivedPreview();
 }
 
@@ -2173,6 +2544,7 @@ function handleWorkloadPlanEditorSubmit(event) {
         alert('Select a single academic year first.');
         return;
     }
+    if (!assertWorkloadPlanningUnlocked('save AY workload plan changes')) return;
 
     const values = getWorkloadPlanEditorValues();
     if (!values || !values.name) {
@@ -2240,6 +2612,7 @@ function handleWorkloadPlanEditorSubmit(event) {
 function removeCurrentWorkloadPlanRecord() {
     const overlay = document.getElementById('workloadPlanEditorOverlay');
     if (!overlay || !currentFilters.year || currentFilters.year === 'all') return;
+    if (!assertWorkloadPlanningUnlocked('remove an AY workload plan record')) return;
     const values = getWorkloadPlanEditorValues();
     if (!values) return;
 
@@ -2308,6 +2681,7 @@ function getSeedFacultyCandidatesForCurrentYear() {
 
 function seedMissingAyPlanRecordsFromCurrentWorkload() {
     if (!currentFilters.year || currentFilters.year === 'all') return;
+    if (!assertWorkloadPlanningUnlocked('seed missing AY workload plan records')) return;
     const { store, yearData } = readCurrentYearPlanData(true);
     const faculty = Array.isArray(yearData.faculty) ? yearData.faculty : [];
     const existingKeys = new Set(faculty.map((record) => normalizeWorkloadPlanNameKey(record?.name)));
@@ -2351,6 +2725,7 @@ function seedMissingAyPlanRecordsFromCurrentWorkload() {
 
 function copyPreviousAyPlanIntoCurrentYear() {
     if (!currentFilters.year || currentFilters.year === 'all') return;
+    if (!assertWorkloadPlanningUnlocked('copy a previous AY plan into the current year')) return;
     const previousYear = getPreviousAcademicYearValue(currentFilters.year);
     if (!previousYear) {
         alert('Select a valid academic year first.');
@@ -2395,6 +2770,7 @@ function handleWorkloadPlanningPanelClick(event) {
     const facultyName = actionTarget.dataset.faculty;
 
     if (action === 'edit-plan' && facultyName) {
+        if (!assertWorkloadPlanningUnlocked('edit AY workload plans')) return;
         openWorkloadPlanEditorForFaculty(facultyName);
         return;
     }
@@ -2412,6 +2788,24 @@ function handleWorkloadPlanningPanelClick(event) {
     }
     if (action === 'copy-prev-plan') {
         copyPreviousAyPlanIntoCurrentYear();
+        return;
+    }
+    if (action === 'toggle-plan-lock') {
+        toggleWorkloadPlanningLock();
+        return;
+    }
+    if (action === 'refresh-plan-from-schedule') {
+        refreshCurrentAyWorkloadFromScheduleWithDiff();
+        return;
+    }
+    if (action === 'reset-current-ay-plan') {
+        resetCurrentAyWorkloadPlanEdits();
+        return;
+    }
+    if (action === 'clear-refresh-diff-highlights') {
+        clearWorkloadPlanningRefreshDiffForYear(currentFilters.year);
+        writeWorkloadPlanUiPreferences();
+        renderWorkloadPlanningPanel(currentYearData);
         return;
     }
     if (action === 'open-ay-setup') {
