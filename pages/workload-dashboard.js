@@ -20,6 +20,7 @@ const WORKLOAD_EXPORT_TEMPLATE_SHEET = 'Sheet1';
 const WORKLOAD_EXPORT_EXCELJS_URL = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
 const WORKLOAD_EXPORT_JSZIP_URL = 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';
 const WORKLOAD_PLAN_STORAGE_KEY = 'programCommandAySetup';
+const WORKLOAD_PLAN_UI_STORAGE_KEY = 'programCommandAyPlanningUi';
 const WORKLOAD_PLAN_ROLE_OPTIONS = [
     'Full Professor',
     'Associate Professor',
@@ -60,12 +61,88 @@ const WORKLOAD_EXPORT_FACULTY_NAME_OVERRIDES = {
     'ariel sopu': 'Sopu Ariel',
     'a.sopu': 'Sopu Ariel'
 };
+const WORKLOAD_PLAN_RELEASE_ALLOCATION_QUARTERS = ['Fall', 'Winter', 'Spring', 'Summer'];
+const WORKLOAD_PLAN_RELEASE_ALLOCATION_PRESETS = [
+    {
+        id: 'chair',
+        label: 'Chair',
+        category: 'chair',
+        defaultLabel: 'Chair',
+        defaultQuarters: ['Fall', 'Winter', 'Spring']
+    },
+    {
+        id: 'desn_499',
+        label: 'DESN 499',
+        category: 'independent_study',
+        defaultLabel: 'DESN 499',
+        defaultQuarters: ['Fall']
+    },
+    {
+        id: 'desn_495',
+        label: 'DESN 495',
+        category: 'applied_learning',
+        defaultLabel: 'DESN 495',
+        defaultQuarters: ['Fall']
+    },
+    {
+        id: 'university_service',
+        label: 'University Service',
+        category: 'committee',
+        defaultLabel: 'University Service',
+        defaultQuarters: ['Fall', 'Winter', 'Spring']
+    },
+    {
+        id: 'advising',
+        label: 'Advising',
+        category: 'advising',
+        defaultLabel: 'Advising',
+        defaultQuarters: ['Fall', 'Winter', 'Spring']
+    },
+    {
+        id: 'other',
+        label: 'Other',
+        category: 'other',
+        defaultLabel: 'Other',
+        defaultQuarters: ['Fall']
+    }
+];
+const WORKLOAD_PLAN_RELEASE_CATEGORY_OPTIONS = [
+    { id: 'chair', label: 'Chair Duties' },
+    { id: 'independent_study', label: 'DESN 499 / Independent Study' },
+    { id: 'applied_learning', label: 'DESN 495 / Applied Learning' },
+    { id: 'committee', label: 'University Service / Committee Work' },
+    { id: 'advising', label: 'Advising' },
+    { id: 'research', label: 'Research / Grants' },
+    { id: 'course_release', label: 'Course Release' },
+    { id: 'sabbatical', label: 'Sabbatical' },
+    { id: 'other', label: 'Other' }
+];
+const WORKLOAD_PLAN_SORT_OPTIONS = [
+    { id: 'triage', label: 'Needs Plan / Status (Default)' },
+    { id: 'role', label: 'Role / Rank' },
+    { id: 'status', label: 'Status' },
+    { id: 'name', label: 'Faculty Name' },
+    { id: 'utilization', label: 'AY Utilization' },
+    { id: 'gap', label: 'Gap' },
+    { id: 'release', label: 'Release Credits' },
+    { id: 'ay_total', label: 'AY Total Workload' }
+];
+const WORKLOAD_PLAN_GROUP_OPTIONS = [
+    { id: 'none', label: 'No Grouping' },
+    { id: 'role', label: 'Group by Role' },
+    { id: 'status', label: 'Group by Status' },
+    { id: 'chair', label: 'Group Chairs First' }
+];
 const workloadPlanningUiState = {
     modalOpen: false,
     editingRecordId: null,
     editingFacultyName: '',
     statusMessage: '',
-    statusLevel: 'info'
+    statusLevel: 'info',
+    sortKey: 'triage',
+    sortDirection: 'asc',
+    groupBy: 'none',
+    modalReleaseAllocations: []
 };
 
 // Chart instances
@@ -337,6 +414,193 @@ function cloneWorkloadPlanValue(value) {
     return value ? JSON.parse(JSON.stringify(value)) : value;
 }
 
+function createWorkloadPlanUuid(prefix = 'id') {
+    if (globalThis.crypto?.randomUUID) {
+        return crypto.randomUUID();
+    }
+    return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function readWorkloadPlanUiPreferences() {
+    try {
+        const raw = localStorage.getItem(WORKLOAD_PLAN_UI_STORAGE_KEY);
+        return raw ? JSON.parse(raw) : {};
+    } catch (error) {
+        console.warn('Could not parse AY planning UI preferences:', error);
+        return {};
+    }
+}
+
+function writeWorkloadPlanUiPreferences() {
+    const next = {
+        sortKey: workloadPlanningUiState.sortKey,
+        sortDirection: workloadPlanningUiState.sortDirection,
+        groupBy: workloadPlanningUiState.groupBy
+    };
+    localStorage.setItem(WORKLOAD_PLAN_UI_STORAGE_KEY, JSON.stringify(next));
+}
+
+function loadWorkloadPlanUiPreferences() {
+    const prefs = readWorkloadPlanUiPreferences();
+    const sortKey = String(prefs?.sortKey || '').trim();
+    const sortDirection = String(prefs?.sortDirection || '').trim();
+    const groupBy = String(prefs?.groupBy || '').trim();
+
+    if (WORKLOAD_PLAN_SORT_OPTIONS.some((option) => option.id === sortKey)) {
+        workloadPlanningUiState.sortKey = sortKey;
+    }
+    if (sortDirection === 'asc' || sortDirection === 'desc') {
+        workloadPlanningUiState.sortDirection = sortDirection;
+    }
+    if (WORKLOAD_PLAN_GROUP_OPTIONS.some((option) => option.id === groupBy)) {
+        workloadPlanningUiState.groupBy = groupBy;
+    }
+}
+
+function normalizeWorkloadPlanReleaseQuarter(value) {
+    const normalized = String(value || '').trim();
+    return WORKLOAD_PLAN_RELEASE_ALLOCATION_QUARTERS.includes(normalized) ? normalized : '';
+}
+
+function normalizeWorkloadPlanReleaseCategory(value) {
+    const normalized = String(value || '').trim();
+    if (!normalized) return 'other';
+    return WORKLOAD_PLAN_RELEASE_CATEGORY_OPTIONS.some((option) => option.id === normalized)
+        ? normalized
+        : 'other';
+}
+
+function getWorkloadPlanReleasePresetById(presetId) {
+    return WORKLOAD_PLAN_RELEASE_ALLOCATION_PRESETS.find((preset) => preset.id === presetId) || null;
+}
+
+function getWorkloadPlanReleaseCategoryLabel(categoryId) {
+    const option = WORKLOAD_PLAN_RELEASE_CATEGORY_OPTIONS.find((entry) => entry.id === categoryId);
+    return option ? option.label : 'Other';
+}
+
+function sanitizeWorkloadPlanReleaseAllocation(allocation, index = 0) {
+    if (!allocation || typeof allocation !== 'object') return null;
+    const category = normalizeWorkloadPlanReleaseCategory(allocation.category);
+    const credits = Number(allocation.credits);
+    const numericCredits = Number.isFinite(credits) && credits >= 0 ? Number(credits.toFixed(2)) : 0;
+    const quarters = Array.isArray(allocation.quarters)
+        ? Array.from(new Set(allocation.quarters.map(normalizeWorkloadPlanReleaseQuarter).filter(Boolean)))
+        : [];
+    const label = String(allocation.label || '').trim() || getWorkloadPlanReleaseCategoryLabel(category);
+    const description = String(allocation.description || allocation.notes || '').trim();
+    const source = String(allocation.source || '').trim() || 'custom';
+
+    return {
+        id: String(allocation.id || createWorkloadPlanUuid(`release_${index}`)),
+        category,
+        label,
+        credits: numericCredits,
+        quarters,
+        description,
+        source,
+        createdAt: allocation.createdAt || new Date().toISOString(),
+        updatedAt: allocation.updatedAt || new Date().toISOString()
+    };
+}
+
+function sanitizeWorkloadPlanReleaseAllocations(list) {
+    if (!Array.isArray(list)) return [];
+    return list
+        .map((entry, index) => sanitizeWorkloadPlanReleaseAllocation(entry, index))
+        .filter(Boolean);
+}
+
+function summarizeWorkloadPlanReleaseAllocations(allocations) {
+    const rows = sanitizeWorkloadPlanReleaseAllocations(allocations);
+    const perQuarter = Object.fromEntries(WORKLOAD_PLAN_RELEASE_ALLOCATION_QUARTERS.map((quarter) => [quarter, 0]));
+    let annualTotal = 0;
+
+    rows.forEach((row) => {
+        const rowCredits = Number(row.credits) || 0;
+        const rowQuarterCount = row.quarters.length || 0;
+        annualTotal += rowCredits * rowQuarterCount;
+        row.quarters.forEach((quarter) => {
+            perQuarter[quarter] = Number(((perQuarter[quarter] || 0) + rowCredits).toFixed(2));
+        });
+    });
+
+    return {
+        rows,
+        perQuarter,
+        annualTotal: Number(annualTotal.toFixed(2))
+    };
+}
+
+function getWorkloadPlanQuarterReleaseCredits(allocations, quarter) {
+    const summary = summarizeWorkloadPlanReleaseAllocations(allocations);
+    return Number(summary.perQuarter[quarter] || 0);
+}
+
+function inferQuarterUtilizationWithRelease(quarterWorkload, annualTargetCredits, quarterReleaseCredits, annualNetTargetFallback = 0) {
+    const workload = Number(quarterWorkload) || 0;
+    const annualTarget = Number(annualTargetCredits) || 0;
+    const quarterRelease = Number(quarterReleaseCredits) || 0;
+
+    if (annualTarget > 0) {
+        const quarterTarget = Math.max(0, (annualTarget / 3) - quarterRelease);
+        if (quarterTarget > 0) {
+            return Number(((workload / quarterTarget) * 100).toFixed(1));
+        }
+    }
+
+    return inferQuarterUtilization(workload, annualNetTargetFallback);
+}
+
+function buildWorkloadPlanReleaseAllocationFromPreset(presetId) {
+    const preset = getWorkloadPlanReleasePresetById(presetId);
+    const now = new Date().toISOString();
+    if (!preset) {
+        return {
+            id: createWorkloadPlanUuid('release'),
+            category: 'other',
+            label: 'Other',
+            credits: 0,
+            quarters: ['Fall'],
+            description: '',
+            source: 'custom',
+            createdAt: now,
+            updatedAt: now
+        };
+    }
+
+    return {
+        id: createWorkloadPlanUuid(`release_${preset.id}`),
+        category: preset.category,
+        label: preset.defaultLabel || preset.label,
+        credits: 0,
+        quarters: [...(preset.defaultQuarters || ['Fall'])],
+        description: '',
+        source: 'preset',
+        createdAt: now,
+        updatedAt: now
+    };
+}
+
+function validateWorkloadPlanReleaseAllocations(allocations) {
+    const rows = sanitizeWorkloadPlanReleaseAllocations(allocations);
+    const errors = [];
+
+    rows.forEach((row, index) => {
+        if ((Number(row.credits) || 0) > 0 && (!Array.isArray(row.quarters) || row.quarters.length === 0)) {
+            errors.push(`Release allocation row ${index + 1} (${row.label || getWorkloadPlanReleaseCategoryLabel(row.category)}) has credits but no quarter selected.`);
+        }
+        if ((Number(row.credits) || 0) < 0) {
+            errors.push(`Release allocation row ${index + 1} has a negative credit value.`);
+        }
+        if (!String(row.category || '').trim()) {
+            errors.push(`Release allocation row ${index + 1} is missing a category.`);
+        }
+    });
+
+    return { valid: errors.length === 0, errors, rows };
+}
+
 function parseWorkloadPlanStore() {
     try {
         const raw = localStorage.getItem(WORKLOAD_PLAN_STORAGE_KEY);
@@ -370,10 +634,7 @@ function ensureWorkloadPlanYearRecord(store, academicYear) {
 }
 
 function createWorkloadPlanRecordId() {
-    if (globalThis.crypto?.randomUUID) {
-        return crypto.randomUUID();
-    }
-    return `ayplan_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    return createWorkloadPlanUuid('ayplan');
 }
 
 function getPreviousAcademicYearValue(year) {
@@ -406,7 +667,12 @@ function isChairFromPlanRecord(planRecord, workloadRecord) {
 function inferPlanRecordDefaults(facultyName, workloadRecord, existingPlanRecord = null) {
     const role = String(existingPlanRecord?.role || inferWorkloadPlanRoleFromFacultyRecord(workloadRecord)).trim() || 'Lecturer';
     const annualTargetCredits = Number(existingPlanRecord?.annualTargetCredits);
-    const releaseCredits = Number(existingPlanRecord?.releaseCredits);
+    const releaseAllocations = sanitizeWorkloadPlanReleaseAllocations(existingPlanRecord?.releaseAllocations);
+    const allocationSummary = summarizeWorkloadPlanReleaseAllocations(releaseAllocations);
+    const hasStructuredReleaseAllocations = allocationSummary.rows.length > 0;
+    const releaseCredits = hasStructuredReleaseAllocations
+        ? allocationSummary.annualTotal
+        : Number(existingPlanRecord?.releaseCredits);
     const targetFallback = Number(workloadRecord?.ayTargetCredits) || Number(workloadRecord?.maxWorkload) || getWorkloadPlanRoleDefault(role, 36);
     const releaseFallback = Number(workloadRecord?.ayReleaseCredits) || 0;
     const target = Number.isFinite(annualTargetCredits) ? annualTargetCredits : targetFallback;
@@ -424,7 +690,8 @@ function inferPlanRecordDefaults(facultyName, workloadRecord, existingPlanRecord
         releaseReason: String(existingPlanRecord?.releaseReason || (chair ? 'Chair' : '')).trim(),
         notes: String(existingPlanRecord?.notes || '').trim(),
         active: existingPlanRecord?.active !== false,
-        isChair: chair
+        isChair: chair,
+        releaseAllocations: allocationSummary.rows
     };
 }
 
@@ -492,6 +759,89 @@ function getPlanningStatusBadgeLabel(status) {
     }
 }
 
+function getPlanningStatusSortRank(status) {
+    switch (status) {
+        case 'needs-plan': return 0;
+        case 'over': return 1;
+        case 'under': return 2;
+        case 'planned': return 3;
+        case 'inactive': return 4;
+        default: return 5;
+    }
+}
+
+function getPlanningRoleSortValue(row) {
+    return String(row?.role || '').trim().toLowerCase() || 'zzzz';
+}
+
+function getWorkloadPlanningSortComparable(row, sortKey) {
+    switch (sortKey) {
+        case 'role':
+            return getPlanningRoleSortValue(row);
+        case 'status':
+            return getPlanningStatusSortRank(row?.status);
+        case 'name':
+            return String(row?.facultyName || '').toLowerCase();
+        case 'utilization':
+            return Number(row?.ayUtilization) || 0;
+        case 'gap':
+            return Number(row?.gap) || 0;
+        case 'release':
+            return Number(row?.release) || 0;
+        case 'ay_total':
+            return Number(row?.ayTotal) || 0;
+        case 'triage':
+        default:
+            return getPlanningStatusSortRank(row?.status);
+    }
+}
+
+function compareWorkloadPlanningRows(a, b) {
+    const sortKey = workloadPlanningUiState.sortKey || 'triage';
+    const sortDirection = workloadPlanningUiState.sortDirection === 'desc' ? -1 : 1;
+    const groupBy = workloadPlanningUiState.groupBy || 'none';
+
+    const comparePrimitive = (left, right) => {
+        if (typeof left === 'number' && typeof right === 'number') {
+            return left === right ? 0 : (left < right ? -1 : 1);
+        }
+        return String(left).localeCompare(String(right), undefined, { sensitivity: 'base' });
+    };
+
+    if (groupBy === 'chair') {
+        const chairCompare = (a.chair === b.chair) ? 0 : (a.chair ? -1 : 1);
+        if (chairCompare !== 0) return chairCompare;
+    }
+
+    if (groupBy === 'role') {
+        const roleCompare = comparePrimitive(getPlanningRoleSortValue(a), getPlanningRoleSortValue(b));
+        if (roleCompare !== 0) return roleCompare;
+    } else if (groupBy === 'status') {
+        const statusCompare = comparePrimitive(getPlanningStatusSortRank(a.status), getPlanningStatusSortRank(b.status));
+        if (statusCompare !== 0) return statusCompare;
+    }
+
+    const aValue = getWorkloadPlanningSortComparable(a, sortKey);
+    const bValue = getWorkloadPlanningSortComparable(b, sortKey);
+    const primaryCompare = comparePrimitive(aValue, bValue);
+    if (primaryCompare !== 0) return primaryCompare * sortDirection;
+
+    if (sortKey !== 'status') {
+        const statusCompare = comparePrimitive(getPlanningStatusSortRank(a.status), getPlanningStatusSortRank(b.status));
+        if (statusCompare !== 0 && sortKey === 'triage') return statusCompare;
+    }
+
+    return String(a.facultyName || '').localeCompare(String(b.facultyName || ''), undefined, { sensitivity: 'base' });
+}
+
+function getWorkloadPlanningGroupLabel(row, groupBy) {
+    if (!row || !groupBy || groupBy === 'none') return '';
+    if (groupBy === 'role') return row.role || 'Unspecified Role';
+    if (groupBy === 'status') return getPlanningStatusBadgeLabel(row.status);
+    if (groupBy === 'chair') return row.chair ? 'Chairs' : 'Non-Chairs';
+    return '';
+}
+
 function ensureWorkloadPlanningStyles() {
     if (document.getElementById('workloadPlanningDashboardStyles')) return;
     const style = document.createElement('style');
@@ -528,6 +878,36 @@ function ensureWorkloadPlanningStyles() {
             gap: 8px;
             flex-wrap: wrap;
             justify-content: flex-end;
+        }
+        .workload-plan-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            margin: 6px 0 10px;
+            flex-wrap: wrap;
+        }
+        .workload-plan-sort-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: flex-end;
+        }
+        .workload-plan-sort-controls label {
+            display: grid;
+            gap: 3px;
+            font-size: 0.73rem;
+            color: #475569;
+            font-weight: 600;
+        }
+        .workload-plan-sort-controls select {
+            min-width: 150px;
+            border: 1px solid rgba(15, 23, 42, 0.14);
+            border-radius: 8px;
+            background: #fff;
+            color: #0f172a;
+            padding: 6px 8px;
+            font-size: 0.8rem;
         }
         .workload-plan-btn {
             border: 1px solid rgba(15, 23, 42, 0.15);
@@ -607,6 +987,16 @@ function ensureWorkloadPlanningStyles() {
             letter-spacing: 0.04em;
         }
         .workload-plan-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+        .workload-plan-table tr.workload-plan-group-row td {
+            background: #f8fafc;
+            color: #334155;
+            font-weight: 700;
+            font-size: 0.76rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            border-top: 1px solid rgba(15, 23, 42, 0.08);
+            border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+        }
         .workload-plan-table td.name {
             min-width: 180px;
         }
@@ -758,6 +1148,149 @@ function ensureWorkloadPlanningStyles() {
             font-size: 0.82rem;
             color: #334155;
         }
+        .workload-plan-field-help {
+            font-size: 0.72rem;
+            color: #64748b;
+        }
+        .workload-plan-allocations {
+            margin-top: 10px;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            border-radius: 10px;
+            background: #fcfdff;
+            padding: 10px;
+        }
+        .workload-plan-allocations-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+        .workload-plan-allocations-head h5 {
+            margin: 0;
+            font-size: 0.82rem;
+            color: #0f172a;
+        }
+        .workload-plan-allocations-head p {
+            margin: 2px 0 0;
+            font-size: 0.72rem;
+            color: #64748b;
+        }
+        .workload-plan-preset-buttons {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .workload-plan-preset-btn {
+            border: 1px solid rgba(15, 23, 42, 0.12);
+            border-radius: 999px;
+            background: #fff;
+            color: #0f172a;
+            padding: 5px 9px;
+            font-size: 0.74rem;
+            cursor: pointer;
+        }
+        .workload-plan-preset-btn:hover {
+            background: #f8fafc;
+        }
+        .workload-plan-allocation-list {
+            display: grid;
+            gap: 8px;
+        }
+        .workload-plan-allocation-empty {
+            border: 1px dashed rgba(15, 23, 42, 0.15);
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 0.76rem;
+            color: #64748b;
+            background: rgba(255,255,255,0.8);
+        }
+        .workload-plan-allocation-row {
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            border-radius: 10px;
+            padding: 8px;
+            background: #fff;
+            display: grid;
+            gap: 8px;
+        }
+        .workload-plan-allocation-row-top {
+            display: grid;
+            grid-template-columns: minmax(0, 1.5fr) 120px auto;
+            gap: 8px;
+            align-items: center;
+        }
+        .workload-plan-allocation-row-top input,
+        .workload-plan-allocation-row-top select,
+        .workload-plan-allocation-row-body input {
+            width: 100%;
+            border: 1px solid rgba(15, 23, 42, 0.14);
+            border-radius: 8px;
+            padding: 7px 9px;
+            font-size: 0.8rem;
+            box-sizing: border-box;
+            background: #fff;
+        }
+        .workload-plan-allocation-row-body {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+            gap: 8px;
+            align-items: start;
+        }
+        .workload-plan-allocation-quarters {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .workload-plan-allocation-quarters label {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            border: 1px solid rgba(15, 23, 42, 0.12);
+            border-radius: 999px;
+            padding: 4px 8px;
+            background: #f8fafc;
+            color: #334155;
+            font-size: 0.74rem;
+            cursor: pointer;
+        }
+        .workload-plan-allocation-remove {
+            border: 1px solid rgba(127, 29, 29, 0.18);
+            background: #fff5f5;
+            color: #991b1b;
+            border-radius: 8px;
+            padding: 6px 8px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .workload-plan-allocation-summary {
+            margin-top: 8px;
+            border-top: 1px solid rgba(15, 23, 42, 0.08);
+            padding-top: 8px;
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 8px;
+        }
+        .workload-plan-allocation-summary-card {
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            border-radius: 8px;
+            padding: 7px 8px;
+            background: rgba(255,255,255,0.9);
+        }
+        .workload-plan-allocation-summary-card .label {
+            display: block;
+            color: #64748b;
+            font-size: 0.68rem;
+        }
+        .workload-plan-allocation-summary-card .value {
+            display: block;
+            color: #0f172a;
+            font-size: 0.82rem;
+            font-weight: 700;
+        }
         .workload-plan-derived-card {
             margin-top: 10px;
             border-radius: 10px;
@@ -794,6 +1327,13 @@ function ensureWorkloadPlanningStyles() {
             .workload-plan-form-grid {
                 grid-template-columns: 1fr;
             }
+            .workload-plan-allocation-row-top,
+            .workload-plan-allocation-row-body {
+                grid-template-columns: 1fr;
+            }
+            .workload-plan-allocation-summary {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
             .workload-plan-derived-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
@@ -825,7 +1365,224 @@ function ensureWorkloadPlanningPanel() {
     }
 
     panel.addEventListener('click', handleWorkloadPlanningPanelClick);
+    panel.addEventListener('change', handleWorkloadPlanningPanelChange);
     return panel;
+}
+
+function getWorkloadPlanModalOverlay() {
+    return document.getElementById('workloadPlanEditorOverlay');
+}
+
+function getWorkloadPlanReleaseAllocationsState() {
+    return sanitizeWorkloadPlanReleaseAllocations(workloadPlanningUiState.modalReleaseAllocations);
+}
+
+function setWorkloadPlanReleaseAllocationsState(nextAllocations) {
+    workloadPlanningUiState.modalReleaseAllocations = sanitizeWorkloadPlanReleaseAllocations(nextAllocations);
+}
+
+function renderWorkloadPlanReleaseAllocationRows() {
+    const overlay = getWorkloadPlanModalOverlay();
+    if (!overlay) return;
+
+    const list = overlay.querySelector('#workloadPlanReleaseAllocationList');
+    if (!list) return;
+
+    const allocations = getWorkloadPlanReleaseAllocationsState();
+    if (!allocations.length) {
+        list.innerHTML = '<div class="workload-plan-allocation-empty">No structured allocations yet. Use the preset buttons or add a custom row. If this remains empty, the manual annual release total field is used.</div>';
+        return;
+    }
+
+    const categoryOptionsHtml = WORKLOAD_PLAN_RELEASE_CATEGORY_OPTIONS
+        .map((option) => `<option value="${escapeWorkloadPlanHtml(option.id)}">${escapeWorkloadPlanHtml(option.label)}</option>`)
+        .join('');
+
+    list.innerHTML = allocations.map((allocation, index) => {
+        const quartersHtml = WORKLOAD_PLAN_RELEASE_ALLOCATION_QUARTERS
+            .map((quarter) => {
+                const checked = allocation.quarters.includes(quarter) ? ' checked' : '';
+                return `
+                    <label>
+                        <input type="checkbox" data-field="quarter" data-index="${index}" data-quarter="${escapeWorkloadPlanHtml(quarter)}"${checked}>
+                        ${escapeWorkloadPlanHtml(quarter)}
+                    </label>
+                `;
+            })
+            .join('');
+
+        return `
+            <div class="workload-plan-allocation-row" data-index="${index}">
+                <div class="workload-plan-allocation-row-top">
+                    <select data-field="category" data-index="${index}" aria-label="Allocation category">
+                        ${categoryOptionsHtml}
+                    </select>
+                    <input type="number" min="0" step="0.5" data-field="credits" data-index="${index}" value="${escapeWorkloadPlanHtml(formatWorkloadPlanNumber(allocation.credits, 2))}" aria-label="Credits per selected quarter">
+                    <button type="button" class="workload-plan-allocation-remove" data-action="remove-release-row" data-index="${index}">Remove</button>
+                </div>
+                <div class="workload-plan-allocation-row-body">
+                    <input type="text" data-field="label" data-index="${index}" value="${escapeWorkloadPlanHtml(allocation.label || '')}" placeholder="Display label (e.g., DESN 499)">
+                    <input type="text" data-field="description" data-index="${index}" value="${escapeWorkloadPlanHtml(allocation.description || '')}" placeholder="Optional row note / reason detail">
+                </div>
+                <div class="workload-plan-allocation-quarters">
+                    ${quartersHtml}
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    allocations.forEach((allocation, index) => {
+        const select = list.querySelector(`select[data-field="category"][data-index="${index}"]`);
+        if (select) select.value = allocation.category;
+    });
+}
+
+function updateWorkloadPlanReleaseAllocationSummary() {
+    const overlay = getWorkloadPlanModalOverlay();
+    if (!overlay) return;
+    const summaryEl = overlay.querySelector('#workloadPlanReleaseAllocationSummary');
+    if (!summaryEl) return;
+
+    const summary = summarizeWorkloadPlanReleaseAllocations(workloadPlanningUiState.modalReleaseAllocations);
+    const orderedQuarters = ['Fall', 'Winter', 'Spring', 'Summer'];
+    summaryEl.innerHTML = [
+        ...orderedQuarters.map((quarter) => `
+            <div class="workload-plan-allocation-summary-card">
+                <span class="label">${escapeWorkloadPlanHtml(quarter)} Release</span>
+                <span class="value">${escapeWorkloadPlanHtml(formatWorkloadPlanNumber(summary.perQuarter[quarter] || 0, 2))}</span>
+            </div>
+        `),
+        `
+            <div class="workload-plan-allocation-summary-card">
+                <span class="label">AY Release (Derived)</span>
+                <span class="value">${escapeWorkloadPlanHtml(formatWorkloadPlanNumber(summary.annualTotal, 2))}</span>
+            </div>
+        `
+    ].join('');
+}
+
+function updateWorkloadPlanReleaseCreditsFieldMode() {
+    const overlay = getWorkloadPlanModalOverlay();
+    if (!overlay) return;
+    const releaseCreditsInput = overlay.querySelector('#workloadPlanReleaseCredits');
+    const releaseCreditsHelp = overlay.querySelector('#workloadPlanReleaseCreditsHelp');
+    if (!releaseCreditsInput || !releaseCreditsHelp) return;
+
+    const hasStructuredAllocations = getWorkloadPlanReleaseAllocationsState().length > 0;
+    releaseCreditsInput.readOnly = hasStructuredAllocations;
+    releaseCreditsInput.setAttribute('aria-readonly', hasStructuredAllocations ? 'true' : 'false');
+    releaseCreditsInput.style.background = hasStructuredAllocations ? '#f8fafc' : '#fff';
+    releaseCreditsHelp.textContent = hasStructuredAllocations
+        ? 'Auto-calculated from the structured allocation rows below (credits × selected quarters). Remove allocation rows to edit this field manually.'
+        : 'Enter an annual total, or add structured allocations below to auto-calculate this field.';
+}
+
+function syncWorkloadPlanReleaseCreditsFromAllocations() {
+    const overlay = getWorkloadPlanModalOverlay();
+    if (!overlay) return;
+    const releaseCreditsInput = overlay.querySelector('#workloadPlanReleaseCredits');
+    if (!releaseCreditsInput) return;
+
+    const summary = summarizeWorkloadPlanReleaseAllocations(workloadPlanningUiState.modalReleaseAllocations);
+    if (summary.rows.length > 0) {
+        releaseCreditsInput.value = formatWorkloadPlanNumber(summary.annualTotal, 2);
+    }
+    updateWorkloadPlanReleaseCreditsFieldMode();
+}
+
+function refreshWorkloadPlanReleaseAllocationUi() {
+    renderWorkloadPlanReleaseAllocationRows();
+    updateWorkloadPlanReleaseAllocationSummary();
+    syncWorkloadPlanReleaseCreditsFromAllocations();
+    updateWorkloadPlanDerivedPreview();
+}
+
+function addWorkloadPlanReleaseAllocationRow(presetId = '') {
+    const next = getWorkloadPlanReleaseAllocationsState();
+    next.push(buildWorkloadPlanReleaseAllocationFromPreset(presetId));
+    setWorkloadPlanReleaseAllocationsState(next);
+    refreshWorkloadPlanReleaseAllocationUi();
+}
+
+function removeWorkloadPlanReleaseAllocationRow(index) {
+    const idx = Number(index);
+    if (!Number.isInteger(idx) || idx < 0) return;
+    const next = getWorkloadPlanReleaseAllocationsState();
+    if (!next[idx]) return;
+    next.splice(idx, 1);
+    setWorkloadPlanReleaseAllocationsState(next);
+    refreshWorkloadPlanReleaseAllocationUi();
+}
+
+function updateWorkloadPlanReleaseAllocationField(index, field, rawValue) {
+    const idx = Number(index);
+    if (!Number.isInteger(idx) || idx < 0) return;
+    const next = getWorkloadPlanReleaseAllocationsState();
+    const current = next[idx];
+    if (!current) return;
+
+    if (field === 'category') {
+        current.category = normalizeWorkloadPlanReleaseCategory(rawValue);
+        if (!String(current.label || '').trim() || current.source === 'preset') {
+            current.label = getWorkloadPlanReleaseCategoryLabel(current.category);
+        }
+    } else if (field === 'credits') {
+        const credits = Number(rawValue);
+        current.credits = Number.isFinite(credits) && credits >= 0 ? Number(credits.toFixed(2)) : 0;
+    } else if (field === 'label') {
+        current.label = String(rawValue || '').trim();
+    } else if (field === 'description') {
+        current.description = String(rawValue || '').trim();
+    }
+
+    current.updatedAt = new Date().toISOString();
+    setWorkloadPlanReleaseAllocationsState(next);
+    updateWorkloadPlanReleaseAllocationSummary();
+    syncWorkloadPlanReleaseCreditsFromAllocations();
+    updateWorkloadPlanDerivedPreview();
+}
+
+function toggleWorkloadPlanReleaseAllocationQuarter(index, quarter, checked) {
+    const idx = Number(index);
+    if (!Number.isInteger(idx) || idx < 0) return;
+    const normalizedQuarter = normalizeWorkloadPlanReleaseQuarter(quarter);
+    if (!normalizedQuarter) return;
+
+    const next = getWorkloadPlanReleaseAllocationsState();
+    const current = next[idx];
+    if (!current) return;
+
+    const quarters = new Set(Array.isArray(current.quarters) ? current.quarters : []);
+    if (checked) {
+        quarters.add(normalizedQuarter);
+    } else {
+        quarters.delete(normalizedQuarter);
+    }
+    current.quarters = Array.from(quarters).sort((a, b) => WORKLOAD_PLAN_RELEASE_ALLOCATION_QUARTERS.indexOf(a) - WORKLOAD_PLAN_RELEASE_ALLOCATION_QUARTERS.indexOf(b));
+    current.updatedAt = new Date().toISOString();
+
+    setWorkloadPlanReleaseAllocationsState(next);
+    updateWorkloadPlanReleaseAllocationSummary();
+    syncWorkloadPlanReleaseCreditsFromAllocations();
+    updateWorkloadPlanDerivedPreview();
+}
+
+function handleWorkloadPlanReleaseAllocationInput(event) {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+
+    const field = target.dataset?.field;
+    const index = target.dataset?.index;
+    if (!field || typeof index === 'undefined') return;
+
+    if (field === 'quarter' && target instanceof HTMLInputElement) {
+        toggleWorkloadPlanReleaseAllocationQuarter(index, target.dataset.quarter, target.checked);
+        return;
+    }
+
+    if (target instanceof HTMLInputElement || target instanceof HTMLSelectElement) {
+        updateWorkloadPlanReleaseAllocationField(index, field, target.value);
+    }
 }
 
 function ensureWorkloadPlanEditorModal() {
@@ -868,10 +1625,27 @@ function ensureWorkloadPlanEditorModal() {
                     <div class="workload-plan-field">
                         <label for="workloadPlanReleaseCredits">Release / Assigned-Time Credits</label>
                         <input id="workloadPlanReleaseCredits" type="number" min="0" step="0.5" value="0">
+                        <div id="workloadPlanReleaseCreditsHelp" class="workload-plan-field-help">Enter an annual total, or add structured allocations below to auto-calculate this field.</div>
                     </div>
                     <div class="workload-plan-field full">
                         <label for="workloadPlanReleaseReason">Release Reason</label>
                         <input id="workloadPlanReleaseReason" type="text" placeholder="Chair, leave, scholarship, etc.">
+                    </div>
+                    <div class="workload-plan-field full">
+                        <div class="workload-plan-allocations">
+                            <div class="workload-plan-allocations-head">
+                                <div>
+                                    <h5>Release / Assigned-Time Allocations</h5>
+                                    <p>Track quarter-scoped assignments (credits are per selected quarter). This drives the AY release total when rows are present.</p>
+                                </div>
+                                <div class="workload-plan-preset-buttons" aria-label="Quick add release allocation presets">
+                                    ${WORKLOAD_PLAN_RELEASE_ALLOCATION_PRESETS.map((preset) => `<button type="button" class="workload-plan-preset-btn" data-action="add-release-preset" data-preset="${escapeWorkloadPlanHtml(preset.id)}">${escapeWorkloadPlanHtml(preset.label)}</button>`).join('')}
+                                    <button type="button" class="workload-plan-preset-btn" data-action="add-release-row">+ Custom Row</button>
+                                </div>
+                            </div>
+                            <div id="workloadPlanReleaseAllocationList" class="workload-plan-allocation-list"></div>
+                            <div id="workloadPlanReleaseAllocationSummary" class="workload-plan-allocation-summary"></div>
+                        </div>
                     </div>
                     <div class="workload-plan-field full">
                         <div class="workload-plan-checkbox-row">
@@ -924,6 +1698,12 @@ function ensureWorkloadPlanEditorModal() {
             closeWorkloadPlanEditorModal();
         } else if (action === 'remove-plan-record') {
             removeCurrentWorkloadPlanRecord();
+        } else if (action === 'add-release-preset') {
+            addWorkloadPlanReleaseAllocationRow(actionTarget.dataset.preset || '');
+        } else if (action === 'add-release-row') {
+            addWorkloadPlanReleaseAllocationRow('');
+        } else if (action === 'remove-release-row') {
+            removeWorkloadPlanReleaseAllocationRow(actionTarget.dataset.index);
         }
     });
 
@@ -932,6 +1712,8 @@ function ensureWorkloadPlanEditorModal() {
     overlay.querySelector('#workloadPlanRole').addEventListener('change', handleWorkloadPlanRoleChange);
     overlay.querySelector('#workloadPlanTargetCredits').addEventListener('input', updateWorkloadPlanDerivedPreview);
     overlay.querySelector('#workloadPlanReleaseCredits').addEventListener('input', updateWorkloadPlanDerivedPreview);
+    overlay.querySelector('#workloadPlanReleaseAllocationList').addEventListener('input', handleWorkloadPlanReleaseAllocationInput);
+    overlay.querySelector('#workloadPlanReleaseAllocationList').addEventListener('change', handleWorkloadPlanReleaseAllocationInput);
 
     return overlay;
 }
@@ -1008,12 +1790,7 @@ function buildWorkloadPlanningRows(yearData) {
         return row;
     });
 
-    return rows.sort((a, b) => {
-        const aInactive = a.status === 'inactive' ? 1 : 0;
-        const bInactive = b.status === 'inactive' ? 1 : 0;
-        if (aInactive !== bInactive) return aInactive - bInactive;
-        return a.facultyName.localeCompare(b.facultyName);
-    });
+    return rows.sort(compareWorkloadPlanningRows);
 }
 
 function renderWorkloadPlanningPanel(yearData) {
@@ -1033,13 +1810,22 @@ function renderWorkloadPlanningPanel(yearData) {
     const inactiveRows = rows.filter((row) => !row.active);
     const unresolvedCount = Number(yearData?.meta?.unresolvedScheduleCourses?.count) || 0;
 
+    const activeSortOption = WORKLOAD_PLAN_SORT_OPTIONS.find((option) => option.id === workloadPlanningUiState.sortKey) || WORKLOAD_PLAN_SORT_OPTIONS[0];
+    const groupByValue = workloadPlanningUiState.groupBy || 'none';
+    let previousGroupLabel = '';
+
     const tableRowsHtml = rows.length
         ? rows.map((row) => {
+            const rowGroupLabel = getWorkloadPlanningGroupLabel(row, groupByValue);
+            const groupRowHtml = rowGroupLabel && rowGroupLabel !== previousGroupLabel
+                ? `<tr class="workload-plan-group-row"><td colspan="14">${escapeWorkloadPlanHtml(rowGroupLabel)}</td></tr>`
+                : '';
+            previousGroupLabel = rowGroupLabel || previousGroupLabel;
             const planLabel = row.hasAyPlan ? 'AY Plan' : 'Fallback';
             const chairTag = row.chair ? '<span class="workload-plan-sub">Chair</span>' : '';
             const fallbackTag = row.hasAyPlan ? '' : '<span class="workload-plan-sub">Using fallback assumptions</span>';
             const releaseTag = row.releaseReason ? `<span class="workload-plan-sub">${escapeWorkloadPlanHtml(row.releaseReason)}</span>` : '';
-            return `
+            return `${groupRowHtml}
                 <tr data-faculty-name="${escapeWorkloadPlanHtml(row.facultyName)}">
                     <td class="name">
                         <strong>${escapeWorkloadPlanHtml(row.facultyName)}</strong>
@@ -1122,6 +1908,27 @@ function renderWorkloadPlanningPanel(yearData) {
                 <span class="value">${unresolvedCount}</span>
             </div>
         </div>
+        <div class="workload-plan-toolbar">
+            <div class="workload-plan-sort-controls">
+                <label for="workloadPlanSortKey">Sort by
+                    <select id="workloadPlanSortKey" data-action="planning-sort">
+                        ${WORKLOAD_PLAN_SORT_OPTIONS.map((option) => `<option value="${escapeWorkloadPlanHtml(option.id)}"${option.id === workloadPlanningUiState.sortKey ? ' selected' : ''}>${escapeWorkloadPlanHtml(option.label)}</option>`).join('')}
+                    </select>
+                </label>
+                <label for="workloadPlanSortDirection">Direction
+                    <select id="workloadPlanSortDirection" data-action="planning-sort-direction">
+                        <option value="asc"${workloadPlanningUiState.sortDirection === 'asc' ? ' selected' : ''}>Ascending</option>
+                        <option value="desc"${workloadPlanningUiState.sortDirection === 'desc' ? ' selected' : ''}>Descending</option>
+                    </select>
+                </label>
+                <label for="workloadPlanGroupBy">Grouping
+                    <select id="workloadPlanGroupBy" data-action="planning-group">
+                        ${WORKLOAD_PLAN_GROUP_OPTIONS.map((option) => `<option value="${escapeWorkloadPlanHtml(option.id)}"${option.id === workloadPlanningUiState.groupBy ? ' selected' : ''}>${escapeWorkloadPlanHtml(option.label)}</option>`).join('')}
+                    </select>
+                </label>
+            </div>
+            <div class="workload-plan-note">Sorted by ${escapeWorkloadPlanHtml(activeSortOption.label)}${workloadPlanningUiState.groupBy !== 'none' ? ` · ${escapeWorkloadPlanHtml((WORKLOAD_PLAN_GROUP_OPTIONS.find((option) => option.id === workloadPlanningUiState.groupBy) || { label: '' }).label)}` : ''}</div>
+        </div>
         <div class="workload-plan-statusline ${statusClass}">${escapeWorkloadPlanHtml(workloadPlanningUiState.statusMessage || '')}</div>
         <div class="workload-plan-table-wrap">
             <table class="workload-plan-table">
@@ -1184,9 +1991,11 @@ function openWorkloadPlanEditorForFaculty(facultyName) {
     overlay.querySelector('#workloadPlanChair').checked = Boolean(defaults.isChair);
     overlay.querySelector('#workloadPlanActive').checked = defaults.active !== false;
     overlay.querySelector('[data-action="remove-plan-record"]').disabled = !row.planRecord;
+    setWorkloadPlanReleaseAllocationsState(defaults.releaseAllocations || []);
 
     overlay.dataset.facultyName = row.facultyName;
     overlay.classList.add('active');
+    refreshWorkloadPlanReleaseAllocationUi();
     updateWorkloadPlanDerivedPreview();
 }
 
@@ -1197,16 +2006,22 @@ function closeWorkloadPlanEditorModal() {
     workloadPlanningUiState.modalOpen = false;
     workloadPlanningUiState.editingRecordId = null;
     workloadPlanningUiState.editingFacultyName = '';
+    workloadPlanningUiState.modalReleaseAllocations = [];
 }
 
 function getWorkloadPlanEditorValues() {
     const overlay = document.getElementById('workloadPlanEditorOverlay');
     if (!overlay) return null;
 
+    const releaseAllocations = getWorkloadPlanReleaseAllocationsState();
+    const releaseAllocationSummary = summarizeWorkloadPlanReleaseAllocations(releaseAllocations);
     const target = Number(overlay.querySelector('#workloadPlanTargetCredits').value);
     const release = Number(overlay.querySelector('#workloadPlanReleaseCredits').value);
     const safeTarget = Number.isFinite(target) && target >= 0 ? target : 0;
-    const safeRelease = Number.isFinite(release) && release >= 0 ? release : 0;
+    const safeReleaseManual = Number.isFinite(release) && release >= 0 ? release : 0;
+    const safeRelease = releaseAllocationSummary.rows.length > 0
+        ? releaseAllocationSummary.annualTotal
+        : safeReleaseManual;
     const safeName = overlay.querySelector('#workloadPlanFacultyName').value.trim();
 
     return {
@@ -1221,7 +2036,8 @@ function getWorkloadPlanEditorValues() {
         releaseReason: overlay.querySelector('#workloadPlanReleaseReason').value.trim(),
         notes: overlay.querySelector('#workloadPlanNotes').value.trim(),
         isChair: overlay.querySelector('#workloadPlanChair').checked,
-        active: overlay.querySelector('#workloadPlanActive').checked
+        active: overlay.querySelector('#workloadPlanActive').checked,
+        releaseAllocations: releaseAllocationSummary.rows
     };
 }
 
@@ -1236,12 +2052,33 @@ function updateWorkloadPlanDerivedPreview() {
     const winter = Number(baseRow?.winter) || 0;
     const spring = Number(baseRow?.spring) || 0;
     const ayTotal = Number(baseRow?.ayTotal) || 0;
+    const releaseAllocations = Array.isArray(values.releaseAllocations) ? values.releaseAllocations : [];
+    const releaseSummary = summarizeWorkloadPlanReleaseAllocations(releaseAllocations);
     const net = Math.max(0, (Number(values.annualTargetCredits) || 0) - (Number(values.releaseCredits) || 0));
     const ayUtil = net > 0 ? (ayTotal / net) * 100 : 0;
+    const annualTarget = Number(values.annualTargetCredits) || 0;
+    const fallRelease = Number(releaseSummary.perQuarter.Fall || 0);
+    const winterRelease = Number(releaseSummary.perQuarter.Winter || 0);
+    const springRelease = Number(releaseSummary.perQuarter.Spring || 0);
+    const fallUtil = releaseSummary.rows.length > 0
+        ? inferQuarterUtilizationWithRelease(fall, annualTarget, fallRelease, net)
+        : inferQuarterUtilization(fall, net);
+    const winterUtil = releaseSummary.rows.length > 0
+        ? inferQuarterUtilizationWithRelease(winter, annualTarget, winterRelease, net)
+        : inferQuarterUtilization(winter, net);
+    const springUtil = releaseSummary.rows.length > 0
+        ? inferQuarterUtilizationWithRelease(spring, annualTarget, springRelease, net)
+        : inferQuarterUtilization(spring, net);
 
-    overlay.querySelector('#workloadPlanDerivedFall').textContent = `${formatWorkloadPlanNumber(fall)} (${formatWorkloadPlanNumber(inferQuarterUtilization(fall, net))}%)`;
-    overlay.querySelector('#workloadPlanDerivedWinter').textContent = `${formatWorkloadPlanNumber(winter)} (${formatWorkloadPlanNumber(inferQuarterUtilization(winter, net))}%)`;
-    overlay.querySelector('#workloadPlanDerivedSpring').textContent = `${formatWorkloadPlanNumber(spring)} (${formatWorkloadPlanNumber(inferQuarterUtilization(spring, net))}%)`;
+    const quarterWithReleaseText = (workload, util, quarterRelease) => {
+        const base = `${formatWorkloadPlanNumber(workload)} (${formatWorkloadPlanNumber(util)}%)`;
+        if (releaseSummary.rows.length <= 0) return base;
+        return `${base} · rel ${formatWorkloadPlanNumber(quarterRelease, 2)}`;
+    };
+
+    overlay.querySelector('#workloadPlanDerivedFall').textContent = quarterWithReleaseText(fall, fallUtil, fallRelease);
+    overlay.querySelector('#workloadPlanDerivedWinter').textContent = quarterWithReleaseText(winter, winterUtil, winterRelease);
+    overlay.querySelector('#workloadPlanDerivedSpring').textContent = quarterWithReleaseText(spring, springUtil, springRelease);
     overlay.querySelector('#workloadPlanDerivedAy').textContent = `${formatWorkloadPlanNumber(ayTotal)} (${formatWorkloadPlanNumber(ayUtil)}%)`;
 }
 
@@ -1254,12 +2091,13 @@ function handleWorkloadPlanChairToggle(event) {
     const releaseInput = overlay.querySelector('#workloadPlanReleaseCredits');
     const target = Number(targetInput.value) || 0;
     const release = Number(releaseInput.value) || 0;
+    const hasStructuredAllocations = getWorkloadPlanReleaseAllocationsState().length > 0;
 
     if (checked) {
         if (!reasonInput.value.trim()) {
             reasonInput.value = 'Chair';
         }
-        if (!release && target >= 18) {
+        if (!hasStructuredAllocations && !release && target >= 18) {
             releaseInput.value = formatWorkloadPlanNumber(Math.min(18, target), 1);
         }
     } else if (reasonInput.value.trim().toLowerCase() === 'chair') {
@@ -1295,6 +2133,13 @@ function handleWorkloadPlanEditorSubmit(event) {
         return;
     }
 
+    const allocationValidation = validateWorkloadPlanReleaseAllocations(values.releaseAllocations);
+    if (!allocationValidation.valid) {
+        alert(allocationValidation.errors.join('\n'));
+        return;
+    }
+    values.releaseAllocations = allocationValidation.rows;
+
     if (values.isChair && !values.releaseReason) {
         values.releaseReason = 'Chair';
     }
@@ -1320,7 +2165,8 @@ function handleWorkloadPlanEditorSubmit(event) {
         releaseReason: values.releaseReason,
         notes: values.notes,
         isChair: values.isChair,
-        active: values.active
+        active: values.active,
+        releaseAllocations: values.releaseAllocations
     };
 
     const faculty = Array.isArray(yearData.faculty) ? yearData.faculty : [];
@@ -1438,7 +2284,8 @@ function seedMissingAyPlanRecordsFromCurrentWorkload() {
             releaseReason: defaults.releaseReason,
             notes: defaults.notes || '',
             isChair: defaults.isChair,
-            active: true
+            active: true,
+            releaseAllocations: defaults.releaseAllocations || []
         });
         existingKeys.add(key);
         added += 1;
@@ -1525,11 +2372,44 @@ function handleWorkloadPlanningPanelClick(event) {
     }
 }
 
+function handleWorkloadPlanningPanelChange(event) {
+    const target = event.target;
+    if (!(target instanceof HTMLSelectElement)) return;
+    const action = target.dataset.action;
+    if (!action) return;
+
+    let changed = false;
+    if (action === 'planning-sort') {
+        const value = target.value;
+        if (WORKLOAD_PLAN_SORT_OPTIONS.some((option) => option.id === value) && workloadPlanningUiState.sortKey !== value) {
+            workloadPlanningUiState.sortKey = value;
+            changed = true;
+        }
+    } else if (action === 'planning-sort-direction') {
+        const value = target.value === 'desc' ? 'desc' : 'asc';
+        if (workloadPlanningUiState.sortDirection !== value) {
+            workloadPlanningUiState.sortDirection = value;
+            changed = true;
+        }
+    } else if (action === 'planning-group') {
+        const value = target.value;
+        if (WORKLOAD_PLAN_GROUP_OPTIONS.some((option) => option.id === value) && workloadPlanningUiState.groupBy !== value) {
+            workloadPlanningUiState.groupBy = value;
+            changed = true;
+        }
+    }
+
+    if (!changed) return;
+    writeWorkloadPlanUiPreferences();
+    renderWorkloadPlanningPanel(currentYearData);
+}
+
 /**
  * Initialize dashboard
  */
 async function initDashboard() {
     console.log('🚀 Initializing Faculty Workload Dashboard');
+    loadWorkloadPlanUiPreferences();
 
     // Load workload data
     workloadData = await loadWorkloadData('../');
