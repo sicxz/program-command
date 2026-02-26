@@ -19,6 +19,10 @@ const WorkloadIntegration = (function() {
 
     const ROLE_TARGET_DEFAULTS = {
         'Tenure/Tenure-track': 36,
+        'Full Professor': 36,
+        'Associate Professor': 36,
+        'Assistant Professor': 36,
+        'Senior Lecturer': 45,
         Lecturer: 45
     };
 
@@ -27,58 +31,58 @@ const WorkloadIntegration = (function() {
     const PRELIMINARY_ROSTER_TARGET_RULES = [
         {
             id: 'travis-tenure',
-            aliases: ['travis', 'tmasingale', 'masingale', 't masingale'],
-            role: 'Tenure/Tenure-track',
+            aliases: ['travis', 'travis masingale', 'tmasingale', 'masingale', 't masingale'],
+            role: 'Full Professor',
             annualTargetCredits: 36,
             releaseCredits: 0
         },
         {
             id: 'colin-tenure',
-            aliases: ['colin', 'cmanikoth', 'manikoth', 'c manikoth'],
-            role: 'Tenure/Tenure-track',
+            aliases: ['colin', 'colin manikoth', 'cmanikoth', 'manikoth', 'c manikoth'],
+            role: 'Associate Professor',
             annualTargetCredits: 36,
             releaseCredits: 0
         },
         {
             id: 'ginelle-tenure',
-            aliases: ['ginelle', 'ghustrulid', 'hustrulid', 'g hustrulid'],
-            role: 'Tenure/Tenure-track',
+            aliases: ['ginelle', 'ginelle hustrulid', 'ghustrulid', 'hustrulid', 'g hustrulid'],
+            role: 'Full Professor',
             annualTargetCredits: 36,
             releaseCredits: 0
         },
         {
             id: 'mindy-chair',
-            aliases: ['mindy', 'mbreen', 'breen', 'm breen', 'melinda', 'melinda breen'],
-            role: 'Tenure/Tenure-track',
+            aliases: ['mindy', 'mindy breen', 'mbreen', 'breen', 'm breen', 'melinda', 'melinda breen'],
+            role: 'Full Professor',
             annualTargetCredits: 36,
             releaseCredits: 18,
             specialRole: 'Chair'
         },
         {
             id: 'simeon-sam-lecturer',
-            aliases: ['simeon', 'sam', 'smills', 'mills', 's mills'],
-            role: 'Lecturer',
+            aliases: ['simeon', 'sam', 'simeon mills', 'sam mills', 'smills', 'mills', 's mills'],
+            role: 'Senior Lecturer',
             annualTargetCredits: 45,
             releaseCredits: 0
         },
         {
             id: 'sonja-lecturer',
-            aliases: ['sonja', 'sdurr', 'durr', 's durr'],
-            role: 'Lecturer',
+            aliases: ['sonja', 'sonja durr', 'sdurr', 'durr', 's durr'],
+            role: 'Senior Lecturer',
             annualTargetCredits: 45,
             releaseCredits: 0
         },
         {
             id: 'ariel-lecturer',
-            aliases: ['ariel', 'asopu', 'sopu', 'a sopu'],
+            aliases: ['ariel', 'ariel sopu', 'asopu', 'sopu', 'a sopu'],
             role: 'Lecturer',
             annualTargetCredits: 45,
             releaseCredits: 0
         },
         {
             id: 'meg-lecturer',
-            aliases: ['meg', 'mlybbert', 'lybbert', 'm lybbert', 'meg lybbert'],
-            role: 'Lecturer',
+            aliases: ['meg', 'meg lybbert', 'meg lybert', 'mlybbert', 'lybbert', 'm lybbert', 'mlybert', 'lybert', 'm lybert'],
+            role: 'Senior Lecturer',
             annualTargetCredits: 45,
             releaseCredits: 0
         }
@@ -425,7 +429,7 @@ const WorkloadIntegration = (function() {
 
         if (category === 'adjunct') return 15;
         const roleText = String(role || '').toLowerCase();
-        if (roleText.includes('tenure')) return 36;
+        if (roleText.includes('tenure') || roleText.includes('professor')) return 36;
         return 45;
     }
 
