@@ -1933,6 +1933,49 @@
             color: #57606a;
         }
 
+        .clss-import-resolve-controls {
+            display: grid;
+            gap: 6px;
+            min-width: 220px;
+        }
+
+        .clss-import-resolve-controls .row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .clss-import-resolve-controls .row.single {
+            grid-template-columns: 1fr;
+        }
+
+        .clss-import-resolve-controls select,
+        .clss-import-resolve-controls button {
+            width: 100%;
+            border: 1px solid #d0d7de;
+            border-radius: 6px;
+            background: #fff;
+            color: #24292f;
+            font: inherit;
+            font-size: 12px;
+            padding: 5px 6px;
+        }
+
+        .clss-import-resolve-controls button {
+            cursor: pointer;
+            background: #f6f8fa;
+        }
+
+        .clss-import-resolve-controls button:hover {
+            background: #eef2f6;
+        }
+
+        .clss-import-resolve-label {
+            font-size: 11px;
+            color: #57606a;
+            margin-bottom: -2px;
+        }
+
         .clss-import-raw {
             margin-top: 2px;
         }
@@ -8151,7 +8194,12 @@
                 result.rows.forEach((row) => {
                     combinedRows.push({
                         ...row,
-                        targetQuarter: quarter
+                        targetQuarter: quarter,
+                        reviewQuarter: quarter,
+                        reviewPlacement: '',
+                        reviewDay: row.schedulerDay || '',
+                        reviewTime: row.schedulerTime || '',
+                        reviewRoom: row.schedulerRoom || (row.requiresAutoRoomAssignment ? 'AUTO' : '')
                     });
                 });
 
@@ -8164,6 +8212,292 @@
                 rows: combinedRows,
                 meta: { warnings }
             };
+        }
+
+        function getClssImportRowEffectiveState(row) {
+            const parsedQuarter = row?.targetQuarter || (document.getElementById('clssImportQuarter')?.value || 'spring');
+            const reviewQuarter = CLSS_IMPORT_QUARTERS.includes(row?.reviewQuarter) ? row.reviewQuarter : parsedQuarter;
+            const placement = String(row?.reviewPlacement || '').toLowerCase();
+            const missingIdentity = !String(row?.code || '').trim() || !String(row?.title || '').trim();
+
+            if (missingIdentity) {
+                return {
+                    ...row,
+                    targetQuarter: reviewQuarter,
+                    effectiveStatus: 'error',
+                    effectiveQuarter: reviewQuarter,
+                    effectiveDay: '',
+                    effectiveTime: '',
+                    effectiveRoom: '',
+                    effectiveRequiresAutoRoomAssignment: false,
+                    effectiveSchedulerSlotLabel: '',
+                    effectiveDisposition: 'error',
+                    effectiveNotes: [...new Set([...(row?.notes || []), 'Course code/title missing; cannot import until parser captures course header'])]
+                };
+            }
+
+            if (placement === 'skip') {
+                return {
+                    ...row,
+                    targetQuarter: reviewQuarter,
+                    effectiveStatus: 'needs-review',
+                    effectiveQuarter: reviewQuarter,
+                    effectiveDay: '',
+                    effectiveTime: '',
+                    effectiveRoom: '',
+                    effectiveRequiresAutoRoomAssignment: false,
+                    effectiveSchedulerSlotLabel: 'Will skip',
+                    effectiveDisposition: 'skip',
+                    effectiveNotes: ['Marked to skip during import']
+                };
+            }
+
+            if (placement === 'online') {
+                return {
+                    ...row,
+                    targetQuarter: reviewQuarter,
+                    effectiveStatus: 'online',
+                    effectiveQuarter: reviewQuarter,
+                    effectiveDay: '',
+                    effectiveTime: '',
+                    effectiveRoom: 'ONLINE',
+                    effectiveRequiresAutoRoomAssignment: false,
+                    effectiveSchedulerSlotLabel: 'ONLINE / async',
+                    effectiveDisposition: 'online',
+                    effectiveNotes: row?.notes || []
+                };
+            }
+
+            if (placement === 'arranged') {
+                return {
+                    ...row,
+                    targetQuarter: reviewQuarter,
+                    effectiveStatus: 'arranged',
+                    effectiveQuarter: reviewQuarter,
+                    effectiveDay: '',
+                    effectiveTime: '',
+                    effectiveRoom: 'ARRANGED',
+                    effectiveRequiresAutoRoomAssignment: false,
+                    effectiveSchedulerSlotLabel: 'ARRANGED',
+                    effectiveDisposition: 'arranged',
+                    effectiveNotes: row?.notes || []
+                };
+            }
+
+            const reviewInPerson = placement === 'inperson';
+            const useManualInPersonValues = reviewInPerson || Boolean(row?.reviewDay || row?.reviewTime || row?.reviewRoom);
+            if (useManualInPersonValues) {
+                const effectiveDay = row?.reviewDay || '';
+                const effectiveTime = row?.reviewTime || '';
+                const reviewRoomValue = row?.reviewRoom || '';
+                const autoRoom = reviewRoomValue === 'AUTO' || (!reviewRoomValue && reviewInPerson);
+                const effectiveRoom = autoRoom ? '' : reviewRoomValue;
+                const manualNotes = [];
+
+                if (!effectiveDay) manualNotes.push('Select day pattern (MW/TR)');
+                if (!effectiveTime) manualNotes.push('Select scheduler time slot');
+                if (autoRoom) manualNotes.push('Room will auto-assign at import');
+
+                const ready = Boolean(effectiveDay && effectiveTime);
+                return {
+                    ...row,
+                    targetQuarter: reviewQuarter,
+                    effectiveStatus: ready ? 'ready' : 'needs-review',
+                    effectiveQuarter: reviewQuarter,
+                    effectiveDay,
+                    effectiveTime,
+                    effectiveRoom,
+                    effectiveRequiresAutoRoomAssignment: autoRoom,
+                    effectiveSchedulerSlotLabel: ready
+                        ? `${effectiveDay} ${effectiveTime} • ${effectiveRoom || 'Auto room'}`
+                        : '',
+                    effectiveDisposition: ready ? 'ready' : 'needs-review',
+                    effectiveNotes: [...new Set([...(row?.notes || []), ...manualNotes])]
+                };
+            }
+
+            return {
+                ...row,
+                targetQuarter: reviewQuarter,
+                effectiveStatus: row?.status || 'needs-review',
+                effectiveQuarter: reviewQuarter,
+                effectiveDay: row?.schedulerDay || '',
+                effectiveTime: row?.schedulerTime || '',
+                effectiveRoom: row?.schedulerRoom || '',
+                effectiveRequiresAutoRoomAssignment: Boolean(row?.requiresAutoRoomAssignment),
+                effectiveSchedulerSlotLabel: row?.schedulerSlotLabel || '',
+                effectiveDisposition: row?.status || 'needs-review',
+                effectiveNotes: row?.notes || []
+            };
+        }
+
+        function updateClssImportRowResolution(index, field, value) {
+            const row = clssImportPreviewRows?.[Number(index)];
+            if (!row) return;
+
+            const normalizedField = String(field || '');
+            if (!['reviewQuarter', 'reviewPlacement', 'reviewDay', 'reviewTime', 'reviewRoom'].includes(normalizedField)) {
+                return;
+            }
+
+            row[normalizedField] = typeof value === 'string' ? value : String(value ?? '');
+
+            if (normalizedField === 'reviewPlacement') {
+                const placement = String(row.reviewPlacement || '').toLowerCase();
+                if (placement === 'online' || placement === 'arranged' || placement === 'skip') {
+                    // Leave any existing in-person values intact in case user switches back.
+                } else if (placement === 'inperson') {
+                    if (!row.reviewDay && row.schedulerDay) row.reviewDay = row.schedulerDay;
+                    if (!row.reviewTime && row.schedulerTime) row.reviewTime = row.schedulerTime;
+                    if (!row.reviewRoom) row.reviewRoom = row.schedulerRoom || (row.requiresAutoRoomAssignment ? 'AUTO' : 'AUTO');
+                }
+            }
+
+            renderClssImportReview(clssImportPreviewRows);
+        }
+
+        function resetClssImportRowResolution(index) {
+            const row = clssImportPreviewRows?.[Number(index)];
+            if (!row) return;
+
+            row.reviewQuarter = row.targetQuarter || row.reviewQuarter || 'spring';
+            row.reviewPlacement = '';
+            row.reviewDay = row.schedulerDay || '';
+            row.reviewTime = row.schedulerTime || '';
+            row.reviewRoom = row.schedulerRoom || (row.requiresAutoRoomAssignment ? 'AUTO' : '');
+            renderClssImportReview(clssImportPreviewRows);
+        }
+
+        function buildClssImportResolveControls(rowIndex, row, effectiveRow) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'clss-import-resolve-controls';
+
+            const label = document.createElement('div');
+            label.className = 'clss-import-resolve-label';
+            label.textContent = 'Resolve before apply';
+            wrapper.appendChild(label);
+
+            const quarterRow = document.createElement('div');
+            quarterRow.className = 'row';
+            const quarterSelect = document.createElement('select');
+            quarterSelect.title = 'Target quarter';
+            CLSS_IMPORT_QUARTERS.forEach((quarter) => {
+                const option = document.createElement('option');
+                option.value = quarter;
+                option.textContent = CLSS_IMPORT_QUARTER_LABELS[quarter];
+                if ((row.reviewQuarter || row.targetQuarter) === quarter) {
+                    option.selected = true;
+                }
+                quarterSelect.appendChild(option);
+            });
+            quarterSelect.onchange = (event) => updateClssImportRowResolution(rowIndex, 'reviewQuarter', event.target.value);
+            quarterRow.appendChild(quarterSelect);
+
+            const placementSelect = document.createElement('select');
+            placementSelect.title = 'Placement type';
+            [
+                { value: '', label: 'Use parser result' },
+                { value: 'inperson', label: 'In-person (set slot)' },
+                { value: 'online', label: 'Online / async' },
+                { value: 'arranged', label: 'Arranged / Does Not Meet' },
+                { value: 'skip', label: 'Skip row' }
+            ].forEach(({ value, label: optionLabel }) => {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = optionLabel;
+                if ((row.reviewPlacement || '') === value) {
+                    option.selected = true;
+                }
+                placementSelect.appendChild(option);
+            });
+            placementSelect.onchange = (event) => updateClssImportRowResolution(rowIndex, 'reviewPlacement', event.target.value);
+            quarterRow.appendChild(placementSelect);
+            wrapper.appendChild(quarterRow);
+
+            const placement = String(row.reviewPlacement || '').toLowerCase();
+            const disableSlotFields = ['online', 'arranged', 'skip'].includes(placement);
+
+            const slotRow = document.createElement('div');
+            slotRow.className = 'row';
+
+            const daySelect = document.createElement('select');
+            daySelect.title = 'Day pattern';
+            [
+                { value: '', label: 'Day (MW/TR)' },
+                { value: 'MW', label: 'MW' },
+                { value: 'TR', label: 'TR' }
+            ].forEach(({ value, label: optionLabel }) => {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = optionLabel;
+                if ((row.reviewDay || '') === value) option.selected = true;
+                daySelect.appendChild(option);
+            });
+            daySelect.disabled = disableSlotFields;
+            daySelect.onchange = (event) => updateClssImportRowResolution(rowIndex, 'reviewDay', event.target.value);
+            slotRow.appendChild(daySelect);
+
+            const timeSelect = document.createElement('select');
+            timeSelect.title = 'Scheduler time slot';
+            [
+                { value: '', label: 'Time slot' },
+                { value: '10:00-12:20', label: '10:00-12:20' },
+                { value: '13:00-15:20', label: '13:00-15:20' },
+                { value: '16:00-18:20', label: '16:00-18:20' }
+            ].forEach(({ value, label: optionLabel }) => {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = optionLabel;
+                if ((row.reviewTime || '') === value) option.selected = true;
+                timeSelect.appendChild(option);
+            });
+            timeSelect.disabled = disableSlotFields;
+            timeSelect.onchange = (event) => updateClssImportRowResolution(rowIndex, 'reviewTime', event.target.value);
+            slotRow.appendChild(timeSelect);
+
+            wrapper.appendChild(slotRow);
+
+            const roomRow = document.createElement('div');
+            roomRow.className = 'row';
+            const roomSelect = document.createElement('select');
+            roomSelect.title = 'Room';
+            [
+                { value: '', label: 'Room (parser/none)' },
+                { value: 'AUTO', label: 'Auto-assign open room' },
+                { value: '206', label: '206' },
+                { value: '207', label: '207' },
+                { value: '209', label: '209' },
+                { value: '210', label: '210' },
+                { value: '212', label: '212' },
+                { value: 'CEB 102', label: 'CEB 102' },
+                { value: 'CEB 104', label: 'CEB 104' }
+            ].forEach(({ value, label: optionLabel }) => {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = optionLabel;
+                if ((row.reviewRoom || '') === value) option.selected = true;
+                roomSelect.appendChild(option);
+            });
+            roomSelect.disabled = disableSlotFields;
+            roomSelect.onchange = (event) => updateClssImportRowResolution(rowIndex, 'reviewRoom', event.target.value);
+            roomRow.appendChild(roomSelect);
+
+            const resetButton = document.createElement('button');
+            resetButton.type = 'button';
+            resetButton.textContent = 'Reset';
+            resetButton.title = 'Use parser values again';
+            resetButton.onclick = () => resetClssImportRowResolution(rowIndex);
+            roomRow.appendChild(resetButton);
+            wrapper.appendChild(roomRow);
+
+            if (effectiveRow.effectiveStatus === 'needs-review' && !disableSlotFields) {
+                const hintRow = document.createElement('div');
+                hintRow.className = 'clss-import-resolve-label';
+                hintRow.textContent = 'Tip: set placement to In-person, then choose MW/TR + time (room can be Auto).';
+                wrapper.appendChild(hintRow);
+            }
+
+            return wrapper;
         }
 
         function renderClssImportReview(rows, meta = {}) {
@@ -8188,8 +8522,10 @@
                 return;
             }
 
-            const statusCounts = rows.reduce((acc, row) => {
-                acc[row.status] = (acc[row.status] || 0) + 1;
+            const effectiveRows = rows.map((row) => getClssImportRowEffectiveState(row));
+
+            const statusCounts = effectiveRows.reduce((acc, row) => {
+                acc[row.effectiveStatus] = (acc[row.effectiveStatus] || 0) + 1;
                 return acc;
             }, {});
 
@@ -8197,7 +8533,7 @@
             const targetYear = getClssImportTargetAcademicYear();
             const selectedQuarterLabel = ((document.getElementById('clssImportQuarter')?.value) || 'spring')
                 .replace(/^./, (m) => m.toUpperCase());
-            const importedQuarters = [...new Set(rows.map((row) => row.targetQuarter).filter(Boolean))];
+            const importedQuarters = [...new Set(effectiveRows.map((row) => row.effectiveQuarter).filter(Boolean))];
             const quarterLabel = importedQuarters.length > 1
                 ? importedQuarters.map((quarter) => CLSS_IMPORT_QUARTER_LABELS[quarter] || quarter).join(', ')
                 : (importedQuarters.length === 1
@@ -8237,48 +8573,53 @@
                 summaryEl.appendChild(pill);
             });
 
-            rows.forEach((row) => {
+            rows.forEach((row, rowIndex) => {
+                const effectiveRow = effectiveRows[rowIndex];
                 const tr = document.createElement('tr');
 
                 const quarterTd = document.createElement('td');
-                quarterTd.textContent = CLSS_IMPORT_QUARTER_LABELS[row.targetQuarter] || '—';
+                quarterTd.textContent = CLSS_IMPORT_QUARTER_LABELS[effectiveRow.effectiveQuarter] || '—';
                 tr.appendChild(quarterTd);
 
                 const statusTd = document.createElement('td');
                 const statusBadge = document.createElement('span');
-                statusBadge.className = `clss-import-status ${row.status}`;
-                statusBadge.textContent = CLSS_IMPORT_STATUS_LABELS[row.status] || row.status;
+                statusBadge.className = `clss-import-status ${effectiveRow.effectiveStatus}`;
+                statusBadge.textContent = CLSS_IMPORT_STATUS_LABELS[effectiveRow.effectiveStatus] || effectiveRow.effectiveStatus;
                 statusTd.appendChild(statusBadge);
                 tr.appendChild(statusTd);
 
                 const courseTd = document.createElement('td');
-                courseTd.innerHTML = `<strong>${escapeHtml(row.code)}</strong><div style="color:#57606a; margin-top:2px;">${escapeHtml(row.title || '')}</div>`;
+                courseTd.innerHTML = `<strong>${escapeHtml(effectiveRow.code)}</strong><div style="color:#57606a; margin-top:2px;">${escapeHtml(effectiveRow.title || '')}</div>`;
                 tr.appendChild(courseTd);
 
                 const sectionTd = document.createElement('td');
-                sectionTd.textContent = row.section || '—';
+                sectionTd.textContent = effectiveRow.section || '—';
                 tr.appendChild(sectionTd);
 
                 const instructorTd = document.createElement('td');
-                instructorTd.textContent = row.instructor || 'TBD';
+                instructorTd.textContent = effectiveRow.instructor || 'TBD';
                 tr.appendChild(instructorTd);
 
                 const meetingTd = document.createElement('td');
-                meetingTd.textContent = row.meetingLabel || '—';
+                meetingTd.textContent = effectiveRow.meetingLabel || '—';
                 tr.appendChild(meetingTd);
 
                 const roomTd = document.createElement('td');
-                roomTd.textContent = row.roomLabel || '—';
+                roomTd.textContent = effectiveRow.roomLabel || '—';
                 tr.appendChild(roomTd);
 
                 const slotTd = document.createElement('td');
-                slotTd.textContent = row.schedulerSlotLabel || '—';
+                slotTd.textContent = effectiveRow.effectiveSchedulerSlotLabel || '—';
                 tr.appendChild(slotTd);
+
+                const resolveTd = document.createElement('td');
+                resolveTd.appendChild(buildClssImportResolveControls(rowIndex, row, effectiveRow));
+                tr.appendChild(resolveTd);
 
                 const notesTd = document.createElement('td');
                 const notesWrap = document.createElement('div');
                 notesWrap.className = 'clss-import-notes';
-                (row.notes || []).forEach((note) => {
+                (effectiveRow.effectiveNotes || []).forEach((note) => {
                     const noteDiv = document.createElement('div');
                     noteDiv.className = 'clss-import-note-item';
                     noteDiv.textContent = `• ${note}`;
@@ -8290,7 +8631,7 @@
                 const rawSummary = document.createElement('summary');
                 rawSummary.textContent = 'Raw row text';
                 const rawPre = document.createElement('pre');
-                rawPre.textContent = row.rawText || '';
+                rawPre.textContent = effectiveRow.rawText || '';
                 rawDetails.appendChild(rawSummary);
                 rawDetails.appendChild(rawPre);
                 notesWrap.appendChild(rawDetails);
@@ -8739,10 +9080,15 @@
             const quarter = document.getElementById('clssImportQuarter')?.value || 'spring';
             const replaceQuarter = Boolean(document.getElementById('clssImportReplaceQuarter')?.checked);
             const targetYear = getClssImportTargetAcademicYear();
-            const reviewRows = clssImportPreviewRows.slice();
+            const reviewRows = clssImportPreviewRows.map((sourceRow) => ({
+                sourceRow,
+                effectiveRow: getClssImportRowEffectiveState(sourceRow)
+            }));
             const currentYearLabel = currentAcademicYear || (window.StateManager?.get('currentAcademicYear')) || '2025-26';
             const importingToCurrentYear = targetYear === currentYearLabel;
-            const impactedQuarters = [...new Set(reviewRows.map((row) => row.targetQuarter || quarter).filter((value) => CLSS_IMPORT_QUARTERS.includes(value)))];
+            const impactedQuarters = [...new Set(reviewRows
+                .map(({ effectiveRow }) => effectiveRow.effectiveQuarter || quarter)
+                .filter((value) => CLSS_IMPORT_QUARTERS.includes(value)))];
 
             const applySummary = buildClssApplySummary(reviewRows, {
                 quarter,
@@ -8761,9 +9107,9 @@
                 readyPlaced: 0,
                 onlinePlaced: 0,
                 arrangedPlaced: 0,
-                displaced: 0,
                 skipped: 0,
-                collisionsDisplaced: 0
+                collisionsDisplaced: 0,
+                unresolved: 0
             };
 
             if (replaceQuarter) {
@@ -8772,43 +9118,95 @@
                 });
             }
 
-            reviewRows.forEach((row) => {
-                if (!row || row.status === 'error') {
+            const remainingRows = [];
+            const applyableRows = [];
+
+            reviewRows.forEach(({ sourceRow, effectiveRow }) => {
+                if (!sourceRow || !effectiveRow) {
                     counts.skipped += 1;
                     return;
                 }
-                const rowQuarter = row.targetQuarter || quarter;
+
+                if (effectiveRow.effectiveDisposition === 'skip') {
+                    counts.skipped += 1;
+                    return;
+                }
+
+                if (effectiveRow.effectiveDisposition === 'needs-review' || effectiveRow.effectiveStatus === 'error') {
+                    remainingRows.push(sourceRow);
+                    counts.unresolved += 1;
+                    return;
+                }
+
+                applyableRows.push({ sourceRow, effectiveRow });
+            });
+
+            if (!applyableRows.length && remainingRows.length) {
+                showToast(`No rows were ready to import. ${remainingRows.length} row${remainingRows.length === 1 ? '' : 's'} still need review.`, 'error');
+                renderClssImportReview(clssImportPreviewRows);
+                return;
+            }
+
+            if (remainingRows.length) {
+                const continueWithPartial = window.confirm(
+                    `${remainingRows.length} row${remainingRows.length === 1 ? '' : 's'} still need review and will stay in the review table.\n\nApply ${applyableRows.length} resolved row${applyableRows.length === 1 ? '' : 's'} now?`
+                );
+                if (!continueWithPartial) {
+                    return;
+                }
+            }
+
+            applyableRows.forEach(({ sourceRow, effectiveRow }) => {
+                const rowQuarter = effectiveRow.effectiveQuarter || quarter;
 
                 if (!CLSS_IMPORT_QUARTERS.includes(rowQuarter)) {
                     counts.skipped += 1;
+                    remainingRows.push(sourceRow);
                     return;
                 }
 
                 const targetQuarterBucket = ensureQuarterScheduleBucketForSchedule(targetSchedule, rowQuarter);
+                const rowForApply = {
+                    ...sourceRow,
+                    ...effectiveRow,
+                    targetQuarter: rowQuarter,
+                    schedulerDay: effectiveRow.effectiveDay,
+                    schedulerTime: effectiveRow.effectiveTime,
+                    schedulerRoom: effectiveRow.effectiveRoom,
+                    requiresAutoRoomAssignment: effectiveRow.effectiveRequiresAutoRoomAssignment,
+                    schedulerSlotLabel: effectiveRow.effectiveSchedulerSlotLabel,
+                    status: effectiveRow.effectiveStatus
+                };
 
-                if (row.status === 'ready') {
-                    const placed = placeClssImportedCourseInGrid(targetQuarterBucket, row, counts);
+                if (effectiveRow.effectiveDisposition === 'ready') {
+                    const placed = placeClssImportedCourseInGrid(targetQuarterBucket, rowForApply, counts);
                     if (!placed) {
-                        addImportedRowToDisplacedTray(row, targetYear, rowQuarter, 'Could not place in grid');
-                        counts.displaced += 1;
+                        sourceRow.notes = [...new Set([...(sourceRow.notes || []), 'No open room available in selected slot; review and re-apply'])];
+                        sourceRow.reviewPlacement = 'inperson';
+                        sourceRow.reviewQuarter = rowQuarter;
+                        sourceRow.reviewDay = rowForApply.schedulerDay || sourceRow.reviewDay || '';
+                        sourceRow.reviewTime = rowForApply.schedulerTime || sourceRow.reviewTime || '';
+                        sourceRow.reviewRoom = sourceRow.reviewRoom || 'AUTO';
+                        remainingRows.push(sourceRow);
+                        counts.unresolved += 1;
                     }
                     return;
                 }
 
-                if (row.status === 'online') {
-                    targetQuarterBucket.ONLINE.async.push(buildImportedScheduleCourse(row, 'ONLINE'));
+                if (effectiveRow.effectiveDisposition === 'online') {
+                    targetQuarterBucket.ONLINE.async.push(buildImportedScheduleCourse(rowForApply, 'ONLINE'));
                     counts.onlinePlaced += 1;
                     return;
                 }
 
-                if (row.status === 'arranged') {
-                    targetQuarterBucket.ARRANGED.arranged.push(buildImportedScheduleCourse(row, 'ARRANGED'));
+                if (effectiveRow.effectiveDisposition === 'arranged') {
+                    targetQuarterBucket.ARRANGED.arranged.push(buildImportedScheduleCourse(rowForApply, 'ARRANGED'));
                     counts.arrangedPlaced += 1;
                     return;
                 }
 
-                addImportedRowToDisplacedTray(row, targetYear, rowQuarter, 'Needs review');
-                counts.displaced += 1;
+                remainingRows.push(sourceRow);
+                counts.unresolved += 1;
             });
 
             const currentQuarter = (window.StateManager?.get('currentQuarter')) || 'spring';
@@ -8828,13 +9226,19 @@
             const impactedQuarterLabel = impactedQuarters.length > 1
                 ? impactedQuarters.map((q) => CLSS_IMPORT_QUARTER_LABELS[q]).join(', ')
                 : (CLSS_IMPORT_QUARTER_LABELS[impactedQuarters[0]] || CLSS_IMPORT_QUARTER_LABELS[quarter] || quarter);
-            showToast(`CLSS import applied to ${targetYear} (${impactedQuarterLabel}): ${totalApplied} placed, ${counts.displaced} to displaced tray${counts.skipped ? `, ${counts.skipped} skipped` : ''}`);
+            showToast(`CLSS import applied to ${targetYear} (${impactedQuarterLabel}): ${totalApplied} imported${counts.unresolved ? `, ${counts.unresolved} still need review` : ''}${counts.skipped ? `, ${counts.skipped} skipped` : ''}`);
 
-            clssImportPreviewRows = [];
-            renderClssImportReview([]);
-            closeClssImportModal();
+            clssImportPreviewRows = remainingRows;
+            renderClssImportReview(clssImportPreviewRows);
+
+            if (!remainingRows.length) {
+                closeClssImportModal();
+            }
 
             if (!importingToCurrentYear) {
+                if (remainingRows.length) {
+                    return;
+                }
                 if (window.confirm(`CLSS import applied to ${targetYear}. Switch to that academic year now?`)) {
                     switchSchedulerYearFromImport(targetYear);
                     if (impactedQuarters.length === 1 && impactedQuarters[0] !== ((window.StateManager?.get('currentQuarter')) || quarter)) {
@@ -8846,14 +9250,16 @@
                 return;
             }
 
-            if (impactedQuarters.length === 1 && impactedQuarters[0] !== currentQuarter && window.confirm(`CLSS import applied to ${CLSS_IMPORT_QUARTER_LABELS[impactedQuarters[0]]}. Switch to that quarter now?`)) {
+            if (!remainingRows.length && impactedQuarters.length === 1 && impactedQuarters[0] !== currentQuarter && window.confirm(`CLSS import applied to ${CLSS_IMPORT_QUARTER_LABELS[impactedQuarters[0]]}. Switch to that quarter now?`)) {
                 switchSchedulerQuarterFromImport(impactedQuarters[0]);
             }
         }
 
         function buildClssApplySummary(rows, { quarter, replaceQuarter, targetYear, impactedQuarters = [] } = {}) {
             const counts = rows.reduce((acc, row) => {
-                acc[row.status] = (acc[row.status] || 0) + 1;
+                const effectiveRow = row?.effectiveRow ? row.effectiveRow : getClssImportRowEffectiveState(row);
+                const key = effectiveRow?.effectiveStatus || 'needs-review';
+                acc[key] = (acc[key] || 0) + 1;
                 return acc;
             }, {});
 
@@ -8873,14 +9279,14 @@
                 `Ready: ${counts.ready || 0}`,
                 `Online: ${counts.online || 0}`,
                 `Arranged: ${counts.arranged || 0}`,
-                `Needs review (will go to displaced tray): ${counts['needs-review'] || 0}`,
+                `Needs review (stays in review table): ${counts['needs-review'] || 0}`,
                 `Errors (skipped): ${counts.error || 0}`
             ];
 
             if (replaceQuarter) {
                 lines.push('', `This will overwrite existing ${quartersLabel} schedule bucket(s) in ${targetYear} before import.`);
             } else {
-                lines.push('', `Existing room collisions in ${targetYear} will be moved to the displaced tray.`);
+                lines.push('', `Existing room collisions in ${targetYear} may still be moved to the displaced tray.`);
             }
 
             return lines.join('\n');
@@ -10077,6 +10483,7 @@
                                         <th>Meeting</th>
                                         <th>Room</th>
                                         <th>Scheduler Slot</th>
+                                        <th>Resolve</th>
                                         <th>Notes</th>
                                     </tr>
                                 </thead>
