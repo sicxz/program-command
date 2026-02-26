@@ -7747,6 +7747,8 @@
         };
 
         let clssImportPreviewRows = [];
+        let clssImportOcrInProgress = false;
+        let clssImportOcrLibraryPromise = null;
 
         function openClssImportModal() {
             const modal = document.getElementById('clssImportModal');
@@ -7873,20 +7875,37 @@
             const previewNames = files.slice(0, 4).map((file) => file.name);
             const remaining = files.length - previewNames.length;
             const suffix = remaining > 0 ? ` (+${remaining} more)` : '';
-            summaryEl.textContent = `${files.length} PNG screenshot${files.length === 1 ? '' : 's'} selected: ${previewNames.join(', ')}${suffix}. Paste OCR text below to parse (OCR extraction is deferred).`;
+            summaryEl.textContent = `${files.length} PNG screenshot${files.length === 1 ? '' : 's'} selected: ${previewNames.join(', ')}${suffix}. If the CLSS text boxes are empty, Parse Preview will OCR these screenshots automatically.`;
 
             invalidateClssImportPreview();
         }
 
-        function parseClssImportPreview() {
+        async function parseClssImportPreview() {
+            if (clssImportOcrInProgress) {
+                showToast('OCR is already running for uploaded screenshots. Please wait...', 'error');
+                return;
+            }
+
             const pngCount = (document.getElementById('clssImportPngInput')?.files || []).length;
-            const parseSources = getClssImportParseSources();
-            const hasAnyText = parseSources.some((source) => source.text);
+            let parseSources = getClssImportParseSources();
+            let hasAnyText = parseSources.some((source) => source.text);
+
+            if (!hasAnyText && pngCount > 0) {
+                const ocrResult = await populateClssImportTextFromPngs();
+                if (!ocrResult.ok) {
+                    renderClssImportReview([]);
+                    showToast(ocrResult.message || 'Could not extract text from PNG screenshots', 'error');
+                    return;
+                }
+
+                parseSources = getClssImportParseSources();
+                hasAnyText = parseSources.some((source) => source.text);
+            }
 
             if (!hasAnyText) {
                 renderClssImportReview([]);
                 if (pngCount > 0) {
-                    showToast('PNG selected. Paste OCR/CLSS text to parse (image OCR deferred).', 'error');
+                    showToast('PNG selected, but no OCR text was produced. Try a clearer screenshot or paste CLSS text.', 'error');
                 } else {
                     showToast('Paste CLSS/OCR text to parse a review preview', 'error');
                 }
@@ -7905,6 +7924,198 @@
             const readyCount = clssImportPreviewRows.filter((row) => row.status === 'ready').length;
             const needsReviewCount = clssImportPreviewRows.filter((row) => row.status === 'needs-review').length;
             showToast(`Parsed ${clssImportPreviewRows.length} row${clssImportPreviewRows.length === 1 ? '' : 's'} (${readyCount} ready${needsReviewCount ? `, ${needsReviewCount} needs review` : ''})`);
+        }
+
+        async function populateClssImportTextFromPngs() {
+            const input = document.getElementById('clssImportPngInput');
+            const files = Array.from(input?.files || []);
+            const summaryEl = document.getElementById('clssImportPngSummary');
+            const scope = getClssImportScope();
+
+            if (!files.length) {
+                return { ok: false, message: 'No PNG screenshots selected.' };
+            }
+
+            clssImportOcrInProgress = true;
+            if (summaryEl) {
+                summaryEl.textContent = `Running OCR on ${files.length} screenshot${files.length === 1 ? '' : 's'}... this can take a minute.`;
+            }
+            showToast(`Running OCR on ${files.length} screenshot${files.length === 1 ? '' : 's'}...`);
+
+            try {
+                const Tesseract = await ensureClssOcrLibrary();
+                const ocrResults = [];
+
+                for (let index = 0; index < files.length; index += 1) {
+                    const file = files[index];
+                    if (summaryEl) {
+                        summaryEl.textContent = `OCR ${index + 1}/${files.length}: ${file.name}`;
+                    }
+
+                    const result = await Tesseract.recognize(file, 'eng');
+                    const text = String(result?.data?.text || '').trim();
+                    ocrResults.push({ fileName: file.name, text });
+                }
+
+                const applied = applyClssOcrResultsToImportInputs(ocrResults, scope);
+                if (summaryEl) {
+                    if (applied.ok) {
+                        summaryEl.textContent = `OCR complete for ${files.length} screenshot${files.length === 1 ? '' : 's'}. Review/parse the extracted text below.`;
+                    } else {
+                        summaryEl.textContent = `OCR finished, but some screenshots need manual quarter routing.`;
+                    }
+                }
+
+                return applied;
+            } catch (error) {
+                console.error('CLSS OCR failed:', error);
+                if (summaryEl) {
+                    summaryEl.textContent = 'OCR failed. You can still paste OCR/CLSS text manually.';
+                }
+                return {
+                    ok: false,
+                    message: `PNG OCR failed: ${error?.message || 'unknown error'}`
+                };
+            } finally {
+                clssImportOcrInProgress = false;
+            }
+        }
+
+        function applyClssOcrResultsToImportInputs(ocrResults, scope) {
+            if (!Array.isArray(ocrResults) || !ocrResults.length) {
+                return { ok: false, message: 'No OCR output returned from screenshots.' };
+            }
+
+            if (scope !== 'all') {
+                const singleTextEl = document.getElementById('clssImportText');
+                if (!singleTextEl) {
+                    return { ok: false, message: 'CLSS import text input not found.' };
+                }
+
+                const combinedText = ocrResults
+                    .map((result) => {
+                        const text = String(result.text || '').trim();
+                        if (!text) return '';
+                        return `===== ${result.fileName} =====\n${text}`;
+                    })
+                    .filter(Boolean)
+                    .join('\n\n');
+
+                if (!combinedText.trim()) {
+                    return { ok: false, message: 'OCR ran, but no text was detected in the uploaded PNGs.' };
+                }
+
+                singleTextEl.value = combinedText;
+                return { ok: true, message: 'OCR text extracted from PNGs.' };
+            }
+
+            const targets = {
+                fall: document.getElementById('clssImportTextFall'),
+                winter: document.getElementById('clssImportTextWinter'),
+                spring: document.getElementById('clssImportTextSpring')
+            };
+
+            const routed = { fall: [], winter: [], spring: [] };
+            const unassigned = [];
+
+            ocrResults.forEach((result) => {
+                const text = String(result.text || '').trim();
+                if (!text) {
+                    unassigned.push(`${result.fileName} (no text detected)`);
+                    return;
+                }
+
+                const quarter = inferClssQuarterFromOcrPayload(result.fileName, text);
+                if (!quarter) {
+                    unassigned.push(result.fileName);
+                    return;
+                }
+
+                routed[quarter].push(`===== ${result.fileName} =====\n${text}`);
+            });
+
+            CLSS_IMPORT_QUARTERS.forEach((quarter) => {
+                const targetEl = targets[quarter];
+                if (!targetEl) return;
+                if (routed[quarter].length > 0) {
+                    targetEl.value = routed[quarter].join('\n\n');
+                }
+            });
+
+            const assignedCount = CLSS_IMPORT_QUARTERS.reduce((sum, quarter) => sum + routed[quarter].length, 0);
+            if (assignedCount === 0) {
+                return {
+                    ok: false,
+                    message: 'OCR text was extracted, but batch mode could not determine which screenshots are Fall/Winter/Spring. Include quarter names in filenames or paste text into the quarter boxes.'
+                };
+            }
+
+            if (unassigned.length > 0) {
+                return {
+                    ok: false,
+                    message: `OCR extracted text, but ${unassigned.length} screenshot(s) could not be assigned to Fall/Winter/Spring in batch mode: ${unassigned.slice(0, 3).join(', ')}${unassigned.length > 3 ? '...' : ''}`
+                };
+            }
+
+            return { ok: true, message: 'OCR text extracted and assigned to quarter boxes.' };
+        }
+
+        function inferClssQuarterFromOcrPayload(fileName, text) {
+            const fromFileName = detectClssQuarterKeyword(fileName);
+            if (fromFileName) return fromFileName;
+
+            const textSample = String(text || '').slice(0, 1200);
+            return detectClssQuarterKeyword(textSample);
+        }
+
+        function detectClssQuarterKeyword(value) {
+            const normalized = String(value || '').toLowerCase();
+            const hits = [];
+
+            if (/\bfall\b|\bautumn\b|\bfa(?:ll)?[-_\s]?\d{2,4}\b/.test(normalized)) hits.push('fall');
+            if (/\bwinter\b|\bwi(?:nter)?[-_\s]?\d{2,4}\b/.test(normalized)) hits.push('winter');
+            if (/\bspring\b|\bsp(?:ring)?[-_\s]?\d{2,4}\b/.test(normalized)) hits.push('spring');
+
+            return hits.length === 1 ? hits[0] : null;
+        }
+
+        async function ensureClssOcrLibrary() {
+            if (window.Tesseract?.recognize) {
+                return window.Tesseract;
+            }
+
+            if (!clssImportOcrLibraryPromise) {
+                clssImportOcrLibraryPromise = new Promise((resolve, reject) => {
+                    const existingScript = document.querySelector('script[data-clss-ocr="tesseract"]');
+                    if (existingScript) {
+                        existingScript.addEventListener('load', () => {
+                            if (window.Tesseract?.recognize) resolve(window.Tesseract);
+                            else reject(new Error('Tesseract loaded without browser recognize API'));
+                        }, { once: true });
+                        existingScript.addEventListener('error', () => reject(new Error('Failed to load Tesseract OCR library')), { once: true });
+                        return;
+                    }
+
+                    const script = document.createElement('script');
+                    script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+                    script.async = true;
+                    script.dataset.clssOcr = 'tesseract';
+                    script.onload = () => {
+                        if (window.Tesseract?.recognize) {
+                            resolve(window.Tesseract);
+                        } else {
+                            reject(new Error('Tesseract OCR loaded but recognize() is unavailable'));
+                        }
+                    };
+                    script.onerror = () => reject(new Error('Failed to load Tesseract OCR library'));
+                    document.head.appendChild(script);
+                }).catch((error) => {
+                    clssImportOcrLibraryPromise = null;
+                    throw error;
+                });
+            }
+
+            return clssImportOcrLibraryPromise;
         }
 
         function getClssImportParseSources() {
@@ -9744,7 +9955,7 @@
                 <div class="clss-import-layout">
                     <div class="api-help">
                         <strong>Screenshot-first import (PNG)</strong>
-                        Upload CLSS screenshots for traceability, then paste OCR/CLSS text to parse and review before applying.
+                        Upload CLSS screenshots and click Parse Preview. If the CLSS text boxes are empty, the app will OCR uploaded PNGs in-browser, then parse and review before applying.
                         PDF extraction is intentionally deferred for now.
                     </div>
 
@@ -9850,7 +10061,7 @@
             </div>
             <div class="modal-actions">
                 <button class="btn-secondary" onclick="closeClssImportModal()">Close</button>
-                <button class="btn-secondary" onclick="parseClssImportPreview()">Parse Preview</button>
+                <button class="btn-secondary" onclick="parseClssImportPreview()">Parse Preview (OCR PNGs if needed)</button>
                 <button class="btn-ewu-accent" id="clssImportApplyButton" onclick="applyClssImport()" disabled>Apply Import</button>
             </div>
         </div>
