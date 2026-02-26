@@ -77,6 +77,183 @@ function loadIntegratedYearData(year) {
     return getYearData(workloadData, year);
 }
 
+function ensurePreliminaryNoticeStyles() {
+    if (document.getElementById('preliminaryWorkloadNoticeStyles')) return;
+    const style = document.createElement('style');
+    style.id = 'preliminaryWorkloadNoticeStyles';
+    style.textContent = `
+        .prelim-workload-notice {
+            margin: 0 0 16px;
+            padding: 14px 16px;
+            border-radius: 12px;
+            border: 1px solid #f59e0b;
+            background: linear-gradient(180deg, #fff8e6 0%, #fffdf7 100%);
+            color: #5b3a00;
+        }
+        .prelim-workload-notice[hidden] {
+            display: none !important;
+        }
+        .prelim-workload-notice h3 {
+            margin: 0 0 8px;
+            font-size: 1rem;
+            color: #7c2d12;
+        }
+        .prelim-workload-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 8px 12px;
+            margin-bottom: 10px;
+        }
+        .prelim-workload-stat {
+            background: rgba(255,255,255,0.7);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            border-radius: 8px;
+            padding: 8px 10px;
+        }
+        .prelim-workload-stat-label {
+            display: block;
+            font-size: 0.8rem;
+            color: #92400e;
+            margin-bottom: 2px;
+        }
+        .prelim-workload-stat-value {
+            font-weight: 700;
+            color: #78350f;
+        }
+        .prelim-workload-note {
+            margin: 8px 0 0;
+            font-size: 0.9rem;
+            color: #78350f;
+        }
+        .prelim-workload-list {
+            margin: 8px 0 0 18px;
+            padding: 0;
+            color: #78350f;
+            font-size: 0.88rem;
+        }
+        .prelim-workload-list li {
+            margin: 3px 0;
+        }
+        .prelim-workload-mini {
+            font-size: 0.82rem;
+            color: #92400e;
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+function ensurePreliminaryNoticeContainer() {
+    ensurePreliminaryNoticeStyles();
+    const dashboardContent = document.getElementById('dashboardContent');
+    if (!dashboardContent) return null;
+
+    let notice = document.getElementById('preliminaryWorkloadNotice');
+    if (notice) return notice;
+
+    notice = document.createElement('section');
+    notice.id = 'preliminaryWorkloadNotice';
+    notice.className = 'prelim-workload-notice';
+    notice.hidden = true;
+
+    const firstChild = dashboardContent.firstElementChild;
+    dashboardContent.insertBefore(notice, firstChild || null);
+    return notice;
+}
+
+function summarizeQuarterSectionCounts(byQuarter) {
+    const source = byQuarter || {};
+    return ['Fall', 'Winter', 'Spring', 'Summer']
+        .map((quarter) => {
+            const sections = Number(source?.[quarter]?.sections) || 0;
+            return sections > 0 ? `${quarter}: ${sections}` : null;
+        })
+        .filter(Boolean)
+        .join(' · ');
+}
+
+function updateWorkloadSubtitleForYear(yearData) {
+    const subtitle = document.querySelector('.subtitle');
+    if (!subtitle) return;
+
+    const meta = yearData?.meta || {};
+    if (currentFilters.year === 'all') {
+        return;
+    }
+
+    const base = `EWU Design Department - Academic Workload Analysis · AY ${currentFilters.year}`;
+    if (meta.source === 'integrated' && meta.hasLiveSchedule) {
+        subtitle.textContent = `${base} (Preliminary from Scheduler Draft)`;
+    } else {
+        subtitle.textContent = base;
+    }
+}
+
+function renderPreliminaryPlanningNotice(yearData) {
+    const notice = ensurePreliminaryNoticeContainer();
+    if (!notice) return;
+
+    const meta = yearData?.meta || {};
+    const unresolved = meta.unresolvedScheduleCourses || {};
+    const showNotice = currentFilters.year !== 'all' && meta.source === 'integrated';
+
+    if (!showNotice) {
+        notice.hidden = true;
+        notice.innerHTML = '';
+        return;
+    }
+
+    const fallbackRules = Array.isArray(meta.fallbackTargetRulesApplied) ? meta.fallbackTargetRulesApplied : [];
+    const assumptionItems = Array.isArray(meta.preliminaryAssumptions) ? meta.preliminaryAssumptions : [];
+    const unresolvedCourses = Array.isArray(unresolved.courses) ? unresolved.courses : [];
+    const unresolvedCount = Number(unresolved.count) || 0;
+    const assignedCount = Number(meta.assignedScheduleCourses) || 0;
+    const totalScheduleCount = Number(meta.scheduleCourses) || 0;
+
+    notice.hidden = false;
+
+    const unresolvedQuarterText = summarizeQuarterSectionCounts(unresolved.byQuarter);
+    const fallbackText = fallbackRules.length
+        ? fallbackRules
+            .map((rule) => {
+                const matched = Array.isArray(rule.matchedFaculty) && rule.matchedFaculty.length
+                    ? ` (${rule.matchedFaculty.join(', ')})`
+                    : '';
+                return `${rule.role} ${rule.netTargetCredits} target${rule.specialRole ? `, ${rule.specialRole}` : ''}${matched}`;
+            })
+            .join('; ')
+        : '';
+
+    const unresolvedPreview = unresolvedCourses.slice(0, 6)
+        .map((course) => `${course.quarter}: ${course.courseCode} (${course.credits} cr, ${course.instructor})`);
+
+    notice.innerHTML = `
+        <h3>Preliminary Workload (Scheduler Draft)</h3>
+        <div class="prelim-workload-grid">
+            <div class="prelim-workload-stat">
+                <span class="prelim-workload-stat-label">Selected AY</span>
+                <span class="prelim-workload-stat-value">${currentFilters.year}</span>
+            </div>
+            <div class="prelim-workload-stat">
+                <span class="prelim-workload-stat-label">Scheduler Sections</span>
+                <span class="prelim-workload-stat-value">${totalScheduleCount}</span>
+            </div>
+            <div class="prelim-workload-stat">
+                <span class="prelim-workload-stat-label">Assigned to Faculty</span>
+                <span class="prelim-workload-stat-value">${assignedCount}</span>
+            </div>
+            <div class="prelim-workload-stat">
+                <span class="prelim-workload-stat-label">TBD / Unassigned</span>
+                <span class="prelim-workload-stat-value">${unresolvedCount}</span>
+            </div>
+        </div>
+        ${unresolvedCount > 0 ? `<p class="prelim-workload-note"><strong>Unresolved sections are excluded from faculty totals.</strong>${unresolvedQuarterText ? ` ${unresolvedQuarterText}` : ''}</p>` : ''}
+        ${unresolvedPreview.length > 0 ? `<ul class="prelim-workload-list">${unresolvedPreview.map((item) => `<li>${item}</li>`).join('')}</ul>` : ''}
+        ${fallbackText ? `<p class="prelim-workload-note"><strong>Fallback target assumptions applied:</strong> ${fallbackText}</p>` : ''}
+        ${assumptionItems.length ? `<ul class="prelim-workload-list">${assumptionItems.map((item) => `<li>${item}</li>`).join('')}</ul>` : ''}
+        <p class="prelim-workload-note prelim-workload-mini">Use AY Setup + Release Time dashboards to replace fallback assumptions with final targets/release allocations.</p>
+    `;
+}
+
 /**
  * Initialize dashboard
  */
@@ -143,6 +320,7 @@ function onYearChange(year) {
 
     // Update subtitle
     updateYearSubtitle(year, 'EWU Design Department - Academic Workload Analysis');
+    updateWorkloadSubtitleForYear(currentYearData);
 
     // Refresh all visualizations
     refreshDashboard();
@@ -192,6 +370,7 @@ function refreshDashboard() {
 
     // Update all sections
     updateStatistics(currentYearData);
+    renderPreliminaryPlanningNotice(currentYearData);
     renderWorkloadChart(facultyData);
     renderUtilizationPie(currentYearData);
     renderFullTimeFaculty(currentYearData.fullTime || {});
