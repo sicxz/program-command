@@ -284,6 +284,87 @@ const ConflictEngine = (function() {
         return deduped;
     }
 
+    function getRoomRestrictionRulesFromContext(context = {}) {
+        const constraints = Array.isArray(context.enabledConstraints) ? context.enabledConstraints : [];
+        return constraints
+            .filter((constraint) => constraint && constraint.enabled !== false)
+            .filter((constraint) => normalizeConstraintType(constraint.constraint_type) === 'room_restriction')
+            .map((constraint) => ({
+                id: constraint.id,
+                ...(constraint.rule_details || {})
+            }));
+    }
+
+    function evaluateRoomFitForCourse(course, room, context = {}) {
+        const roomCode = String(room || '').trim();
+        const courseCode = normalizeCourseCode(course?.code);
+        const rules = getRoomRestrictionRulesFromContext(context)
+            .filter((rule) => String(rule.room || '').trim() === roomCode);
+
+        if (rules.length === 0) {
+            return {
+                status: 'valid',
+                reasons: [],
+                matchedRules: []
+            };
+        }
+
+        let status = 'valid';
+        const reasons = [];
+        const matchedRules = [];
+
+        rules.forEach((rule) => {
+            matchedRules.push(rule.id || rule.room || 'room_restriction');
+
+            if (Array.isArray(rule.allowed_courses) && rule.allowed_courses.length > 0) {
+                if (!rule.allowed_courses.includes(courseCode)) {
+                    status = 'blocked';
+                    reasons.push(rule.message || `Room ${roomCode} is restricted for ${courseCode}.`);
+                    return;
+                }
+            }
+
+            if (Array.isArray(rule.preferred_courses) && rule.preferred_courses.length > 0) {
+                if (!rule.preferred_courses.includes(courseCode) && status !== 'blocked') {
+                    status = 'warning';
+                    reasons.push(rule.message || `Room ${roomCode} is not a preferred room for ${courseCode}.`);
+                }
+            }
+        });
+
+        return {
+            status,
+            reasons,
+            matchedRules
+        };
+    }
+
+    function summarizeRoomFitCandidates(candidates) {
+        const valid = [];
+        const warning = [];
+        const blocked = [];
+
+        (Array.isArray(candidates) ? candidates : []).forEach((candidate) => {
+            if (candidate.roomFit.status === 'blocked') blocked.push(candidate);
+            else if (candidate.roomFit.status === 'warning') warning.push(candidate);
+            else valid.push(candidate);
+        });
+
+        const placeable = [...valid, ...warning];
+        const summaryBits = [];
+        if (valid.length > 0) summaryBits.push(`${valid.length} valid room${valid.length === 1 ? '' : 's'}`);
+        if (warning.length > 0) summaryBits.push(`${warning.length} room-fit warning${warning.length === 1 ? '' : 's'}`);
+        if (blocked.length > 0) summaryBits.push(`${blocked.length} blocked by room rules`);
+
+        return {
+            placeable,
+            validCount: valid.length,
+            warningCount: warning.length,
+            blockedCount: blocked.length,
+            summaryText: summaryBits.join(', ') || 'no room-fit data'
+        };
+    }
+
     function getRuleRegistryEntry(normalizedConstraintType) {
         return CONFLICT_RULE_REGISTRY[normalizedConstraintType] || CONFLICT_RULE_REGISTRY._default;
     }
@@ -733,12 +814,18 @@ const ConflictEngine = (function() {
             return results;
         }
 
+        const enabledConstraints = (constraints || []).filter((c) => c && c.enabled);
+        const evaluationContext = {
+            ...context,
+            enabledConstraints
+        };
+
         // Run each enabled constraint checker
-        (constraints || []).filter(c => c.enabled).forEach(constraint => {
+        enabledConstraints.forEach(constraint => {
             const normalizedConstraintType = normalizeConstraintType(constraint.constraint_type);
             const checker = checkers[normalizedConstraintType];
             if (checker) {
-                const issues = checker(schedule, constraint.rule_details, constraint, context);
+                const issues = checker(schedule, constraint.rule_details, constraint, evaluationContext);
                 issues.forEach(issue => {
                     issue.constraintId = constraint.id;
                     issue.constraintType = normalizedConstraintType;
@@ -784,7 +871,7 @@ const ConflictEngine = (function() {
         /**
          * Room restriction - check if courses are in allowed rooms
          */
-        room_restriction: function(schedule, rule, constraint) {
+        room_restriction: function(schedule, rule, constraint, context = {}) {
             const issues = [];
             const roomCourses = schedule.filter(c => c.room === rule.room);
 
@@ -797,7 +884,7 @@ const ConflictEngine = (function() {
                         description: rule.message || `${course.code} is scheduled in Room ${rule.room}, which is reserved for specific courses`,
                         courses: [course],
                         suggestion: `Consider moving ${course.code} to a different room`,
-                        resolutions: calculateRoomResolutions(schedule, course)
+                        resolutions: calculateRoomResolutions(schedule, course, context)
                     });
                 }
                 // Check against preferred_courses (soft recommendation)
@@ -993,7 +1080,7 @@ const ConflictEngine = (function() {
                         description: `${courses.map(c => c.code).join(' and ')} are both scheduled in Room ${courses[0].room} on ${courses[0].day} at ${courses[0].time}`,
                         courses: courses,
                         suggestion: 'Move one course to a different room or time slot',
-                        resolutions: calculateRoomResolutions(schedule, courses[1])
+                        resolutions: calculateRoomResolutions(schedule, courses[1], context)
                     });
                 }
             });
@@ -1064,7 +1151,7 @@ const ConflictEngine = (function() {
     /**
      * Calculate available room resolutions for a course
      */
-    function calculateRoomResolutions(schedule, course) {
+    function calculateRoomResolutions(schedule, course, context = {}) {
         const resolutions = [];
         const usedRooms = schedule
             .filter(c => c.day === course.day && c.time === course.time)
@@ -1072,15 +1159,33 @@ const ConflictEngine = (function() {
 
         ROOMS.forEach(room => {
             if (!usedRooms.includes(room) && room !== course.room) {
+                const roomFit = evaluateRoomFitForCourse(course, room, context);
+                if (roomFit.status === 'blocked') return;
+                const warningPenalty = roomFit.status === 'warning' ? 6 : 0;
+                const recommendationScore = 40 - warningPenalty;
+                const roomFitSummary = roomFit.reasons.length > 0
+                    ? `Room fit: ${roomFit.reasons.join(' ')}`
+                    : 'Room fit: valid';
+
                 resolutions.push({
                     action: 'move_room',
                     target_room: room,
-                    reason: `Room ${room} is available at this time`
+                    roomFitStatus: roomFit.status,
+                    roomFitReasons: roomFit.reasons,
+                    roomFitSummary,
+                    recommendationScore,
+                    recommendationScoreBreakdown: {
+                        base: 40,
+                        warningPenalty
+                    },
+                    reason: `Room ${room} is available at this time. ${roomFitSummary}`
                 });
             }
         });
 
-        return resolutions.slice(0, 3);
+        return resolutions
+            .sort((a, b) => (b.recommendationScore || 0) - (a.recommendationScore || 0))
+            .slice(0, 3);
     }
 
     /**
@@ -1105,24 +1210,49 @@ const ConflictEngine = (function() {
                 });
                 const usedRooms = coursesInSlot.map(c => c.room);
                 const availableRooms = ROOMS.filter(r => !usedRooms.includes(r));
+                const roomFitCandidates = availableRooms.map((room) => ({
+                    room,
+                    roomFit: evaluateRoomFitForCourse(course, room, context)
+                }));
+                const roomFitSummary = summarizeRoomFitCandidates(roomFitCandidates);
 
-                if (availableRooms.length >= 1) {
+                if (roomFitSummary.placeable.length >= 1) {
                     const dayName = getDayPatternLabel(day);
+                    const recommendationScore = (roomFitSummary.validCount * 12)
+                        + (roomFitSummary.warningCount * 6)
+                        - (roomFitSummary.blockedCount * 3)
+                        + (coursesInSlot.length <= 2 ? 6 : 2);
+                    const roomFitReason = `Room fit: ${roomFitSummary.summaryText}`;
                     resolutions.push({
                         action: 'move_course',
                         target_slot: `${day} ${time}`,
                         dayName: dayName,
                         time: time,
-                        availableRooms: availableRooms.length,
+                        availableRooms: roomFitSummary.placeable.length,
+                        roomFitValidRooms: roomFitSummary.validCount,
+                        roomFitWarningRooms: roomFitSummary.warningCount,
+                        roomFitBlockedRooms: roomFitSummary.blockedCount,
+                        roomFitSummary: roomFitSummary.summaryText,
+                        recommendationScore,
+                        recommendationScoreBreakdown: {
+                            validRooms: roomFitSummary.validCount,
+                            warningRooms: roomFitSummary.warningCount,
+                            blockedRooms: roomFitSummary.blockedCount,
+                            occupancyPressure: coursesInSlot.length
+                        },
                         currentCourses: coursesInSlot.map(c => `${c.code} (${c.room})`).join(', ') || 'None',
-                        reason: coursesInSlot.length <= 2 ? 'Minimal impact, plenty of space' : 'Moderate impact'
+                        reason: `${coursesInSlot.length <= 2 ? 'Minimal impact, plenty of space' : 'Moderate impact'}. ${roomFitReason}`
                     });
                 }
             });
         });
 
-        // Sort by available rooms (most available first)
-        return resolutions.sort((a, b) => b.availableRooms - a.availableRooms);
+        // Sort by recommendation score first, then room availability
+        return resolutions.sort((a, b) => {
+            const scoreDelta = (b.recommendationScore || 0) - (a.recommendationScore || 0);
+            if (scoreDelta !== 0) return scoreDelta;
+            return (b.availableRooms || 0) - (a.availableRooms || 0);
+        });
     }
 
     /**
