@@ -15,13 +15,30 @@
     <div class="container">
         <!-- Header -->
         <header class="builder-header">
-            <a href="../index.html" class="back-link">&larr; Back to Schedule</a>
-            <h1>Create New Schedule</h1>
-            <p class="subtitle">AI-Powered Schedule Generation Based on Enrollment Trends</p>
+            <div class="builder-header-top">
+                <a href="../index.html" class="back-link">&larr; Back to Schedule</a>
+                <nav class="builder-quick-nav" aria-label="Builder shortcuts">
+                    <a href="../index.html" class="builder-quick-link">Main Scheduler</a>
+                    <a href="workload-dashboard.html" class="builder-quick-link">Workload Review</a>
+                    <a href="academic-year-setup.html" class="builder-quick-link">AY Setup</a>
+                </nav>
+            </div>
+            <div class="builder-eyebrow">Program Command · Chair Workflow</div>
+            <h1>Draft Schedule Builder</h1>
+            <p class="subtitle">Load a prior academic year, review recommendations, make drag-and-drop edits, then hand off to workload review.</p>
+            <div class="builder-workflow-steps" aria-label="Builder workflow">
+                <span class="workflow-step">1. Load &amp; Analyze</span>
+                <span class="workflow-step">2. Edit Schedule Grid</span>
+                <span class="workflow-step">3. Make Workloads</span>
+            </div>
         </header>
 
         <!-- Controls -->
         <div class="controls-bar">
+            <div class="controls-bar-lead">
+                <span class="controls-step-badge">Step 1</span>
+                <span class="controls-step-text">Copy a prior AY and generate a draft for chair review</span>
+            </div>
             <div class="control-group">
                 <label for="sourceYear">Copy From Year</label>
                 <select id="sourceYear">
@@ -323,6 +340,10 @@
 
         <!-- Action Bar -->
         <div class="action-bar" id="actionBar" style="display: none;">
+            <div class="action-bar-lead">
+                <div class="action-bar-title">Step 3 · Finalize Draft &amp; Handoff</div>
+                <div class="action-bar-subtitle">Save the builder draft, export to the main scheduler, or go straight to workload review.</div>
+            </div>
             <button class="btn-secondary" onclick="saveDraft()">
                 💾 Save Draft
             </button>
