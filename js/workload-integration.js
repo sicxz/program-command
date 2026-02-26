@@ -459,8 +459,12 @@ const WorkloadIntegration = (function() {
         const ayYears = Object.keys(readAySetupStore());
         const detailYears = Object.keys(readDetailStore().byYear || {});
         const scheduleYears = collectScheduleYearsFromLocalStorage();
+        const clssImportPayload = readClssWorkloadImportPayload();
+        const clssImportYear = (clssImportPayload && clssImportPayload.active === true && clssImportPayload.mode === 'workloads')
+            ? String(clssImportPayload.targetYear || '').trim()
+            : '';
 
-        return [...new Set([...workloadYears, ...ayYears, ...detailYears, ...scheduleYears])]
+        return [...new Set([...workloadYears, ...ayYears, ...detailYears, ...scheduleYears, clssImportYear])]
             .filter((year) => /^\d{4}-\d{2}$/.test(year))
             .sort();
     }
