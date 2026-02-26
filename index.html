@@ -3549,18 +3549,40 @@
             border-bottom: 1px solid #57606a;
         }
 
-        /* Compact translucent displaced tray */
+        /* Compact translucent displaced tray (state-specific override block) */
         .displaced-tray {
             left: var(--tray-edge);
             top: var(--tray-edge);
             bottom: var(--tray-edge);
             width: var(--tray-width);
+            transform: translateX(calc(-100% - var(--tray-edge) - 40px));
             border: 1px solid var(--primer-border-default);
             border-radius: 12px;
             background: rgba(255, 255, 255, 0.78);
             backdrop-filter: blur(10px);
             box-shadow: 0 6px 28px rgba(31, 35, 40, 0.22);
             overflow: hidden;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition:
+                transform 0.28s ease,
+                opacity 0.2s ease,
+                visibility 0s linear 0.2s;
+        }
+
+        .displaced-tray.open {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+            transition:
+                transform 0.28s ease,
+                opacity 0.2s ease;
+        }
+
+        .displaced-tray:not(.open) {
+            box-shadow: none;
+            backdrop-filter: none;
         }
 
         .displaced-tray-header {
@@ -3602,16 +3624,61 @@
         }
 
         .displaced-tray-toggle {
-            left: 8px;
-            padding: 10px 7px;
-            border-radius: 0 8px 8px 0;
-            box-shadow: 2px 0 10px rgba(31, 35, 40, 0.2);
+            left: 10px;
+            top: auto;
+            bottom: 18px;
+            transform: none;
+            writing-mode: horizontal-tb;
+            text-orientation: initial;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            min-height: 44px;
+            border-radius: 999px;
+            border: 1px solid rgba(15, 23, 42, 0.95);
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.32);
+            background: linear-gradient(180deg, #111827 0%, #1f2937 100%);
+        }
+
+        .displaced-tray-toggle.visible {
+            display: inline-flex;
+        }
+
+        .displaced-tray-toggle:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.36);
+        }
+
+        .displaced-tray-toggle .toggle-affordance {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            background: rgba(255, 255, 255, 0.08);
+            color: #e5e7eb;
+            font-size: 0.7rem;
+            line-height: 1;
+        }
+
+        .displaced-tray-toggle .toggle-count {
+            min-width: 22px;
+            text-align: center;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .displaced-tray-toggle .toggle-label {
+            font-size: 0.83rem;
+            font-weight: 700;
         }
 
         @media (max-width: 1220px) {
             body.tray-open .container {
                 margin-left: 20px;
             }
+
             .displaced-tray {
                 width: min(210px, 58vw);
             }
@@ -3621,8 +3688,20 @@
             .displaced-tray {
                 width: min(88vw, 300px);
             }
+
             .displaced-tray-header {
                 padding: 10px 12px;
+            }
+
+            .displaced-tray-toggle {
+                left: 8px;
+                bottom: 14px;
+                padding: 9px 10px;
+                gap: 6px;
+            }
+
+            .displaced-tray-toggle .toggle-label {
+                display: none;
             }
         }
 
@@ -3725,15 +3804,16 @@
             </div>
         </div>
         <div class="displaced-tray-actions">
-            <button class="btn-add-course btn-ewu-accent" onclick="openAddCourseModal()">+ Add Course</button>
-            <button class="btn-clear-all" onclick="clearAllDisplaced()">Clear All</button>
+            <button type="button" class="btn-add-course btn-ewu-accent" onclick="openAddCourseModal()">+ Add Course</button>
+            <button type="button" class="btn-clear-all" onclick="clearAllDisplaced()">Clear All</button>
         </div>
     </div>
 
     <!-- Toggle button for closed tray -->
-    <button class="displaced-tray-toggle" id="displacedToggle" onclick="openDisplacedTray()">
+    <button type="button" class="displaced-tray-toggle" id="displacedToggle" onclick="openDisplacedTray()">
+        <span class="toggle-affordance" aria-hidden="true">>></span>
         <span class="toggle-count" id="toggleCount">0</span>
-        Displaced
+        <span class="toggle-label">Displaced</span>
     </button>
 
     <!-- Delete Confirmation Modal -->
