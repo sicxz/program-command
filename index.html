@@ -7703,37 +7703,65 @@
 
         // Copy current year's schedule to next year
         function copyToNextYear() {
-            const yearSelect = document.getElementById('yearSelect');
-            const currentIndex = yearSelect.selectedIndex;
+            const navComponent = document.getElementById('mainQuarterNav');
+            const academicYear = navComponent ? navComponent.currentYear : (window.StateManager?.get('currentAcademicYear') || '2025-26');
+            let nextYear = null;
 
-            if (currentIndex >= yearSelect.options.length - 1) {
-                // Need to add a new year option
-                const currentYearParts = currentAcademicYear.split('-');
-                const nextStartYear = parseInt(currentYearParts[0]) + 1;
-                const nextEndYear = parseInt(currentYearParts[1]) + 1;
-                const nextYear = nextStartYear + '-' + nextEndYear;
-
-                // Add new option
-                const newOption = document.createElement('option');
-                newOption.value = nextYear;
-                newOption.textContent = nextYear;
-                yearSelect.appendChild(newOption);
+            if (academicYear) {
+                const parts = academicYear.split('-');
+                if (parts.length === 2) {
+                    const start = parseInt(parts[0]);
+                    const end = parseInt(parts[1]);
+                    nextYear = `${start + 1}-${end + 1}`;
+                }
             }
 
-            const nextYear = yearSelect.options[currentIndex + 1].value;
+            if (!nextYear) {
+                showToast('Could not calculate next year.', 'critical');
+                return;
+            }
 
-            // Deep copy current schedule data
-            const copyData = JSON.parse(JSON.stringify(scheduleData));
+            if (confirm(`Are you sure you want to copy the ENTIRE ${academicYear} schedule to ${nextYear}? This will overwrite existing ${nextYear} data.`)) {
 
-            // Save copy to next year's storage
-            localStorage.setItem(getStorageKey(nextYear), JSON.stringify(copyData));
+                // Deep copy current schedule data
+                const copyData = JSON.parse(JSON.stringify(scheduleData));
 
-            showToast('Schedule copied to ' + nextYear + '!');
+                // Save copy to next year's storage
+                localStorage.setItem(getStorageKey(nextYear), JSON.stringify(copyData));
 
-            // Ask if user wants to switch
-            if (confirm('Schedule copied to ' + nextYear + '. Switch to that year now?')) {
-                yearSelect.value = nextYear;
-                switchAcademicYear(nextYear);
+                showToast(`Schedule copied to ${nextYear}!`);
+
+                // Ask if user wants to switch
+                if (confirm(`Schedule copied to ${nextYear}. Switch to that year now?`)) {
+                    if (navComponent) {
+                        // Support both old and new quarter-nav component APIs.
+                        const yearList = Array.isArray(navComponent.availableYears)
+                            ? navComponent.availableYears
+                            : (Array.isArray(navComponent.years) ? navComponent.years : null);
+
+                        if (yearList && !yearList.includes(nextYear)) {
+                            yearList.push(nextYear);
+                        }
+
+                        if (typeof navComponent.changeYear === 'function') {
+                            // Legacy component API (handles visual + logical switch).
+                            navComponent.changeYear(nextYear);
+                        } else {
+                            // Current component API: update properties and re-render UI,
+                            // then use the app's existing switchAcademicYear flow.
+                            navComponent.currentYear = nextYear;
+                            if (typeof navComponent.render === 'function') {
+                                navComponent.render();
+                            }
+                            if (typeof navComponent.setupEventListeners === 'function') {
+                                navComponent.setupEventListeners();
+                            }
+                            switchAcademicYear(nextYear);
+                        }
+                    } else {
+                        switchAcademicYear(nextYear);
+                    }
+                }
             }
         }
 
@@ -7947,21 +7975,83 @@
             }
 
             // Load displaced courses from localStorage
+            // Attach tray listeners once; tray cards are rendered dynamically.
+            setupDisplacedTrayInteractions();
+
+            // Keep swap/displace mode reactive without relying on inline handlers.
+            document.getElementById('swapModeToggle')?.addEventListener('change', updateSwapModeLabels);
+
             loadDisplacedCourses();
 
             // Load swap mode preference
             loadSwapMode();
 
-            // Initial render
-            renderSchedule('spring');
-            renderOnlineCourses('spring');
-            renderArrangedCourses('spring');
-            renderEnrollmentAnalytics('spring');
-            renderConflicts('spring');
-            renderConflictSolver('spring');
-            renderRecommendations('spring');
-            updateStats('spring');
+            syncDirtyStateForCurrentYear();
+            const initialQuarter = (window.StateManager && window.StateManager.get('currentQuarter')) || 'spring';
+
+            // Dispatch a quarter-change event to sync UI headers and render the schedule
+            document.dispatchEvent(new CustomEvent('quarter-change', {
+                detail: { quarter: initialQuarter }
+            }));
+
+            // Render non-grid UI sections
+            renderOnlineCourses(initialQuarter);
+            renderArrangedCourses(initialQuarter);
+            renderEnrollmentAnalytics(initialQuarter);
+            renderConflicts(initialQuarter);
+            renderConflictSolver(initialQuarter);
+            renderRecommendations(initialQuarter);
+            updateStats(initialQuarter);
         }
+
+        // Bridge module-scoped state/functions for legacy inline handlers and
+        // non-module scripts that still call into the scheduler runtime.
+        Object.assign(window, {
+            scheduleData,
+            readAySetupDataForYear,
+            getDatabaseClient,
+            normalizeCourseCode,
+            normalizeLookupKey,
+            showToast,
+            toggleNavAccordion,
+            showFacultyModal,
+            closeFacultyModal,
+            openEditModal,
+            closeEditModal,
+            closeCourseDetailsModal,
+            openDisplacedTray,
+            closeDisplacedTray,
+            removeFromDisplacedTray,
+            clearAllDisplaced,
+            highlightConflicts,
+            exportReport,
+            confirmDelete,
+            closeDeleteConfirm,
+            openAddCourseModal,
+            closeAddCourseModal,
+            closeAddFacultyModal,
+            handleAddCourseSubmit,
+            handleEditFormSubmit,
+            handleAddFacultySubmit,
+            toggleOnlineMode,
+            updateSwapModeLabels,
+            updateSaveDbButtonState,
+            setScheduleDirty,
+            saveScheduleData,
+            saveScheduleToDatabase
+        });
+
+        Object.defineProperty(window, 'currentAcademicYear', {
+            configurable: true,
+            get: () => currentAcademicYear,
+            set: (value) => { currentAcademicYear = value; }
+        });
+
+        Object.defineProperty(window, 'scheduleSaveInProgress', {
+            configurable: true,
+            get: () => scheduleSaveInProgress,
+            set: (value) => { scheduleSaveInProgress = Boolean(value); }
+        });
 
         // Start the app when page loads
         init();
@@ -8641,25 +8731,255 @@
         }
 
         /**
-         * Save schedule changes to localStorage and optionally to database
+         * Flatten all quarters into one list for database persistence.
          */
-        function saveScheduleChanges() {
+        function collectScheduleCoursesForDatabase() {
+            const rows = [];
+            ['fall', 'winter', 'spring'].forEach((quarter) => {
+                const quarterRows = flattenQuarterData(scheduleData[quarter] || {});
+                quarterRows.forEach((course) => {
+                    rows.push({ ...course, quarter });
+                });
+            });
+            return rows;
+        }
+
+        /**
+         * Build a stable-enough sync key for year-scoped schedule saves.
+         *
+         * We intentionally exclude mutable assignment fields like faculty/room so
+         * those changes can update the same row instead of forcing delete+insert.
+         */
+        function buildScheduledCourseSyncKey(record) {
+            return [
+                String(record.academic_year_id || ''),
+                String(record.course_id || ''),
+                String(record.quarter || '').trim().toLowerCase(),
+                String(record.day_pattern || '').trim().toUpperCase(),
+                String(record.time_slot || '').trim(),
+                String(record.section || '').trim().toUpperCase()
+            ].join('|');
+        }
+
+        function bucketScheduledCoursesBySyncKey(records) {
+            const buckets = new Map();
+            (records || []).forEach((record) => {
+                const key = buildScheduledCourseSyncKey(record);
+                if (!buckets.has(key)) {
+                    buckets.set(key, []);
+                }
+                buckets.get(key).push(record);
+            });
+            return buckets;
+        }
+
+        /**
+         * Save all schedule changes to Supabase in one explicit action.
+         */
+        async function saveScheduleToDatabase() {
+            if (scheduleSaveInProgress) return;
+
+            const client = getDatabaseClient();
+            if (!client) {
+                showToast('Supabase is not connected. Changes are still saved locally.', 'error');
+                return;
+            }
+
+            const rows = collectScheduleCoursesForDatabase();
+            scheduleSaveInProgress = true;
+            updateSaveDbButtonState();
+
             try {
-                // Get current schedule data
-                const quarter = document.getElementById('quarterSelect').value;
-                const scheduleData = {
-                    quarter: quarter,
-                    savedAt: new Date().toISOString(),
-                    courses: getCurrentScheduleData()
-                };
+                // Always keep local backup in sync with current in-memory state.
+                saveScheduleData();
 
-                // Save to localStorage
-                localStorage.setItem(`schedule_${quarter}`, JSON.stringify(scheduleData));
+                let { data: department, error: departmentError } = await client
+                    .from('departments')
+                    .select('id')
+                    .eq('code', 'DESN')
+                    .maybeSingle();
 
-                showToast('Schedule saved successfully!');
+                if (departmentError) throw departmentError;
+
+                if (!department) {
+                    const created = await client
+                        .from('departments')
+                        .insert({ name: 'Design', code: 'DESN' })
+                        .select('id')
+                        .single();
+                    if (created.error) throw created.error;
+                    department = created.data;
+                }
+
+                const yearResult = await client
+                    .from('academic_years')
+                    .upsert({
+                        department_id: department.id,
+                        year: currentAcademicYear,
+                        is_active: true
+                    }, { onConflict: 'department_id,year' })
+                    .select('id')
+                    .single();
+                if (yearResult.error) throw yearResult.error;
+                const academicYearId = yearResult.data.id;
+
+                const [courseResult, facultyResult, roomResult] = await Promise.all([
+                    client.from('courses').select('id, code').eq('department_id', department.id),
+                    client.from('faculty').select('id, name').eq('department_id', department.id),
+                    client.from('rooms').select('id, room_code').eq('department_id', department.id)
+                ]);
+
+                if (courseResult.error) throw courseResult.error;
+                if (facultyResult.error) throw facultyResult.error;
+                if (roomResult.error) throw roomResult.error;
+
+                const courseMap = new Map((courseResult.data || []).map((c) => [normalizeCourseCode(c.code), c.id]));
+                const facultyMap = new Map();
+                (facultyResult.data || []).forEach((f) => {
+                    const canonical = String(f.name || '').trim();
+                    if (!canonical) return;
+                    facultyMap.set(normalizeLookupKey(canonical), f.id);
+                });
+                const roomMap = new Map((roomResult.data || []).map((r) => [String(r.room_code || '').trim().toUpperCase(), r.id]));
+
+                // Auto-seed missing references for smoother save UX.
+                const missingCourses = new Map();
+                const missingFaculty = new Map();
+
+                rows.forEach((row) => {
+                    const courseCode = normalizeCourseCode(row.code);
+                    if (courseCode && !courseMap.has(courseCode)) {
+                        missingCourses.set(courseCode, {
+                            department_id: department.id,
+                            code: courseCode,
+                            title: row.name || courseCode,
+                            default_credits: Number(row.credits) || 5
+                        });
+                    }
+
+                    const instructorName = String(row.instructor || '').trim();
+                    const instructorKey = normalizeLookupKey(instructorName);
+                    if (instructorName && instructorName.toUpperCase() !== 'TBD' && !facultyMap.has(instructorKey)) {
+                        missingFaculty.set(instructorName, {
+                            department_id: department.id,
+                            name: instructorName,
+                            category: 'fullTime'
+                        });
+                    }
+                });
+
+                if (missingCourses.size > 0) {
+                    const seeded = await client
+                        .from('courses')
+                        .upsert(Array.from(missingCourses.values()), { onConflict: 'department_id,code' })
+                        .select('id, code');
+                    if (seeded.error) throw seeded.error;
+                    (seeded.data || []).forEach((c) => {
+                        courseMap.set(normalizeCourseCode(c.code), c.id);
+                    });
+                }
+
+                if (missingFaculty.size > 0) {
+                    const seeded = await client
+                        .from('faculty')
+                        .upsert(Array.from(missingFaculty.values()), { onConflict: 'department_id,name' })
+                        .select('id, name');
+                    if (seeded.error) throw seeded.error;
+                    (seeded.data || []).forEach((f) => {
+                        facultyMap.set(normalizeLookupKey(f.name), f.id);
+                    });
+                }
+
+                const records = rows
+                    .map((row, index) => {
+                        const courseCode = normalizeCourseCode(row.code);
+                        if (!courseCode) return null;
+
+                        const roomCode = String(row.room || '').trim().toUpperCase();
+                        const instructorName = String(row.instructor || '').trim();
+                        const projectedEnrollment = Number(row.enrollmentCap);
+
+                        return {
+                            academic_year_id: academicYearId,
+                            course_id: courseMap.get(courseCode) || null,
+                            faculty_id: instructorName && instructorName.toUpperCase() !== 'TBD'
+                                ? (facultyMap.get(normalizeLookupKey(instructorName)) || null)
+                                : null,
+                            room_id: roomCode && roomCode !== 'ONLINE'
+                                ? (roomMap.get(roomCode) || null)
+                                : null,
+                            quarter: row.quarter,
+                            day_pattern: row.day || null,
+                            time_slot: row.time || null,
+                            section: row.section || String(index + 1).padStart(3, '0'),
+                            projected_enrollment: Number.isFinite(projectedEnrollment) ? projectedEnrollment : null,
+                            updated_at: new Date().toISOString()
+                        };
+                    })
+                    .filter(Boolean);
+
+                const existingResult = await client
+                    .from('scheduled_courses')
+                    .select('id, academic_year_id, course_id, quarter, day_pattern, time_slot, section')
+                    .eq('academic_year_id', academicYearId);
+                if (existingResult.error) throw existingResult.error;
+
+                const existingRows = existingResult.data || [];
+                const existingBuckets = bucketScheduledCoursesBySyncKey(existingRows);
+                const matchedExistingIds = new Set();
+                const updates = [];
+                const inserts = [];
+
+                records.forEach((record) => {
+                    const key = buildScheduledCourseSyncKey(record);
+                    const bucket = existingBuckets.get(key);
+                    const match = bucket && bucket.length > 0 ? bucket.shift() : null;
+
+                    if (match?.id) {
+                        matchedExistingIds.add(match.id);
+                        updates.push({ id: match.id, record });
+                    } else {
+                        inserts.push(record);
+                    }
+                });
+
+                // Safer sync order: update + insert first, then delete stale rows.
+                // This avoids wiping the year if an insert fails partway through save.
+                for (const { id, record } of updates) {
+                    const updateResult = await client
+                        .from('scheduled_courses')
+                        .update(record)
+                        .eq('id', id);
+                    if (updateResult.error) throw updateResult.error;
+                }
+
+                if (inserts.length > 0) {
+                    const insertResult = await client
+                        .from('scheduled_courses')
+                        .insert(inserts);
+                    if (insertResult.error) throw insertResult.error;
+                }
+
+                const staleIds = existingRows
+                    .map((row) => row.id)
+                    .filter((id) => id && !matchedExistingIds.has(id));
+
+                if (staleIds.length > 0) {
+                    const deleteResult = await client
+                        .from('scheduled_courses')
+                        .delete()
+                        .in('id', staleIds);
+                    if (deleteResult.error) throw deleteResult.error;
+                }
+
+                setScheduleDirty(false);
+                showToast(`Saved ${records.length} schedule entries to Supabase (${updates.length} updated, ${inserts.length} new${staleIds.length ? `, ${staleIds.length} removed` : ''}).`);
             } catch (error) {
-                console.error('Error saving schedule:', error);
-                showToast('Error saving schedule');
+                console.error('Error saving schedule to Supabase:', error);
+                showToast('Database save failed: ' + (error.message || 'Unknown error'), 'error');
+            } finally {
+                scheduleSaveInProgress = false;
+                updateSaveDbButtonState();
             }
         }
 
@@ -8667,7 +8987,7 @@
          * Get current schedule data from the grid
          */
         function getCurrentScheduleData() {
-            const quarter = document.getElementById('quarterSelect')?.value || 'spring';
+            const quarter = window.StateManager?.get('currentQuarter') || 'spring';
             const quarterCourses = flattenQuarterData(scheduleData[quarter] || {});
             return quarterCourses.map((course, index) => ({
                 code: normalizeCourseCode(course.code),
@@ -8708,6 +9028,13 @@
                 enabled: true,
                 constraint_type: 'ay_setup_alignment',
                 description: 'Academic Year Setup alignment for workload and adjunct targets',
+        /**
+         * Legacy save entry point from header action.
+         */
+        function saveScheduleChanges() {
+            saveScheduleToDatabase();
+        }
+
                 rule_details: {
                     annualOverloadWarning: 3,
                     annualOverloadCritical: 8,
