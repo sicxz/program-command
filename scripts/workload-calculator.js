@@ -7,8 +7,13 @@
  * - All other courses: 1 credit = 1.0 workload credit
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const isMainModule = process.argv[1] && path.resolve(process.argv[1]) === __filename;
 
 class WorkloadCalculator {
     constructor() {
@@ -526,7 +531,7 @@ class WorkloadCalculator {
 }
 
 // CLI Interface
-if (require.main === module) {
+if (isMainModule) {
     const args = process.argv.slice(2);
 
     if (args.length === 0) {
@@ -674,4 +679,4 @@ if (require.main === module) {
     console.log(`   Total Sections: ${enrollmentData.length}\n`);
 }
 
-module.exports = WorkloadCalculator;
+export default WorkloadCalculator;

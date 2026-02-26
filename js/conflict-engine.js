@@ -7,7 +7,12 @@ const ConflictEngine = (function() {
 
     // Available rooms for resolution calculations
     const ROOMS = ['206', '207', '208', '209', '210', '212'];
-    const TIME_SLOTS = ['10:00-12:00', '13:00-15:00', '16:00-18:00'];
+    const DEFAULT_TIME_SLOTS = ['10:00-12:20', '13:00-15:20', '16:00-18:20'];
+    const LEGACY_TIME_SLOT_ALIASES = {
+        '10:00-12:00': '10:00-12:20',
+        '13:00-15:00': '13:00-15:20',
+        '16:00-18:00': '16:00-18:20'
+    };
     const DAY_PATTERNS = ['MW', 'TR'];
     const AY_QUARTERS = ['fall', 'winter', 'spring'];
     const AY_QUARTER_LABELS = {
@@ -56,6 +61,17 @@ const ConflictEngine = (function() {
         ['DESN 369', 'DESN 469']
     ];
 
+    const PATHWAY_PAIR_IMPACT_OVERRIDES = {
+        'DESN 463::DESN 480': { label: 'graduation-critical', score: 28 },
+        'DESN 463::DESN 490': { label: 'graduation-critical', score: 28 },
+        'DESN 480::DESN 490': { label: 'graduation-critical', score: 28 },
+        'DESN 469::DESN 480': { label: 'graduation-critical', score: 24 },
+        'DESN 348::DESN 458': { label: 'pathway-sequence-critical', score: 18 },
+        'DESN 355::DESN 365': { label: 'pathway-sequence-critical', score: 16 },
+        'DESN 368::DESN 378': { label: 'pathway-sequence-critical', score: 16 },
+        'DESN 369::DESN 469': { label: 'pathway-sequence-critical', score: 16 }
+    };
+
     const AY_DEFAULT_THRESHOLDS = {
         annualOverloadWarning: 3,
         annualOverloadCritical: 8,
@@ -77,9 +93,343 @@ const ConflictEngine = (function() {
         student_scheduling_conflict: 'student_conflict'
     };
 
+    const ISSUE_SEVERITY_SCORE = {
+        critical: 100,
+        warning: 60,
+        info: 25
+    };
+
+    const ISSUE_PRIORITY_SCORE = {
+        critical: 18,
+        high: 12,
+        medium: 6,
+        low: 2
+    };
+
+    const CONFLICT_RULE_REGISTRY = {
+        room_restriction: {
+            id: 'room_restriction',
+            label: 'Room Restriction',
+            category: 'room',
+            hardness: 'hard',
+            baseWeight: 16
+        },
+        student_conflict: {
+            id: 'student_conflict',
+            label: 'Student Pathway Conflict',
+            category: 'pathway',
+            hardness: 'hard',
+            baseWeight: 28,
+            pairings: COMMON_PAIRINGS
+        },
+        faculty_double_book: {
+            id: 'faculty_double_book',
+            label: 'Faculty Double Booking',
+            category: 'faculty',
+            hardness: 'hard',
+            baseWeight: 30
+        },
+        room_double_book: {
+            id: 'room_double_book',
+            label: 'Room Double Booking',
+            category: 'room',
+            hardness: 'hard',
+            baseWeight: 30
+        },
+        evening_safety: {
+            id: 'evening_safety',
+            label: 'Evening Safety',
+            category: 'safety',
+            hardness: 'soft',
+            baseWeight: 18
+        },
+        ay_setup_alignment: {
+            id: 'ay_setup_alignment',
+            label: 'AY Setup Alignment',
+            category: 'workload',
+            hardness: 'soft',
+            baseWeight: 14
+        },
+        enrollment_threshold: {
+            id: 'enrollment_threshold',
+            label: 'Enrollment Threshold',
+            category: 'enrollment',
+            hardness: 'soft',
+            baseWeight: 10
+        },
+        _default: {
+            id: 'generic',
+            label: 'Generic Rule',
+            category: 'general',
+            hardness: 'soft',
+            baseWeight: 10
+        }
+    };
+
     function normalizeConstraintType(type) {
         const normalized = String(type || '').trim().toLowerCase();
         return CONSTRAINT_TYPE_ALIASES[normalized] || normalized;
+    }
+
+    function normalizeTimeSlotLabel(timeSlot) {
+        const raw = String(timeSlot || '').trim();
+        if (!raw) return '';
+        return LEGACY_TIME_SLOT_ALIASES[raw] || raw;
+    }
+
+    function getDayPatternLabel(dayPattern) {
+        return dayPattern === 'MW'
+            ? 'Monday/Wednesday'
+            : dayPattern === 'TR'
+                ? 'Tuesday/Thursday'
+                : dayPattern;
+    }
+
+    function sortTimeSlots(slots) {
+        const order = new Map(DEFAULT_TIME_SLOTS.map((slot, index) => [slot, index]));
+
+        return [...slots].sort((a, b) => {
+            const aOrder = order.has(a) ? order.get(a) : Number.MAX_SAFE_INTEGER;
+            const bOrder = order.has(b) ? order.get(b) : Number.MAX_SAFE_INTEGER;
+            if (aOrder !== bOrder) return aOrder - bOrder;
+            return String(a).localeCompare(String(b));
+        });
+    }
+
+    function resolveTimeSlotToValidLabel(timeSlot, validTimeSlots) {
+        const normalized = normalizeTimeSlotLabel(timeSlot);
+        if (!normalized) return '';
+
+        const slots = Array.isArray(validTimeSlots)
+            ? validTimeSlots.map(normalizeTimeSlotLabel).filter(Boolean)
+            : [];
+
+        if (slots.length === 0) return normalized;
+        if (slots.includes(normalized)) return normalized;
+
+        const startTime = normalized.split('-')[0];
+        const byStartTime = slots.find((slot) => slot.split('-')[0] === startTime);
+        return byStartTime || '';
+    }
+
+    function deriveResolutionTimeSlots(schedule, context = {}) {
+        const discovered = [];
+        const collect = (value) => {
+            const normalized = normalizeTimeSlotLabel(value);
+            if (normalized) discovered.push(normalized);
+        };
+
+        if (Array.isArray(context.timeSlots)) {
+            context.timeSlots.forEach(collect);
+        }
+        if (Array.isArray(context.availableTimeSlots)) {
+            context.availableTimeSlots.forEach(collect);
+        }
+
+        if (context.scheduleByQuarter && typeof context.scheduleByQuarter === 'object') {
+            AY_QUARTERS.forEach((quarter) => {
+                const courses = Array.isArray(context.scheduleByQuarter[quarter]) ? context.scheduleByQuarter[quarter] : [];
+                courses.forEach((course) => collect(course.time));
+            });
+        }
+
+        (Array.isArray(schedule) ? schedule : []).forEach((course) => collect(course.time));
+
+        return sortTimeSlots(new Set([...discovered, ...DEFAULT_TIME_SLOTS]));
+    }
+
+    function normalizePreferredResolutions(preferredResolutions, validTimeSlots) {
+        const normalized = [];
+
+        (Array.isArray(preferredResolutions) ? preferredResolutions : []).forEach((resolution) => {
+            if (!resolution || typeof resolution !== 'object') return;
+            if (!resolution.target_slot) {
+                normalized.push({ ...resolution });
+                return;
+            }
+
+            const rawTargetSlot = String(resolution.target_slot || '').trim();
+            const [dayPattern, ...timeParts] = rawTargetSlot.split(/\s+/);
+            const normalizedTime = resolveTimeSlotToValidLabel(timeParts.join(' '), validTimeSlots);
+            if (!dayPattern || !normalizedTime) return;
+
+            normalized.push({
+                ...resolution,
+                target_slot: `${dayPattern} ${normalizedTime}`,
+                time: normalizeTimeSlotLabel(resolution.time) || normalizedTime,
+                dayName: resolution.dayName || getDayPatternLabel(dayPattern)
+            });
+        });
+
+        return normalized;
+    }
+
+    function dedupeResolutions(resolutions) {
+        const seen = new Set();
+        const deduped = [];
+
+        (Array.isArray(resolutions) ? resolutions : []).forEach((resolution) => {
+            const key = [
+                resolution.action || '',
+                resolution.target_slot || '',
+                resolution.target_room || '',
+                resolution.time || ''
+            ].join('::');
+
+            if (seen.has(key)) return;
+            seen.add(key);
+            deduped.push(resolution);
+        });
+
+        return deduped;
+    }
+
+    function getRoomRestrictionRulesFromContext(context = {}) {
+        const constraints = Array.isArray(context.enabledConstraints) ? context.enabledConstraints : [];
+        return constraints
+            .filter((constraint) => constraint && constraint.enabled !== false)
+            .filter((constraint) => normalizeConstraintType(constraint.constraint_type) === 'room_restriction')
+            .map((constraint) => ({
+                id: constraint.id,
+                ...(constraint.rule_details || {})
+            }));
+    }
+
+    function evaluateRoomFitForCourse(course, room, context = {}) {
+        const roomCode = String(room || '').trim();
+        const courseCode = normalizeCourseCode(course?.code);
+        const rules = getRoomRestrictionRulesFromContext(context)
+            .filter((rule) => String(rule.room || '').trim() === roomCode);
+
+        if (rules.length === 0) {
+            return {
+                status: 'valid',
+                reasons: [],
+                matchedRules: []
+            };
+        }
+
+        let status = 'valid';
+        const reasons = [];
+        const matchedRules = [];
+
+        rules.forEach((rule) => {
+            matchedRules.push(rule.id || rule.room || 'room_restriction');
+
+            if (Array.isArray(rule.allowed_courses) && rule.allowed_courses.length > 0) {
+                if (!rule.allowed_courses.includes(courseCode)) {
+                    status = 'blocked';
+                    reasons.push(rule.message || `Room ${roomCode} is restricted for ${courseCode}.`);
+                    return;
+                }
+            }
+
+            if (Array.isArray(rule.preferred_courses) && rule.preferred_courses.length > 0) {
+                if (!rule.preferred_courses.includes(courseCode) && status !== 'blocked') {
+                    status = 'warning';
+                    reasons.push(rule.message || `Room ${roomCode} is not a preferred room for ${courseCode}.`);
+                }
+            }
+        });
+
+        return {
+            status,
+            reasons,
+            matchedRules
+        };
+    }
+
+    function summarizeRoomFitCandidates(candidates) {
+        const valid = [];
+        const warning = [];
+        const blocked = [];
+
+        (Array.isArray(candidates) ? candidates : []).forEach((candidate) => {
+            if (candidate.roomFit.status === 'blocked') blocked.push(candidate);
+            else if (candidate.roomFit.status === 'warning') warning.push(candidate);
+            else valid.push(candidate);
+        });
+
+        const placeable = [...valid, ...warning];
+        const summaryBits = [];
+        if (valid.length > 0) summaryBits.push(`${valid.length} valid room${valid.length === 1 ? '' : 's'}`);
+        if (warning.length > 0) summaryBits.push(`${warning.length} room-fit warning${warning.length === 1 ? '' : 's'}`);
+        if (blocked.length > 0) summaryBits.push(`${blocked.length} blocked by room rules`);
+
+        return {
+            placeable,
+            validCount: valid.length,
+            warningCount: warning.length,
+            blockedCount: blocked.length,
+            summaryText: summaryBits.join(', ') || 'no room-fit data'
+        };
+    }
+
+    function getRuleRegistryEntry(normalizedConstraintType) {
+        return CONFLICT_RULE_REGISTRY[normalizedConstraintType] || CONFLICT_RULE_REGISTRY._default;
+    }
+
+    function calculateWeightedIssueScore(issue, normalizedConstraintType, ruleDetails = {}) {
+        const registry = getRuleRegistryEntry(normalizedConstraintType);
+        const severity = String(issue?.severity || 'info').toLowerCase();
+        const priority = String(issue?.priority || '').toLowerCase();
+        const ruleWeightOverride = Number(ruleDetails?.weight);
+        const ruleWeight = Number.isFinite(ruleWeightOverride) ? ruleWeightOverride : 1;
+        const severityWeight = ISSUE_SEVERITY_SCORE[severity] || ISSUE_SEVERITY_SCORE.info;
+        const priorityWeight = ISSUE_PRIORITY_SCORE[priority] || 0;
+        const hardnessMultiplier = registry.hardness === 'hard' ? 1.15 : 0.85;
+        const impactCourseCount = Array.isArray(issue?.courses) ? issue.courses.length : 0;
+        const impactWeight = Math.min(impactCourseCount * 2, 10);
+        const baseWeight = registry.baseWeight || 0;
+        const pathwayImpactWeight = normalizedConstraintType === 'student_conflict'
+            ? Math.max(0, Number(issue?.pathwayImpactScore) || 0)
+            : 0;
+
+        const contributions = [
+            { source: 'severity', value: severityWeight, detail: severity },
+            { source: 'registry-base', value: baseWeight, detail: registry.id },
+            { source: 'priority', value: priorityWeight, detail: priority || 'none' },
+            { source: 'affected-courses', value: impactWeight, detail: impactCourseCount }
+        ];
+
+        if (pathwayImpactWeight > 0) {
+            contributions.push({
+                source: 'pathway-impact',
+                value: pathwayImpactWeight,
+                detail: issue.pathwayImpact || 'pathway-overlap'
+            });
+        }
+
+        if (ruleWeight !== 1) {
+            contributions.push({ source: 'rule-weight', value: Math.round((ruleWeight - 1) * 20), detail: ruleWeight });
+        }
+
+        const preMultiplier = contributions.reduce((sum, item) => sum + item.value, 0);
+        const total = Math.max(0, Math.round(preMultiplier * hardnessMultiplier * ruleWeight));
+
+        return {
+            total,
+            explanation: [
+                `${registry.label} (${registry.hardness})`,
+                `severity=${severity}`,
+                priority ? `priority=${priority}` : null,
+                issue?.pathwayImpact ? `pathway=${issue.pathwayImpact}` : null,
+                `courses=${impactCourseCount}`,
+                ruleWeight !== 1 ? `ruleWeight=${ruleWeight}` : null
+            ].filter(Boolean).join(' | '),
+            breakdown: {
+                hardnessMultiplier,
+                preMultiplier,
+                contributions
+            },
+            rule: {
+                id: registry.id,
+                label: registry.label,
+                category: registry.category,
+                hardness: registry.hardness,
+                baseWeight
+            }
+        };
     }
 
     function getIssueSeverityRank(severity) {
@@ -93,6 +443,57 @@ const ConflictEngine = (function() {
             .toUpperCase()
             .replace(/\s+/g, ' ')
             .trim();
+    }
+
+    function getCourseLevel(courseCode) {
+        const match = normalizeCourseCode(courseCode).match(/(\d{3})/);
+        return match ? Math.floor(Number(match[1]) / 100) * 100 : 0;
+    }
+
+    function buildPathwayPairKey(courseA, courseB) {
+        return [normalizeCourseCode(courseA), normalizeCourseCode(courseB)]
+            .sort()
+            .join('::');
+    }
+
+    function getPathwayPairImpact(pair) {
+        const [courseA, courseB] = Array.isArray(pair) ? pair : ['', ''];
+        const key = buildPathwayPairKey(courseA, courseB);
+        const override = PATHWAY_PAIR_IMPACT_OVERRIDES[key];
+        if (override) return override;
+
+        const levels = [getCourseLevel(courseA), getCourseLevel(courseB)];
+        const maxLevel = Math.max(...levels);
+
+        if (maxLevel >= 400) {
+            return { label: 'upper-division-pathway', score: 20 };
+        }
+        if (maxLevel >= 300) {
+            return { label: 'pathway-sequence', score: 12 };
+        }
+        return { label: 'foundation-overlap', score: 8 };
+    }
+
+    function summarizePathwayConflictImpact(conflictingPairs) {
+        const pairDetails = (Array.isArray(conflictingPairs) ? conflictingPairs : []).map((pair) => {
+            const impact = getPathwayPairImpact(pair);
+            return {
+                pair,
+                label: impact.label,
+                score: impact.score
+            };
+        });
+
+        const top = pairDetails.reduce((best, entry) => {
+            if (!best) return entry;
+            return entry.score > best.score ? entry : best;
+        }, null);
+
+        return {
+            label: top?.label || 'pathway-overlap',
+            score: top?.score || 0,
+            pairs: pairDetails
+        };
     }
 
     function normalizeFacultyName(name, canonicalizeFacultyName) {
@@ -399,7 +800,13 @@ const ConflictEngine = (function() {
             summary: {
                 totalIssues: 0,
                 criticalCount: 0,
-                warningCount: 0
+                warningCount: 0,
+                weightedScore: 0,
+                weightedByConstraintType: {}
+            },
+            scoringModel: {
+                version: 'v2',
+                registry: CONFLICT_RULE_REGISTRY
             }
         };
 
@@ -407,16 +814,37 @@ const ConflictEngine = (function() {
             return results;
         }
 
+        const enabledConstraints = (constraints || []).filter((c) => c && c.enabled);
+        const evaluationContext = {
+            ...context,
+            enabledConstraints
+        };
+
         // Run each enabled constraint checker
-        (constraints || []).filter(c => c.enabled).forEach(constraint => {
+        enabledConstraints.forEach(constraint => {
             const normalizedConstraintType = normalizeConstraintType(constraint.constraint_type);
             const checker = checkers[normalizedConstraintType];
             if (checker) {
-                const issues = checker(schedule, constraint.rule_details, constraint, context);
+                const issues = checker(schedule, constraint.rule_details, constraint, evaluationContext);
                 issues.forEach(issue => {
                     issue.constraintId = constraint.id;
                     issue.constraintType = normalizedConstraintType;
                     issue.constraintTypeOriginal = constraint.constraint_type;
+                    issue.constraintRule = getRuleRegistryEntry(normalizedConstraintType);
+
+                    const weighted = calculateWeightedIssueScore(
+                        issue,
+                        normalizedConstraintType,
+                        constraint.rule_details
+                    );
+                    issue.score = weighted.total;
+                    issue.scoreExplanation = weighted.explanation;
+                    issue.scoreBreakdown = weighted.breakdown;
+                    issue.scoreRuleMeta = weighted.rule;
+
+                    results.summary.weightedScore += issue.score;
+                    results.summary.weightedByConstraintType[normalizedConstraintType] =
+                        (results.summary.weightedByConstraintType[normalizedConstraintType] || 0) + issue.score;
 
                     if (issue.severity === 'critical') {
                         results.conflicts.push(issue);
@@ -443,7 +871,7 @@ const ConflictEngine = (function() {
         /**
          * Room restriction - check if courses are in allowed rooms
          */
-        room_restriction: function(schedule, rule, constraint) {
+        room_restriction: function(schedule, rule, constraint, context = {}) {
             const issues = [];
             const roomCourses = schedule.filter(c => c.room === rule.room);
 
@@ -456,7 +884,7 @@ const ConflictEngine = (function() {
                         description: rule.message || `${course.code} is scheduled in Room ${rule.room}, which is reserved for specific courses`,
                         courses: [course],
                         suggestion: `Consider moving ${course.code} to a different room`,
-                        resolutions: calculateRoomResolutions(schedule, course)
+                        resolutions: calculateRoomResolutions(schedule, course, context)
                     });
                 }
                 // Check against preferred_courses (soft recommendation)
@@ -500,9 +928,13 @@ const ConflictEngine = (function() {
          * Student conflict - courses that students commonly take together at same time
          * Uses graduation pathway pairings to detect real conflicts
          */
-        student_conflict: function(schedule, rule, constraint) {
+        student_conflict: function(schedule, rule, constraint, context = {}) {
             const issues = [];
             const foundConflicts = new Set(); // Track reported conflicts to avoid duplicates
+            const validTimeSlots = deriveResolutionTimeSlots(schedule, context);
+            const pairingRules = Array.isArray(rule?.pairings)
+                ? rule.pairings
+                : (getRuleRegistryEntry('student_conflict').pairings || COMMON_PAIRINGS);
             
             // Group courses by day+time
             const slots = {};
@@ -522,7 +954,7 @@ const ConflictEngine = (function() {
                 const conflictingPairs = [];
                 
                 // Check if any common pairings are in the same slot
-                COMMON_PAIRINGS.forEach(([course1, course2]) => {
+                pairingRules.forEach(([course1, course2]) => {
                     if (courseCodes.includes(course1) && courseCodes.includes(course2)) {
                         const pairKey = [course1, course2].sort().join('-');
                         if (!foundConflicts.has(`${key}-${pairKey}`)) {
@@ -534,13 +966,15 @@ const ConflictEngine = (function() {
                 
                 // Report conflicts for this slot
                 if (conflictingPairs.length > 0) {
-                    const [day, time] = key.split('-');
-                    const dayName = day === 'MW' ? 'Monday/Wednesday' : day === 'TR' ? 'Tuesday/Thursday' : day;
+                    const [day, ...timeParts] = key.split('-');
+                    const time = timeParts.join('-');
+                    const dayName = getDayPatternLabel(day);
                     const timeFormatted = formatTime(time);
                     
                     // Get all conflicting courses
                     const conflictingCodes = [...new Set(conflictingPairs.flat())];
                     const conflictingCourses = coursesInSlot.filter(c => conflictingCodes.includes(c.code));
+                    const pathwayImpact = summarizePathwayConflictImpact(conflictingPairs);
                     
                     // Determine severity based on course levels
                     const has400Level = conflictingCodes.some(c => {
@@ -548,23 +982,38 @@ const ConflictEngine = (function() {
                         return num >= 400;
                     });
                     const severity = has400Level ? 'critical' : (rule.severity || 'warning');
+                    const priority = has400Level
+                        ? 'critical'
+                        : pathwayImpact.score >= 16
+                            ? 'high'
+                            : 'medium';
                     
                     // Calculate dynamic resolutions
-                    const dynamicResolutions = calculateSlotResolutions(schedule, conflictingCourses[0], day, time);
-                    const storedResolutions = rule.preferred_resolutions || [];
-                    const allResolutions = [...storedResolutions, ...dynamicResolutions].slice(0, 4);
+                    const dynamicResolutions = calculateSlotResolutions(
+                        schedule,
+                        conflictingCourses[0],
+                        day,
+                        time,
+                        { ...context, timeSlots: validTimeSlots }
+                    );
+                    const storedResolutions = normalizePreferredResolutions(rule.preferred_resolutions, validTimeSlots);
+                    const allResolutions = dedupeResolutions([...storedResolutions, ...dynamicResolutions]).slice(0, 4);
                     
                     // Create descriptive message
                     const pairDescriptions = conflictingPairs.map(([c1, c2]) => `${c1} and ${c2}`).join(', ');
                     
                     issues.push({
                         severity: severity,
+                        priority,
                         type: 'student-conflict',
                         title: `Pathway Conflict: ${dayName}, ${timeFormatted}`,
                         description: `Students commonly need to take ${pairDescriptions} together, but they're scheduled at the same time`,
                         courses: conflictingCourses,
                         studentsAffected: estimateAffectedStudents(conflictingCourses),
                         currentSlot: `${day} ${time}`,
+                        pathwayImpact: pathwayImpact.label,
+                        pathwayImpactScore: pathwayImpact.score,
+                        pathwayImpactPairs: pathwayImpact.pairs,
                         resolutions: allResolutions,
                         suggestion: `Move one course to a different time slot so students can complete their graduation pathway`
                     });
@@ -577,7 +1026,7 @@ const ConflictEngine = (function() {
         /**
          * Faculty double-booking - same instructor, same time, different rooms
          */
-        faculty_double_book: function(schedule, rule, constraint) {
+        faculty_double_book: function(schedule, rule, constraint, context = {}) {
             const issues = [];
             const slots = {};
 
@@ -599,7 +1048,7 @@ const ConflictEngine = (function() {
                             description: `${courses[0].instructor} is scheduled to teach ${courses.map(c => c.code).join(' and ')} at the same time in different rooms`,
                             courses: courses,
                             suggestion: 'Reassign one course to a different instructor or time',
-                            resolutions: calculateTimeResolutions(schedule, courses[0])
+                            resolutions: calculateTimeResolutions(schedule, courses[0], context)
                         });
                     }
                 }
@@ -611,7 +1060,7 @@ const ConflictEngine = (function() {
         /**
          * Room double-booking - multiple courses in same room at same time
          */
-        room_double_book: function(schedule, rule, constraint) {
+        room_double_book: function(schedule, rule, constraint, context = {}) {
             const issues = [];
             const slots = {};
 
@@ -631,7 +1080,7 @@ const ConflictEngine = (function() {
                         description: `${courses.map(c => c.code).join(' and ')} are both scheduled in Room ${courses[0].room} on ${courses[0].day} at ${courses[0].time}`,
                         courses: courses,
                         suggestion: 'Move one course to a different room or time slot',
-                        resolutions: calculateRoomResolutions(schedule, courses[1])
+                        resolutions: calculateRoomResolutions(schedule, courses[1], context)
                     });
                 }
             });
@@ -702,7 +1151,7 @@ const ConflictEngine = (function() {
     /**
      * Calculate available room resolutions for a course
      */
-    function calculateRoomResolutions(schedule, course) {
+    function calculateRoomResolutions(schedule, course, context = {}) {
         const resolutions = [];
         const usedRooms = schedule
             .filter(c => c.day === course.day && c.time === course.time)
@@ -710,56 +1159,107 @@ const ConflictEngine = (function() {
 
         ROOMS.forEach(room => {
             if (!usedRooms.includes(room) && room !== course.room) {
+                const roomFit = evaluateRoomFitForCourse(course, room, context);
+                if (roomFit.status === 'blocked') return;
+                const warningPenalty = roomFit.status === 'warning' ? 6 : 0;
+                const recommendationScore = 40 - warningPenalty;
+                const roomFitSummary = roomFit.reasons.length > 0
+                    ? `Room fit: ${roomFit.reasons.join(' ')}`
+                    : 'Room fit: valid';
+
                 resolutions.push({
                     action: 'move_room',
                     target_room: room,
-                    reason: `Room ${room} is available at this time`
+                    roomFitStatus: roomFit.status,
+                    roomFitReasons: roomFit.reasons,
+                    roomFitSummary,
+                    recommendationScore,
+                    recommendationScoreBreakdown: {
+                        base: 40,
+                        warningPenalty
+                    },
+                    reason: `Room ${room} is available at this time. ${roomFitSummary}`
                 });
             }
         });
 
-        return resolutions.slice(0, 3);
+        return resolutions
+            .sort((a, b) => (b.recommendationScore || 0) - (a.recommendationScore || 0))
+            .slice(0, 3);
     }
 
     /**
      * Calculate available time slot resolutions for moving a course
      */
-    function calculateSlotResolutions(schedule, course, currentDay, currentTime) {
+    function calculateSlotResolutions(schedule, course, currentDay, currentTime, context = {}) {
         const resolutions = [];
+        const validTimeSlots = deriveResolutionTimeSlots(schedule, context);
+        const normalizedCurrentTime = resolveTimeSlotToValidLabel(currentTime, validTimeSlots)
+            || normalizeTimeSlotLabel(currentTime);
 
         DAY_PATTERNS.forEach(day => {
-            TIME_SLOTS.forEach(time => {
-                if (day === currentDay && time === currentTime) return;
+            validTimeSlots.forEach(time => {
+                if (day === currentDay && time === normalizedCurrentTime) return;
 
                 // Count courses in this slot
-                const coursesInSlot = schedule.filter(c => c.day === day && c.time === time);
+                const coursesInSlot = schedule.filter((c) => {
+                    if (c.day !== day) return false;
+                    const normalizedCourseTime = resolveTimeSlotToValidLabel(c.time, validTimeSlots)
+                        || normalizeTimeSlotLabel(c.time);
+                    return normalizedCourseTime === time;
+                });
                 const usedRooms = coursesInSlot.map(c => c.room);
                 const availableRooms = ROOMS.filter(r => !usedRooms.includes(r));
+                const roomFitCandidates = availableRooms.map((room) => ({
+                    room,
+                    roomFit: evaluateRoomFitForCourse(course, room, context)
+                }));
+                const roomFitSummary = summarizeRoomFitCandidates(roomFitCandidates);
 
-                if (availableRooms.length >= 1) {
-                    const dayName = day === 'MW' ? 'Monday/Wednesday' : 'Tuesday/Thursday';
+                if (roomFitSummary.placeable.length >= 1) {
+                    const dayName = getDayPatternLabel(day);
+                    const recommendationScore = (roomFitSummary.validCount * 12)
+                        + (roomFitSummary.warningCount * 6)
+                        - (roomFitSummary.blockedCount * 3)
+                        + (coursesInSlot.length <= 2 ? 6 : 2);
+                    const roomFitReason = `Room fit: ${roomFitSummary.summaryText}`;
                     resolutions.push({
                         action: 'move_course',
                         target_slot: `${day} ${time}`,
                         dayName: dayName,
                         time: time,
-                        availableRooms: availableRooms.length,
+                        availableRooms: roomFitSummary.placeable.length,
+                        roomFitValidRooms: roomFitSummary.validCount,
+                        roomFitWarningRooms: roomFitSummary.warningCount,
+                        roomFitBlockedRooms: roomFitSummary.blockedCount,
+                        roomFitSummary: roomFitSummary.summaryText,
+                        recommendationScore,
+                        recommendationScoreBreakdown: {
+                            validRooms: roomFitSummary.validCount,
+                            warningRooms: roomFitSummary.warningCount,
+                            blockedRooms: roomFitSummary.blockedCount,
+                            occupancyPressure: coursesInSlot.length
+                        },
                         currentCourses: coursesInSlot.map(c => `${c.code} (${c.room})`).join(', ') || 'None',
-                        reason: coursesInSlot.length <= 2 ? 'Minimal impact, plenty of space' : 'Moderate impact'
+                        reason: `${coursesInSlot.length <= 2 ? 'Minimal impact, plenty of space' : 'Moderate impact'}. ${roomFitReason}`
                     });
                 }
             });
         });
 
-        // Sort by available rooms (most available first)
-        return resolutions.sort((a, b) => b.availableRooms - a.availableRooms);
+        // Sort by recommendation score first, then room availability
+        return resolutions.sort((a, b) => {
+            const scoreDelta = (b.recommendationScore || 0) - (a.recommendationScore || 0);
+            if (scoreDelta !== 0) return scoreDelta;
+            return (b.availableRooms || 0) - (a.availableRooms || 0);
+        });
     }
 
     /**
      * Calculate time-based resolutions for a course
      */
-    function calculateTimeResolutions(schedule, course) {
-        return calculateSlotResolutions(schedule, course, course.day, course.time).slice(0, 4);
+    function calculateTimeResolutions(schedule, course, context = {}) {
+        return calculateSlotResolutions(schedule, course, course.day, course.time, context).slice(0, 4);
     }
 
     /**
@@ -805,7 +1305,8 @@ const ConflictEngine = (function() {
         evaluate,
         checkers,
         COMMON_PAIRINGS,
-        evaluateAySetup
+        evaluateAySetup,
+        ruleRegistry: CONFLICT_RULE_REGISTRY
     };
 })();
 

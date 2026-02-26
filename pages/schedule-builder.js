@@ -563,6 +563,93 @@ document.addEventListener('DOMContentLoaded', async function() {
 // Store analysis results for recommendations
 let analysisResults = null;
 
+function getProgramCommandScheduleStorageKey(academicYear) {
+    return `designSchedulerData_${academicYear}`;
+}
+
+function extractCoursesFromProgramCommandDraft(academicYear) {
+    const raw = localStorage.getItem(getProgramCommandScheduleStorageKey(academicYear));
+    if (!raw) return [];
+
+    let parsed = null;
+    try {
+        parsed = JSON.parse(raw);
+    } catch (error) {
+        console.warn(`Could not parse Program Command schedule draft for ${academicYear}:`, error);
+        return [];
+    }
+
+    if (!parsed || typeof parsed !== 'object') return [];
+
+    const quarterMap = {
+        fall: 'Fall',
+        winter: 'Winter',
+        spring: 'Spring'
+    };
+
+    const courses = [];
+    Object.entries(quarterMap).forEach(([quarterKey, quarterName]) => {
+        const quarterData = parsed[quarterKey];
+        if (!quarterData || typeof quarterData !== 'object') return;
+
+        Object.entries(quarterData).forEach(([day, daySlots]) => {
+            if (!daySlots || typeof daySlots !== 'object') return;
+
+            Object.entries(daySlots).forEach(([time, slotCourses]) => {
+                if (!Array.isArray(slotCourses)) return;
+
+                slotCourses.forEach((course, index) => {
+                    const code = String(course?.code || course?.courseCode || '').trim();
+                    if (!code) return;
+
+                    courses.push({
+                        id: `${academicYear}-${quarterKey}-${day}-${time}-${index}`,
+                        courseCode: code.replace(/-/g, ' ').replace(/\s+/g, ' ').trim().toUpperCase(),
+                        courseTitle: String(course?.name || course?.title || '').trim(),
+                        section: String(course?.section || '001').trim(),
+                        quarter: quarterName,
+                        credits: Number(course?.credits) || 5,
+                        enrolled: Number(course?.enrolled) || Number(course?.enrollment) || 0,
+                        facultyName: String(course?.instructor || 'TBD').trim() || 'TBD',
+                        room: String(course?.room || '').trim(),
+                        day: String(day || '').trim(),
+                        time: String(time || '').trim(),
+                        type: 'scheduled',
+                        source: 'program-command-draft'
+                    });
+                });
+            });
+        });
+    });
+
+    return courses;
+}
+
+async function loadSourceCoursesForBuilder(sourceYear) {
+    const draftCourses = extractCoursesFromProgramCommandDraft(sourceYear);
+    if (draftCourses.length > 0) {
+        return {
+            courses: draftCourses,
+            sourceKind: 'program-command-draft',
+            sourceLabel: 'main scheduler draft (local)'
+        };
+    }
+
+    const workloadResponse = await fetch('../workload-data.json');
+    if (!workloadResponse.ok) throw new Error('Failed to load workload data');
+    const workloadData = await workloadResponse.json();
+
+    const yearData = workloadData.workloadByYear?.byYear?.[sourceYear];
+    if (!yearData) throw new Error(`No data found for ${sourceYear}`);
+
+    const workloadCourses = extractCoursesFromYear(yearData, workloadData.facultyWorkload);
+    return {
+        courses: workloadCourses,
+        sourceKind: 'workload-data',
+        sourceLabel: 'workload-data.json'
+    };
+}
+
 /**
  * Handle Load & Analyze button - loads previous year and runs analysis
  */
@@ -582,17 +669,12 @@ async function handleLoadAndAnalyze() {
         // Initialize analyzer
         await ScheduleAnalyzer.init();
 
-        // Load source year's schedule from workload-data.json
-        const workloadResponse = await fetch('../workload-data.json');
-        if (!workloadResponse.ok) throw new Error('Failed to load workload data');
-        const workloadData = await workloadResponse.json();
-
-        // Get source year data
-        const yearData = workloadData.workloadByYear?.byYear?.[sourceYear];
-        if (!yearData) throw new Error(`No data found for ${sourceYear}`);
-
-        // Extract all courses from all faculty
-        const allCourses = extractCoursesFromYear(yearData, workloadData.facultyWorkload);
+        // Load source year's schedule from Program Command draft first, then workload-data fallback
+        const sourceSchedule = await loadSourceCoursesForBuilder(sourceYear);
+        const allCourses = sourceSchedule.courses;
+        if (!Array.isArray(allCourses) || allCourses.length === 0) {
+            throw new Error(`No source schedule sections found for ${sourceYear}. Load/copy that year in the main scheduler first, or restore workload-data.json.`);
+        }
 
         // Group by quarter and build schedule
         const quarters = ['Fall', 'Winter', 'Spring'];
@@ -647,7 +729,7 @@ async function handleLoadAndAnalyze() {
         updatePlacementsFromSchedule(sourceYear);
         console.log(`✅ Auto-saved placements from ${sourceYear} schedule`);
 
-        showToast(`Loaded ${totalSections} sections from ${sourceYear}. Review analysis before proceeding.`);
+        showToast(`Loaded ${totalSections} sections from ${sourceYear} (${sourceSchedule.sourceLabel}). Review analysis before proceeding.`);
         updateScenarioAssignmentSummary();
 
     } catch (error) {
@@ -961,17 +1043,12 @@ async function handleGenerate() {
     document.getElementById('actionBar').style.display = 'none';
 
     try {
-        // Load previous year's schedule from workload-data.json
-        const workloadResponse = await fetch('../workload-data.json');
-        if (!workloadResponse.ok) throw new Error('Failed to load workload data');
-        const workloadData = await workloadResponse.json();
-
-        // Get previous year data
-        const yearData = workloadData.workloadByYear?.byYear?.[previousYear];
-        if (!yearData) throw new Error(`No data found for ${previousYear}`);
-
-        // Extract all courses from all faculty
-        const allCourses = extractCoursesFromYear(yearData, workloadData.facultyWorkload);
+        // Load previous year's schedule from Program Command draft first, then workload-data fallback
+        const sourceSchedule = await loadSourceCoursesForBuilder(previousYear);
+        const allCourses = sourceSchedule.courses;
+        if (!Array.isArray(allCourses) || allCourses.length === 0) {
+            throw new Error(`No source schedule sections found for ${previousYear}. Load/copy that year in the main scheduler first, or restore workload-data.json.`);
+        }
 
         // Group by quarter
         const quarters = ['Fall', 'Winter', 'Spring'];
@@ -1050,7 +1127,7 @@ async function handleGenerate() {
         // Auto-save placements after generation for future preservation
         updatePlacementsFromSchedule(previousYear);
 
-        showToast(`Generated schedule for ${targetYear} based on ${previousYear} data (${totalSections} total sections)`);
+        showToast(`Generated schedule for ${targetYear} based on ${previousYear} (${sourceSchedule.sourceLabel}) (${totalSections} total sections)`);
         updateScenarioAssignmentSummary();
 
     } catch (error) {
@@ -2628,20 +2705,16 @@ function exportJSON() {
 /**
  * Export to main schedule page (all three quarters)
  */
-function exportToEditor() {
-    if (!currentSchedule) {
-        showToast('No schedule to export', 'error');
-        return;
-    }
-
-    // Save current quarter state first
+function syncCurrentQuarterIntoAllQuartersSchedule() {
+    if (!currentSchedule) return;
     allQuartersSchedule[activeQuarter] = {
         ...allQuartersSchedule[activeQuarter],
         assignedCourses: { ...assignedCourses },
         caseByeCaseCourses: [...caseByeCaseCourses]
     };
+}
 
-    // Build schedule data in the format the main page expects
+function buildProgramCommandScheduleDataFromBuilder() {
     const scheduleData = {
         fall: { MW: {}, TR: {} },
         winter: { MW: {}, TR: {} },
@@ -2656,7 +2729,7 @@ function exportToEditor() {
         if (!quarterData?.assignedCourses) return;
 
         // Initialize time slots
-        TIMES.forEach(time => {
+        TIME_KEYS.forEach(time => {
             scheduleData[quarterKey]['MW'][time] = [];
             scheduleData[quarterKey]['TR'][time] = [];
         });
@@ -2687,6 +2760,49 @@ function exportToEditor() {
             });
         });
     });
+
+    return scheduleData;
+}
+
+function persistBuilderScheduleForProgramCommand(year, scheduleData) {
+    if (!year || !scheduleData) return false;
+    try {
+        localStorage.setItem(`designSchedulerData_${year}`, JSON.stringify(scheduleData));
+        return true;
+    } catch (error) {
+        console.error('Error saving builder schedule for Program Command handoff:', error);
+        return false;
+    }
+}
+
+function openWorkloadReview() {
+    if (!currentSchedule) {
+        showToast('No schedule to export', 'error');
+        return;
+    }
+
+    syncCurrentQuarterIntoAllQuartersSchedule();
+    const scheduleData = buildProgramCommandScheduleDataFromBuilder();
+    const saved = persistBuilderScheduleForProgramCommand(currentSchedule.year, scheduleData);
+    if (!saved) {
+        showToast('Could not prepare workload handoff', 'error');
+        return;
+    }
+
+    showToast(`Opening workload review for ${currentSchedule.year}...`, 'info');
+    setTimeout(() => {
+        window.location.href = `workload-dashboard.html?year=${encodeURIComponent(currentSchedule.year)}`;
+    }, 300);
+}
+
+function exportToEditor() {
+    if (!currentSchedule) {
+        showToast('No schedule to export', 'error');
+        return;
+    }
+
+    syncCurrentQuarterIntoAllQuartersSchedule();
+    const scheduleData = buildProgramCommandScheduleDataFromBuilder();
 
     // Store in localStorage for main page to import
     const exportData = {

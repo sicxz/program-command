@@ -3,8 +3,12 @@
  * Validates CSV enrollment data for consistency and accuracy
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const isMainModule = process.argv[1] && path.resolve(process.argv[1]) === __filename;
 
 class EnrollmentValidator {
     constructor() {
@@ -232,7 +236,7 @@ class EnrollmentValidator {
 }
 
 // CLI Interface
-if (require.main === module) {
+if (isMainModule) {
     const args = process.argv.slice(2);
 
     if (args.length === 0) {
@@ -255,4 +259,4 @@ if (require.main === module) {
     }
 }
 
-module.exports = EnrollmentValidator;
+export default EnrollmentValidator;

@@ -3362,15 +3362,39 @@
 
         .course-block {
             --faculty-accent: var(--ewu-red);
+            --faculty-glow: rgba(161, 0, 34, 0.22);
             border-radius: 8px;
             border: 1px solid var(--primer-border-default);
             border-left: 3px solid var(--faculty-accent);
-            box-shadow: 0 1px 0 rgba(27, 31, 36, 0.04);
+            box-shadow: 0 1px 0 rgba(27, 31, 36, 0.04), 0 0 0 2px var(--faculty-glow);
         }
 
         .course-block:hover {
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(31, 35, 40, 0.12);
+            box-shadow: 0 4px 12px rgba(31, 35, 40, 0.12), 0 0 0 2px var(--faculty-glow);
+        }
+
+        .course-name {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            width: fit-content;
+            max-width: 100%;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: var(--faculty-accent);
+            color: #ffffff;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+        }
+
+        .course-name .enrollment-badge {
+            color: rgba(255, 255, 255, 0.9) !important;
+            font-size: 0.74em;
+            margin-left: 0;
+        }
+
+        .course-details {
+            margin-top: 4px;
         }
 
         .btn-ewu-accent {
@@ -3525,18 +3549,40 @@
             border-bottom: 1px solid #57606a;
         }
 
-        /* Compact translucent displaced tray */
+        /* Compact translucent displaced tray (state-specific override block) */
         .displaced-tray {
             left: var(--tray-edge);
             top: var(--tray-edge);
             bottom: var(--tray-edge);
             width: var(--tray-width);
+            transform: translateX(calc(-100% - var(--tray-edge) - 40px));
             border: 1px solid var(--primer-border-default);
             border-radius: 12px;
             background: rgba(255, 255, 255, 0.78);
             backdrop-filter: blur(10px);
             box-shadow: 0 6px 28px rgba(31, 35, 40, 0.22);
             overflow: hidden;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition:
+                transform 0.28s ease,
+                opacity 0.2s ease,
+                visibility 0s linear 0.2s;
+        }
+
+        .displaced-tray.open {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+            transition:
+                transform 0.28s ease,
+                opacity 0.2s ease;
+        }
+
+        .displaced-tray:not(.open) {
+            box-shadow: none;
+            backdrop-filter: none;
         }
 
         .displaced-tray-header {
@@ -3578,16 +3624,61 @@
         }
 
         .displaced-tray-toggle {
-            left: 8px;
-            padding: 10px 7px;
-            border-radius: 0 8px 8px 0;
-            box-shadow: 2px 0 10px rgba(31, 35, 40, 0.2);
+            left: 10px;
+            top: auto;
+            bottom: 18px;
+            transform: none;
+            writing-mode: horizontal-tb;
+            text-orientation: initial;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            min-height: 44px;
+            border-radius: 999px;
+            border: 1px solid rgba(15, 23, 42, 0.95);
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.32);
+            background: linear-gradient(180deg, #111827 0%, #1f2937 100%);
+        }
+
+        .displaced-tray-toggle.visible {
+            display: inline-flex;
+        }
+
+        .displaced-tray-toggle:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.36);
+        }
+
+        .displaced-tray-toggle .toggle-affordance {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            background: rgba(255, 255, 255, 0.08);
+            color: #e5e7eb;
+            font-size: 0.7rem;
+            line-height: 1;
+        }
+
+        .displaced-tray-toggle .toggle-count {
+            min-width: 22px;
+            text-align: center;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .displaced-tray-toggle .toggle-label {
+            font-size: 0.83rem;
+            font-weight: 700;
         }
 
         @media (max-width: 1220px) {
             body.tray-open .container {
                 margin-left: 20px;
             }
+
             .displaced-tray {
                 width: min(210px, 58vw);
             }
@@ -3597,8 +3688,20 @@
             .displaced-tray {
                 width: min(88vw, 300px);
             }
+
             .displaced-tray-header {
                 padding: 10px 12px;
+            }
+
+            .displaced-tray-toggle {
+                left: 8px;
+                bottom: 14px;
+                padding: 9px 10px;
+                gap: 6px;
+            }
+
+            .displaced-tray-toggle .toggle-label {
+                display: none;
             }
         }
 
@@ -3701,15 +3804,16 @@
             </div>
         </div>
         <div class="displaced-tray-actions">
-            <button class="btn-add-course btn-ewu-accent" onclick="openAddCourseModal()">+ Add Course</button>
-            <button class="btn-clear-all" onclick="clearAllDisplaced()">Clear All</button>
+            <button type="button" class="btn-add-course btn-ewu-accent" onclick="openAddCourseModal()">+ Add Course</button>
+            <button type="button" class="btn-clear-all" onclick="clearAllDisplaced()">Clear All</button>
         </div>
     </div>
 
     <!-- Toggle button for closed tray -->
-    <button class="displaced-tray-toggle" id="displacedToggle" onclick="openDisplacedTray()">
+    <button type="button" class="displaced-tray-toggle" id="displacedToggle" onclick="openDisplacedTray()">
+        <span class="toggle-affordance" aria-hidden="true">>></span>
         <span class="toggle-count" id="toggleCount">0</span>
-        Displaced
+        <span class="toggle-label">Displaced</span>
     </button>
 
     <!-- Delete Confirmation Modal -->
@@ -4424,28 +4528,14 @@
 
         // Load dynamic enrollment data from JSON file
         let enrollmentData = {};
-        let enrollmentDataByCode = {};
-        const NEW_COURSE_CODES = new Set(
-            ['DESN 345', 'DESN 369', 'DESN 379'].map((code) => normalizeCourseCode(code))
-        );
-
-        function rebuildEnrollmentLookup() {
-            enrollmentDataByCode = {};
-            Object.entries(enrollmentData || {}).forEach(([code, stats]) => {
-                enrollmentDataByCode[normalizeCourseCode(code)] = stats;
-            });
-        }
+        const NEW_COURSE_CODES = new Set(['DESN 345', 'DESN 369', 'DESN 379']);
 
         async function loadEnrollmentData() {
             try {
                 const response = await fetch('./enrollment-dashboard-data.json');
                 if (response.ok) {
                     const data = await response.json();
-                    enrollmentData = {
-                        ...fallbackEnrollmentData,
-                        ...(data.courseStats || {})
-                    };
-                    rebuildEnrollmentLookup();
+                    enrollmentData = data.courseStats || {};
                     console.log('✅ Loaded dynamic enrollment data');
                     console.log(`   Total courses: ${Object.keys(enrollmentData).length}`);
                     return true;
@@ -4455,7 +4545,6 @@
             }
             // Fallback to hardcoded data if JSON fails
             enrollmentData = fallbackEnrollmentData;
-            rebuildEnrollmentLookup();
             return false;
         }
 
@@ -4521,10 +4610,7 @@
         }
 
         function getEnrollmentData(courseCode) {
-            const normalizedCode = normalizeCourseCode(courseCode);
-            return enrollmentDataByCode[normalizedCode]
-                || enrollmentData[courseCode]
-                || { average: 0, peak: 0, trend: "unknown", peakQuarter: "" };
+            return enrollmentData[courseCode] || { average: 0, peak: 0, trend: "unknown", peakQuarter: "" };
         }
 
         const scheduleData = {
@@ -5437,13 +5523,7 @@
                     if (!unique.find(c => c.code === course.code)) unique.push(course);
                     return unique;
                 }, [])
-                .sort((a, b) => {
-                    const aMatch = normalizeCourseCode(a.code).match(/\d{3}[A-Z]?/);
-                    const bMatch = normalizeCourseCode(b.code).match(/\d{3}[A-Z]?/);
-                    const aValue = parseInt(aMatch ? aMatch[0] : '0', 10);
-                    const bValue = parseInt(bMatch ? bMatch[0] : '0', 10);
-                    return aValue - bValue;
-                });
+                .sort((a, b) => parseInt(a.code.split(' ')[1]) - parseInt(b.code.split(' ')[1]));
 
             const quarterName = quarter.charAt(0).toUpperCase() + quarter.slice(1);
             const q2023Key = quarter + '-2023';
@@ -5513,11 +5593,6 @@
                 const tbody = document.createElement('tbody');
                 coursesWithHistory.forEach(c => {
                     const enrollment = getEnrollmentData(c.code);
-                    const isNewCourse = Boolean(
-                        enrollment.isNew
-                        || enrollment.trend === 'new'
-                        || NEW_COURSE_CODES.has(normalizeCourseCode(c.code))
-                    );
                     const quarterly = enrollment.quarterly || {};
                     const row = document.createElement('tr');
 
@@ -5526,7 +5601,7 @@
                     const codeStrong = document.createElement('strong');
                     codeStrong.textContent = c.code;
                     codeCell.appendChild(codeStrong);
-                    if (isNewCourse) {
+                    if (enrollment.isNew) {
                         const badge = document.createElement('span');
                         badge.className = 'course-note-badge';
                         badge.textContent = 'NEW';
@@ -5540,16 +5615,15 @@
                     instructorCell.textContent = c.instructor;
 
                     const trendCell = document.createElement('td');
-                    const trendValue = isNewCourse ? 'new' : enrollment.trend;
-                    const trendIcon = trendValue === 'declining' ? '📉' : trendValue === 'growing' ? '📈' : trendValue === 'new' ? '✨' : '➡️';
-                    trendCell.textContent = trendIcon + ' ' + trendValue;
+                    const trendIcon = enrollment.trend === 'declining' ? '📉' : enrollment.trend === 'growing' ? '📈' : enrollment.trend === 'new' ? '✨' : '➡️';
+                    trendCell.textContent = trendIcon + ' ' + enrollment.trend;
 
                     row.appendChild(codeCell);
                     row.appendChild(nameCell);
                     row.appendChild(instructorCell);
-                    row.appendChild(createQuarterCell(quarterly[q2023Key], isNewCourse));
-                    row.appendChild(createQuarterCell(quarterly[q2024Key], isNewCourse));
-                    row.appendChild(createQuarterCell(quarterly[q2025Key], isNewCourse));
+                    row.appendChild(createQuarterCell(quarterly[q2023Key], enrollment.isNew));
+                    row.appendChild(createQuarterCell(quarterly[q2024Key], enrollment.isNew));
+                    row.appendChild(createQuarterCell(quarterly[q2025Key], enrollment.isNew));
                     row.appendChild(trendCell);
                     tbody.appendChild(row);
                 });
@@ -5633,36 +5707,10 @@
         }
 
         function normalizeCourseCode(courseCode) {
-            const upper = String(courseCode || '')
+            return String(courseCode || '')
                 .toUpperCase()
                 .replace(/\s+/g, ' ')
                 .trim();
-
-            return upper.replace(/^([A-Z]{2,5})\s*(\d)/, '$1 $2');
-        }
-
-        function normalizeScheduleCourseCodes(data) {
-            const quarters = ['fall', 'winter', 'spring'];
-
-            quarters.forEach((quarter) => {
-                const quarterData = data?.[quarter];
-                if (!quarterData || typeof quarterData !== 'object') return;
-
-                Object.values(quarterData).forEach((timeBucket) => {
-                    if (!timeBucket || typeof timeBucket !== 'object') return;
-
-                    Object.values(timeBucket).forEach((courses) => {
-                        if (!Array.isArray(courses)) return;
-                        courses.forEach((course) => {
-                            if (course && typeof course === 'object') {
-                                course.code = normalizeCourseCode(course.code);
-                            }
-                        });
-                    });
-                });
-            });
-
-            return data;
         }
 
         function getCourseDisplayLabel(course) {
@@ -7532,7 +7580,7 @@
         function handleAddCourseSubmit(e) {
             e.preventDefault();
 
-            const courseCode = normalizeCourseCode(document.getElementById('addCourseCode').value);
+            const courseCode = document.getElementById('addCourseCode').value;
             const courseName = document.getElementById('addCourseCode').options[document.getElementById('addCourseCode').selectedIndex].text.split(' - ')[1] || '';
             const section = document.getElementById('addSection').value;
             const credits = parseInt(document.getElementById('addCredits').value);
@@ -7587,7 +7635,6 @@
 
         function saveScheduleData() {
             try {
-                normalizeScheduleCourseCodes(scheduleData);
                 localStorage.setItem(getStorageKey(), JSON.stringify(scheduleData));
                 console.log('Schedule data saved for year:', currentAcademicYear);
             } catch (e) {
@@ -7637,7 +7684,6 @@
                 if (saved) {
                     let parsed = JSON.parse(saved);
                     parsed = migrateTimeSlots(parsed);
-                    parsed = normalizeScheduleCourseCodes(parsed);
                     for (const quarter of ['fall', 'winter', 'spring']) {
                         if (parsed[quarter]) {
                             scheduleData[quarter] = parsed[quarter];
@@ -7737,37 +7783,65 @@
 
         // Copy current year's schedule to next year
         function copyToNextYear() {
-            const yearSelect = document.getElementById('yearSelect');
-            const currentIndex = yearSelect.selectedIndex;
+            const navComponent = document.getElementById('mainQuarterNav');
+            const academicYear = navComponent ? navComponent.currentYear : (window.StateManager?.get('currentAcademicYear') || '2025-26');
+            let nextYear = null;
 
-            if (currentIndex >= yearSelect.options.length - 1) {
-                // Need to add a new year option
-                const currentYearParts = currentAcademicYear.split('-');
-                const nextStartYear = parseInt(currentYearParts[0]) + 1;
-                const nextEndYear = parseInt(currentYearParts[1]) + 1;
-                const nextYear = nextStartYear + '-' + nextEndYear;
-
-                // Add new option
-                const newOption = document.createElement('option');
-                newOption.value = nextYear;
-                newOption.textContent = nextYear;
-                yearSelect.appendChild(newOption);
+            if (academicYear) {
+                const parts = academicYear.split('-');
+                if (parts.length === 2) {
+                    const start = parseInt(parts[0]);
+                    const end = parseInt(parts[1]);
+                    nextYear = `${start + 1}-${end + 1}`;
+                }
             }
 
-            const nextYear = yearSelect.options[currentIndex + 1].value;
+            if (!nextYear) {
+                showToast('Could not calculate next year.', 'critical');
+                return;
+            }
 
-            // Deep copy current schedule data
-            const copyData = JSON.parse(JSON.stringify(scheduleData));
+            if (confirm(`Are you sure you want to copy the ENTIRE ${academicYear} schedule to ${nextYear}? This will overwrite existing ${nextYear} data.`)) {
 
-            // Save copy to next year's storage
-            localStorage.setItem(getStorageKey(nextYear), JSON.stringify(copyData));
+                // Deep copy current schedule data
+                const copyData = JSON.parse(JSON.stringify(scheduleData));
 
-            showToast('Schedule copied to ' + nextYear + '!');
+                // Save copy to next year's storage
+                localStorage.setItem(getStorageKey(nextYear), JSON.stringify(copyData));
 
-            // Ask if user wants to switch
-            if (confirm('Schedule copied to ' + nextYear + '. Switch to that year now?')) {
-                yearSelect.value = nextYear;
-                switchAcademicYear(nextYear);
+                showToast(`Schedule copied to ${nextYear}!`);
+
+                // Ask if user wants to switch
+                if (confirm(`Schedule copied to ${nextYear}. Switch to that year now?`)) {
+                    if (navComponent) {
+                        // Support both old and new quarter-nav component APIs.
+                        const yearList = Array.isArray(navComponent.availableYears)
+                            ? navComponent.availableYears
+                            : (Array.isArray(navComponent.years) ? navComponent.years : null);
+
+                        if (yearList && !yearList.includes(nextYear)) {
+                            yearList.push(nextYear);
+                        }
+
+                        if (typeof navComponent.changeYear === 'function') {
+                            // Legacy component API (handles visual + logical switch).
+                            navComponent.changeYear(nextYear);
+                        } else {
+                            // Current component API: update properties and re-render UI,
+                            // then use the app's existing switchAcademicYear flow.
+                            navComponent.currentYear = nextYear;
+                            if (typeof navComponent.render === 'function') {
+                                navComponent.render();
+                            }
+                            if (typeof navComponent.setupEventListeners === 'function') {
+                                navComponent.setupEventListeners();
+                            }
+                            switchAcademicYear(nextYear);
+                        }
+                    } else {
+                        switchAcademicYear(nextYear);
+                    }
+                }
             }
         }
 
@@ -7981,21 +8055,83 @@
             }
 
             // Load displaced courses from localStorage
+            // Attach tray listeners once; tray cards are rendered dynamically.
+            setupDisplacedTrayInteractions();
+
+            // Keep swap/displace mode reactive without relying on inline handlers.
+            document.getElementById('swapModeToggle')?.addEventListener('change', updateSwapModeLabels);
+
             loadDisplacedCourses();
 
             // Load swap mode preference
             loadSwapMode();
 
-            // Initial render
-            renderSchedule('spring');
-            renderOnlineCourses('spring');
-            renderArrangedCourses('spring');
-            renderEnrollmentAnalytics('spring');
-            renderConflicts('spring');
-            renderConflictSolver('spring');
-            renderRecommendations('spring');
-            updateStats('spring');
+            syncDirtyStateForCurrentYear();
+            const initialQuarter = (window.StateManager && window.StateManager.get('currentQuarter')) || 'spring';
+
+            // Dispatch a quarter-change event to sync UI headers and render the schedule
+            document.dispatchEvent(new CustomEvent('quarter-change', {
+                detail: { quarter: initialQuarter }
+            }));
+
+            // Render non-grid UI sections
+            renderOnlineCourses(initialQuarter);
+            renderArrangedCourses(initialQuarter);
+            renderEnrollmentAnalytics(initialQuarter);
+            renderConflicts(initialQuarter);
+            renderConflictSolver(initialQuarter);
+            renderRecommendations(initialQuarter);
+            updateStats(initialQuarter);
         }
+
+        // Bridge module-scoped state/functions for legacy inline handlers and
+        // non-module scripts that still call into the scheduler runtime.
+        Object.assign(window, {
+            scheduleData,
+            readAySetupDataForYear,
+            getDatabaseClient,
+            normalizeCourseCode,
+            normalizeLookupKey,
+            showToast,
+            toggleNavAccordion,
+            showFacultyModal,
+            closeFacultyModal,
+            openEditModal,
+            closeEditModal,
+            closeCourseDetailsModal,
+            openDisplacedTray,
+            closeDisplacedTray,
+            removeFromDisplacedTray,
+            clearAllDisplaced,
+            highlightConflicts,
+            exportReport,
+            confirmDelete,
+            closeDeleteConfirm,
+            openAddCourseModal,
+            closeAddCourseModal,
+            closeAddFacultyModal,
+            handleAddCourseSubmit,
+            handleEditFormSubmit,
+            handleAddFacultySubmit,
+            toggleOnlineMode,
+            updateSwapModeLabels,
+            updateSaveDbButtonState,
+            setScheduleDirty,
+            saveScheduleData,
+            saveScheduleToDatabase
+        });
+
+        Object.defineProperty(window, 'currentAcademicYear', {
+            configurable: true,
+            get: () => currentAcademicYear,
+            set: (value) => { currentAcademicYear = value; }
+        });
+
+        Object.defineProperty(window, 'scheduleSaveInProgress', {
+            configurable: true,
+            get: () => scheduleSaveInProgress,
+            set: (value) => { scheduleSaveInProgress = Boolean(value); }
+        });
 
         // Start the app when page loads
         init();
@@ -8675,25 +8811,298 @@
         }
 
         /**
-         * Save schedule changes to localStorage and optionally to database
+         * Flatten all quarters into one list for database persistence.
          */
-        function saveScheduleChanges() {
+        function collectScheduleCoursesForDatabase() {
+            const rows = [];
+            ['fall', 'winter', 'spring'].forEach((quarter) => {
+                const quarterRows = flattenQuarterData(scheduleData[quarter] || {});
+                quarterRows.forEach((course) => {
+                    rows.push({ ...course, quarter });
+                });
+            });
+            return rows;
+        }
+
+        /**
+         * Build a stable-enough sync key for year-scoped schedule saves.
+         *
+         * We intentionally exclude mutable assignment fields like faculty/room so
+         * those changes can update the same row instead of forcing delete+insert.
+         */
+        function buildScheduledCourseSyncKey(record) {
+            return [
+                String(record.academic_year_id || ''),
+                String(record.course_id || ''),
+                String(record.quarter || '').trim().toLowerCase(),
+                String(record.day_pattern || '').trim().toUpperCase(),
+                String(record.time_slot || '').trim(),
+                String(record.section || '').trim().toUpperCase()
+            ].join('|');
+        }
+
+        function bucketScheduledCoursesBySyncKey(records) {
+            const buckets = new Map();
+            (records || []).forEach((record) => {
+                const key = buildScheduledCourseSyncKey(record);
+                if (!buckets.has(key)) {
+                    buckets.set(key, []);
+                }
+                buckets.get(key).push(record);
+            });
+            return buckets;
+        }
+
+        function isMissingScheduleSyncRpcError(error) {
+            const code = String(error?.code || '').toUpperCase();
+            const message = String(error?.message || '');
+            return code === 'PGRST202'
+                || code === '42883'
+                || message.includes('sync_scheduled_courses_for_academic_year');
+        }
+
+        async function syncScheduledCoursesViaRpc(client, academicYearId, records) {
+            const rpcResult = await client.rpc('sync_scheduled_courses_for_academic_year', {
+                p_academic_year_id: academicYearId,
+                p_records: records
+            });
+
+            if (rpcResult.error) {
+                if (isMissingScheduleSyncRpcError(rpcResult.error)) {
+                    console.warn('Atomic schedule sync RPC not available yet; falling back to client-side sync.', rpcResult.error);
+                    return null;
+                }
+                throw rpcResult.error;
+            }
+
+            const counts = Array.isArray(rpcResult.data) ? rpcResult.data[0] : rpcResult.data;
+            return {
+                updated: Number(counts?.updated_count) || 0,
+                inserted: Number(counts?.inserted_count) || 0,
+                deleted: Number(counts?.deleted_count) || 0
+            };
+        }
+
+        async function syncScheduledCoursesViaClientDiff(client, academicYearId, records) {
+            const existingResult = await client
+                .from('scheduled_courses')
+                .select('id, academic_year_id, course_id, quarter, day_pattern, time_slot, section')
+                .eq('academic_year_id', academicYearId);
+            if (existingResult.error) throw existingResult.error;
+
+            const existingRows = existingResult.data || [];
+            const existingBuckets = bucketScheduledCoursesBySyncKey(existingRows);
+            const matchedExistingIds = new Set();
+            const updates = [];
+            const inserts = [];
+
+            records.forEach((record) => {
+                const key = buildScheduledCourseSyncKey(record);
+                const bucket = existingBuckets.get(key);
+                const match = bucket && bucket.length > 0 ? bucket.shift() : null;
+
+                if (match?.id) {
+                    matchedExistingIds.add(match.id);
+                    updates.push({ id: match.id, record });
+                } else {
+                    inserts.push(record);
+                }
+            });
+
+            // Safer sync order: update + insert first, then delete stale rows.
+            // This avoids wiping the year if an insert fails partway through save.
+            for (const { id, record } of updates) {
+                const updateResult = await client
+                    .from('scheduled_courses')
+                    .update(record)
+                    .eq('id', id);
+                if (updateResult.error) throw updateResult.error;
+            }
+
+            if (inserts.length > 0) {
+                const insertResult = await client
+                    .from('scheduled_courses')
+                    .insert(inserts);
+                if (insertResult.error) throw insertResult.error;
+            }
+
+            const staleIds = existingRows
+                .map((row) => row.id)
+                .filter((id) => id && !matchedExistingIds.has(id));
+
+            if (staleIds.length > 0) {
+                const deleteResult = await client
+                    .from('scheduled_courses')
+                    .delete()
+                    .in('id', staleIds);
+                if (deleteResult.error) throw deleteResult.error;
+            }
+
+            return {
+                updated: updates.length,
+                inserted: inserts.length,
+                deleted: staleIds.length
+            };
+        }
+
+        /**
+         * Save all schedule changes to Supabase in one explicit action.
+         */
+        async function saveScheduleToDatabase() {
+            if (scheduleSaveInProgress) return;
+
+            const client = getDatabaseClient();
+            if (!client) {
+                showToast('Supabase is not connected. Changes are still saved locally.', 'error');
+                return;
+            }
+
+            const rows = collectScheduleCoursesForDatabase();
+            scheduleSaveInProgress = true;
+            updateSaveDbButtonState();
+
             try {
-                // Get current schedule data
-                const quarter = document.getElementById('quarterSelect').value;
-                const scheduleData = {
-                    quarter: quarter,
-                    savedAt: new Date().toISOString(),
-                    courses: getCurrentScheduleData()
-                };
+                // Always keep local backup in sync with current in-memory state.
+                saveScheduleData();
 
-                // Save to localStorage
-                localStorage.setItem(`schedule_${quarter}`, JSON.stringify(scheduleData));
+                let { data: department, error: departmentError } = await client
+                    .from('departments')
+                    .select('id')
+                    .eq('code', 'DESN')
+                    .maybeSingle();
 
-                showToast('Schedule saved successfully!');
+                if (departmentError) throw departmentError;
+
+                if (!department) {
+                    const created = await client
+                        .from('departments')
+                        .insert({ name: 'Design', code: 'DESN' })
+                        .select('id')
+                        .single();
+                    if (created.error) throw created.error;
+                    department = created.data;
+                }
+
+                const yearResult = await client
+                    .from('academic_years')
+                    .upsert({
+                        department_id: department.id,
+                        year: currentAcademicYear,
+                        is_active: true
+                    }, { onConflict: 'department_id,year' })
+                    .select('id')
+                    .single();
+                if (yearResult.error) throw yearResult.error;
+                const academicYearId = yearResult.data.id;
+
+                const [courseResult, facultyResult, roomResult] = await Promise.all([
+                    client.from('courses').select('id, code').eq('department_id', department.id),
+                    client.from('faculty').select('id, name').eq('department_id', department.id),
+                    client.from('rooms').select('id, room_code').eq('department_id', department.id)
+                ]);
+
+                if (courseResult.error) throw courseResult.error;
+                if (facultyResult.error) throw facultyResult.error;
+                if (roomResult.error) throw roomResult.error;
+
+                const courseMap = new Map((courseResult.data || []).map((c) => [normalizeCourseCode(c.code), c.id]));
+                const facultyMap = new Map();
+                (facultyResult.data || []).forEach((f) => {
+                    const canonical = String(f.name || '').trim();
+                    if (!canonical) return;
+                    facultyMap.set(normalizeLookupKey(canonical), f.id);
+                });
+                const roomMap = new Map((roomResult.data || []).map((r) => [String(r.room_code || '').trim().toUpperCase(), r.id]));
+
+                // Auto-seed missing references for smoother save UX.
+                const missingCourses = new Map();
+                const missingFaculty = new Map();
+
+                rows.forEach((row) => {
+                    const courseCode = normalizeCourseCode(row.code);
+                    if (courseCode && !courseMap.has(courseCode)) {
+                        missingCourses.set(courseCode, {
+                            department_id: department.id,
+                            code: courseCode,
+                            title: row.name || courseCode,
+                            default_credits: Number(row.credits) || 5
+                        });
+                    }
+
+                    const instructorName = String(row.instructor || '').trim();
+                    const instructorKey = normalizeLookupKey(instructorName);
+                    if (instructorName && instructorName.toUpperCase() !== 'TBD' && !facultyMap.has(instructorKey)) {
+                        missingFaculty.set(instructorName, {
+                            department_id: department.id,
+                            name: instructorName,
+                            category: 'fullTime'
+                        });
+                    }
+                });
+
+                if (missingCourses.size > 0) {
+                    const seeded = await client
+                        .from('courses')
+                        .upsert(Array.from(missingCourses.values()), { onConflict: 'department_id,code' })
+                        .select('id, code');
+                    if (seeded.error) throw seeded.error;
+                    (seeded.data || []).forEach((c) => {
+                        courseMap.set(normalizeCourseCode(c.code), c.id);
+                    });
+                }
+
+                if (missingFaculty.size > 0) {
+                    const seeded = await client
+                        .from('faculty')
+                        .upsert(Array.from(missingFaculty.values()), { onConflict: 'department_id,name' })
+                        .select('id, name');
+                    if (seeded.error) throw seeded.error;
+                    (seeded.data || []).forEach((f) => {
+                        facultyMap.set(normalizeLookupKey(f.name), f.id);
+                    });
+                }
+
+                const records = rows
+                    .map((row, index) => {
+                        const courseCode = normalizeCourseCode(row.code);
+                        if (!courseCode) return null;
+
+                        const roomCode = String(row.room || '').trim().toUpperCase();
+                        const instructorName = String(row.instructor || '').trim();
+                        const projectedEnrollment = Number(row.enrollmentCap);
+
+                        return {
+                            academic_year_id: academicYearId,
+                            course_id: courseMap.get(courseCode) || null,
+                            faculty_id: instructorName && instructorName.toUpperCase() !== 'TBD'
+                                ? (facultyMap.get(normalizeLookupKey(instructorName)) || null)
+                                : null,
+                            room_id: roomCode && roomCode !== 'ONLINE'
+                                ? (roomMap.get(roomCode) || null)
+                                : null,
+                            quarter: row.quarter,
+                            day_pattern: row.day || null,
+                            time_slot: row.time || null,
+                            section: row.section || String(index + 1).padStart(3, '0'),
+                            projected_enrollment: Number.isFinite(projectedEnrollment) ? projectedEnrollment : null,
+                            updated_at: new Date().toISOString()
+                        };
+                    })
+                    .filter(Boolean);
+
+                let saveCounts = await syncScheduledCoursesViaRpc(client, academicYearId, records);
+                if (!saveCounts) {
+                    saveCounts = await syncScheduledCoursesViaClientDiff(client, academicYearId, records);
+                }
+
+                setScheduleDirty(false);
+                showToast(`Saved ${records.length} schedule entries to Supabase (${saveCounts.updated} updated, ${saveCounts.inserted} new${saveCounts.deleted ? `, ${saveCounts.deleted} removed` : ''}).`);
             } catch (error) {
-                console.error('Error saving schedule:', error);
-                showToast('Error saving schedule');
+                console.error('Error saving schedule to Supabase:', error);
+                showToast('Database save failed: ' + (error.message || 'Unknown error'), 'error');
+            } finally {
+                scheduleSaveInProgress = false;
+                updateSaveDbButtonState();
             }
         }
 
@@ -8701,7 +9110,7 @@
          * Get current schedule data from the grid
          */
         function getCurrentScheduleData() {
-            const quarter = document.getElementById('quarterSelect')?.value || 'spring';
+            const quarter = window.StateManager?.get('currentQuarter') || 'spring';
             const quarterCourses = flattenQuarterData(scheduleData[quarter] || {});
             return quarterCourses.map((course, index) => ({
                 code: normalizeCourseCode(course.code),
@@ -8742,6 +9151,13 @@
                 enabled: true,
                 constraint_type: 'ay_setup_alignment',
                 description: 'Academic Year Setup alignment for workload and adjunct targets',
+        /**
+         * Legacy save entry point from header action.
+         */
+        function saveScheduleChanges() {
+            saveScheduleToDatabase();
+        }
+
                 rule_details: {
                     annualOverloadWarning: 3,
                     annualOverloadCritical: 8,

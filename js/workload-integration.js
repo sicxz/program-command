@@ -19,8 +19,74 @@ const WorkloadIntegration = (function() {
 
     const ROLE_TARGET_DEFAULTS = {
         'Tenure/Tenure-track': 36,
+        'Full Professor': 36,
+        'Associate Professor': 36,
+        'Assistant Professor': 36,
+        'Senior Lecturer': 45,
         Lecturer: 45
     };
+
+    // Chair-provided preliminary planning defaults used when AY Setup is missing.
+    // These are name/alias matched and only applied as fallbacks.
+    const PRELIMINARY_ROSTER_TARGET_RULES = [
+        {
+            id: 'travis-tenure',
+            aliases: ['travis', 'travis masingale', 'tmasingale', 'masingale', 't masingale'],
+            role: 'Full Professor',
+            annualTargetCredits: 36,
+            releaseCredits: 0
+        },
+        {
+            id: 'colin-tenure',
+            aliases: ['colin', 'colin manikoth', 'cmanikoth', 'manikoth', 'c manikoth'],
+            role: 'Associate Professor',
+            annualTargetCredits: 36,
+            releaseCredits: 0
+        },
+        {
+            id: 'ginelle-tenure',
+            aliases: ['ginelle', 'ginelle hustrulid', 'ghustrulid', 'hustrulid', 'g hustrulid'],
+            role: 'Full Professor',
+            annualTargetCredits: 36,
+            releaseCredits: 0
+        },
+        {
+            id: 'mindy-chair',
+            aliases: ['mindy', 'mindy breen', 'mbreen', 'breen', 'm breen', 'melinda', 'melinda breen'],
+            role: 'Full Professor',
+            annualTargetCredits: 36,
+            releaseCredits: 18,
+            specialRole: 'Chair'
+        },
+        {
+            id: 'simeon-sam-lecturer',
+            aliases: ['simeon', 'sam', 'simeon mills', 'sam mills', 'smills', 'mills', 's mills'],
+            role: 'Senior Lecturer',
+            annualTargetCredits: 45,
+            releaseCredits: 0
+        },
+        {
+            id: 'sonja-lecturer',
+            aliases: ['sonja', 'sonja durr', 'sdurr', 'durr', 's durr'],
+            role: 'Senior Lecturer',
+            annualTargetCredits: 45,
+            releaseCredits: 0
+        },
+        {
+            id: 'ariel-lecturer',
+            aliases: ['ariel', 'ariel sopu', 'asopu', 'sopu', 'a sopu'],
+            role: 'Lecturer',
+            annualTargetCredits: 45,
+            releaseCredits: 0
+        },
+        {
+            id: 'meg-lecturer',
+            aliases: ['meg', 'meg lybbert', 'meg lybert', 'mlybbert', 'lybbert', 'm lybbert', 'mlybert', 'lybert', 'm lybert'],
+            role: 'Senior Lecturer',
+            annualTargetCredits: 45,
+            releaseCredits: 0
+        }
+    ];
 
     const QUARTER_KEY_TO_NAME = {
         fall: 'Fall',
@@ -74,6 +140,71 @@ const WorkloadIntegration = (function() {
         if (!text) return 'Fall';
         if (QUARTER_KEY_TO_NAME[text.toLowerCase()]) return QUARTER_KEY_TO_NAME[text.toLowerCase()];
         return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+    }
+
+    function createQuarterSummary() {
+        return {
+            Fall: { credits: 0, workload: 0, sections: 0, scheduledCredits: 0, appliedLearningCredits: 0 },
+            Winter: { credits: 0, workload: 0, sections: 0, scheduledCredits: 0, appliedLearningCredits: 0 },
+            Spring: { credits: 0, workload: 0, sections: 0, scheduledCredits: 0, appliedLearningCredits: 0 },
+            Summer: { credits: 0, workload: 0, sections: 0, scheduledCredits: 0, appliedLearningCredits: 0 }
+        };
+    }
+
+    function findPreliminaryRosterTargetRule(name) {
+        const normalized = normalizeNameKey(name);
+        if (!normalized) return null;
+
+        return PRELIMINARY_ROSTER_TARGET_RULES.find((rule) => {
+            return (rule.aliases || []).some((alias) => {
+                const aliasKey = normalizeNameKey(alias);
+                if (!aliasKey) return false;
+                return normalized === aliasKey || normalized.includes(aliasKey) || aliasKey.includes(normalized);
+            });
+        }) || null;
+    }
+
+    function summarizeUnassignedScheduleCourses(courses) {
+        const items = Array.isArray(courses) ? courses : [];
+        const byQuarter = createQuarterSummary();
+
+        items.forEach((course) => {
+            const quarter = normalizeQuarterName(course.quarter);
+            const bucket = byQuarter[quarter] || byQuarter.Fall;
+            const credits = Number(course.credits) || 0;
+            const workload = Number(course.workloadCredits) || Number((credits * getAppliedLearningRate(course.courseCode)).toFixed(3));
+            const isAppliedLearning = getAppliedLearningRate(course.courseCode) < 1;
+
+            bucket.credits = Number((bucket.credits + credits).toFixed(3));
+            bucket.workload = Number((bucket.workload + workload).toFixed(3));
+            bucket.sections += 1;
+            if (isAppliedLearning) {
+                bucket.appliedLearningCredits = Number((bucket.appliedLearningCredits + credits).toFixed(3));
+            } else {
+                bucket.scheduledCredits = Number((bucket.scheduledCredits + credits).toFixed(3));
+            }
+        });
+
+        const totalCredits = items.reduce((sum, course) => sum + (Number(course.credits) || 0), 0);
+        const totalWorkload = items.reduce((sum, course) => {
+            const credits = Number(course.credits) || 0;
+            const multiplier = Number(course.multiplier) || getAppliedLearningRate(course.courseCode);
+            return sum + (Number(course.workloadCredits) || Number((credits * multiplier).toFixed(3)));
+        }, 0);
+
+        return {
+            count: items.length,
+            totalCredits: Number(totalCredits.toFixed(3)),
+            totalWorkloadCredits: Number(totalWorkload.toFixed(3)),
+            byQuarter,
+            courses: items.map((course) => ({
+                courseCode: normalizeCourseCode(course.courseCode || course.code),
+                quarter: normalizeQuarterName(course.quarter),
+                credits: Number(course.credits) || 0,
+                workloadCredits: Number(course.workloadCredits) || Number(((Number(course.credits) || 0) * getAppliedLearningRate(course.courseCode)).toFixed(3)),
+                instructor: String(course.assignedFaculty || course.instructor || 'TBD').trim() || 'TBD'
+            }))
+        };
     }
 
     function parseNameParts(name) {
@@ -298,7 +429,7 @@ const WorkloadIntegration = (function() {
 
         if (category === 'adjunct') return 15;
         const roleText = String(role || '').toLowerCase();
-        if (roleText.includes('tenure')) return 36;
+        if (roleText.includes('tenure') || roleText.includes('professor')) return 36;
         return 45;
     }
 
@@ -405,6 +536,7 @@ const WorkloadIntegration = (function() {
             appliedLearningWorkload: 0,
             totalStudents: 0,
             sections: 0,
+            byQuarter: createQuarterSummary(),
             appliedLearning: {
                 'DESN 399': { credits: 0, workload: 0, students: 0, sections: 0 },
                 'DESN 491': { credits: 0, workload: 0, students: 0, sections: 0 },
@@ -443,9 +575,15 @@ const WorkloadIntegration = (function() {
             summary.totalStudents += students;
             summary.sections += 1;
 
+            const quarterBucket = summary.byQuarter[quarter] || summary.byQuarter.Fall;
+            quarterBucket.credits = Number((quarterBucket.credits + credits).toFixed(3));
+            quarterBucket.workload = Number((quarterBucket.workload + workloadCredits).toFixed(3));
+            quarterBucket.sections += 1;
+
             if (type === 'applied-learning') {
                 summary.appliedLearningCredits += credits;
                 summary.appliedLearningWorkload += workloadCredits;
+                quarterBucket.appliedLearningCredits = Number((quarterBucket.appliedLearningCredits + credits).toFixed(3));
                 if (summary.appliedLearning[code]) {
                     summary.appliedLearning[code].credits += credits;
                     summary.appliedLearning[code].workload += workloadCredits;
@@ -454,6 +592,7 @@ const WorkloadIntegration = (function() {
                 }
             } else {
                 summary.scheduledCredits += credits;
+                quarterBucket.scheduledCredits = Number((quarterBucket.scheduledCredits + credits).toFixed(3));
             }
 
             return normalized;
@@ -467,6 +606,7 @@ const WorkloadIntegration = (function() {
         record.appliedLearningWorkload = Number(summary.appliedLearningWorkload.toFixed(3));
         record.totalStudents = summary.totalStudents;
         record.sections = summary.sections;
+        record.byQuarter = summary.byQuarter;
         record.appliedLearning = summary.appliedLearning;
 
         record.currentWorkload = record.totalWorkloadCredits;
@@ -549,13 +689,28 @@ const WorkloadIntegration = (function() {
         scheduleNames.forEach((name) => ensureRecord(name));
 
         const hasLiveSchedule = scheduleCourses.length > 0;
+        const unassignedScheduleCourses = [];
         if (hasLiveSchedule) {
             recordsByKey.forEach((record) => {
                 record.courses = [];
             });
 
             scheduleCourses.forEach((course, index) => {
-                if (isPlaceholderFaculty(course.assignedFaculty || course.instructor)) return;
+                if (isPlaceholderFaculty(course.assignedFaculty || course.instructor)) {
+                    const code = normalizeCourseCode(course.courseCode || course.code);
+                    const credits = Number(course.credits) || 5;
+                    const multiplier = getAppliedLearningRate(code);
+                    unassignedScheduleCourses.push({
+                        id: course.id || `schedule_unassigned_${index}`,
+                        courseCode: code,
+                        quarter: normalizeQuarterName(course.quarter),
+                        credits,
+                        multiplier,
+                        workloadCredits: Number((credits * multiplier).toFixed(3)),
+                        instructor: String(course.assignedFaculty || course.instructor || 'TBD').trim() || 'TBD'
+                    });
+                    return;
+                }
                 const record = ensureRecord(course.assignedFaculty || course.instructor);
                 if (!record) return;
 
@@ -621,6 +776,10 @@ const WorkloadIntegration = (function() {
             if (key) ayByKey.set(key, record);
         });
 
+        const fallbackRulesApplied = [];
+        const fallbackRuleIdsApplied = new Set();
+        const adjunctAssignedDefaultsApplied = [];
+
         recordsByKey.forEach((record, key) => {
             const ayRecord = ayByKey.get(key);
             const category = inferCategory(record.facultyName, ayRecord?.role || record.rank, record.category);
@@ -644,9 +803,87 @@ const WorkloadIntegration = (function() {
                 record.ayReleasePercent = Number.isFinite(Number(ayRecord.releasePercent))
                     ? Number(ayRecord.releasePercent)
                     : (target > 0 ? Number(((releaseCredits / target) * 100).toFixed(1)) : 0);
+                record.ayReleaseReason = String(ayRecord.releaseReason || '').trim();
+                record.ayNotes = String(ayRecord.notes || '').trim();
+                record.ayActive = ayRecord.active !== false;
+                const ayChairFlag = ayRecord.isChair === true || /chair/i.test(record.ayReleaseReason);
+                if (ayChairFlag) {
+                    record.specialRole = 'Chair';
+                } else if (record.specialRole === 'Chair') {
+                    delete record.specialRole;
+                }
                 record.maxWorkload = netTarget > 0 ? netTarget : target;
             } else {
-                record.maxWorkload = inferDefaultMaxWorkload(record.rank, category, record.maxWorkload);
+                const fallbackRule = findPreliminaryRosterTargetRule(record.facultyName);
+                if (fallbackRule) {
+                    const target = Number(fallbackRule.annualTargetCredits) || inferDefaultMaxWorkload(fallbackRule.role, category, record.maxWorkload);
+                    const releaseCredits = Number(fallbackRule.releaseCredits) || 0;
+                    const netTarget = Math.max(0, target - releaseCredits);
+
+                    record.rank = fallbackRule.role || record.rank;
+                    record.ayRole = fallbackRule.role || '';
+                    record.ayTargetCredits = Number(target.toFixed(2));
+                    record.ayReleaseCredits = Number(releaseCredits.toFixed(2));
+                    record.ayNetTargetCredits = Number(netTarget.toFixed(2));
+                    record.ayReleasePercent = target > 0
+                        ? Number(((releaseCredits / target) * 100).toFixed(1))
+                        : 0;
+                    if (fallbackRule.specialRole) {
+                        record.specialRole = fallbackRule.specialRole;
+                    }
+                    record.maxWorkload = netTarget > 0 ? netTarget : target;
+
+                    if (!fallbackRuleIdsApplied.has(fallbackRule.id)) {
+                        fallbackRuleIdsApplied.add(fallbackRule.id);
+                        fallbackRulesApplied.push({
+                            id: fallbackRule.id,
+                            role: fallbackRule.role,
+                            annualTargetCredits: Number(target.toFixed(2)),
+                            releaseCredits: Number(releaseCredits.toFixed(2)),
+                            netTargetCredits: Number(netTarget.toFixed(2)),
+                            specialRole: fallbackRule.specialRole || '',
+                            matchedFaculty: [record.facultyName]
+                        });
+                    } else {
+                        const entry = fallbackRulesApplied.find((rule) => rule.id === fallbackRule.id);
+                        if (entry && !entry.matchedFaculty.includes(record.facultyName)) {
+                            entry.matchedFaculty.push(record.facultyName);
+                        }
+                    }
+                } else {
+                    const isFormer = String(record.category || '').toLowerCase() === 'former';
+                    const hasAssignedWorkload = Number(record.totalWorkloadCredits) > 0
+                        || (Array.isArray(record.courses) && record.courses.length > 0);
+
+                    if (!isFormer && hasAssignedWorkload) {
+                        const assignedTarget = Number((Array.isArray(record.courses)
+                            ? record.courses.reduce((sum, course) => {
+                                const workload = Number(course?.workloadCredits);
+                                const credits = Number(course?.credits);
+                                return sum + (Number.isFinite(workload) ? workload : (Number.isFinite(credits) ? credits : 0));
+                            }, 0)
+                            : Number(record.totalWorkloadCredits) || 0).toFixed(2));
+
+                        record.category = 'adjunct';
+                        record.rank = 'Adjunct';
+                        record.ayRole = 'Adjunct';
+                        record.ayTargetCredits = assignedTarget;
+                        record.ayReleaseCredits = 0;
+                        record.ayNetTargetCredits = assignedTarget;
+                        record.ayReleasePercent = 0;
+                        record.ayReleaseReason = '';
+                        record.ayNotes = String(record.ayNotes || '').trim();
+                        record.ayActive = true;
+                        record.maxWorkload = assignedTarget;
+
+                        adjunctAssignedDefaultsApplied.push({
+                            facultyName: record.facultyName,
+                            assignedTargetCredits: assignedTarget
+                        });
+                    } else {
+                        record.maxWorkload = inferDefaultMaxWorkload(record.rank, category, record.maxWorkload);
+                    }
+                }
             }
 
             recalcFacultyRecord(record);
@@ -669,6 +906,21 @@ const WorkloadIntegration = (function() {
             }
         });
 
+        const unresolvedSummary = summarizeUnassignedScheduleCourses(unassignedScheduleCourses);
+        const preliminaryAssumptions = [
+            'Teaching workload is derived from the Program Command scheduler draft for the selected academic year.',
+            'DESN 399/491/499 use 0.2 workload rate and DESN 495 uses 0.1 workload rate.',
+            'TBD/Staff/blank instructor assignments are excluded from faculty totals and listed as unresolved sections.',
+            'Non-teaching workload (service/research/PTOL/other assigned time) is not derived from the schedule and should be reviewed manually unless AY setup release credits are entered.'
+        ];
+
+        if (fallbackRulesApplied.length > 0) {
+            preliminaryAssumptions.push('Fallback chair planning targets were applied for matched faculty (tenure/tenure-track 36, lecturers 45, Mindy chair teaching target 18 via 18-credit release).');
+        }
+        if (adjunctAssignedDefaultsApplied.length > 0) {
+            preliminaryAssumptions.push('Unlisted instructors are treated as adjuncts by default; adjunct target credits default to their currently assigned AY workload unless edited in AY Setup / workload planning.');
+        }
+
         return {
             all,
             fullTime,
@@ -678,9 +930,14 @@ const WorkloadIntegration = (function() {
                 source: 'integrated',
                 year,
                 scheduleCourses: scheduleCourses.length,
+                assignedScheduleCourses: Math.max(0, scheduleCourses.length - unresolvedSummary.count),
+                unresolvedScheduleCourses: unresolvedSummary,
                 ayFaculty: ayFaculty.length,
                 detailFaculty: Object.keys(detailFacultyMap).length,
-                hasLiveSchedule
+                hasLiveSchedule,
+                preliminaryAssumptions,
+                fallbackTargetRulesApplied: fallbackRulesApplied,
+                adjunctAssignedDefaultsApplied
             }
         };
     }

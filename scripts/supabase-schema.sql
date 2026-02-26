@@ -132,19 +132,84 @@ CREATE POLICY "Public read" ON faculty_preferences FOR SELECT USING (true);
 CREATE POLICY "Public read" ON scheduling_constraints FOR SELECT USING (true);
 CREATE POLICY "Public read" ON release_time FOR SELECT USING (true);
 
--- Public write access (restrict later when adding auth)
-CREATE POLICY "Public write" ON departments FOR ALL USING (true);
-CREATE POLICY "Public write" ON academic_years FOR ALL USING (true);
-CREATE POLICY "Public write" ON rooms FOR ALL USING (true);
-CREATE POLICY "Public write" ON courses FOR ALL USING (true);
-CREATE POLICY "Public write" ON faculty FOR ALL USING (true);
-CREATE POLICY "Public write" ON scheduled_courses FOR ALL USING (true);
-CREATE POLICY "Public write" ON faculty_preferences FOR ALL USING (true);
-CREATE POLICY "Public write" ON scheduling_constraints FOR ALL USING (true);
-CREATE POLICY "Public write" ON release_time FOR ALL USING (true);
+-- Write access is restricted to authenticated users.
+-- Assumption: the client uses the Supabase anon key for public reads, and
+-- authenticated chair/admin sessions (or a server/service role) for writes.
+-- This prevents anonymous clients from inserting/updating/deleting scheduling data.
+CREATE POLICY "Authenticated write" ON departments
+  FOR ALL TO authenticated
+  USING (true)
+  WITH CHECK (true);
+CREATE POLICY "Authenticated write" ON academic_years
+  FOR ALL TO authenticated
+  USING (true)
+  WITH CHECK (true);
+CREATE POLICY "Authenticated write" ON rooms
+  FOR ALL TO authenticated
+  USING (true)
+  WITH CHECK (true);
+CREATE POLICY "Authenticated write" ON courses
+  FOR ALL TO authenticated
+  USING (true)
+  WITH CHECK (true);
+CREATE POLICY "Authenticated write" ON faculty
+  FOR ALL TO authenticated
+  USING (true)
+  WITH CHECK (true);
+CREATE POLICY "Authenticated write" ON scheduled_courses
+  FOR ALL TO authenticated
+  USING (true)
+  WITH CHECK (true);
+CREATE POLICY "Authenticated write" ON faculty_preferences
+  FOR ALL TO authenticated
+  USING (true)
+  WITH CHECK (true);
+CREATE POLICY "Authenticated write" ON scheduling_constraints
+  FOR ALL TO authenticated
+  USING (true)
+  WITH CHECK (true);
+CREATE POLICY "Authenticated write" ON release_time
+  FOR ALL TO authenticated
+  USING (true)
+  WITH CHECK (true);
 
 -- Insert initial Design department
 INSERT INTO departments (name, code) VALUES ('Design', 'DESN');
 
+-- Student Pathways (Tracks & Minors)
+CREATE TABLE pathways (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  department_id UUID REFERENCES departments(id),
+  name VARCHAR(100) NOT NULL,
+  type VARCHAR(50) NOT NULL, -- 'minor' or 'track'
+  color VARCHAR(20) DEFAULT '#3498db',
+  typical BOOLEAN DEFAULT true,
+  notes TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Pathway Requirements (Join Table)
+CREATE TABLE pathway_courses (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  pathway_id UUID REFERENCES pathways(id) ON DELETE CASCADE,
+  course_id UUID REFERENCES courses(id) ON DELETE CASCADE,
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(pathway_id, course_id)
+);
+
+ALTER TABLE pathways ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pathway_courses ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Public read" ON pathways FOR SELECT USING (true);
+CREATE POLICY "Authenticated write" ON pathways
+  FOR ALL TO authenticated
+  USING (true)
+  WITH CHECK (true);
+CREATE POLICY "Public read" ON pathway_courses FOR SELECT USING (true);
+CREATE POLICY "Authenticated write" ON pathway_courses
+  FOR ALL TO authenticated
+  USING (true)
+  WITH CHECK (true);
+
 -- Success message
-SELECT 'Schema created successfully! Tables: departments, academic_years, rooms, courses, faculty, scheduled_courses, faculty_preferences, scheduling_constraints, release_time' as status;
+SELECT 'Schema created successfully! Tables: departments, academic_years, rooms, courses, faculty, scheduled_courses, faculty_preferences, scheduling_constraints, release_time, pathways, pathway_courses' as status;
