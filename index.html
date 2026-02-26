@@ -1694,6 +1694,364 @@
             margin-bottom: 6px;
         }
 
+        .clss-import-modal {
+            width: min(96vw, 1100px);
+            max-width: 1100px;
+        }
+
+        .clss-import-layout {
+            display: grid;
+            gap: 16px;
+        }
+
+        .clss-import-top-row {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 12px;
+            align-items: start;
+        }
+
+        .clss-import-panel {
+            border: 1px solid #d0d7de;
+            border-radius: 10px;
+            background: #fff;
+            padding: 12px;
+        }
+
+        .clss-import-panel h4 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #24292f;
+        }
+
+        .clss-import-panel label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #57606a;
+            margin-bottom: 6px;
+        }
+
+        .clss-import-field {
+            margin-bottom: 10px;
+        }
+
+        .clss-import-field:last-child {
+            margin-bottom: 0;
+        }
+
+        .clss-import-panel input[type="file"],
+        .clss-import-panel select,
+        .clss-import-panel textarea {
+            width: 100%;
+            border: 1px solid #d0d7de;
+            border-radius: 8px;
+            background: #fff;
+            color: #24292f;
+            font: inherit;
+            padding: 8px 10px;
+        }
+
+        .clss-import-panel textarea {
+            min-height: 220px;
+            resize: vertical;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 12px;
+            line-height: 1.45;
+        }
+
+        .clss-import-batch-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .clss-import-batch-panel {
+            border: 1px solid #d8dee4;
+            border-radius: 8px;
+            background: #f6f8fa;
+            padding: 8px;
+        }
+
+        .clss-import-batch-panel h5 {
+            margin: 0 0 6px 0;
+            font-size: 12px;
+            color: #24292f;
+        }
+
+        .clss-import-batch-panel textarea {
+            min-height: 160px;
+            background: #fff;
+        }
+
+        .clss-import-hidden {
+            display: none !important;
+        }
+
+        .clss-import-inline-controls {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .clss-import-checkbox {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            font-size: 13px;
+            color: #24292f;
+            line-height: 1.35;
+        }
+
+        .clss-import-checkbox input {
+            margin-top: 2px;
+        }
+
+        .clss-import-help-text {
+            font-size: 12px;
+            color: #57606a;
+            line-height: 1.35;
+        }
+
+        .clss-import-workloads-instructions {
+            margin-top: 6px;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .clss-import-workloads-instructions ul {
+            margin: 8px 0 0 16px;
+            padding: 0;
+        }
+
+        .clss-import-workloads-instructions li + li {
+            margin-top: 4px;
+        }
+
+        .clss-import-control-disabled {
+            opacity: 0.55;
+        }
+
+        .clss-import-control-disabled input,
+        .clss-import-control-disabled select,
+        .clss-import-control-disabled button,
+        .clss-import-control-disabled textarea {
+            cursor: not-allowed;
+        }
+
+        .clss-import-file-list {
+            margin-top: 8px;
+            font-size: 12px;
+            color: #57606a;
+            background: #f6f8fa;
+            border: 1px solid #d8dee4;
+            border-radius: 8px;
+            padding: 8px;
+            min-height: 38px;
+        }
+
+        .clss-import-review-summary {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .clss-import-summary-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 8px;
+            border-radius: 999px;
+            border: 1px solid #d0d7de;
+            background: #f6f8fa;
+            font-size: 12px;
+            color: #24292f;
+        }
+
+        .clss-import-table-wrap {
+            border: 1px solid #d0d7de;
+            border-radius: 10px;
+            overflow: auto;
+            max-height: 360px;
+            background: #fff;
+        }
+
+        .clss-import-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            min-width: 900px;
+        }
+
+        .clss-import-table th,
+        .clss-import-table td {
+            border-bottom: 1px solid #eaeef2;
+            padding: 8px;
+            vertical-align: top;
+            text-align: left;
+        }
+
+        .clss-import-table th {
+            position: sticky;
+            top: 0;
+            background: #f6f8fa;
+            z-index: 1;
+            color: #57606a;
+            font-weight: 600;
+        }
+
+        .clss-import-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .clss-import-status {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 2px 8px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+            border: 1px solid transparent;
+            white-space: nowrap;
+        }
+
+        .clss-import-status.ready {
+            color: #116329;
+            background: #dafbe1;
+            border-color: #a7d7a9;
+        }
+
+        .clss-import-status.online {
+            color: #0969da;
+            background: #ddf4ff;
+            border-color: #9ecbff;
+        }
+
+        .clss-import-status.arranged {
+            color: #8250df;
+            background: #fbefff;
+            border-color: #d8b9ff;
+        }
+
+        .clss-import-status.needs-review {
+            color: #9a6700;
+            background: #fff8c5;
+            border-color: #eac54f;
+        }
+
+        .clss-import-status.error {
+            color: #cf222e;
+            background: #ffebe9;
+            border-color: #ffb3ad;
+        }
+
+        .clss-import-notes {
+            display: grid;
+            gap: 4px;
+            max-width: 280px;
+        }
+
+        .clss-import-note-item {
+            color: #57606a;
+        }
+
+        .clss-import-resolve-controls {
+            display: grid;
+            gap: 6px;
+            min-width: 220px;
+        }
+
+        .clss-import-resolve-controls .row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .clss-import-resolve-controls .row.single {
+            grid-template-columns: 1fr;
+        }
+
+        .clss-import-resolve-controls select,
+        .clss-import-resolve-controls button {
+            width: 100%;
+            border: 1px solid #d0d7de;
+            border-radius: 6px;
+            background: #fff;
+            color: #24292f;
+            font: inherit;
+            font-size: 12px;
+            padding: 5px 6px;
+        }
+
+        .clss-import-resolve-controls button {
+            cursor: pointer;
+            background: #f6f8fa;
+        }
+
+        .clss-import-resolve-controls button:hover {
+            background: #eef2f6;
+        }
+
+        .clss-import-resolve-controls select:disabled,
+        .clss-import-resolve-controls button:disabled {
+            background: #f6f8fa;
+            color: #8c959f;
+            border-color: #d8dee4;
+            cursor: not-allowed;
+        }
+
+        .clss-import-resolve-controls button:disabled:hover {
+            background: #f6f8fa;
+        }
+
+        .clss-import-resolve-label {
+            font-size: 11px;
+            color: #57606a;
+            margin-bottom: -2px;
+        }
+
+        .clss-import-raw {
+            margin-top: 2px;
+        }
+
+        .clss-import-raw summary {
+            cursor: pointer;
+            color: #0969da;
+        }
+
+        .clss-import-raw pre {
+            white-space: pre-wrap;
+            margin: 6px 0 0 0;
+            padding: 6px;
+            background: #f6f8fa;
+            border-radius: 6px;
+            border: 1px solid #eaeef2;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        .clss-import-empty {
+            padding: 16px;
+            border: 1px dashed #d0d7de;
+            border-radius: 8px;
+            color: #57606a;
+            background: #f6f8fa;
+            font-size: 13px;
+        }
+
+        @media (max-width: 900px) {
+            .clss-import-top-row {
+                grid-template-columns: 1fr;
+            }
+
+            .clss-import-batch-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
         .api-provider-type {
             margin-top: 12px;
             margin-bottom: 8px;
@@ -3894,6 +4252,9 @@
                     </button>
                     <button class="btn-ewu-accent btn-add-course-main" onclick="openAddCourseModal()">
                         <span class="btn-add-icon">+</span> Add Course
+                    </button>
+                    <button class="btn-ewu-accent btn-add-course-main" onclick="openClssImportModal()">
+                        📥 Import CLSS
                     </button>
                     <button class="btn-ewu-accent btn-add-course-main" onclick="openWorkloadReviewFromScheduler()">
                         👥 Make Workloads
@@ -7020,7 +7381,7 @@
 
         let displacedCourses = [];
         let courseToDelete = null;
-        let swapMode = false; // false = displace, true = swap
+        let swapMode = true; // false = displace, true = swap
         let scheduleDirty = false;
         let scheduleSaveInProgress = false;
         const dirtyYears = new Set();
@@ -7037,7 +7398,7 @@
         // Load swap mode preference
         function loadSwapMode() {
             const saved = localStorage.getItem('swapMode');
-            swapMode = saved === 'true';
+            swapMode = saved === null ? true : saved === 'true';
             document.getElementById('swapModeToggle').checked = swapMode;
             updateSwapModeLabels();
         }
@@ -7448,6 +7809,2173 @@
         }
 
         // ============================================
+        // CLSS IMPORT (REVIEW-FIRST)
+        // ============================================
+
+        const CLSS_IMPORT_ALLOWED_ROOMS = new Set(['206', '207', '209', '210', '212', 'CEB 102', 'CEB 104']);
+        const CLSS_IMPORT_QUARTERS = ['fall', 'winter', 'spring'];
+        const CLSS_IMPORT_QUARTER_LABELS = {
+            fall: 'Fall',
+            winter: 'Winter',
+            spring: 'Spring'
+        };
+        const CLSS_WORKLOAD_IMPORT_STORAGE_KEY = 'programCommandClssWorkloadImport';
+        const CLSS_IMPORT_STATUS_LABELS = {
+            ready: 'Ready',
+            online: 'Online',
+            arranged: 'Arranged',
+            'needs-review': 'Needs Review',
+            error: 'Error'
+        };
+
+        let clssImportPreviewRows = [];
+        let clssImportOcrInProgress = false;
+        let clssImportOcrLibraryPromise = null;
+        let clssImportPriorYearPlacementIndexCache = new Map();
+
+        function openClssImportModal() {
+            const modal = document.getElementById('clssImportModal');
+            const quarterSelect = document.getElementById('clssImportQuarter');
+            if (quarterSelect) {
+                quarterSelect.value = (window.StateManager?.get('currentQuarter')) || 'spring';
+            }
+            populateClssImportTargetYearOptions();
+            refreshClssImportModeUi();
+            toggleClssImportInputMode();
+            handleClssImportPngSelection();
+            modal?.classList.add('active');
+        }
+
+        function closeClssImportModal(event) {
+            if (event && event.target && event.target !== event.currentTarget) {
+                return;
+            }
+            document.getElementById('clssImportModal')?.classList.remove('active');
+        }
+
+        function invalidateClssImportPreview() {
+            if (!clssImportPreviewRows.length) {
+                return;
+            }
+            clssImportPreviewRows = [];
+            renderClssImportReview([]);
+        }
+
+        function refreshClssImportPreviewReview() {
+            if (!clssImportPreviewRows.length) {
+                return;
+            }
+            renderClssImportReview(clssImportPreviewRows);
+        }
+
+        function getClssImportScope() {
+            return document.getElementById('clssImportScope')?.value === 'all' ? 'all' : 'single';
+        }
+
+        function getClssImportBuildMode() {
+            return document.getElementById('clssImportBuildMode')?.value === 'workloads' ? 'workloads' : 'schedule';
+        }
+
+        function refreshClssImportModeUi() {
+            const mode = getClssImportBuildMode();
+            const applyBtn = document.getElementById('clssImportApplyButton');
+            const helpEl = document.getElementById('clssImportModeHelp');
+            const resolveColHeader = document.getElementById('clssImportResolveHeader');
+            const yearModeSelect = document.getElementById('clssImportTargetYearMode');
+            const replaceCheckbox = document.getElementById('clssImportReplaceQuarter');
+            const replaceControl = document.getElementById('clssImportReplaceQuarterControl');
+            const scheduleModeHelp = document.getElementById('clssImportScheduleModeHelp');
+            const workloadsInstructions = document.getElementById('clssImportWorkloadsInstructions');
+            const isWorkloadsMode = mode === 'workloads';
+
+            if (applyBtn) {
+                applyBtn.textContent = isWorkloadsMode ? 'Build Workloads' : 'Apply Import';
+            }
+
+            if (helpEl) {
+                helpEl.textContent = isWorkloadsMode
+                    ? 'Workloads mode imports CLSS rows into a workload handoff dataset for the selected academic year. It does not place courses into the scheduler grid.'
+                    : 'Schedule mode imports rows into scheduler grid/online/arranged sections and uses slot/room placement logic.';
+            }
+
+            if (resolveColHeader) {
+                resolveColHeader.textContent = isWorkloadsMode ? 'Workload Overrides' : 'Resolve';
+            }
+
+            if (isWorkloadsMode && yearModeSelect && yearModeSelect.value !== 'next') {
+                yearModeSelect.value = 'next';
+                invalidateClssImportPriorYearPlacementCache();
+            }
+
+            if (replaceCheckbox) {
+                if (isWorkloadsMode && replaceCheckbox.checked) {
+                    replaceCheckbox.checked = false;
+                }
+                replaceCheckbox.disabled = isWorkloadsMode;
+            }
+
+            replaceControl?.classList.toggle('clss-import-control-disabled', isWorkloadsMode);
+            scheduleModeHelp?.classList.toggle('clss-import-hidden', isWorkloadsMode);
+            workloadsInstructions?.classList.toggle('clss-import-hidden', !isWorkloadsMode);
+
+            refreshClssImportPreviewReview();
+        }
+
+        function toggleClssImportInputMode() {
+            const scope = getClssImportScope();
+            const singleField = document.getElementById('clssImportSingleTextField');
+            const batchFields = document.getElementById('clssImportBatchTextFields');
+            const quarterField = document.getElementById('clssImportQuarter')?.closest('.clss-import-field');
+            const replaceLabel = document.getElementById('clssImportReplaceLabel');
+
+            singleField?.classList.toggle('clss-import-hidden', scope === 'all');
+            batchFields?.classList.toggle('clss-import-hidden', scope !== 'all');
+            quarterField?.classList.toggle('clss-import-hidden', scope === 'all');
+
+            if (replaceLabel) {
+                replaceLabel.textContent = scope === 'all'
+                    ? 'Replace each imported quarter before import (clear Fall/Winter/Spring buckets that have pasted text)'
+                    : 'Replace target quarter before import (clear existing quarter schedule buckets first)';
+            }
+
+            refreshClssImportPreviewReview();
+        }
+
+        function applyClssRolloutPreset() {
+            const yearModeSelect = document.getElementById('clssImportTargetYearMode');
+            const scopeSelect = document.getElementById('clssImportScope');
+            const buildModeSelect = document.getElementById('clssImportBuildMode');
+            const replaceCheckbox = document.getElementById('clssImportReplaceQuarter');
+
+            if (yearModeSelect) {
+                yearModeSelect.value = 'next';
+            }
+            if (scopeSelect) {
+                scopeSelect.value = 'all';
+            }
+            if (buildModeSelect) {
+                buildModeSelect.value = 'schedule';
+            }
+            if (replaceCheckbox) {
+                replaceCheckbox.checked = false;
+            }
+
+            refreshClssImportModeUi();
+            toggleClssImportInputMode();
+            invalidateClssImportPreview();
+            refreshClssImportPreviewReview();
+            showToast('Rollout preset enabled: Next academic year + All three quarters');
+        }
+
+        function applyClssWorkloadsPreset() {
+            const yearModeSelect = document.getElementById('clssImportTargetYearMode');
+            const scopeSelect = document.getElementById('clssImportScope');
+            const buildModeSelect = document.getElementById('clssImportBuildMode');
+            const replaceCheckbox = document.getElementById('clssImportReplaceQuarter');
+
+            if (yearModeSelect) {
+                yearModeSelect.value = 'next';
+            }
+            if (scopeSelect) {
+                scopeSelect.value = 'all';
+            }
+            if (buildModeSelect) {
+                buildModeSelect.value = 'workloads';
+            }
+            if (replaceCheckbox) {
+                replaceCheckbox.checked = false;
+            }
+
+            refreshClssImportModeUi();
+            toggleClssImportInputMode();
+            invalidateClssImportPreview();
+            refreshClssImportPreviewReview();
+            showToast('Workloads preset enabled: Build Workloads + Next academic year + All three quarters');
+        }
+
+        function populateClssImportTargetYearOptions() {
+            const select = document.getElementById('clssImportTargetYearMode');
+            if (!select) return;
+
+            const currentYearLabel = currentAcademicYear || (window.StateManager?.get('currentAcademicYear')) || '2025-26';
+            const nextYearLabel = getNextAcademicYearFromLabel(currentYearLabel) || currentYearLabel;
+
+            const currentOpt = select.querySelector('option[value="current"]');
+            const nextOpt = select.querySelector('option[value="next"]');
+            if (currentOpt) currentOpt.textContent = `This academic year (${currentYearLabel})`;
+            if (nextOpt) nextOpt.textContent = `Next academic year (${nextYearLabel})`;
+            const workloadsYearHint = document.getElementById('clssImportWorkloadsNextYearLabel');
+            if (workloadsYearHint) workloadsYearHint.textContent = nextYearLabel;
+        }
+
+        function getClssImportTargetAcademicYear() {
+            const mode = document.getElementById('clssImportTargetYearMode')?.value || 'current';
+            const currentYearLabel = currentAcademicYear || (window.StateManager?.get('currentAcademicYear')) || '2025-26';
+            if (mode === 'next') {
+                return getNextAcademicYearFromLabel(currentYearLabel) || currentYearLabel;
+            }
+            return currentYearLabel;
+        }
+
+        function getNextAcademicYearFromLabel(academicYear) {
+            const parts = String(academicYear || '').split('-');
+            if (parts.length !== 2) return null;
+
+            const start = Number(parts[0]);
+            const end = Number(parts[1]);
+            if (!Number.isFinite(start) || !Number.isFinite(end)) return null;
+            return `${start + 1}-${end + 1}`;
+        }
+
+        function getPreviousAcademicYearFromLabel(academicYear) {
+            const parts = String(academicYear || '').split('-');
+            if (parts.length !== 2) return null;
+
+            const start = Number(parts[0]);
+            const end = Number(parts[1]);
+            if (!Number.isFinite(start) || !Number.isFinite(end)) return null;
+            return `${start - 1}-${end - 1}`;
+        }
+
+        function invalidateClssImportPriorYearPlacementCache() {
+            clssImportPriorYearPlacementIndexCache = new Map();
+        }
+
+        function handleClssImportPngSelection() {
+            const input = document.getElementById('clssImportPngInput');
+            const summaryEl = document.getElementById('clssImportPngSummary');
+            if (!summaryEl) return;
+
+            const files = Array.from(input?.files || []);
+            if (!files.length) {
+                summaryEl.textContent = 'No screenshots selected.';
+                return;
+            }
+
+            const previewNames = files.slice(0, 4).map((file) => file.name);
+            const remaining = files.length - previewNames.length;
+            const suffix = remaining > 0 ? ` (+${remaining} more)` : '';
+            summaryEl.textContent = `${files.length} PNG screenshot${files.length === 1 ? '' : 's'} selected: ${previewNames.join(', ')}${suffix}. If the CLSS text boxes are empty, Parse Preview will OCR these screenshots automatically.`;
+
+            invalidateClssImportPreview();
+        }
+
+        async function parseClssImportPreview() {
+            if (clssImportOcrInProgress) {
+                showToast('OCR is already running for uploaded screenshots. Please wait...', 'error');
+                return;
+            }
+
+            const pngCount = (document.getElementById('clssImportPngInput')?.files || []).length;
+            let parseSources = getClssImportParseSources();
+            let hasAnyText = parseSources.some((source) => source.text);
+
+            if (!hasAnyText && pngCount > 0) {
+                const ocrResult = await populateClssImportTextFromPngs();
+                if (!ocrResult.ok) {
+                    renderClssImportReview([]);
+                    showToast(ocrResult.message || 'Could not extract text from PNG screenshots', 'error');
+                    return;
+                }
+
+                parseSources = getClssImportParseSources();
+                hasAnyText = parseSources.some((source) => source.text);
+            }
+
+            if (!hasAnyText) {
+                renderClssImportReview([]);
+                if (pngCount > 0) {
+                    showToast('PNG selected, but no OCR text was produced. Try a clearer screenshot or paste CLSS text.', 'error');
+                } else {
+                    showToast('Paste CLSS/OCR text to parse a review preview', 'error');
+                }
+                return;
+            }
+
+            const parseResult = parseClssImportSources(parseSources);
+            applyClssPriorYearAutoSuggestionsToRows(parseResult.rows, getClssImportTargetAcademicYear());
+            clssImportPreviewRows = parseResult.rows;
+            renderClssImportReview(clssImportPreviewRows, parseResult.meta);
+
+            if (!clssImportPreviewRows.length) {
+                showToast('No CLSS-style rows detected. Check pasted text formatting.', 'error');
+                return;
+            }
+
+            const effectiveRows = clssImportPreviewRows.map((row) => getClssImportRowEffectiveState(row));
+            const readyCount = effectiveRows.filter((row) => row.effectiveStatus === 'ready').length;
+            const needsReviewCount = effectiveRows.filter((row) => row.effectiveStatus === 'needs-review').length;
+            showToast(`Parsed ${clssImportPreviewRows.length} row${clssImportPreviewRows.length === 1 ? '' : 's'} (${readyCount} ready${needsReviewCount ? `, ${needsReviewCount} needs review` : ''})`);
+        }
+
+        async function populateClssImportTextFromPngs() {
+            const input = document.getElementById('clssImportPngInput');
+            const files = Array.from(input?.files || []);
+            const summaryEl = document.getElementById('clssImportPngSummary');
+            const scope = getClssImportScope();
+
+            if (!files.length) {
+                return { ok: false, message: 'No PNG screenshots selected.' };
+            }
+
+            clssImportOcrInProgress = true;
+            if (summaryEl) {
+                summaryEl.textContent = `Running OCR on ${files.length} screenshot${files.length === 1 ? '' : 's'}... this can take a minute.`;
+            }
+            showToast(`Running OCR on ${files.length} screenshot${files.length === 1 ? '' : 's'}...`);
+
+            try {
+                const Tesseract = await ensureClssOcrLibrary();
+                const ocrResults = [];
+
+                for (let index = 0; index < files.length; index += 1) {
+                    const file = files[index];
+                    if (summaryEl) {
+                        summaryEl.textContent = `OCR ${index + 1}/${files.length}: ${file.name}`;
+                    }
+
+                    const result = await Tesseract.recognize(file, 'eng');
+                    const text = String(result?.data?.text || '').trim();
+                    ocrResults.push({ fileName: file.name, text });
+                }
+
+                const applied = applyClssOcrResultsToImportInputs(ocrResults, scope);
+                if (summaryEl) {
+                    if (applied.ok) {
+                        summaryEl.textContent = `OCR complete for ${files.length} screenshot${files.length === 1 ? '' : 's'}. Review/parse the extracted text below.`;
+                    } else {
+                        summaryEl.textContent = `OCR finished, but some screenshots need manual quarter routing.`;
+                    }
+                }
+
+                return applied;
+            } catch (error) {
+                console.error('CLSS OCR failed:', error);
+                if (summaryEl) {
+                    summaryEl.textContent = 'OCR failed. You can still paste OCR/CLSS text manually.';
+                }
+                return {
+                    ok: false,
+                    message: `PNG OCR failed: ${error?.message || 'unknown error'}`
+                };
+            } finally {
+                clssImportOcrInProgress = false;
+            }
+        }
+
+        function applyClssOcrResultsToImportInputs(ocrResults, scope) {
+            if (!Array.isArray(ocrResults) || !ocrResults.length) {
+                return { ok: false, message: 'No OCR output returned from screenshots.' };
+            }
+
+            if (scope !== 'all') {
+                const singleTextEl = document.getElementById('clssImportText');
+                if (!singleTextEl) {
+                    return { ok: false, message: 'CLSS import text input not found.' };
+                }
+
+                const combinedText = ocrResults
+                    .map((result) => {
+                        const text = String(result.text || '').trim();
+                        if (!text) return '';
+                        return `===== ${result.fileName} =====\n${text}`;
+                    })
+                    .filter(Boolean)
+                    .join('\n\n');
+
+                if (!combinedText.trim()) {
+                    return { ok: false, message: 'OCR ran, but no text was detected in the uploaded PNGs.' };
+                }
+
+                singleTextEl.value = combinedText;
+                return { ok: true, message: 'OCR text extracted from PNGs.' };
+            }
+
+            const targets = {
+                fall: document.getElementById('clssImportTextFall'),
+                winter: document.getElementById('clssImportTextWinter'),
+                spring: document.getElementById('clssImportTextSpring')
+            };
+
+            const routed = { fall: [], winter: [], spring: [] };
+            const unassigned = [];
+
+            ocrResults.forEach((result) => {
+                const text = String(result.text || '').trim();
+                if (!text) {
+                    unassigned.push(`${result.fileName} (no text detected)`);
+                    return;
+                }
+
+                const quarter = inferClssQuarterFromOcrPayload(result.fileName, text);
+                if (!quarter) {
+                    unassigned.push(result.fileName);
+                    return;
+                }
+
+                routed[quarter].push(`===== ${result.fileName} =====\n${text}`);
+            });
+
+            CLSS_IMPORT_QUARTERS.forEach((quarter) => {
+                const targetEl = targets[quarter];
+                if (!targetEl) return;
+                if (routed[quarter].length > 0) {
+                    targetEl.value = routed[quarter].join('\n\n');
+                }
+            });
+
+            const assignedCount = CLSS_IMPORT_QUARTERS.reduce((sum, quarter) => sum + routed[quarter].length, 0);
+            if (assignedCount === 0) {
+                return {
+                    ok: false,
+                    message: 'OCR text was extracted, but batch mode could not determine which screenshots are Fall/Winter/Spring. Include quarter names in filenames or paste text into the quarter boxes.'
+                };
+            }
+
+            if (unassigned.length > 0) {
+                return {
+                    ok: false,
+                    message: `OCR extracted text, but ${unassigned.length} screenshot(s) could not be assigned to Fall/Winter/Spring in batch mode: ${unassigned.slice(0, 3).join(', ')}${unassigned.length > 3 ? '...' : ''}`
+                };
+            }
+
+            return { ok: true, message: 'OCR text extracted and assigned to quarter boxes.' };
+        }
+
+        function inferClssQuarterFromOcrPayload(fileName, text) {
+            const fromFileName = detectClssQuarterKeyword(fileName);
+            if (fromFileName) return fromFileName;
+
+            const textSample = String(text || '').slice(0, 1200);
+            return detectClssQuarterKeyword(textSample);
+        }
+
+        function detectClssQuarterKeyword(value) {
+            const normalized = String(value || '').toLowerCase();
+            const hits = [];
+
+            if (/\bfall\b|\bautumn\b|\bfa(?:ll)?[-_\s]?\d{2,4}\b/.test(normalized)) hits.push('fall');
+            if (/\bwinter\b|\bwi(?:nter)?[-_\s]?\d{2,4}\b/.test(normalized)) hits.push('winter');
+            if (/\bspring\b|\bsp(?:ring)?[-_\s]?\d{2,4}\b/.test(normalized)) hits.push('spring');
+
+            return hits.length === 1 ? hits[0] : null;
+        }
+
+        async function ensureClssOcrLibrary() {
+            if (window.Tesseract?.recognize) {
+                return window.Tesseract;
+            }
+
+            if (!clssImportOcrLibraryPromise) {
+                clssImportOcrLibraryPromise = new Promise((resolve, reject) => {
+                    const existingScript = document.querySelector('script[data-clss-ocr="tesseract"]');
+                    if (existingScript) {
+                        existingScript.addEventListener('load', () => {
+                            if (window.Tesseract?.recognize) resolve(window.Tesseract);
+                            else reject(new Error('Tesseract loaded without browser recognize API'));
+                        }, { once: true });
+                        existingScript.addEventListener('error', () => reject(new Error('Failed to load Tesseract OCR library')), { once: true });
+                        return;
+                    }
+
+                    const script = document.createElement('script');
+                    script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+                    script.async = true;
+                    script.dataset.clssOcr = 'tesseract';
+                    script.onload = () => {
+                        if (window.Tesseract?.recognize) {
+                            resolve(window.Tesseract);
+                        } else {
+                            reject(new Error('Tesseract OCR loaded but recognize() is unavailable'));
+                        }
+                    };
+                    script.onerror = () => reject(new Error('Failed to load Tesseract OCR library'));
+                    document.head.appendChild(script);
+                }).catch((error) => {
+                    clssImportOcrLibraryPromise = null;
+                    throw error;
+                });
+            }
+
+            return clssImportOcrLibraryPromise;
+        }
+
+        function getClssImportParseSources() {
+            const scope = getClssImportScope();
+            if (scope === 'all') {
+                return CLSS_IMPORT_QUARTERS.map((quarter) => ({
+                    quarter,
+                    text: String(document.getElementById(`clssImportText${CLSS_IMPORT_QUARTER_LABELS[quarter]}`)?.value || '').trim()
+                }));
+            }
+
+            const targetQuarter = document.getElementById('clssImportQuarter')?.value || 'spring';
+            return [{
+                quarter: targetQuarter,
+                text: String(document.getElementById('clssImportText')?.value || '').trim()
+            }];
+        }
+
+        function parseClssImportSources(sources) {
+            const combinedRows = [];
+            const warnings = [];
+
+            (Array.isArray(sources) ? sources : []).forEach((source) => {
+                const quarter = source?.quarter;
+                const text = String(source?.text || '').trim();
+                if (!text || !quarter) {
+                    return;
+                }
+
+                const result = parseClssImportText(text);
+                const quarterLabel = CLSS_IMPORT_QUARTER_LABELS[quarter] || quarter;
+
+                result.rows.forEach((row) => {
+                    combinedRows.push({
+                        ...row,
+                        targetQuarter: quarter,
+                        reviewQuarter: quarter,
+                        reviewPlacement: '',
+                        reviewDay: row.schedulerDay || '',
+                        reviewTime: row.schedulerTime || '',
+                        reviewRoom: row.schedulerRoom || (row.requiresAutoRoomAssignment ? 'AUTO' : '')
+                    });
+                });
+
+                if (Array.isArray(result.meta?.warnings)) {
+                    result.meta.warnings.forEach((warning) => warnings.push(`${quarterLabel}: ${warning}`));
+                }
+            });
+
+            return {
+                rows: combinedRows,
+                meta: { warnings }
+            };
+        }
+
+        function buildClssImportPriorYearPlacementIndexForTargetYear(targetYear) {
+            const cacheKey = String(targetYear || '').trim();
+            if (!cacheKey) return null;
+            if (clssImportPriorYearPlacementIndexCache.has(cacheKey)) {
+                return clssImportPriorYearPlacementIndexCache.get(cacheKey);
+            }
+
+            const previousYear = getPreviousAcademicYearFromLabel(cacheKey);
+            if (!previousYear) {
+                clssImportPriorYearPlacementIndexCache.set(cacheKey, null);
+                return null;
+            }
+
+            const previousSchedule = loadScheduleDataSnapshotForYear(previousYear);
+            const byQuarter = { fall: [], winter: [], spring: [] };
+
+            CLSS_IMPORT_QUARTERS.forEach((quarter) => {
+                const quarterData = previousSchedule?.[quarter];
+                if (!quarterData || typeof quarterData !== 'object') return;
+
+                Object.entries(quarterData).forEach(([day, dayData]) => {
+                    if (!isSchedulableDay(day) || !dayData || typeof dayData !== 'object') return;
+                    Object.entries(dayData).forEach(([time, courses]) => {
+                        if (!Array.isArray(courses)) return;
+                        courses.forEach((course, index) => {
+                            const normalizedCode = normalizeCourseCode(course?.code);
+                            if (!normalizedCode) return;
+                            byQuarter[quarter].push({
+                                id: `${previousYear}-${quarter}-${day}-${time}-${index}`,
+                                year: previousYear,
+                                quarter,
+                                code: normalizedCode,
+                                section: String(course?.section || '').trim(),
+                                instructor: getCanonicalFacultyName(course?.instructor || 'TBD'),
+                                day,
+                                time,
+                                room: String(course?.room || '').trim()
+                            });
+                        });
+                    });
+                });
+            });
+
+            const index = { previousYear, byQuarter };
+            clssImportPriorYearPlacementIndexCache.set(cacheKey, index);
+            return index;
+        }
+
+        function findClssPriorYearPlacementSuggestion(row, targetYear) {
+            const quarter = row?.reviewQuarter || row?.targetQuarter;
+            if (!CLSS_IMPORT_QUARTERS.includes(quarter)) return null;
+
+            const code = normalizeCourseCode(row?.code);
+            if (!code) return null;
+
+            const index = buildClssImportPriorYearPlacementIndexForTargetYear(targetYear);
+            const candidates = Array.isArray(index?.byQuarter?.[quarter]) ? index.byQuarter[quarter] : [];
+            if (!candidates.length) return null;
+
+            const canonicalInstructor = getCanonicalFacultyName(row?.instructor || 'TBD');
+            const section = String(row?.section || '').trim();
+            const desiredDay = String(row?.reviewDay || row?.schedulerDay || '').trim();
+            const desiredTime = String(row?.reviewTime || row?.schedulerTime || '').trim();
+
+            const scored = candidates
+                .filter((candidate) => candidate.code === code)
+                .map((candidate) => {
+                    let score = 0;
+                    if (canonicalInstructor && canonicalInstructor !== 'TBD' && candidate.instructor === canonicalInstructor) score += 100;
+                    if (section && candidate.section && candidate.section === section) score += 60;
+                    if (desiredDay && candidate.day === desiredDay) score += 30;
+                    if (desiredTime && candidate.time === desiredTime) score += 30;
+                    if (desiredDay && desiredTime && candidate.day === desiredDay && candidate.time === desiredTime) score += 25;
+                    if (candidate.room && CLSS_IMPORT_ALLOWED_ROOMS.has(candidate.room)) score += 5;
+                    return { candidate, score };
+                })
+                .sort((a, b) => b.score - a.score);
+
+            if (!scored.length) return null;
+
+            const best = scored[0].candidate;
+            return {
+                sourceYear: index?.previousYear || '',
+                quarter: best.quarter,
+                day: best.day,
+                time: best.time,
+                room: CLSS_IMPORT_ALLOWED_ROOMS.has(best.room) ? best.room : '',
+                matchedInstructor: best.instructor === canonicalInstructor && canonicalInstructor !== 'TBD',
+                matchedSection: Boolean(section && best.section && best.section === section)
+            };
+        }
+
+        function applyClssPriorYearAutoSuggestionsToRows(rows, targetYear) {
+            const list = Array.isArray(rows) ? rows : [];
+            if (!list.length) return;
+
+            list.forEach((row) => {
+                if (!row || row.status === 'error' || row.status === 'online' || row.status === 'arranged') return;
+
+                const hasManualReviewOverride = Boolean(
+                    row.reviewPlacement || row.reviewDay || row.reviewTime || row.reviewRoom
+                );
+                if (hasManualReviewOverride) return;
+
+                const suggestion = findClssPriorYearPlacementSuggestion(row, targetYear);
+                if (!suggestion) return;
+
+                const rowHasParsedSlot = Boolean(row.schedulerDay && row.schedulerTime);
+                const shouldFillSlotFromHistory = !rowHasParsedSlot;
+                const shouldFillRoomFromHistory = !row.schedulerRoom;
+
+                if (!shouldFillSlotFromHistory && !shouldFillRoomFromHistory) {
+                    return;
+                }
+
+                row.reviewPlacement = 'inperson';
+                if (shouldFillSlotFromHistory) {
+                    row.reviewDay = suggestion.day || '';
+                    row.reviewTime = suggestion.time || '';
+                } else {
+                    row.reviewDay = row.schedulerDay || row.reviewDay || '';
+                    row.reviewTime = row.schedulerTime || row.reviewTime || '';
+                }
+                row.reviewRoom = suggestion.room || 'AUTO';
+                row.reviewQuarter = row.targetQuarter || row.reviewQuarter || 'spring';
+
+                const suggestionDetails = [
+                    suggestion.sourceYear ? `from ${suggestion.sourceYear}` : 'from prior year',
+                    suggestion.day && suggestion.time ? `${suggestion.day} ${suggestion.time}` : '',
+                    suggestion.room ? suggestion.room : 'auto room'
+                ].filter(Boolean).join(' • ');
+
+                row.notes = [...new Set([...(row.notes || []), `Auto-matched prior-year placement (${suggestionDetails})`])];
+            });
+        }
+
+        function getClssImportRowEffectiveState(row) {
+            const parsedQuarter = row?.targetQuarter || (document.getElementById('clssImportQuarter')?.value || 'spring');
+            const reviewQuarter = CLSS_IMPORT_QUARTERS.includes(row?.reviewQuarter) ? row.reviewQuarter : parsedQuarter;
+            const placement = String(row?.reviewPlacement || '').toLowerCase();
+            const missingIdentity = !String(row?.code || '').trim() || !String(row?.title || '').trim();
+
+            if (missingIdentity) {
+                return {
+                    ...row,
+                    targetQuarter: reviewQuarter,
+                    effectiveStatus: 'error',
+                    effectiveQuarter: reviewQuarter,
+                    effectiveDay: '',
+                    effectiveTime: '',
+                    effectiveRoom: '',
+                    effectiveRequiresAutoRoomAssignment: false,
+                    effectiveSchedulerSlotLabel: '',
+                    effectiveDisposition: 'error',
+                    effectiveNotes: [...new Set([...(row?.notes || []), 'Course code/title missing; cannot import until parser captures course header'])]
+                };
+            }
+
+            if (placement === 'skip') {
+                return {
+                    ...row,
+                    targetQuarter: reviewQuarter,
+                    effectiveStatus: 'needs-review',
+                    effectiveQuarter: reviewQuarter,
+                    effectiveDay: '',
+                    effectiveTime: '',
+                    effectiveRoom: '',
+                    effectiveRequiresAutoRoomAssignment: false,
+                    effectiveSchedulerSlotLabel: 'Will skip',
+                    effectiveDisposition: 'skip',
+                    effectiveNotes: ['Marked to skip during import']
+                };
+            }
+
+            if (placement === 'online') {
+                return {
+                    ...row,
+                    targetQuarter: reviewQuarter,
+                    effectiveStatus: 'online',
+                    effectiveQuarter: reviewQuarter,
+                    effectiveDay: '',
+                    effectiveTime: '',
+                    effectiveRoom: 'ONLINE',
+                    effectiveRequiresAutoRoomAssignment: false,
+                    effectiveSchedulerSlotLabel: 'ONLINE / async',
+                    effectiveDisposition: 'online',
+                    effectiveNotes: row?.notes || []
+                };
+            }
+
+            if (placement === 'arranged') {
+                return {
+                    ...row,
+                    targetQuarter: reviewQuarter,
+                    effectiveStatus: 'arranged',
+                    effectiveQuarter: reviewQuarter,
+                    effectiveDay: '',
+                    effectiveTime: '',
+                    effectiveRoom: 'ARRANGED',
+                    effectiveRequiresAutoRoomAssignment: false,
+                    effectiveSchedulerSlotLabel: 'ARRANGED',
+                    effectiveDisposition: 'arranged',
+                    effectiveNotes: row?.notes || []
+                };
+            }
+
+            const reviewInPerson = placement === 'inperson';
+            const useManualInPersonValues = reviewInPerson || Boolean(row?.reviewDay || row?.reviewTime || row?.reviewRoom);
+            if (useManualInPersonValues) {
+                const effectiveDay = row?.reviewDay || '';
+                const effectiveTime = row?.reviewTime || '';
+                const reviewRoomValue = row?.reviewRoom || '';
+                const autoRoom = reviewRoomValue === 'AUTO' || (!reviewRoomValue && reviewInPerson);
+                const effectiveRoom = autoRoom ? '' : reviewRoomValue;
+                const manualNotes = [];
+
+                if (!effectiveDay) manualNotes.push('Select day pattern (MW/TR)');
+                if (!effectiveTime) manualNotes.push('Select scheduler time slot');
+                if (autoRoom) manualNotes.push('Room will auto-assign at import');
+
+                const ready = Boolean(effectiveDay && effectiveTime);
+                return {
+                    ...row,
+                    targetQuarter: reviewQuarter,
+                    effectiveStatus: ready ? 'ready' : 'needs-review',
+                    effectiveQuarter: reviewQuarter,
+                    effectiveDay,
+                    effectiveTime,
+                    effectiveRoom,
+                    effectiveRequiresAutoRoomAssignment: autoRoom,
+                    effectiveSchedulerSlotLabel: ready
+                        ? `${effectiveDay} ${effectiveTime} • ${effectiveRoom || 'Auto room'}`
+                        : '',
+                    effectiveDisposition: ready ? 'ready' : 'needs-review',
+                    effectiveNotes: [...new Set([...(row?.notes || []), ...manualNotes])]
+                };
+            }
+
+            return {
+                ...row,
+                targetQuarter: reviewQuarter,
+                effectiveStatus: row?.status || 'needs-review',
+                effectiveQuarter: reviewQuarter,
+                effectiveDay: row?.schedulerDay || '',
+                effectiveTime: row?.schedulerTime || '',
+                effectiveRoom: row?.schedulerRoom || '',
+                effectiveRequiresAutoRoomAssignment: Boolean(row?.requiresAutoRoomAssignment),
+                effectiveSchedulerSlotLabel: row?.schedulerSlotLabel || '',
+                effectiveDisposition: row?.status || 'needs-review',
+                effectiveNotes: row?.notes || []
+            };
+        }
+
+        function updateClssImportRowResolution(index, field, value) {
+            const row = clssImportPreviewRows?.[Number(index)];
+            if (!row) return;
+
+            const normalizedField = String(field || '');
+            if (!['reviewQuarter', 'reviewPlacement', 'reviewDay', 'reviewTime', 'reviewRoom'].includes(normalizedField)) {
+                return;
+            }
+
+            row[normalizedField] = typeof value === 'string' ? value : String(value ?? '');
+
+            if (normalizedField === 'reviewPlacement') {
+                const placement = String(row.reviewPlacement || '').toLowerCase();
+                if (placement === 'online' || placement === 'arranged' || placement === 'skip') {
+                    // Leave any existing in-person values intact in case user switches back.
+                } else if (placement === 'inperson') {
+                    if (!row.reviewDay && row.schedulerDay) row.reviewDay = row.schedulerDay;
+                    if (!row.reviewTime && row.schedulerTime) row.reviewTime = row.schedulerTime;
+                    if (!row.reviewRoom) row.reviewRoom = row.schedulerRoom || (row.requiresAutoRoomAssignment ? 'AUTO' : 'AUTO');
+                }
+            }
+
+            renderClssImportReview(clssImportPreviewRows);
+        }
+
+        function resetClssImportRowResolution(index) {
+            const row = clssImportPreviewRows?.[Number(index)];
+            if (!row) return;
+
+            row.reviewQuarter = row.targetQuarter || row.reviewQuarter || 'spring';
+            row.reviewPlacement = '';
+            row.reviewDay = row.schedulerDay || '';
+            row.reviewTime = row.schedulerTime || '';
+            row.reviewRoom = row.schedulerRoom || (row.requiresAutoRoomAssignment ? 'AUTO' : '');
+            renderClssImportReview(clssImportPreviewRows);
+        }
+
+        function sendClssImportRowToDisplacedTray(index) {
+            const normalizedIndex = Number(index);
+            if (!Number.isInteger(normalizedIndex) || normalizedIndex < 0 || normalizedIndex >= clssImportPreviewRows.length) {
+                return;
+            }
+
+            const sourceRow = clssImportPreviewRows[normalizedIndex];
+            const effectiveRow = getClssImportRowEffectiveState(sourceRow);
+            const targetYear = getClssImportTargetAcademicYear();
+            const targetQuarter = effectiveRow.effectiveQuarter || sourceRow.targetQuarter || (document.getElementById('clssImportQuarter')?.value || 'spring');
+
+            addImportedRowToDisplacedTray({
+                ...sourceRow,
+                schedulerDay: effectiveRow.effectiveDay || sourceRow.schedulerDay || '',
+                schedulerTime: effectiveRow.effectiveTime || sourceRow.schedulerTime || '',
+                schedulerRoom: effectiveRow.effectiveRoom || sourceRow.schedulerRoom || '',
+                roomLabel: sourceRow.roomLabel || sourceRow.schedulerRoom || ''
+            }, targetYear, targetQuarter, 'Moved from CLSS review');
+
+            clssImportPreviewRows.splice(normalizedIndex, 1);
+            renderClssImportReview(clssImportPreviewRows);
+
+            const codeLabel = normalizeCourseCode(sourceRow.code || 'Course');
+            showToast(`${codeLabel} sent to displaced tray`);
+        }
+
+        function buildClssImportResolveControls(rowIndex, row, effectiveRow) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'clss-import-resolve-controls';
+            const workloadsMode = getClssImportBuildMode() === 'workloads';
+
+            const label = document.createElement('div');
+            label.className = 'clss-import-resolve-label';
+            label.textContent = workloadsMode ? 'Optional quarter/modality overrides' : 'Resolve before apply';
+            wrapper.appendChild(label);
+
+            const quarterRow = document.createElement('div');
+            quarterRow.className = 'row';
+            const quarterSelect = document.createElement('select');
+            quarterSelect.title = 'Target quarter';
+            CLSS_IMPORT_QUARTERS.forEach((quarter) => {
+                const option = document.createElement('option');
+                option.value = quarter;
+                option.textContent = CLSS_IMPORT_QUARTER_LABELS[quarter];
+                if ((row.reviewQuarter || row.targetQuarter) === quarter) {
+                    option.selected = true;
+                }
+                quarterSelect.appendChild(option);
+            });
+            quarterSelect.onchange = (event) => updateClssImportRowResolution(rowIndex, 'reviewQuarter', event.target.value);
+            quarterRow.appendChild(quarterSelect);
+
+            const placementSelect = document.createElement('select');
+            placementSelect.title = 'Placement type';
+            [
+                { value: '', label: 'Use parser result' },
+                { value: 'inperson', label: 'In-person (set slot)' },
+                { value: 'online', label: 'Online / async' },
+                { value: 'arranged', label: 'Arranged / Does Not Meet' },
+                { value: 'skip', label: 'Skip row' }
+            ].forEach(({ value, label: optionLabel }) => {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = optionLabel;
+                if ((row.reviewPlacement || '') === value) {
+                    option.selected = true;
+                }
+                placementSelect.appendChild(option);
+            });
+            placementSelect.onchange = (event) => updateClssImportRowResolution(rowIndex, 'reviewPlacement', event.target.value);
+            quarterRow.appendChild(placementSelect);
+            wrapper.appendChild(quarterRow);
+
+            const placement = String(row.reviewPlacement || '').toLowerCase();
+            const disableSlotFields = workloadsMode || ['online', 'arranged', 'skip'].includes(placement);
+
+            const slotRow = document.createElement('div');
+            slotRow.className = 'row';
+
+            const daySelect = document.createElement('select');
+            daySelect.title = 'Day pattern';
+            [
+                { value: '', label: 'Day (MW/TR)' },
+                { value: 'MW', label: 'MW' },
+                { value: 'TR', label: 'TR' }
+            ].forEach(({ value, label: optionLabel }) => {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = optionLabel;
+                if ((row.reviewDay || '') === value) option.selected = true;
+                daySelect.appendChild(option);
+            });
+            daySelect.disabled = disableSlotFields;
+            daySelect.onchange = (event) => updateClssImportRowResolution(rowIndex, 'reviewDay', event.target.value);
+            slotRow.appendChild(daySelect);
+
+            const timeSelect = document.createElement('select');
+            timeSelect.title = 'Scheduler time slot';
+            [
+                { value: '', label: 'Time slot' },
+                { value: '10:00-12:20', label: '10:00-12:20' },
+                { value: '13:00-15:20', label: '13:00-15:20' },
+                { value: '16:00-18:20', label: '16:00-18:20' }
+            ].forEach(({ value, label: optionLabel }) => {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = optionLabel;
+                if ((row.reviewTime || '') === value) option.selected = true;
+                timeSelect.appendChild(option);
+            });
+            timeSelect.disabled = disableSlotFields;
+            timeSelect.onchange = (event) => updateClssImportRowResolution(rowIndex, 'reviewTime', event.target.value);
+            slotRow.appendChild(timeSelect);
+
+            wrapper.appendChild(slotRow);
+
+            const roomRow = document.createElement('div');
+            roomRow.className = 'row';
+            const roomSelect = document.createElement('select');
+            roomSelect.title = 'Room';
+            [
+                { value: '', label: 'Room (parser/none)' },
+                { value: 'AUTO', label: 'Auto-assign open room' },
+                { value: '206', label: '206' },
+                { value: '207', label: '207' },
+                { value: '209', label: '209' },
+                { value: '210', label: '210' },
+                { value: '212', label: '212' },
+                { value: 'CEB 102', label: 'CEB 102' },
+                { value: 'CEB 104', label: 'CEB 104' }
+            ].forEach(({ value, label: optionLabel }) => {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = optionLabel;
+                if ((row.reviewRoom || '') === value) option.selected = true;
+                roomSelect.appendChild(option);
+            });
+            roomSelect.disabled = disableSlotFields;
+            roomSelect.onchange = (event) => updateClssImportRowResolution(rowIndex, 'reviewRoom', event.target.value);
+            roomRow.appendChild(roomSelect);
+
+            const resetButton = document.createElement('button');
+            resetButton.type = 'button';
+            resetButton.textContent = 'Reset';
+            resetButton.title = 'Use parser values again';
+            resetButton.onclick = () => resetClssImportRowResolution(rowIndex);
+            roomRow.appendChild(resetButton);
+            wrapper.appendChild(roomRow);
+
+            if (!workloadsMode && effectiveRow.effectiveStatus === 'needs-review') {
+                const trayRow = document.createElement('div');
+                trayRow.className = 'row single';
+
+                const trayButton = document.createElement('button');
+                trayButton.type = 'button';
+                trayButton.textContent = 'Send to Displaced Tray';
+                trayButton.title = 'Move this row to the displaced tray for manual drag-and-drop placement later';
+                trayButton.onclick = () => sendClssImportRowToDisplacedTray(rowIndex);
+
+                trayRow.appendChild(trayButton);
+                wrapper.appendChild(trayRow);
+            }
+
+            if (workloadsMode) {
+                const hintRow = document.createElement('div');
+                hintRow.className = 'clss-import-resolve-label';
+                hintRow.textContent = 'Build Workloads mode disables slot/room controls. Quarter and placement (modality) overrides still apply.';
+                wrapper.appendChild(hintRow);
+            } else if (effectiveRow.effectiveStatus === 'needs-review' && !disableSlotFields) {
+                const hintRow = document.createElement('div');
+                hintRow.className = 'clss-import-resolve-label';
+                hintRow.textContent = 'Tip: set placement to In-person, then choose MW/TR + time (room can be Auto).';
+                wrapper.appendChild(hintRow);
+            }
+
+            return wrapper;
+        }
+
+        function renderClssImportReview(rows, meta = {}) {
+            const summaryEl = document.getElementById('clssImportSummary');
+            const tableWrap = document.getElementById('clssImportTableWrap');
+            const emptyState = document.getElementById('clssImportEmptyState');
+            const tbody = document.getElementById('clssImportReviewBody');
+            const applyBtn = document.getElementById('clssImportApplyButton');
+
+            if (!summaryEl || !tableWrap || !emptyState || !tbody || !applyBtn) {
+                return;
+            }
+
+            summaryEl.innerHTML = '';
+            tbody.innerHTML = '';
+            applyBtn.disabled = !rows.length;
+
+            if (!rows.length) {
+                tableWrap.style.display = 'none';
+                emptyState.style.display = '';
+                emptyState.innerHTML = 'Paste CLSS/OCR text, then click <strong>Parse Preview</strong>. No schedule data will be changed until you click <strong>Apply Import</strong>.';
+                return;
+            }
+
+            const effectiveRows = rows.map((row) => getClssImportRowEffectiveState(row));
+
+            const statusCounts = effectiveRows.reduce((acc, row) => {
+                acc[row.effectiveStatus] = (acc[row.effectiveStatus] || 0) + 1;
+                return acc;
+            }, {});
+
+            const scope = getClssImportScope();
+            const buildMode = getClssImportBuildMode();
+            const targetYear = getClssImportTargetAcademicYear();
+            const selectedQuarterLabel = ((document.getElementById('clssImportQuarter')?.value) || 'spring')
+                .replace(/^./, (m) => m.toUpperCase());
+            const importedQuarters = [...new Set(effectiveRows.map((row) => row.effectiveQuarter).filter(Boolean))];
+            const quarterLabel = importedQuarters.length > 1
+                ? importedQuarters.map((quarter) => CLSS_IMPORT_QUARTER_LABELS[quarter] || quarter).join(', ')
+                : (importedQuarters.length === 1
+                    ? (CLSS_IMPORT_QUARTER_LABELS[importedQuarters[0]] || importedQuarters[0])
+                    : selectedQuarterLabel);
+            const modeLabel = document.getElementById('clssImportReplaceQuarter')?.checked
+                ? (scope === 'all' ? 'Replace imported quarters' : 'Replace quarter')
+                : 'Append / displace';
+            const pngCount = (document.getElementById('clssImportPngInput')?.files || []).length;
+
+            const summaryPills = [
+                `${rows.length} row${rows.length === 1 ? '' : 's'}`,
+                `Mode: ${buildMode === 'workloads' ? 'Build Workloads' : 'Build Schedule'}`,
+                `Year: ${targetYear}`,
+                `Scope: ${scope === 'all' ? 'All quarters' : 'Single quarter'}`,
+                `Quarter${importedQuarters.length > 1 ? 's' : ''}: ${quarterLabel}`,
+                modeLabel
+            ];
+
+            if (pngCount > 0) {
+                summaryPills.push(`PNG: ${pngCount}`);
+            }
+
+            Object.entries(CLSS_IMPORT_STATUS_LABELS).forEach(([status, label]) => {
+                if (statusCounts[status]) {
+                    summaryPills.push(`${label}: ${statusCounts[status]}`);
+                }
+            });
+
+            if (Array.isArray(meta.warnings)) {
+                meta.warnings.forEach((warning) => summaryPills.push(warning));
+            }
+
+            summaryPills.forEach((text) => {
+                const pill = document.createElement('span');
+                pill.className = 'clss-import-summary-pill';
+                pill.textContent = text;
+                summaryEl.appendChild(pill);
+            });
+
+            rows.forEach((row, rowIndex) => {
+                const effectiveRow = effectiveRows[rowIndex];
+                const tr = document.createElement('tr');
+
+                const quarterTd = document.createElement('td');
+                quarterTd.textContent = CLSS_IMPORT_QUARTER_LABELS[effectiveRow.effectiveQuarter] || '—';
+                tr.appendChild(quarterTd);
+
+                const statusTd = document.createElement('td');
+                const statusBadge = document.createElement('span');
+                statusBadge.className = `clss-import-status ${effectiveRow.effectiveStatus}`;
+                statusBadge.textContent = CLSS_IMPORT_STATUS_LABELS[effectiveRow.effectiveStatus] || effectiveRow.effectiveStatus;
+                statusTd.appendChild(statusBadge);
+                tr.appendChild(statusTd);
+
+                const courseTd = document.createElement('td');
+                courseTd.innerHTML = `<strong>${escapeHtml(effectiveRow.code)}</strong><div style="color:#57606a; margin-top:2px;">${escapeHtml(effectiveRow.title || '')}</div>`;
+                tr.appendChild(courseTd);
+
+                const sectionTd = document.createElement('td');
+                sectionTd.textContent = effectiveRow.section || '—';
+                tr.appendChild(sectionTd);
+
+                const instructorTd = document.createElement('td');
+                instructorTd.textContent = effectiveRow.instructor || 'TBD';
+                tr.appendChild(instructorTd);
+
+                const meetingTd = document.createElement('td');
+                meetingTd.textContent = effectiveRow.meetingLabel || '—';
+                tr.appendChild(meetingTd);
+
+                const roomTd = document.createElement('td');
+                roomTd.textContent = effectiveRow.roomLabel || '—';
+                tr.appendChild(roomTd);
+
+                const slotTd = document.createElement('td');
+                slotTd.textContent = effectiveRow.effectiveSchedulerSlotLabel || '—';
+                tr.appendChild(slotTd);
+
+                const resolveTd = document.createElement('td');
+                resolveTd.appendChild(buildClssImportResolveControls(rowIndex, row, effectiveRow));
+                tr.appendChild(resolveTd);
+
+                const notesTd = document.createElement('td');
+                const notesWrap = document.createElement('div');
+                notesWrap.className = 'clss-import-notes';
+                (effectiveRow.effectiveNotes || []).forEach((note) => {
+                    const noteDiv = document.createElement('div');
+                    noteDiv.className = 'clss-import-note-item';
+                    noteDiv.textContent = `• ${note}`;
+                    notesWrap.appendChild(noteDiv);
+                });
+
+                const rawDetails = document.createElement('details');
+                rawDetails.className = 'clss-import-raw';
+                const rawSummary = document.createElement('summary');
+                rawSummary.textContent = 'Raw row text';
+                const rawPre = document.createElement('pre');
+                rawPre.textContent = effectiveRow.rawText || '';
+                rawDetails.appendChild(rawSummary);
+                rawDetails.appendChild(rawPre);
+                notesWrap.appendChild(rawDetails);
+
+                notesTd.appendChild(notesWrap);
+                tr.appendChild(notesTd);
+
+                tbody.appendChild(tr);
+            });
+
+            emptyState.style.display = 'none';
+            tableWrap.style.display = '';
+        }
+
+        function parseClssImportText(rawText) {
+            const lines = String(rawText || '')
+                .split(/\r?\n/)
+                .map((line) => line.replace(/\u00a0/g, ' ').trim())
+                .filter((line) => line.length > 0);
+
+            const rows = [];
+            const warnings = [];
+            let currentCourse = null;
+            let currentRowBuffer = '';
+            let detectedHeaders = 0;
+            let orphanLineCount = 0;
+
+            const flushBufferedRow = () => {
+                if (!currentCourse || !currentRowBuffer) {
+                    currentRowBuffer = '';
+                    return;
+                }
+                rows.push(parseClssDetailRow(currentCourse, currentRowBuffer));
+                currentRowBuffer = '';
+            };
+
+            lines.forEach((line) => {
+                const header = parseClssCourseHeaderLine(line);
+                if (header) {
+                    flushBufferedRow();
+                    currentCourse = {
+                        code: header.code,
+                        title: header.title
+                    };
+                    detectedHeaders += 1;
+                    if (header.inlineRowText) {
+                        currentRowBuffer = header.inlineRowText;
+                    }
+                    return;
+                }
+
+                if (!currentCourse) {
+                    orphanLineCount += 1;
+                    return;
+                }
+
+                if (isClssSectionRowStart(line)) {
+                    flushBufferedRow();
+                    currentRowBuffer = line;
+                    return;
+                }
+
+                if (currentRowBuffer) {
+                    currentRowBuffer = `${currentRowBuffer} ${line}`.replace(/\s+/g, ' ').trim();
+                } else {
+                    currentCourse.title = `${currentCourse.title} ${line}`.replace(/\s+/g, ' ').trim();
+                }
+            });
+
+            flushBufferedRow();
+
+            if (!rows.length && lines.length) {
+                warnings.push('No parsable section rows found');
+            }
+            if (detectedHeaders === 0 && lines.length) {
+                warnings.push('No course headers detected');
+            }
+            if (orphanLineCount > 0) {
+                warnings.push(`Ignored ${orphanLineCount} orphan line${orphanLineCount === 1 ? '' : 's'} before course headers`);
+            }
+
+            return {
+                rows,
+                meta: { warnings }
+            };
+        }
+
+        function parseClssCourseHeaderLine(line) {
+            const match = String(line || '').match(/^([A-Z]{2,5}\s*\d{3}[A-Z]?)\s*-\s*(.+)$/i);
+            if (!match) {
+                return null;
+            }
+
+            const code = normalizeCourseCode(match[1]);
+            let titleAndMaybeRow = match[2].replace(/\s+/g, ' ').trim();
+            let inlineRowText = '';
+
+            const sectionIndex = titleAndMaybeRow.search(/\b\d{3}[A-Z]?\b/);
+            if (sectionIndex > 1) {
+                const candidateTitle = titleAndMaybeRow.slice(0, sectionIndex).trim();
+                const candidateRow = titleAndMaybeRow.slice(sectionIndex).trim();
+                if (candidateTitle && isClssSectionRowStart(candidateRow)) {
+                    titleAndMaybeRow = candidateTitle;
+                    inlineRowText = candidateRow;
+                }
+            }
+
+            return {
+                code,
+                title: titleAndMaybeRow,
+                inlineRowText
+            };
+        }
+
+        function isClssSectionRowStart(line) {
+            return /^\d{3}[A-Z]?(?:\s*\([^)]*\))?\b/i.test(String(line || '').trim());
+        }
+
+        function parseClssDetailRow(course, rawRowText) {
+            const rawText = String(rawRowText || '').replace(/\s+/g, ' ').trim();
+            const notes = [];
+            const code = normalizeCourseCode(course?.code || '');
+            const title = String(course?.title || '').trim();
+
+            const sectionMatch = rawText.match(/\b(\d{3}[A-Z]?)(?:\s*\(([^)]+)\))?/i);
+            const section = sectionMatch?.[1] || '';
+            if (!section) {
+                notes.push('Section code not detected');
+            }
+
+            const detailType = (rawText.match(/\b(PAS|IND|LEC|LAB|SEM|STU|PRA|PRC)\b/i)?.[1] || '').toUpperCase();
+            const credits = extractClssCredits(rawText);
+
+            const instructorSource = extractClssInstructorSource(rawText);
+            const instructor = normalizeClssInstructorName(instructorSource);
+            if (instructor === 'TBD' && !/\b(staff|tba|tbd)\b/i.test(rawText)) {
+                notes.push('Instructor not recognized');
+            }
+
+            const meeting = extractClssMeetingInfo(rawText);
+            if (meeting.note) {
+                notes.push(meeting.note);
+            }
+
+            const room = extractClssRoomInfo(rawText, meeting.matchEndIndex);
+            if (room.note) {
+                notes.push(room.note);
+            }
+
+            let status = 'needs-review';
+            let schedulerDay = '';
+            let schedulerTime = '';
+            let schedulerRoom = '';
+            let schedulerSlotLabel = '';
+            let requiresAutoRoomAssignment = false;
+
+            const onlineHint = meeting.classification === 'online' || room.isOnline || /\b(online|web|async|asynch|asynchronous)\b/i.test(rawText);
+            const arrangedHint = meeting.classification === 'arranged' || /does\s+not\s+meet/i.test(rawText) || (detailType === 'IND' && !meeting.dayPattern);
+
+            if (onlineHint) {
+                status = 'online';
+                schedulerRoom = 'ONLINE';
+                schedulerSlotLabel = 'ONLINE / async';
+                if (!room.raw && !meeting.raw) {
+                    notes.push('Online row inferred from keywords');
+                }
+            } else if (arrangedHint) {
+                status = 'arranged';
+                schedulerRoom = 'ARRANGED';
+                schedulerSlotLabel = 'ARRANGED';
+            } else if (meeting.dayPattern) {
+                schedulerDay = meeting.dayPattern;
+                if (meeting.timeSlot) {
+                    schedulerTime = meeting.timeSlot;
+                } else {
+                    notes.push('Meeting time did not map to scheduler slots');
+                }
+
+                if (room.mappedRoom) {
+                    schedulerRoom = room.mappedRoom;
+                } else {
+                    requiresAutoRoomAssignment = true;
+                    notes.push('Room not detected; import will auto-assign an open room');
+                }
+
+                if (schedulerDay && schedulerTime && (schedulerRoom || requiresAutoRoomAssignment)) {
+                    status = 'ready';
+                    schedulerSlotLabel = schedulerRoom
+                        ? `${schedulerDay} ${schedulerTime} • ${schedulerRoom}`
+                        : `${schedulerDay} ${schedulerTime} • Auto room`;
+                }
+            } else if (!meeting.raw) {
+                notes.push('Meeting pattern not found');
+            }
+
+            if (meeting.singleDay) {
+                status = 'needs-review';
+                schedulerDay = '';
+                schedulerTime = '';
+                schedulerRoom = '';
+                schedulerSlotLabel = '';
+                notes.push('Single-day meeting requires manual placement');
+            }
+
+            if (!code || !title) {
+                status = 'error';
+                if (!code) notes.push('Course code missing');
+                if (!title) notes.push('Course title missing');
+            }
+
+            if (status === 'ready' && !section) {
+                notes.push('Section missing (course still placeable)');
+            }
+
+            return {
+                status,
+                code,
+                title,
+                section,
+                credits,
+                detailType,
+                instructor,
+                meetingLabel: meeting.raw || '—',
+                roomLabel: room.raw || '—',
+                schedulerDay,
+                schedulerTime,
+                schedulerRoom,
+                requiresAutoRoomAssignment,
+                schedulerSlotLabel,
+                notes: [...new Set(notes.filter(Boolean))],
+                rawText
+            };
+        }
+
+        function extractClssCredits(rawText) {
+            const match = String(rawText || '').match(/\b([1-9]|1[0-5])(?:\.0)?\s*(?:cr|credits?)\b/i);
+            return match ? Number(match[1]) : 5;
+        }
+
+        function extractClssInstructorSource(rawText) {
+            if (/\b(staff|tba|tbd)\b/i.test(rawText)) {
+                return 'TBD';
+            }
+
+            const nameMatch = String(rawText || '').match(/([A-Z][A-Za-z'`.\-]+(?:\s+[A-Z][A-Za-z'`.\-]+)*,\s*[A-Z][A-Za-z'`.\-]+(?:\s+[A-Z][A-Za-z'`.\-]+)*)(?:\s*\([^)]*\))?/);
+            return nameMatch ? nameMatch[1] : '';
+        }
+
+        function normalizeClssInstructorName(rawName) {
+            const source = String(rawName || '').replace(/\([^)]*\)/g, '').trim();
+            if (!source || /^TBD$/i.test(source) || /\b(staff|tba)\b/i.test(source)) {
+                return 'TBD';
+            }
+
+            if (source.includes(',')) {
+                const [lastNameRaw, firstNameRaw] = source.split(',');
+                const lastName = String(lastNameRaw || '').trim();
+                const firstName = String(firstNameRaw || '').trim();
+                const firstInitial = firstName.charAt(0).toUpperCase();
+                if (lastName && firstInitial) {
+                    const alias = `${firstInitial}.${lastName.replace(/\s+/g, '')}`;
+                    return getCanonicalFacultyName(alias);
+                }
+            }
+
+            return getCanonicalFacultyName(source);
+        }
+
+        function extractClssMeetingInfo(rawText) {
+            const text = String(rawText || '').replace(/\s+/g, ' ').trim();
+            if (!text) {
+                return { raw: '', classification: 'none', dayPattern: '', timeSlot: '', matchEndIndex: -1, singleDay: false };
+            }
+
+            if (/\b(online|web|async|asynch|asynchronous)\b/i.test(text) && !/\b(MW|TR|WM|RT|M|T|W|R|F)\b\s*\d/i.test(text)) {
+                return {
+                    raw: 'Online / Async',
+                    classification: 'online',
+                    dayPattern: '',
+                    timeSlot: '',
+                    matchEndIndex: -1,
+                    singleDay: false
+                };
+            }
+
+            if (/does\s+not\s+meet/i.test(text)) {
+                return {
+                    raw: 'Does Not Meet',
+                    classification: 'arranged',
+                    dayPattern: '',
+                    timeSlot: '',
+                    matchEndIndex: text.search(/does\s+not\s+meet/i) + 'Does Not Meet'.length,
+                    singleDay: false
+                };
+            }
+
+            const meetingMatch = text.match(/\b(MW|WM|TR|RT|TH|TTH|M|T|W|R|F)\b\s*([0-9]{1,2}(?::[0-9]{2})?\s*[APap]\.?\s*M?\.?)\s*[-–]\s*([0-9]{1,2}(?::[0-9]{2})?\s*[APap]\.?\s*M?\.?)/);
+            if (!meetingMatch) {
+                return { raw: '', classification: 'none', dayPattern: '', timeSlot: '', matchEndIndex: -1, singleDay: false };
+            }
+
+            const dayToken = meetingMatch[1];
+            const startToken = meetingMatch[2];
+            const endToken = meetingMatch[3];
+            const dayInfo = normalizeClssMeetingDays(dayToken);
+            const timeInfo = mapClssMeetingTimes(startToken, endToken);
+            const raw = `${dayToken} ${startToken}-${endToken}`.replace(/\s+/g, ' ').trim();
+            const notes = [dayInfo.note, timeInfo.note].filter(Boolean);
+
+            return {
+                raw,
+                classification: 'scheduled',
+                dayPattern: dayInfo.dayPattern,
+                timeSlot: timeInfo.timeSlot,
+                matchEndIndex: meetingMatch.index + meetingMatch[0].length,
+                singleDay: dayInfo.singleDay,
+                note: notes[0] || ''
+            };
+        }
+
+        function normalizeClssMeetingDays(rawDayToken) {
+            const normalized = String(rawDayToken || '')
+                .toUpperCase()
+                .replace(/\s+/g, '')
+                .replace(/TH/g, 'R');
+
+            if (normalized === 'MW' || normalized === 'WM') {
+                return { dayPattern: 'MW', singleDay: false, note: '' };
+            }
+
+            if (normalized === 'TR' || normalized === 'RT') {
+                return { dayPattern: 'TR', singleDay: false, note: '' };
+            }
+
+            if (['M', 'T', 'W', 'R', 'F'].includes(normalized)) {
+                return { dayPattern: '', singleDay: true, note: `Single-day pattern (${normalized})` };
+            }
+
+            return { dayPattern: '', singleDay: false, note: `Unsupported day pattern (${rawDayToken})` };
+        }
+
+        function mapClssMeetingTimes(startToken, endToken) {
+            const startMinutes = parseClssClockTimeToMinutes(startToken);
+            const endMinutes = parseClssClockTimeToMinutes(endToken);
+            if (startMinutes == null || endMinutes == null) {
+                return { timeSlot: '', note: 'Could not parse meeting time' };
+            }
+
+            const timeKey = `${formatClssMinutes(startMinutes)}-${formatClssMinutes(endMinutes)}`;
+            const mapped = ({
+                '10:00-12:20': '10:00-12:20',
+                '13:00-15:20': '13:00-15:20',
+                '16:00-18:20': '16:00-18:20'
+            })[timeKey];
+
+            if (!mapped) {
+                return { timeSlot: '', note: `Unsupported time (${timeKey})` };
+            }
+
+            return { timeSlot: mapped, note: '' };
+        }
+
+        function parseClssClockTimeToMinutes(timeToken) {
+            const compact = String(timeToken || '')
+                .toLowerCase()
+                .replace(/\s+/g, '')
+                .replace(/\./g, '');
+
+            const match = compact.match(/^(\d{1,2})(?::(\d{2}))?(am|pm)$/);
+            if (!match) {
+                return null;
+            }
+
+            let hours = Number(match[1]);
+            const minutes = Number(match[2] || '0');
+            const meridiem = match[3];
+
+            if (minutes > 59 || hours < 1 || hours > 12) {
+                return null;
+            }
+
+            if (meridiem === 'pm' && hours !== 12) {
+                hours += 12;
+            }
+            if (meridiem === 'am' && hours === 12) {
+                hours = 0;
+            }
+
+            return (hours * 60) + minutes;
+        }
+
+        function formatClssMinutes(totalMinutes) {
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = totalMinutes % 60;
+            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+        }
+
+        function extractClssRoomInfo(rawText, meetingMatchEndIndex = -1) {
+            const text = String(rawText || '').replace(/\s+/g, ' ').trim();
+            if (!text) {
+                return { raw: '', mappedRoom: '', isOnline: false, note: '' };
+            }
+
+            if (/\b(online|web|async|asynch|asynchronous)\b/i.test(text)) {
+                return { raw: 'ONLINE', mappedRoom: 'ONLINE', isOnline: true, note: '' };
+            }
+
+            const searchCandidates = [];
+            if (Number.isInteger(meetingMatchEndIndex) && meetingMatchEndIndex >= 0 && meetingMatchEndIndex < text.length) {
+                searchCandidates.push(text.slice(meetingMatchEndIndex));
+            }
+            searchCandidates.push(text);
+
+            for (const candidate of searchCandidates) {
+                const roomMatch = candidate.match(/\bCEB\s*(102|104)\b|\b(?:CEB\s*)?(206|207|209|210|212)\b/i);
+                if (!roomMatch) {
+                    continue;
+                }
+
+                let mappedRoom = '';
+                if (roomMatch[1]) {
+                    mappedRoom = `CEB ${roomMatch[1]}`;
+                } else if (roomMatch[2]) {
+                    mappedRoom = roomMatch[2];
+                }
+
+                const rawRoom = roomMatch[0].replace(/\s+/g, ' ').trim().toUpperCase();
+                if (mappedRoom && CLSS_IMPORT_ALLOWED_ROOMS.has(mappedRoom)) {
+                    return { raw: rawRoom, mappedRoom, isOnline: false, note: '' };
+                }
+            }
+
+            if (/does\s+not\s+meet/i.test(text)) {
+                return { raw: 'Does Not Meet', mappedRoom: 'ARRANGED', isOnline: false, note: '' };
+            }
+
+            return { raw: '', mappedRoom: '', isOnline: false, note: '' };
+        }
+
+        function readClssWorkloadImportPayload() {
+            try {
+                const raw = localStorage.getItem(CLSS_WORKLOAD_IMPORT_STORAGE_KEY);
+                return raw ? JSON.parse(raw) : null;
+            } catch (error) {
+                console.warn('Could not parse CLSS workload import payload:', error);
+                return null;
+            }
+        }
+
+        function writeClssWorkloadImportPayload(payload) {
+            try {
+                localStorage.setItem(CLSS_WORKLOAD_IMPORT_STORAGE_KEY, JSON.stringify(payload));
+            } catch (error) {
+                console.warn('Could not persist CLSS workload import payload:', error);
+            }
+        }
+
+        function clearClssWorkloadImportPayloadForYear(year) {
+            const existing = readClssWorkloadImportPayload();
+            if (!existing || !year) return;
+            if (String(existing.targetYear || '') !== String(year)) return;
+            localStorage.removeItem(CLSS_WORKLOAD_IMPORT_STORAGE_KEY);
+        }
+
+        function buildClssWorkloadImportRowsFromPreview(targetYear) {
+            return clssImportPreviewRows
+                .map((sourceRow) => {
+                    const effective = getClssImportRowEffectiveState(sourceRow);
+                    if (!effective || effective.effectiveDisposition === 'skip' || effective.effectiveStatus === 'error') {
+                        return null;
+                    }
+
+                    const quarter = effective.effectiveQuarter || sourceRow.targetQuarter || 'spring';
+                    if (!CLSS_IMPORT_QUARTERS.includes(quarter)) return null;
+
+                    const disposition = effective.effectiveDisposition;
+                    const modality = disposition === 'online'
+                        ? 'online'
+                        : disposition === 'arranged'
+                            ? 'arranged'
+                            : 'in-person';
+
+                    return {
+                        id: `clss_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+                        source: 'clss-import',
+                        targetYear,
+                        quarter,
+                        courseCode: normalizeCourseCode(effective.code),
+                        title: String(effective.title || '').trim(),
+                        section: String(effective.section || '001').trim() || '001',
+                        instructor: getCanonicalFacultyName(effective.instructor || 'TBD'),
+                        assignedFaculty: getCanonicalFacultyName(effective.instructor || 'TBD'),
+                        credits: Number(effective.credits) || 5,
+                        modality,
+                        day: String(effective.effectiveDay || '').trim(),
+                        time: String(effective.effectiveTime || '').trim(),
+                        room: String(effective.effectiveRoom || '').trim(),
+                        rawMeeting: String(effective.meetingLabel || '').trim(),
+                        rawRoom: String(effective.roomLabel || '').trim()
+                    };
+                })
+                .filter(Boolean);
+        }
+
+        function summarizeClssWorkloadImportRows(rows) {
+            const stats = {
+                total: 0,
+                byQuarter: { fall: 0, winter: 0, spring: 0 },
+                byModality: { 'in-person': 0, online: 0, arranged: 0 },
+                assignedFaculty: 0,
+                unassignedFaculty: 0
+            };
+
+            (Array.isArray(rows) ? rows : []).forEach((row) => {
+                stats.total += 1;
+                if (stats.byQuarter[row.quarter] !== undefined) stats.byQuarter[row.quarter] += 1;
+                if (stats.byModality[row.modality] !== undefined) stats.byModality[row.modality] += 1;
+                if (getCanonicalFacultyName(row.assignedFaculty || row.instructor || 'TBD') === 'TBD') {
+                    stats.unassignedFaculty += 1;
+                } else {
+                    stats.assignedFaculty += 1;
+                }
+            });
+
+            return stats;
+        }
+
+        function applyClssWorkloadImport() {
+            const targetYear = getClssImportTargetAcademicYear();
+            const rows = buildClssWorkloadImportRowsFromPreview(targetYear);
+            if (!rows.length) {
+                showToast('No CLSS rows were eligible for workload import. Resolve or parse rows first.', 'error');
+                return;
+            }
+
+            const stats = summarizeClssWorkloadImportRows(rows);
+            const summary = [
+                `Build workloads from CLSS import for ${targetYear}?`,
+                '',
+                `Rows: ${stats.total}`,
+                `Fall/Winter/Spring: ${stats.byQuarter.fall}/${stats.byQuarter.winter}/${stats.byQuarter.spring}`,
+                `In-person/Online/Arranged: ${stats.byModality['in-person']}/${stats.byModality.online}/${stats.byModality.arranged}`,
+                `Assigned faculty rows: ${stats.assignedFaculty}`,
+                `TBD/Staff rows: ${stats.unassignedFaculty}`,
+                '',
+                'This mode creates a workload handoff dataset and opens the workload dashboard. It does not place courses into the scheduler grid.'
+            ].join('\n');
+
+            if (!window.confirm(summary)) {
+                return;
+            }
+
+            const payload = {
+                source: 'clss-import',
+                mode: 'workloads',
+                active: true,
+                overrideScheduler: true,
+                targetYear,
+                generatedAt: new Date().toISOString(),
+                rows
+            };
+            writeClssWorkloadImportPayload(payload);
+
+            showToast(`CLSS workload import staged for ${targetYear}: ${stats.total} row${stats.total === 1 ? '' : 's'}`);
+            clssImportPreviewRows = [];
+            renderClssImportReview([]);
+            closeClssImportModal();
+
+            if (window.confirm(`CLSS workload import prepared for ${targetYear}. Open workload dashboard now?`)) {
+                openWorkloadReviewFromScheduler({ yearOverride: targetYear, skipScheduleSave: true, clssWorkloadImport: true });
+            }
+        }
+
+        function applyClssImport() {
+            if (!clssImportPreviewRows.length) {
+                showToast('Parse a CLSS preview before applying', 'error');
+                return;
+            }
+
+            if (getClssImportBuildMode() === 'workloads') {
+                applyClssWorkloadImport();
+                return;
+            }
+
+            const quarter = document.getElementById('clssImportQuarter')?.value || 'spring';
+            const replaceQuarter = Boolean(document.getElementById('clssImportReplaceQuarter')?.checked);
+            const targetYear = getClssImportTargetAcademicYear();
+            const reviewRows = clssImportPreviewRows.map((sourceRow) => ({
+                sourceRow,
+                effectiveRow: getClssImportRowEffectiveState(sourceRow)
+            }));
+            const currentYearLabel = currentAcademicYear || (window.StateManager?.get('currentAcademicYear')) || '2025-26';
+            const importingToCurrentYear = targetYear === currentYearLabel;
+            const impactedQuarters = [...new Set(reviewRows
+                .map(({ effectiveRow }) => effectiveRow.effectiveQuarter || quarter)
+                .filter((value) => CLSS_IMPORT_QUARTERS.includes(value)))];
+
+            const applySummary = buildClssApplySummary(reviewRows, {
+                quarter,
+                replaceQuarter,
+                targetYear,
+                impactedQuarters
+            });
+            if (!window.confirm(applySummary)) {
+                return;
+            }
+
+            const targetSchedule = importingToCurrentYear
+                ? scheduleData
+                : loadScheduleDataSnapshotForYear(targetYear);
+            const counts = {
+                readyPlaced: 0,
+                onlinePlaced: 0,
+                arrangedPlaced: 0,
+                skipped: 0,
+                collisionsDisplaced: 0,
+                unresolved: 0,
+                leftoverToTray: 0,
+                roomFallbackPlacements: 0
+            };
+
+            if (replaceQuarter) {
+                impactedQuarters.forEach((targetQuarterKey) => {
+                    targetSchedule[targetQuarterKey] = createEmptyQuarterScheduleBucket();
+                });
+            }
+
+            const remainingRows = [];
+            const applyableRows = [];
+
+            reviewRows.forEach(({ sourceRow, effectiveRow }) => {
+                if (!sourceRow || !effectiveRow) {
+                    counts.skipped += 1;
+                    return;
+                }
+
+                if (effectiveRow.effectiveDisposition === 'skip') {
+                    counts.skipped += 1;
+                    return;
+                }
+
+                if (effectiveRow.effectiveDisposition === 'needs-review' || effectiveRow.effectiveStatus === 'error') {
+                    remainingRows.push(sourceRow);
+                    counts.unresolved += 1;
+                    return;
+                }
+
+                applyableRows.push({ sourceRow, effectiveRow });
+            });
+
+            if (!applyableRows.length && remainingRows.length) {
+                showToast(`No rows were ready to import. ${remainingRows.length} row${remainingRows.length === 1 ? '' : 's'} still need review.`, 'error');
+                renderClssImportReview(clssImportPreviewRows);
+                return;
+            }
+
+            if (remainingRows.length) {
+                const continueWithPartial = window.confirm(
+                    `${remainingRows.length} row${remainingRows.length === 1 ? '' : 's'} still need review and will stay in the review table.\n\nApply ${applyableRows.length} resolved row${applyableRows.length === 1 ? '' : 's'} now?`
+                );
+                if (!continueWithPartial) {
+                    return;
+                }
+            }
+
+            applyableRows.forEach(({ sourceRow, effectiveRow }) => {
+                const rowQuarter = effectiveRow.effectiveQuarter || quarter;
+
+                if (!CLSS_IMPORT_QUARTERS.includes(rowQuarter)) {
+                    counts.skipped += 1;
+                    remainingRows.push(sourceRow);
+                    return;
+                }
+
+                const targetQuarterBucket = ensureQuarterScheduleBucketForSchedule(targetSchedule, rowQuarter);
+                const rowForApply = {
+                    ...sourceRow,
+                    ...effectiveRow,
+                    targetQuarter: rowQuarter,
+                    schedulerDay: effectiveRow.effectiveDay,
+                    schedulerTime: effectiveRow.effectiveTime,
+                    schedulerRoom: effectiveRow.effectiveRoom,
+                    requiresAutoRoomAssignment: effectiveRow.effectiveRequiresAutoRoomAssignment,
+                    schedulerSlotLabel: effectiveRow.effectiveSchedulerSlotLabel,
+                    status: effectiveRow.effectiveStatus
+                };
+
+                if (effectiveRow.effectiveDisposition === 'ready') {
+                    const placed = placeClssImportedCourseInGrid(targetQuarterBucket, rowForApply, counts);
+                    if (!placed) {
+                        addImportedRowToDisplacedTray(rowForApply, targetYear, rowQuarter, 'No open room in slot');
+                        counts.leftoverToTray += 1;
+                    }
+                    return;
+                }
+
+                if (effectiveRow.effectiveDisposition === 'online') {
+                    targetQuarterBucket.ONLINE.async.push(buildImportedScheduleCourse(rowForApply, 'ONLINE'));
+                    counts.onlinePlaced += 1;
+                    return;
+                }
+
+                if (effectiveRow.effectiveDisposition === 'arranged') {
+                    targetQuarterBucket.ARRANGED.arranged.push(buildImportedScheduleCourse(rowForApply, 'ARRANGED'));
+                    counts.arrangedPlaced += 1;
+                    return;
+                }
+
+                remainingRows.push(sourceRow);
+                counts.unresolved += 1;
+            });
+
+            const currentQuarter = (window.StateManager?.get('currentQuarter')) || 'spring';
+            if (importingToCurrentYear) {
+                clearClssWorkloadImportPayloadForYear(targetYear);
+                saveScheduleData();
+                setScheduleDirty(true);
+                renderSchedule(currentQuarter);
+                renderOnlineCourses(currentQuarter);
+                renderArrangedCourses(currentQuarter);
+                renderConflicts(currentQuarter);
+                updateStats(currentQuarter);
+            } else {
+                clearClssWorkloadImportPayloadForYear(targetYear);
+                saveScheduleDataSnapshotForYear(targetYear, targetSchedule);
+            }
+
+            const totalApplied = counts.readyPlaced + counts.onlinePlaced + counts.arrangedPlaced;
+            const impactedQuarterLabel = impactedQuarters.length > 1
+                ? impactedQuarters.map((q) => CLSS_IMPORT_QUARTER_LABELS[q]).join(', ')
+                : (CLSS_IMPORT_QUARTER_LABELS[impactedQuarters[0]] || CLSS_IMPORT_QUARTER_LABELS[quarter] || quarter);
+            showToast(`CLSS import applied to ${targetYear} (${impactedQuarterLabel}): ${totalApplied} imported${counts.roomFallbackPlacements ? `, ${counts.roomFallbackPlacements} room fallback` : ''}${counts.leftoverToTray ? `, ${counts.leftoverToTray} to displaced tray` : ''}${counts.unresolved ? `, ${counts.unresolved} still need review` : ''}${counts.skipped ? `, ${counts.skipped} skipped` : ''}`);
+
+            clssImportPreviewRows = remainingRows;
+            renderClssImportReview(clssImportPreviewRows);
+
+            if (!remainingRows.length) {
+                closeClssImportModal();
+            }
+
+            if (!importingToCurrentYear) {
+                if (remainingRows.length) {
+                    return;
+                }
+                if (window.confirm(`CLSS import applied to ${targetYear}. Switch to that academic year now?`)) {
+                    switchSchedulerYearFromImport(targetYear);
+                    if (impactedQuarters.length === 1 && impactedQuarters[0] !== ((window.StateManager?.get('currentQuarter')) || quarter)) {
+                        if (window.confirm(`Switch to ${CLSS_IMPORT_QUARTER_LABELS[impactedQuarters[0]]} now?`)) {
+                            switchSchedulerQuarterFromImport(impactedQuarters[0]);
+                        }
+                    }
+                }
+                return;
+            }
+
+            if (!remainingRows.length && impactedQuarters.length === 1 && impactedQuarters[0] !== currentQuarter && window.confirm(`CLSS import applied to ${CLSS_IMPORT_QUARTER_LABELS[impactedQuarters[0]]}. Switch to that quarter now?`)) {
+                switchSchedulerQuarterFromImport(impactedQuarters[0]);
+            }
+        }
+
+        function buildClssApplySummary(rows, { quarter, replaceQuarter, targetYear, impactedQuarters = [] } = {}) {
+            const counts = rows.reduce((acc, row) => {
+                const effectiveRow = row?.effectiveRow ? row.effectiveRow : getClssImportRowEffectiveState(row);
+                const key = effectiveRow?.effectiveStatus || 'needs-review';
+                acc[key] = (acc[key] || 0) + 1;
+                return acc;
+            }, {});
+
+            const quartersLabel = (impactedQuarters.length
+                ? impactedQuarters
+                : [quarter]
+            )
+                .map((q) => CLSS_IMPORT_QUARTER_LABELS[q] || (q ? q.charAt(0).toUpperCase() + q.slice(1) : 'Unknown'))
+                .join(', ');
+
+            const lines = [
+                replaceQuarter
+                    ? `Are you sure you want to import CLSS rows into ${targetYear} (${quartersLabel}) and REPLACE the existing schedule data for those quarter(s)?`
+                    : `Import CLSS rows into ${targetYear} (${quartersLabel}) and append/displace into the existing schedule data?`,
+                '',
+                `Rows: ${rows.length}`,
+                `Ready: ${counts.ready || 0}`,
+                `Online: ${counts.online || 0}`,
+                `Arranged: ${counts.arranged || 0}`,
+                `Needs review (stays in review table): ${counts['needs-review'] || 0}`,
+                `Errors (skipped): ${counts.error || 0}`
+            ];
+
+            if (replaceQuarter) {
+                lines.push('', `This will overwrite existing ${quartersLabel} schedule bucket(s) in ${targetYear} before import.`);
+            } else {
+                lines.push('', `Existing room collisions in ${targetYear} may still be moved to the displaced tray.`);
+            }
+
+            return lines.join('\n');
+        }
+
+        function switchSchedulerQuarterFromImport(targetQuarter) {
+            if (!targetQuarter) return;
+
+            const navComponent = document.getElementById('mainQuarterNav');
+            if (navComponent) {
+                navComponent.currentQuarter = targetQuarter;
+                if (typeof navComponent.updateActiveTab === 'function') {
+                    navComponent.updateActiveTab();
+                }
+            }
+
+            document.dispatchEvent(new CustomEvent('quarter-change', {
+                detail: { quarter: targetQuarter }
+            }));
+
+            if (typeof renderOnlineCourses === 'function') renderOnlineCourses(targetQuarter);
+            if (typeof renderArrangedCourses === 'function') renderArrangedCourses(targetQuarter);
+            if (typeof renderEnrollmentAnalytics === 'function') renderEnrollmentAnalytics(targetQuarter);
+            if (typeof renderConflicts === 'function') renderConflicts(targetQuarter);
+            if (typeof renderConflictSolver === 'function') renderConflictSolver(targetQuarter);
+            if (typeof renderRecommendations === 'function') renderRecommendations(targetQuarter);
+            if (typeof updateStats === 'function') updateStats(targetQuarter);
+        }
+
+        function switchSchedulerYearFromImport(targetYear) {
+            if (!targetYear) return;
+
+            const navComponent = document.getElementById('mainQuarterNav');
+            if (navComponent) {
+                const yearList = Array.isArray(navComponent.availableYears)
+                    ? navComponent.availableYears
+                    : (Array.isArray(navComponent.years) ? navComponent.years : null);
+
+                if (yearList && !yearList.includes(targetYear)) {
+                    yearList.push(targetYear);
+                }
+
+                if (typeof navComponent.changeYear === 'function') {
+                    navComponent.changeYear(targetYear);
+                    return;
+                }
+
+                navComponent.currentYear = targetYear;
+                if (typeof navComponent.render === 'function') {
+                    navComponent.render();
+                }
+                if (typeof navComponent.setupEventListeners === 'function') {
+                    navComponent.setupEventListeners();
+                }
+            }
+
+            if (typeof switchAcademicYear === 'function') {
+                switchAcademicYear(targetYear);
+            }
+        }
+
+        function createEmptyQuarterScheduleBucket() {
+            return {
+                MW: {},
+                TR: {},
+                ONLINE: { async: [] },
+                ARRANGED: { arranged: [] }
+            };
+        }
+
+        function createEmptyAcademicYearScheduleData() {
+            return {
+                fall: createEmptyQuarterScheduleBucket(),
+                winter: createEmptyQuarterScheduleBucket(),
+                spring: createEmptyQuarterScheduleBucket()
+            };
+        }
+
+        function loadScheduleDataSnapshotForYear(year) {
+            const targetYear = year || currentAcademicYear;
+            try {
+                const saved = localStorage.getItem(getStorageKey(targetYear));
+                if (!saved) {
+                    return createEmptyAcademicYearScheduleData();
+                }
+
+                let parsed = JSON.parse(saved);
+                parsed = migrateTimeSlots(parsed);
+                parsed = normalizeScheduleCourseCodes(parsed);
+
+                const snapshot = createEmptyAcademicYearScheduleData();
+                CLSS_IMPORT_QUARTERS.forEach((quarter) => {
+                    if (parsed?.[quarter] && typeof parsed[quarter] === 'object') {
+                        snapshot[quarter] = parsed[quarter];
+                    }
+                    ensureQuarterScheduleBucketForSchedule(snapshot, quarter);
+                });
+                return snapshot;
+            } catch (error) {
+                console.warn('Could not load schedule snapshot for year:', targetYear, error);
+                return createEmptyAcademicYearScheduleData();
+            }
+        }
+
+        function saveScheduleDataSnapshotForYear(year, data) {
+            try {
+                normalizeScheduleCourseCodes(data);
+                localStorage.setItem(getStorageKey(year), JSON.stringify(data));
+            } catch (error) {
+                console.warn('Could not save schedule snapshot for year:', year, error);
+            }
+        }
+
+        function ensureQuarterScheduleBucketForSchedule(scheduleStore, quarter) {
+            if (!scheduleStore[quarter] || typeof scheduleStore[quarter] !== 'object') {
+                scheduleStore[quarter] = createEmptyQuarterScheduleBucket();
+            }
+
+            const bucket = scheduleStore[quarter];
+            if (!bucket.MW || typeof bucket.MW !== 'object') bucket.MW = {};
+            if (!bucket.TR || typeof bucket.TR !== 'object') bucket.TR = {};
+            if (!bucket.ONLINE || typeof bucket.ONLINE !== 'object') bucket.ONLINE = {};
+            if (!Array.isArray(bucket.ONLINE.async)) bucket.ONLINE.async = [];
+            if (!bucket.ARRANGED || typeof bucket.ARRANGED !== 'object') bucket.ARRANGED = {};
+            if (!Array.isArray(bucket.ARRANGED.arranged)) bucket.ARRANGED.arranged = [];
+            return bucket;
+        }
+
+        function ensureQuarterScheduleBucket(quarter) {
+            return ensureQuarterScheduleBucketForSchedule(scheduleData, quarter);
+        }
+
+        function buildImportedScheduleCourse(row, roomOverride) {
+            return {
+                code: normalizeCourseCode(row.code),
+                name: row.title || '',
+                instructor: getCanonicalFacultyName(row.instructor || 'TBD'),
+                credits: Number(row.credits) || 5,
+                room: roomOverride || row.schedulerRoom || row.roomLabel || 'TBD',
+                section: row.section || ''
+            };
+        }
+
+        function placeClssImportedCourseInGrid(quarterBucket, row, counts) {
+            if (!row.schedulerDay || !row.schedulerTime) {
+                return false;
+            }
+
+            if (!isSchedulableDay(row.schedulerDay)) {
+                return false;
+            }
+
+            if (!quarterBucket[row.schedulerDay]) {
+                quarterBucket[row.schedulerDay] = {};
+            }
+            if (!Array.isArray(quarterBucket[row.schedulerDay][row.schedulerTime])) {
+                quarterBucket[row.schedulerDay][row.schedulerTime] = [];
+            }
+
+            const slotCourses = quarterBucket[row.schedulerDay][row.schedulerTime];
+            const resolvedRoom = resolveBestImportRoomForSlot(slotCourses, row.schedulerRoom || '');
+            if (!resolvedRoom) {
+                return false;
+            }
+
+            const duplicateExisting = slotCourses.find((course) =>
+                normalizeCourseCode(course.code) === normalizeCourseCode(row.code)
+                && (
+                    !String(course.section || '').trim()
+                    || !String(row.section || '').trim()
+                    || String(course.section || '').trim() === String(row.section || '').trim()
+                )
+                && getCanonicalFacultyName(course.instructor || 'TBD') === getCanonicalFacultyName(row.instructor || 'TBD')
+            );
+
+            if (duplicateExisting) {
+                counts.skipped += 1;
+                return true;
+            }
+
+            slotCourses.push(buildImportedScheduleCourse(row, resolvedRoom));
+            if (row.schedulerRoom && resolvedRoom !== row.schedulerRoom) {
+                counts.roomFallbackPlacements = (counts.roomFallbackPlacements || 0) + 1;
+            }
+            counts.readyPlaced += 1;
+            return true;
+        }
+
+        function resolveBestImportRoomForSlot(slotCourses, preferredRoom = '') {
+            const preferred = String(preferredRoom || '').trim();
+            const roomOrder = ['206', '207', '209', '210', '212', 'CEB 102', 'CEB 104'];
+            const candidates = [];
+            if (preferred && CLSS_IMPORT_ALLOWED_ROOMS.has(preferred)) {
+                candidates.push(preferred);
+            }
+            roomOrder.forEach((room) => {
+                if (!candidates.includes(room)) {
+                    candidates.push(room);
+                }
+            });
+
+            const occupiedRooms = new Set(
+                (Array.isArray(slotCourses) ? slotCourses : [])
+                    .map((course) => String(course.room || '').trim())
+                    .filter(Boolean)
+            );
+
+            for (const room of candidates) {
+                if (!occupiedRooms.has(room)) {
+                    return room;
+                }
+            }
+
+            return null;
+        }
+
+        function addImportedRowToDisplacedTray(row, year, quarter, reason) {
+            addToDisplacedTray({
+                code: normalizeCourseCode(row.code),
+                name: row.title || '',
+                instructor: getCanonicalFacultyName(row.instructor || 'TBD'),
+                credits: Number(row.credits) || 5,
+                originalDay: row.schedulerDay || `CLSS ${year} ${String(quarter || '').toUpperCase()}`,
+                originalTime: row.schedulerTime || reason || 'needs review',
+                originalRoom: row.schedulerRoom || row.roomLabel || 'TBD'
+            });
+        }
+
+        // ============================================
         // ADD COURSE FUNCTIONALITY
         // ============================================
 
@@ -7642,21 +10170,34 @@
             }
         }
 
-        function openWorkloadReviewFromScheduler() {
-            try {
-                saveScheduleData();
-            } catch (error) {
-                console.warn('Could not persist schedule before workload handoff:', error);
+        function openWorkloadReviewFromScheduler(options = {}) {
+            const {
+                yearOverride = null,
+                skipScheduleSave = false,
+                clssWorkloadImport = false
+            } = options || {};
+
+            if (!skipScheduleSave) {
+                try {
+                    saveScheduleData();
+                } catch (error) {
+                    console.warn('Could not persist schedule before workload handoff:', error);
+                }
             }
 
             const navComponent = document.getElementById('mainQuarterNav');
-            const academicYear = navComponent ? navComponent.currentYear : (window.StateManager?.get('currentAcademicYear') || currentAcademicYear || '2025-26');
+            const academicYear = yearOverride
+                || (navComponent ? navComponent.currentYear : (window.StateManager?.get('currentAcademicYear') || currentAcademicYear || '2025-26'));
             if (!academicYear) {
                 showToast('Could not determine academic year for workload review', 'critical');
                 return;
             }
 
-            window.location.href = `pages/workload-dashboard.html?year=${encodeURIComponent(academicYear)}`;
+            const params = new URLSearchParams({ year: academicYear });
+            if (clssWorkloadImport) {
+                params.set('clssImport', 'workloads');
+            }
+            window.location.href = `pages/workload-dashboard.html?${params.toString()}`;
         }
 
         function migrateTimeSlots(data) {
@@ -8118,6 +10659,17 @@
             exportReport,
             confirmDelete,
             closeDeleteConfirm,
+            openClssImportModal,
+            closeClssImportModal,
+            handleClssImportPngSelection,
+            invalidateClssImportPreview,
+            invalidateClssImportPriorYearPlacementCache,
+            refreshClssImportPreviewReview,
+            toggleClssImportInputMode,
+            refreshClssImportModeUi,
+            applyClssRolloutPreset,
+            parseClssImportPreview,
+            applyClssImport,
             openAddCourseModal,
             closeAddCourseModal,
             closeAddFacultyModal,
@@ -8292,6 +10844,155 @@
                     <button type="submit" class="btn-primary">Save Changes</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- CLSS Import Modal -->
+    <div class="modal-overlay" id="clssImportModal" onclick="closeClssImportModal(event)">
+        <div class="modal-content clss-import-modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h2 class="modal-title">Import CLSS (Review First)</h2>
+                <button class="modal-close" onclick="closeClssImportModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="clss-import-layout">
+                    <div class="api-help">
+                        <strong>Screenshot-first import (PNG)</strong>
+                        Upload CLSS screenshots and click Parse Preview. If the CLSS text boxes are empty, the app will OCR uploaded PNGs in-browser, then parse and review before applying.
+                        PDF extraction is intentionally deferred for now.
+                    </div>
+
+                    <div class="clss-import-top-row">
+                        <div class="clss-import-panel">
+                            <h4>Source Input</h4>
+                            <div class="clss-import-field">
+                                <label for="clssImportPngInput">CLSS PNG screenshots (optional, multiple)</label>
+                                <input type="file" id="clssImportPngInput" accept=".png,image/png" multiple onchange="handleClssImportPngSelection()">
+                                <div class="clss-import-file-list" id="clssImportPngSummary">No screenshots selected.</div>
+                            </div>
+                            <div class="clss-import-field" id="clssImportSingleTextField">
+                                <label for="clssImportText">Paste OCR text or copied CLSS rows</label>
+                                <textarea id="clssImportText" placeholder="Paste CLSS OCR text here (course headers + section rows)..." oninput="invalidateClssImportPreview()"></textarea>
+                            </div>
+                            <div class="clss-import-field clss-import-hidden" id="clssImportBatchTextFields">
+                                <label>Paste OCR/CLSS text for all three quarters (one box per quarter)</label>
+                                <div class="clss-import-batch-grid">
+                                    <div class="clss-import-batch-panel">
+                                        <h5>Fall</h5>
+                                        <textarea id="clssImportTextFall" placeholder="Paste Fall CLSS/OCR text..." oninput="invalidateClssImportPreview()"></textarea>
+                                    </div>
+                                    <div class="clss-import-batch-panel">
+                                        <h5>Winter</h5>
+                                        <textarea id="clssImportTextWinter" placeholder="Paste Winter CLSS/OCR text..." oninput="invalidateClssImportPreview()"></textarea>
+                                    </div>
+                                    <div class="clss-import-batch-panel">
+                                        <h5>Spring</h5>
+                                        <textarea id="clssImportTextSpring" placeholder="Paste Spring CLSS/OCR text..." oninput="invalidateClssImportPreview()"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="clss-import-panel">
+                            <h4>Import Options</h4>
+                            <div class="clss-import-inline-controls">
+                                <div class="clss-import-field">
+                                    <label for="clssImportBuildMode">Import mode</label>
+                                    <select id="clssImportBuildMode" onchange="refreshClssImportModeUi()">
+                                        <option value="schedule">Build Schedule</option>
+                                        <option value="workloads">Build Workloads</option>
+                                    </select>
+                                    <div class="clss-import-help-text" id="clssImportModeHelp" style="margin-top: 6px;">
+                                        Schedule mode imports rows into scheduler grid/online/arranged sections and uses slot/room placement logic.
+                                    </div>
+                                </div>
+                                <div class="clss-import-field">
+                                    <button type="button" class="btn-secondary" onclick="applyClssRolloutPreset()">Use Rollout Mode Preset</button>
+                                    <div class="clss-import-help-text" style="margin-top: 6px;">
+                                        Sets <strong>Next academic year</strong> + <strong>All three quarters</strong> for department rollout imports. Replace remains off unless you opt in.
+                                    </div>
+                                </div>
+                                <div class="clss-import-field">
+                                    <button type="button" class="btn-secondary" onclick="applyClssWorkloadsPreset()">Use Workloads Preset</button>
+                                    <div class="clss-import-help-text" style="margin-top: 6px;">
+                                        Sets <strong>Build Workloads</strong> + <strong>Next academic year</strong> + <strong>All three quarters</strong>. Use this for chair workload setup (no grid placement).
+                                    </div>
+                                </div>
+                                <div class="clss-import-field">
+                                    <label for="clssImportTargetYearMode">Target academic year</label>
+                                    <select id="clssImportTargetYearMode" onchange="invalidateClssImportPriorYearPlacementCache(); refreshClssImportPreviewReview()">
+                                        <option value="current">This academic year</option>
+                                        <option value="next">Next academic year</option>
+                                    </select>
+                                </div>
+                                <div class="clss-import-field">
+                                    <label for="clssImportScope">Import scope</label>
+                                    <select id="clssImportScope" onchange="toggleClssImportInputMode(); invalidateClssImportPreview()">
+                                        <option value="single">Single quarter (recommended)</option>
+                                        <option value="all">All three quarters (batch rollout)</option>
+                                    </select>
+                                </div>
+                                <div class="clss-import-field">
+                                    <label for="clssImportQuarter">Target quarter</label>
+                                    <select id="clssImportQuarter" onchange="refreshClssImportPreviewReview()">
+                                        <option value="fall">Fall</option>
+                                        <option value="winter">Winter</option>
+                                        <option value="spring">Spring</option>
+                                    </select>
+                                </div>
+                                <label class="clss-import-checkbox" id="clssImportReplaceQuarterControl" for="clssImportReplaceQuarter">
+                                    <input type="checkbox" id="clssImportReplaceQuarter" onchange="refreshClssImportPreviewReview()">
+                                    <span id="clssImportReplaceLabel">Replace target quarter before import (clear existing quarter schedule buckets first)</span>
+                                </label>
+                                <div class="clss-import-help-text" id="clssImportScheduleModeHelp">
+                                    Single-quarter import is safest for accuracy. Batch mode is available for rollout work and imports Fall/Winter/Spring together using the three text boxes above. Parse first to review row-by-row status. Ready rows can be placed into the grid. Online and arranged rows route to special sections. Needs-review rows go to the displaced tray for manual placement.
+                                </div>
+                                <div class="api-help clss-import-workloads-instructions clss-import-hidden" id="clssImportWorkloadsInstructions">
+                                    <strong>Chair workflow: Build Workloads</strong>
+                                    Use this mode to create a workload import handoff for the <strong>next academic year</strong> (currently <strong id="clssImportWorkloadsNextYearLabel">2026-27</strong>) without placing courses into the scheduler grid.
+                                    <ul>
+                                        <li>No room numbers or meeting times are required.</li>
+                                        <li>Review course, instructor, quarter, and modality (placement type) only.</li>
+                                        <li>Click <strong>Build Workloads</strong> to open the workload review workflow.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="clss-import-panel">
+                        <h4>Review Parsed Rows</h4>
+                        <div class="clss-import-review-summary" id="clssImportSummary"></div>
+                        <div id="clssImportEmptyState" class="clss-import-empty">
+                            Paste CLSS/OCR text, then click <strong>Parse Preview</strong>. No schedule data will be changed until you click <strong>Apply Import</strong>.
+                        </div>
+                        <div id="clssImportTableWrap" class="clss-import-table-wrap" style="display:none;">
+                            <table class="clss-import-table" aria-label="CLSS import review table">
+                                <thead>
+                                    <tr>
+                                        <th>Quarter</th>
+                                        <th>Status</th>
+                                        <th>Course</th>
+                                        <th>Section</th>
+                                        <th>Instructor</th>
+                                        <th>Meeting</th>
+                                        <th>Room</th>
+                                        <th>Scheduler Slot</th>
+                                        <th id="clssImportResolveHeader">Resolve</th>
+                                        <th>Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="clssImportReviewBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="closeClssImportModal()">Close</button>
+                <button class="btn-secondary" onclick="parseClssImportPreview()">Parse Preview (OCR PNGs if needed)</button>
+                <button class="btn-ewu-accent" id="clssImportApplyButton" onclick="applyClssImport()" disabled>Apply Import</button>
+            </div>
         </div>
     </div>
 

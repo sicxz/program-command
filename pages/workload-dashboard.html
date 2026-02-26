@@ -215,6 +215,74 @@
         .btn-remove-course:hover {
             background: #ffcdd2;
         }
+
+        .production-reset-panel {
+            margin: 12px 0 0;
+            border: 1px solid #f2cc60;
+            background: linear-gradient(180deg, #fff8db 0%, #fff3bf 100%);
+            border-radius: 12px;
+            padding: 14px 16px;
+            box-shadow: 0 1px 0 rgba(27, 31, 36, 0.04);
+        }
+
+        .production-reset-panel h3 {
+            margin: 0 0 6px;
+            font-size: 0.95rem;
+            color: #7c5700;
+        }
+
+        .production-reset-panel p {
+            margin: 0;
+            color: #6a5100;
+            font-size: 0.85rem;
+            line-height: 1.35;
+        }
+
+        .production-reset-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .btn-production-danger,
+        .btn-production-warning {
+            border: 1px solid transparent;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            letter-spacing: 0.01em;
+            transition: background-color 0.15s ease, border-color 0.15s ease;
+        }
+
+        .btn-production-danger {
+            background: #cf222e;
+            border-color: #b62324;
+            color: #fff;
+        }
+
+        .btn-production-danger:hover {
+            background: #b91c1c;
+        }
+
+        .btn-production-warning {
+            background: #fff;
+            border-color: #d0d7de;
+            color: #7c5700;
+        }
+
+        .btn-production-warning:hover {
+            background: #f6f8fa;
+            border-color: #afb8c1;
+        }
+
+        .production-reset-note {
+            margin-top: 8px;
+            font-size: 0.8rem;
+            color: #6a5100;
+        }
     </style>
     <link rel="stylesheet" href="../css/program-command-dashboard-theme.css">
 </head>
@@ -268,6 +336,22 @@
             <button onclick="window.location.href='capacity-planning-dashboard.html'">Capacity</button>
             <button onclick="window.location.href='pamcam-playground.html'">PamCam Lab</button>
         </div>
+
+        <section class="production-reset-panel" aria-labelledby="productionResetTitle">
+            <h3 id="productionResetTitle">Production Reset Tools (Local Browser Data)</h3>
+            <p>Use these only during production rollout cleanup. These actions are destructive and clear local saved data in this browser.</p>
+            <div class="production-reset-actions">
+                <button type="button" class="btn-production-danger" onclick="clearAllProductionWorkloads()">
+                    Clear All Workloads (Production)
+                </button>
+                <button type="button" class="btn-production-warning" onclick="clearProductionScheduleYear('2026-27')">
+                    Clear Scheduler AY 2026-27
+                </button>
+            </div>
+            <div class="production-reset-note">
+                Workloads reset clears workload planning/details + CLSS workload handoff data. It does not clear release time allocations.
+            </div>
+        </section>
 
         <div class="content">
             <div id="loadingMessage" class="loading">

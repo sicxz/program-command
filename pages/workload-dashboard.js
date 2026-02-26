@@ -21,6 +21,10 @@ const WORKLOAD_EXPORT_EXCELJS_URL = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/
 const WORKLOAD_EXPORT_JSZIP_URL = 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';
 const WORKLOAD_PLAN_STORAGE_KEY = 'programCommandAySetup';
 const WORKLOAD_PLAN_UI_STORAGE_KEY = 'programCommandAyPlanningUi';
+const WORKLOAD_DETAIL_STORAGE_KEY = 'programCommandFacultyWorkloadDetails';
+const CLSS_WORKLOAD_IMPORT_STORAGE_KEY = 'programCommandClssWorkloadImport';
+const SCHEDULE_STORAGE_PREFIX = 'designSchedulerData_';
+const PRODUCTION_RESET_DEFAULT_SCHEDULE_YEAR = '2026-27';
 const WORKLOAD_PLAN_ROLE_OPTIONS = [
     'Full Professor',
     'Associate Professor',
@@ -149,6 +153,100 @@ const workloadPlanningUiState = {
 
 // Chart instances
 let charts = {};
+
+function refreshWorkloadDashboardAfterProductionReset() {
+    try {
+        augmentYearFilterOptions();
+    } catch (error) {
+        console.warn('Could not refresh year options after production reset:', error);
+    }
+
+    if (!workloadData) return;
+
+    const year = currentFilters.year || 'all';
+    currentYearData = loadIntegratedYearData(year);
+    if (currentYearData) {
+        updateYearSubtitle(year, 'EWU Design Department - Academic Workload Analysis');
+        updateWorkloadSubtitleForYear(currentYearData);
+        refreshDashboard();
+    }
+}
+
+function clearAllProductionWorkloads() {
+    const keysToRemove = [
+        WORKLOAD_PLAN_STORAGE_KEY,
+        WORKLOAD_PLAN_UI_STORAGE_KEY,
+        WORKLOAD_DETAIL_STORAGE_KEY,
+        CLSS_WORKLOAD_IMPORT_STORAGE_KEY
+    ];
+
+    const summary = [
+        'Clear ALL locally stored workload data for production cleanup?',
+        '',
+        'This removes local browser data for:',
+        '• AY workload planning store',
+        '• workload planning UI preferences',
+        '• faculty workload detail entries',
+        '• staged CLSS workload import payload',
+        '',
+        'This does NOT clear release time allocations.',
+        '',
+        'Type OK in the next confirmation only if you want to continue.'
+    ].join('\n');
+
+    if (!window.confirm(summary)) {
+        return;
+    }
+
+    const typed = window.prompt('Confirm workload reset by typing: CLEAR WORKLOADS');
+    if (typed !== 'CLEAR WORKLOADS') {
+        alert('Workload reset canceled. Confirmation text did not match.');
+        return;
+    }
+
+    keysToRemove.forEach((key) => localStorage.removeItem(key));
+
+    // Reset in-memory planning UI state so the page reflects storage deletion without a reload.
+    workloadPlanningUiState.lockStateByYear = {};
+    workloadPlanningUiState.lastScheduleRefreshDiffByYear = {};
+    workloadPlanningUiState.statusMessage = '';
+    workloadPlanningUiState.statusLevel = 'info';
+
+    refreshWorkloadDashboardAfterProductionReset();
+    alert('Production reset complete: local workload planning/detail data cleared.');
+}
+
+function clearProductionScheduleYear(year = PRODUCTION_RESET_DEFAULT_SCHEDULE_YEAR) {
+    const normalizedYear = String(year || '').trim();
+    if (!/^\d{4}-\d{2}$/.test(normalizedYear)) {
+        alert('Invalid academic year format for schedule reset.');
+        return;
+    }
+
+    const storageKey = `${SCHEDULE_STORAGE_PREFIX}${normalizedYear}`;
+    const promptLabel = `CLEAR SCHEDULE ${normalizedYear}`;
+    const summary = [
+        `Clear scheduler data for AY ${normalizedYear}?`,
+        '',
+        `This removes localStorage key: ${storageKey}`,
+        'Only the scheduler draft for that academic year will be cleared.',
+        'Workload planning/detail data is not changed by this button.'
+    ].join('\n');
+
+    if (!window.confirm(summary)) {
+        return;
+    }
+
+    const typed = window.prompt(`Confirm scheduler reset by typing: ${promptLabel}`);
+    if (typed !== promptLabel) {
+        alert('Scheduler reset canceled. Confirmation text did not match.');
+        return;
+    }
+
+    localStorage.removeItem(storageKey);
+    refreshWorkloadDashboardAfterProductionReset();
+    alert(`Scheduler AY ${normalizedYear} cleared from local browser storage.`);
+}
 
 function getCurrentAcademicYear() {
     const now = new Date();
