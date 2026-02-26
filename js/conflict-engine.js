@@ -61,6 +61,17 @@ const ConflictEngine = (function() {
         ['DESN 369', 'DESN 469']
     ];
 
+    const PATHWAY_PAIR_IMPACT_OVERRIDES = {
+        'DESN 463::DESN 480': { label: 'graduation-critical', score: 28 },
+        'DESN 463::DESN 490': { label: 'graduation-critical', score: 28 },
+        'DESN 480::DESN 490': { label: 'graduation-critical', score: 28 },
+        'DESN 469::DESN 480': { label: 'graduation-critical', score: 24 },
+        'DESN 348::DESN 458': { label: 'pathway-sequence-critical', score: 18 },
+        'DESN 355::DESN 365': { label: 'pathway-sequence-critical', score: 16 },
+        'DESN 368::DESN 378': { label: 'pathway-sequence-critical', score: 16 },
+        'DESN 369::DESN 469': { label: 'pathway-sequence-critical', score: 16 }
+    };
+
     const AY_DEFAULT_THRESHOLDS = {
         annualOverloadWarning: 3,
         annualOverloadCritical: 8,
@@ -289,6 +300,9 @@ const ConflictEngine = (function() {
         const impactCourseCount = Array.isArray(issue?.courses) ? issue.courses.length : 0;
         const impactWeight = Math.min(impactCourseCount * 2, 10);
         const baseWeight = registry.baseWeight || 0;
+        const pathwayImpactWeight = normalizedConstraintType === 'student_conflict'
+            ? Math.max(0, Number(issue?.pathwayImpactScore) || 0)
+            : 0;
 
         const contributions = [
             { source: 'severity', value: severityWeight, detail: severity },
@@ -296,6 +310,14 @@ const ConflictEngine = (function() {
             { source: 'priority', value: priorityWeight, detail: priority || 'none' },
             { source: 'affected-courses', value: impactWeight, detail: impactCourseCount }
         ];
+
+        if (pathwayImpactWeight > 0) {
+            contributions.push({
+                source: 'pathway-impact',
+                value: pathwayImpactWeight,
+                detail: issue.pathwayImpact || 'pathway-overlap'
+            });
+        }
 
         if (ruleWeight !== 1) {
             contributions.push({ source: 'rule-weight', value: Math.round((ruleWeight - 1) * 20), detail: ruleWeight });
@@ -310,6 +332,7 @@ const ConflictEngine = (function() {
                 `${registry.label} (${registry.hardness})`,
                 `severity=${severity}`,
                 priority ? `priority=${priority}` : null,
+                issue?.pathwayImpact ? `pathway=${issue.pathwayImpact}` : null,
                 `courses=${impactCourseCount}`,
                 ruleWeight !== 1 ? `ruleWeight=${ruleWeight}` : null
             ].filter(Boolean).join(' | '),
@@ -339,6 +362,57 @@ const ConflictEngine = (function() {
             .toUpperCase()
             .replace(/\s+/g, ' ')
             .trim();
+    }
+
+    function getCourseLevel(courseCode) {
+        const match = normalizeCourseCode(courseCode).match(/(\d{3})/);
+        return match ? Math.floor(Number(match[1]) / 100) * 100 : 0;
+    }
+
+    function buildPathwayPairKey(courseA, courseB) {
+        return [normalizeCourseCode(courseA), normalizeCourseCode(courseB)]
+            .sort()
+            .join('::');
+    }
+
+    function getPathwayPairImpact(pair) {
+        const [courseA, courseB] = Array.isArray(pair) ? pair : ['', ''];
+        const key = buildPathwayPairKey(courseA, courseB);
+        const override = PATHWAY_PAIR_IMPACT_OVERRIDES[key];
+        if (override) return override;
+
+        const levels = [getCourseLevel(courseA), getCourseLevel(courseB)];
+        const maxLevel = Math.max(...levels);
+
+        if (maxLevel >= 400) {
+            return { label: 'upper-division-pathway', score: 20 };
+        }
+        if (maxLevel >= 300) {
+            return { label: 'pathway-sequence', score: 12 };
+        }
+        return { label: 'foundation-overlap', score: 8 };
+    }
+
+    function summarizePathwayConflictImpact(conflictingPairs) {
+        const pairDetails = (Array.isArray(conflictingPairs) ? conflictingPairs : []).map((pair) => {
+            const impact = getPathwayPairImpact(pair);
+            return {
+                pair,
+                label: impact.label,
+                score: impact.score
+            };
+        });
+
+        const top = pairDetails.reduce((best, entry) => {
+            if (!best) return entry;
+            return entry.score > best.score ? entry : best;
+        }, null);
+
+        return {
+            label: top?.label || 'pathway-overlap',
+            score: top?.score || 0,
+            pairs: pairDetails
+        };
     }
 
     function normalizeFacultyName(name, canonicalizeFacultyName) {
@@ -813,6 +887,7 @@ const ConflictEngine = (function() {
                     // Get all conflicting courses
                     const conflictingCodes = [...new Set(conflictingPairs.flat())];
                     const conflictingCourses = coursesInSlot.filter(c => conflictingCodes.includes(c.code));
+                    const pathwayImpact = summarizePathwayConflictImpact(conflictingPairs);
                     
                     // Determine severity based on course levels
                     const has400Level = conflictingCodes.some(c => {
@@ -820,6 +895,11 @@ const ConflictEngine = (function() {
                         return num >= 400;
                     });
                     const severity = has400Level ? 'critical' : (rule.severity || 'warning');
+                    const priority = has400Level
+                        ? 'critical'
+                        : pathwayImpact.score >= 16
+                            ? 'high'
+                            : 'medium';
                     
                     // Calculate dynamic resolutions
                     const dynamicResolutions = calculateSlotResolutions(
@@ -837,12 +917,16 @@ const ConflictEngine = (function() {
                     
                     issues.push({
                         severity: severity,
+                        priority,
                         type: 'student-conflict',
                         title: `Pathway Conflict: ${dayName}, ${timeFormatted}`,
                         description: `Students commonly need to take ${pairDescriptions} together, but they're scheduled at the same time`,
                         courses: conflictingCourses,
                         studentsAffected: estimateAffectedStudents(conflictingCourses),
                         currentSlot: `${day} ${time}`,
+                        pathwayImpact: pathwayImpact.label,
+                        pathwayImpactScore: pathwayImpact.score,
+                        pathwayImpactPairs: pathwayImpact.pairs,
                         resolutions: allResolutions,
                         suggestion: `Move one course to a different time slot so students can complete their graduation pathway`
                     });
