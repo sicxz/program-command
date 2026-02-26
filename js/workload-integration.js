@@ -802,6 +802,15 @@ const WorkloadIntegration = (function() {
                 record.ayReleasePercent = Number.isFinite(Number(ayRecord.releasePercent))
                     ? Number(ayRecord.releasePercent)
                     : (target > 0 ? Number(((releaseCredits / target) * 100).toFixed(1)) : 0);
+                record.ayReleaseReason = String(ayRecord.releaseReason || '').trim();
+                record.ayNotes = String(ayRecord.notes || '').trim();
+                record.ayActive = ayRecord.active !== false;
+                const ayChairFlag = ayRecord.isChair === true || /chair/i.test(record.ayReleaseReason);
+                if (ayChairFlag) {
+                    record.specialRole = 'Chair';
+                } else if (record.specialRole === 'Chair') {
+                    delete record.specialRole;
+                }
                 record.maxWorkload = netTarget > 0 ? netTarget : target;
             } else {
                 const fallbackRule = findPreliminaryRosterTargetRule(record.facultyName);
