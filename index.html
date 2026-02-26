@@ -8555,6 +8555,32 @@
             renderClssImportReview(clssImportPreviewRows);
         }
 
+        function sendClssImportRowToDisplacedTray(index) {
+            const normalizedIndex = Number(index);
+            if (!Number.isInteger(normalizedIndex) || normalizedIndex < 0 || normalizedIndex >= clssImportPreviewRows.length) {
+                return;
+            }
+
+            const sourceRow = clssImportPreviewRows[normalizedIndex];
+            const effectiveRow = getClssImportRowEffectiveState(sourceRow);
+            const targetYear = getClssImportTargetAcademicYear();
+            const targetQuarter = effectiveRow.effectiveQuarter || sourceRow.targetQuarter || (document.getElementById('clssImportQuarter')?.value || 'spring');
+
+            addImportedRowToDisplacedTray({
+                ...sourceRow,
+                schedulerDay: effectiveRow.effectiveDay || sourceRow.schedulerDay || '',
+                schedulerTime: effectiveRow.effectiveTime || sourceRow.schedulerTime || '',
+                schedulerRoom: effectiveRow.effectiveRoom || sourceRow.schedulerRoom || '',
+                roomLabel: sourceRow.roomLabel || sourceRow.schedulerRoom || ''
+            }, targetYear, targetQuarter, 'Moved from CLSS review');
+
+            clssImportPreviewRows.splice(normalizedIndex, 1);
+            renderClssImportReview(clssImportPreviewRows);
+
+            const codeLabel = normalizeCourseCode(sourceRow.code || 'Course');
+            showToast(`${codeLabel} sent to displaced tray`);
+        }
+
         function buildClssImportResolveControls(rowIndex, row, effectiveRow) {
             const wrapper = document.createElement('div');
             wrapper.className = 'clss-import-resolve-controls';
@@ -8676,6 +8702,20 @@
             resetButton.onclick = () => resetClssImportRowResolution(rowIndex);
             roomRow.appendChild(resetButton);
             wrapper.appendChild(roomRow);
+
+            if (effectiveRow.effectiveStatus === 'needs-review') {
+                const trayRow = document.createElement('div');
+                trayRow.className = 'row single';
+
+                const trayButton = document.createElement('button');
+                trayButton.type = 'button';
+                trayButton.textContent = 'Send to Displaced Tray';
+                trayButton.title = 'Move this row to the displaced tray for manual drag-and-drop placement later';
+                trayButton.onclick = () => sendClssImportRowToDisplacedTray(rowIndex);
+
+                trayRow.appendChild(trayButton);
+                wrapper.appendChild(trayRow);
+            }
 
             if (effectiveRow.effectiveStatus === 'needs-review' && !disableSlotFields) {
                 const hintRow = document.createElement('div');
