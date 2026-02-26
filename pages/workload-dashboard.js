@@ -219,59 +219,249 @@ function ensurePreliminaryNoticeStyles() {
     style.textContent = `
         .prelim-workload-notice {
             margin: 0 0 16px;
-            padding: 14px 16px;
+            padding: 16px;
             border-radius: 12px;
-            border: 1px solid #f59e0b;
-            background: linear-gradient(180deg, #fff8e6 0%, #fffdf7 100%);
-            color: #5b3a00;
+            border: 1px solid #d0d7de;
+            background: #ffffff;
+            color: #24292f;
+            box-shadow: 0 1px 0 rgba(27, 31, 36, 0.04);
         }
         .prelim-workload-notice[hidden] {
             display: none !important;
         }
+        .prelim-workload-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .prelim-workload-eyebrow-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        .prelim-workload-label {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            border: 1px solid #d0d7de;
+            background: #f6f8fa;
+            color: #57606a;
+            font-size: 0.75rem;
+            font-weight: 600;
+            line-height: 1;
+            padding: 5px 10px;
+        }
+        .prelim-workload-state {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            border: 1px solid transparent;
+            font-size: 0.75rem;
+            font-weight: 600;
+            line-height: 1;
+            padding: 5px 10px;
+        }
+        .prelim-workload-state.warn {
+            color: #9a6700;
+            border-color: #d4a72c;
+            background: #fff8c5;
+        }
+        .prelim-workload-state.info {
+            color: #0969da;
+            border-color: #54aeff;
+            background: #ddf4ff;
+        }
+        .prelim-workload-state.success {
+            color: #1a7f37;
+            border-color: #4ac26b;
+            background: #dafbe1;
+        }
         .prelim-workload-notice h3 {
-            margin: 0 0 8px;
-            font-size: 1rem;
-            color: #7c2d12;
+            margin: 0;
+            font-size: 1.05rem;
+            line-height: 1.3;
+            color: #24292f;
+            letter-spacing: -0.01em;
+        }
+        .prelim-workload-lead {
+            margin: 6px 0 0;
+            font-size: 0.88rem;
+            line-height: 1.45;
+            color: #57606a;
+            max-width: 72ch;
+        }
+        .prelim-workload-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            min-width: 0;
+        }
+        .prelim-workload-action-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            min-height: 32px;
+            padding: 0 12px;
+            border-radius: 8px;
+            border: 1px solid #d0d7de;
+            background: #f6f8fa;
+            color: #24292f;
+            font-size: 0.82rem;
+            font-weight: 600;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+        .prelim-workload-action-btn:hover {
+            background: #eef2f6;
+            border-color: #afb8c1;
+        }
+        .prelim-workload-action-btn.primary {
+            background: #0969da;
+            border-color: #0969da;
+            color: #ffffff;
+        }
+        .prelim-workload-action-btn.primary:hover {
+            background: #0860ca;
+            border-color: #0860ca;
         }
         .prelim-workload-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 8px 12px;
-            margin-bottom: 10px;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-bottom: 12px;
         }
         .prelim-workload-stat {
-            background: rgba(255,255,255,0.7);
-            border: 1px solid rgba(245, 158, 11, 0.2);
+            background: #f6f8fa;
+            border: 1px solid #d8dee4;
             border-radius: 8px;
-            padding: 8px 10px;
+            padding: 10px;
         }
         .prelim-workload-stat-label {
             display: block;
-            font-size: 0.8rem;
-            color: #92400e;
-            margin-bottom: 2px;
+            font-size: 0.74rem;
+            color: #57606a;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            font-weight: 600;
         }
         .prelim-workload-stat-value {
+            display: block;
+            font-size: 1.05rem;
             font-weight: 700;
-            color: #78350f;
+            color: #24292f;
+            line-height: 1.2;
+        }
+        .prelim-workload-stat-meta {
+            display: block;
+            margin-top: 3px;
+            font-size: 0.72rem;
+            color: #656d76;
+        }
+        .prelim-workload-banner {
+            margin: 8px 0 0;
+            border-radius: 8px;
+            border: 1px solid #d8dee4;
+            background: #f6f8fa;
+            color: #24292f;
+            padding: 9px 10px;
+            font-size: 0.84rem;
+            line-height: 1.4;
+        }
+        .prelim-workload-banner strong {
+            color: inherit;
+        }
+        .prelim-workload-banner.warn {
+            background: #fff8c5;
+            border-color: #d4a72c;
+            color: #7d4e00;
+        }
+        .prelim-workload-banner.info {
+            background: #ddf4ff;
+            border-color: #54aeff;
+            color: #0550ae;
+        }
+        .prelim-workload-stack {
+            display: grid;
+            gap: 8px;
+            margin-top: 10px;
         }
         .prelim-workload-note {
-            margin: 8px 0 0;
-            font-size: 0.9rem;
-            color: #78350f;
+            margin: 0;
+            font-size: 0.84rem;
+            color: #57606a;
+            line-height: 1.45;
+        }
+        .prelim-workload-details {
+            margin: 0;
+            border: 1px solid #d8dee4;
+            border-radius: 8px;
+            background: #ffffff;
+        }
+        .prelim-workload-details > summary {
+            cursor: pointer;
+            list-style: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            font-weight: 600;
+            font-size: 0.83rem;
+            color: #24292f;
+        }
+        .prelim-workload-details > summary::-webkit-details-marker {
+            display: none;
+        }
+        .prelim-workload-details > summary::before {
+            content: "▸";
+            color: #57606a;
+            transition: transform 120ms ease;
+        }
+        .prelim-workload-details[open] > summary::before {
+            transform: rotate(90deg);
+        }
+        .prelim-workload-details-body {
+            border-top: 1px solid #eaeef2;
+            padding: 8px 12px 10px;
         }
         .prelim-workload-list {
-            margin: 8px 0 0 18px;
+            margin: 0 0 0 18px;
             padding: 0;
-            color: #78350f;
-            font-size: 0.88rem;
+            color: #57606a;
+            font-size: 0.82rem;
+            line-height: 1.4;
         }
         .prelim-workload-list li {
-            margin: 3px 0;
+            margin: 4px 0;
         }
-        .prelim-workload-mini {
-            font-size: 0.82rem;
-            color: #92400e;
+        .prelim-workload-footnote {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #eaeef2;
+            font-size: 0.78rem;
+            color: #656d76;
+            line-height: 1.45;
+        }
+        .prelim-workload-footnote strong {
+            color: #24292f;
+        }
+        @media (max-width: 860px) {
+            .prelim-workload-header {
+                flex-direction: column;
+            }
+            .prelim-workload-actions {
+                justify-content: flex-start;
+            }
+            .prelim-workload-action-btn {
+                width: 100%;
+                justify-content: center;
+            }
         }
     `;
     document.head.appendChild(style);
@@ -343,6 +533,9 @@ function renderPreliminaryPlanningNotice(yearData) {
     const unresolvedCount = Number(unresolved.count) || 0;
     const assignedCount = Number(meta.assignedScheduleCourses) || 0;
     const totalScheduleCount = Number(meta.scheduleCourses) || 0;
+    const assignedCoveragePercent = totalScheduleCount > 0
+        ? Number(((assignedCount / totalScheduleCount) * 100).toFixed(1))
+        : 0;
 
     notice.hidden = false;
 
@@ -361,8 +554,79 @@ function renderPreliminaryPlanningNotice(yearData) {
     const unresolvedPreview = unresolvedCourses.slice(0, 6)
         .map((course) => `${course.quarter}: ${course.courseCode} (${course.credits} cr, ${course.instructor})`);
 
+    const escapedUnresolvedQuarterText = escapeWorkloadPlanHtml(unresolvedQuarterText);
+    const unresolvedPreviewHtml = unresolvedPreview.length
+        ? unresolvedPreview.map((item) => `<li>${escapeWorkloadPlanHtml(item)}</li>`).join('')
+        : '';
+    const fallbackRuleListHtml = fallbackRules.length
+        ? fallbackRules.map((rule) => {
+            const matched = Array.isArray(rule.matchedFaculty) && rule.matchedFaculty.length
+                ? ` (${rule.matchedFaculty.join(', ')})`
+                : '';
+            const text = `${rule.role} -> ${rule.netTargetCredits} target${rule.specialRole ? `, ${rule.specialRole}` : ''}${matched}`;
+            return `<li>${escapeWorkloadPlanHtml(text)}</li>`;
+        }).join('')
+        : '';
+    const assumptionListHtml = assumptionItems.length
+        ? assumptionItems.map((item) => `<li>${escapeWorkloadPlanHtml(item)}</li>`).join('')
+        : '';
+    const unresolvedStateHtml = unresolvedCount > 0
+        ? `<span class="prelim-workload-state warn">${unresolvedCount} unresolved section${unresolvedCount === 1 ? '' : 's'}</span>`
+        : '<span class="prelim-workload-state success">No unresolved sections</span>';
+    const fallbackStateHtml = fallbackRules.length
+        ? `<span class="prelim-workload-state warn">${fallbackRules.length} fallback target rule${fallbackRules.length === 1 ? '' : 's'}</span>`
+        : '<span class="prelim-workload-state info">No fallback target rules applied</span>';
+    const unresolvedBannerHtml = unresolvedCount > 0
+        ? `<div class="prelim-workload-banner warn"><strong>Unresolved sections are excluded from faculty totals.</strong>${escapedUnresolvedQuarterText ? ` ${escapedUnresolvedQuarterText}` : ''}</div>`
+        : '';
+    const fallbackBannerHtml = fallbackText
+        ? `<div class="prelim-workload-banner info"><strong>Fallback target assumptions applied.</strong> Review AY Setup before treating utilization/gaps as final.</div>`
+        : '';
+    const unresolvedDetailsHtml = unresolvedPreview.length > 0
+        ? `<details class="prelim-workload-details">
+                <summary>Unresolved section examples (showing ${unresolvedPreview.length} of ${unresolvedCount})</summary>
+                <div class="prelim-workload-details-body">
+                    <ul class="prelim-workload-list">${unresolvedPreviewHtml}</ul>
+                </div>
+            </details>`
+        : '';
+    const fallbackDetailsHtml = fallbackRules.length
+        ? `<details class="prelim-workload-details">
+                <summary>Fallback target rules in use</summary>
+                <div class="prelim-workload-details-body">
+                    <ul class="prelim-workload-list">${fallbackRuleListHtml}</ul>
+                </div>
+            </details>`
+        : '';
+    const assumptionsDetailsHtml = assumptionItems.length
+        ? `<details class="prelim-workload-details"${unresolvedCount === 0 ? ' open' : ''}>
+                <summary>Preliminary workload assumptions</summary>
+                <div class="prelim-workload-details-body">
+                    <ul class="prelim-workload-list">${assumptionListHtml}</ul>
+                </div>
+            </details>`
+        : '';
+    const hasAppliedLearningRateAssumption = assumptionItems.some((item) => /DESN 399\/491\/499/i.test(String(item || '')));
+    const appliedLearningRateNoteHtml = hasAppliedLearningRateAssumption
+        ? ''
+        : '<p class="prelim-workload-note">DESN 399/491/499 use a 0.2 workload rate and DESN 495 uses a 0.1 workload rate in the preliminary scheduler-derived calculations.</p>';
+
     notice.innerHTML = `
-        <h3>Preliminary Workload (Scheduler Draft)</h3>
+        <div class="prelim-workload-header">
+            <div>
+                <div class="prelim-workload-eyebrow-row">
+                    <span class="prelim-workload-label">Scheduler Draft</span>
+                    ${unresolvedStateHtml}
+                    ${fallbackStateHtml}
+                </div>
+                <h3>Preliminary Workload (Scheduler Draft)</h3>
+                <p class="prelim-workload-lead">Teaching workload values below are derived from the current scheduler draft for AY ${escapeWorkloadPlanHtml(currentFilters.year)}. Non-teaching assigned time (release, service, advising, leave) should be finalized in AY workload planning before using the dashboard as a decision-ready workload report.</p>
+            </div>
+            <div class="prelim-workload-actions">
+                <a class="prelim-workload-action-btn primary" href="academic-year-setup.html">Open AY Setup</a>
+                <a class="prelim-workload-action-btn" href="release-time-dashboard.html">Open Release Time</a>
+            </div>
+        </div>
         <div class="prelim-workload-grid">
             <div class="prelim-workload-stat">
                 <span class="prelim-workload-stat-label">Selected AY</span>
@@ -380,12 +644,21 @@ function renderPreliminaryPlanningNotice(yearData) {
                 <span class="prelim-workload-stat-label">TBD / Unassigned</span>
                 <span class="prelim-workload-stat-value">${unresolvedCount}</span>
             </div>
+            <div class="prelim-workload-stat">
+                <span class="prelim-workload-stat-label">Assigned Coverage</span>
+                <span class="prelim-workload-stat-value">${formatWorkloadPlanNumber(assignedCoveragePercent)}%</span>
+                <span class="prelim-workload-stat-meta">${assignedCount} of ${totalScheduleCount} sections assigned</span>
+            </div>
         </div>
-        ${unresolvedCount > 0 ? `<p class="prelim-workload-note"><strong>Unresolved sections are excluded from faculty totals.</strong>${unresolvedQuarterText ? ` ${unresolvedQuarterText}` : ''}</p>` : ''}
-        ${unresolvedPreview.length > 0 ? `<ul class="prelim-workload-list">${unresolvedPreview.map((item) => `<li>${item}</li>`).join('')}</ul>` : ''}
-        ${fallbackText ? `<p class="prelim-workload-note"><strong>Fallback target assumptions applied:</strong> ${fallbackText}</p>` : ''}
-        ${assumptionItems.length ? `<ul class="prelim-workload-list">${assumptionItems.map((item) => `<li>${item}</li>`).join('')}</ul>` : ''}
-        <p class="prelim-workload-note prelim-workload-mini">Use AY Setup + Release Time dashboards to replace fallback assumptions with final targets/release allocations. Use the ⬇️ button in each faculty row to export an <strong>Export Workload Sheet (.xlsx)</strong> draft.</p>
+        ${unresolvedBannerHtml}
+        ${fallbackBannerHtml}
+        <div class="prelim-workload-stack">
+            ${unresolvedDetailsHtml}
+            ${fallbackDetailsHtml}
+            ${assumptionsDetailsHtml}
+            ${appliedLearningRateNoteHtml}
+        </div>
+        <p class="prelim-workload-footnote">Use AY Setup + Release Time dashboards to replace fallback assumptions with final targets/release allocations. Use the export button in each faculty row to produce an <strong>Export Workload Sheet (.xlsx)</strong> draft for review.</p>
     `;
 }
 
@@ -982,10 +1255,10 @@ function ensureWorkloadPlanningStyles() {
         .workload-plan-panel {
             margin: 0 0 18px;
             padding: 16px;
-            border-radius: 14px;
-            border: 1px solid rgba(15, 23, 42, 0.12);
-            background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
-            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+            border-radius: 12px;
+            border: 1px solid #d0d7de;
+            background: #ffffff;
+            box-shadow: 0 1px 0 rgba(27, 31, 36, 0.04);
         }
         .workload-plan-panel[hidden] { display: none !important; }
         .workload-plan-header {
@@ -998,12 +1271,16 @@ function ensureWorkloadPlanningStyles() {
         .workload-plan-header h3 {
             margin: 0;
             font-size: 1rem;
-            color: #0f172a;
+            line-height: 1.35;
+            color: #24292f;
+            letter-spacing: -0.01em;
         }
         .workload-plan-header p {
             margin: 4px 0 0;
-            font-size: 0.86rem;
-            color: #475569;
+            font-size: 0.84rem;
+            line-height: 1.45;
+            color: #57606a;
+            max-width: 72ch;
         }
         .workload-plan-actions {
             display: flex;
@@ -1051,34 +1328,46 @@ function ensureWorkloadPlanningStyles() {
             display: grid;
             gap: 3px;
             font-size: 0.73rem;
-            color: #475569;
+            color: #57606a;
             font-weight: 600;
         }
         .workload-plan-sort-controls select {
             min-width: 150px;
-            border: 1px solid rgba(15, 23, 42, 0.14);
+            border: 1px solid #d0d7de;
             border-radius: 8px;
             background: #fff;
-            color: #0f172a;
+            color: #24292f;
             padding: 6px 8px;
             font-size: 0.8rem;
         }
         .workload-plan-btn {
-            border: 1px solid rgba(15, 23, 42, 0.15);
-            background: #ffffff;
-            color: #0f172a;
+            border: 1px solid #d0d7de;
+            background: #f6f8fa;
+            color: #24292f;
             border-radius: 8px;
             padding: 7px 10px;
-            font-size: 0.82rem;
+            font-size: 0.8rem;
+            font-weight: 600;
             cursor: pointer;
         }
         .workload-plan-btn.primary {
-            background: #0f766e;
-            border-color: #0f766e;
+            background: #0969da;
+            border-color: #0969da;
             color: #ffffff;
         }
         .workload-plan-btn:hover {
-            filter: brightness(0.98);
+            background: #eef2f6;
+            border-color: #afb8c1;
+            filter: none;
+        }
+        .workload-plan-btn.primary:hover {
+            background: #0860ca;
+            border-color: #0860ca;
+        }
+        .workload-plan-btn:focus-visible,
+        .workload-plan-row-btn:focus-visible {
+            outline: 2px solid #0969da;
+            outline-offset: 2px;
         }
         .workload-plan-btn[disabled],
         .workload-plan-row-btn[disabled] {
@@ -1087,9 +1376,9 @@ function ensureWorkloadPlanningStyles() {
             filter: none !important;
         }
         .workload-plan-btn.warn {
-            background: #fff7ed;
-            border-color: #fdba74;
-            color: #9a3412;
+            background: #fff8c5;
+            border-color: #d4a72c;
+            color: #7d4e00;
         }
         .workload-plan-summary {
             display: grid;
@@ -1099,35 +1388,55 @@ function ensureWorkloadPlanningStyles() {
         }
         .workload-plan-summary-card {
             border-radius: 10px;
-            border: 1px solid rgba(15, 23, 42, 0.09);
-            background: rgba(255,255,255,0.9);
+            border: 1px solid #d8dee4;
+            background: #f6f8fa;
             padding: 10px;
         }
         .workload-plan-summary-card .label {
             font-size: 0.75rem;
-            color: #64748b;
+            color: #656d76;
             display: block;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            font-weight: 600;
         }
         .workload-plan-summary-card .value {
             font-size: 1rem;
             font-weight: 700;
-            color: #0f172a;
+            color: #24292f;
         }
         .workload-plan-statusline {
-            min-height: 20px;
+            min-height: 0;
             margin: 4px 0 10px;
             font-size: 0.82rem;
-            color: #475569;
+            color: #57606a;
         }
-        .workload-plan-statusline.success { color: #065f46; }
-        .workload-plan-statusline.warn { color: #92400e; }
+        .workload-plan-statusline:empty {
+            margin: 0;
+        }
+        .workload-plan-statusline:not(:empty) {
+            padding: 9px 10px;
+            border-radius: 8px;
+            border: 1px solid #d8dee4;
+            background: #f6f8fa;
+        }
+        .workload-plan-statusline.success {
+            color: #1a7f37;
+            border-color: #4ac26b;
+            background: #dafbe1;
+        }
+        .workload-plan-statusline.warn {
+            color: #7d4e00;
+            border-color: #d4a72c;
+            background: #fff8c5;
+        }
         .workload-plan-refresh-summary {
             margin: 0 0 10px;
             padding: 10px 12px;
             border-radius: 10px;
-            border: 1px solid #bfdbfe;
-            background: #eff6ff;
-            color: #1e3a8a;
+            border: 1px solid #54aeff;
+            background: #ddf4ff;
+            color: #0550ae;
             display: flex;
             justify-content: space-between;
             gap: 8px;
@@ -1136,11 +1445,11 @@ function ensureWorkloadPlanningStyles() {
             font-size: 0.8rem;
         }
         .workload-plan-refresh-summary strong {
-            color: #1e3a8a;
+            color: #0550ae;
         }
         .workload-plan-table-wrap {
             overflow: auto;
-            border: 1px solid rgba(15, 23, 42, 0.08);
+            border: 1px solid #d8dee4;
             border-radius: 10px;
             background: #fff;
         }
@@ -1162,11 +1471,14 @@ function ensureWorkloadPlanningStyles() {
             position: sticky;
             top: 0;
             z-index: 1;
-            background: #f8fafc;
-            color: #334155;
+            background: #f6f8fa;
+            color: #57606a;
             font-size: 0.76rem;
             text-transform: uppercase;
             letter-spacing: 0.04em;
+        }
+        .workload-plan-table tbody tr:hover td {
+            background-image: linear-gradient(rgba(9, 105, 218, 0.03), rgba(9, 105, 218, 0.03));
         }
         .workload-plan-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
         .workload-plan-table tr.workload-plan-group-row td {
@@ -1263,23 +1575,32 @@ function ensureWorkloadPlanningStyles() {
             align-items: center;
         }
         .workload-plan-row-btn {
-            border: 1px solid rgba(15, 23, 42, 0.12);
-            background: #fff;
-            color: #0f172a;
+            border: 1px solid #d0d7de;
+            background: #f6f8fa;
+            color: #24292f;
             border-radius: 7px;
             padding: 5px 8px;
             font-size: 0.75rem;
+            font-weight: 600;
             cursor: pointer;
         }
         .workload-plan-row-btn.edit {
-            background: #0f172a;
+            background: #0969da;
             color: #fff;
-            border-color: #0f172a;
+            border-color: #0969da;
         }
         .workload-plan-note {
             margin-top: 8px;
-            color: #64748b;
+            color: #656d76;
             font-size: 0.78rem;
+            line-height: 1.45;
+        }
+        .workload-plan-table td.workload-plan-empty-cell {
+            padding: 20px 16px;
+            color: #57606a;
+            line-height: 1.5;
+            white-space: normal;
+            background: #f6f8fa;
         }
         .workload-plan-modal-overlay {
             position: fixed;
@@ -2251,7 +2572,7 @@ function renderWorkloadPlanningPanel(yearData) {
                 </tr>
             `;
         }).join('')
-        : '<tr><td colspan="14">No faculty workload rows found for this year yet. Add schedule assignments or seed/import an AY faculty plan.</td></tr>';
+        : '<tr><td colspan="14" class="workload-plan-empty-cell">No faculty workload rows found for this year yet. Refresh from the scheduler draft to confirm there are no assignments, then seed or import an AY workload plan to replace fallback assumptions.</td></tr>';
 
     const statusClass = workloadPlanningUiState.statusMessage
         ? (workloadPlanningUiState.statusLevel === 'warn' ? 'warn' : workloadPlanningUiState.statusLevel === 'success' ? 'success' : '')
