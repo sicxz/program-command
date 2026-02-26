@@ -276,7 +276,7 @@ function renderPreliminaryPlanningNotice(yearData) {
         ${unresolvedPreview.length > 0 ? `<ul class="prelim-workload-list">${unresolvedPreview.map((item) => `<li>${item}</li>`).join('')}</ul>` : ''}
         ${fallbackText ? `<p class="prelim-workload-note"><strong>Fallback target assumptions applied:</strong> ${fallbackText}</p>` : ''}
         ${assumptionItems.length ? `<ul class="prelim-workload-list">${assumptionItems.map((item) => `<li>${item}</li>`).join('')}</ul>` : ''}
-        <p class="prelim-workload-note prelim-workload-mini">Use AY Setup + Release Time dashboards to replace fallback assumptions with final targets/release allocations.</p>
+        <p class="prelim-workload-note prelim-workload-mini">Use AY Setup + Release Time dashboards to replace fallback assumptions with final targets/release allocations. Use the ⬇️ button in each faculty row to export an <strong>Export Workload Sheet (.xlsx)</strong> draft.</p>
     `;
 }
 
@@ -625,7 +625,8 @@ function createActionsCell(facultyName) {
 
     const exportBtn = document.createElement('button');
     exportBtn.className = 'btn-icon';
-    exportBtn.title = 'Export workload sheet (.xlsx)';
+    exportBtn.title = 'Export Workload Sheet (.xlsx)';
+    exportBtn.setAttribute('aria-label', 'Export Workload Sheet (.xlsx)');
     exportBtn.textContent = '⬇️';
     exportBtn.onclick = () => exportFacultyWorkloadSheet(facultyName);
     td.appendChild(exportBtn);
