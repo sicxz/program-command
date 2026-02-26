@@ -7300,7 +7300,7 @@
 
         let displacedCourses = [];
         let courseToDelete = null;
-        let swapMode = false; // false = displace, true = swap
+        let swapMode = true; // false = displace, true = swap
         let scheduleDirty = false;
         let scheduleSaveInProgress = false;
         const dirtyYears = new Set();
@@ -7317,7 +7317,7 @@
         // Load swap mode preference
         function loadSwapMode() {
             const saved = localStorage.getItem('swapMode');
-            swapMode = saved === 'true';
+            swapMode = saved === null ? true : saved === 'true';
             document.getElementById('swapModeToggle').checked = swapMode;
             updateSwapModeLabels();
         }
