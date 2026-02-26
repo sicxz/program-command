@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -64,7 +65,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0, 0, 0, 0.5);
             z-index: 1000;
             align-items: center;
             justify-content: center;
@@ -217,10 +218,17 @@
     </style>
     <link rel="stylesheet" href="../css/program-command-dashboard-theme.css">
 </head>
+
 <body>
     <div class="container">
         <header>
-            <a href="../index.html" class="back-link">← Back to Schedule</a>
+            <div
+                style="position: absolute; left: 30px; top: 50%; transform: translateY(-50%); display: flex; gap: 10px;">
+                <a href="../index.html" class="back-link" style="position: relative; left: 0; transform: none;">←
+                    Schedule</a>
+                <a href="../enrollment-dashboard.html" class="back-link"
+                    style="position: relative; left: 0; transform: none;">📈 Enrollment</a>
+            </div>
             <h1>👥 Faculty Workload Dashboard</h1>
             <p class="subtitle">EWU Design Department - Academic Workload Analysis</p>
         </header>
@@ -459,12 +467,14 @@
                             <input type="number" id="newCourseCredits" min="1" max="15" step="1">
                         </div>
                     </div>
-                    <button type="button" class="btn-modal-primary" style="margin-top: 12px; width: 100%;" onclick="addCourseToFaculty()">Add Course</button>
+                    <button type="button" class="btn-modal-primary" style="margin-top: 12px; width: 100%;"
+                        onclick="addCourseToFaculty()">Add Course</button>
                 </div>
 
                 <div class="modal-actions">
                     <button type="button" class="btn-modal-secondary" onclick="closeFacultyEditModal()">Cancel</button>
-                    <button type="button" class="btn-modal-primary" onclick="openScheduleEditor()">Open Full Editor</button>
+                    <button type="button" class="btn-modal-primary" onclick="openScheduleEditor()">Open Full
+                        Editor</button>
                 </div>
             </form>
         </div>
@@ -472,4 +482,5 @@
 
     <script src="./workload-dashboard.js"></script>
 </body>
+
 </html>

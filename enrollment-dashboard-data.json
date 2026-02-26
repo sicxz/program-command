@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2025-11-12T06:26:58.417Z",
+  "generatedAt": "2026-02-21T16:16:10.298Z",
   "dataSource": "./enrollment-data/processed",
   "totalRecords": 360,
   "courseStats": {
@@ -922,11 +922,18 @@
     }
   ],
   "forecast": {
-    "predicted": 87,
-    "lower95": 75,
-    "upper95": 99,
+    "predicted": 74,
+    "scenarios": {
+      "conservative": 70,
+      "base": 74,
+      "aggressive": 78
+    },
+    "lower95": 62,
+    "upper95": 86,
     "trend": "growing",
-    "growthRate": "1.4%"
+    "growthRate": "1.4%",
+    "seasonalAdjustmentApplied": "Summer",
+    "seasonalWeight": 0.85
   },
   "summary": {
     "totalCourses": 40,

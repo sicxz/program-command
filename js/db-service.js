@@ -271,6 +271,57 @@ const dbService = {
     },
 
     // ============================================
+    // PATHWAYS
+    // ============================================
+
+    /**
+     * Get all student pathways (tracks and minors)
+     */
+    async getPathways() {
+        if (!isSupabaseConfigured()) {
+            return this._fetchLocalPathways();
+        }
+
+        await this.initialize();
+
+        // Fetch pathways and their linked courses
+        const { data, error } = await getSupabaseClient()
+            .from('pathways')
+            .select(`
+                *,
+                pathway_courses(
+                    course:courses(code)
+                )
+            `)
+            .eq('department_id', this.departmentId);
+
+        if (error) throw error;
+
+        // Transform Supabase structure into the expected format
+        const formattedData = { minors: {}, studentTracks: {} };
+
+        data.forEach(pathway => {
+            const courseList = pathway.pathway_courses?.map(pc => pc.course.code) || [];
+
+            const obj = {
+                name: pathway.name,
+                color: pathway.color,
+                typical: pathway.typical,
+                courses: courseList,
+                note: pathway.notes
+            };
+
+            if (pathway.type === 'minor') {
+                formattedData.minors[pathway.name.toLowerCase().replace(/ /g, '-')] = obj;
+            } else {
+                formattedData.studentTracks[pathway.name.toLowerCase().replace(/ /g, '-')] = obj;
+            }
+        });
+
+        return formattedData;
+    },
+
+    // ============================================
     // ACADEMIC YEARS
     // ============================================
 
@@ -719,6 +770,16 @@ const dbService = {
         } catch (e) {
             console.error('Failed to load local constraints:', e);
             return {};
+        }
+    },
+
+    async _fetchLocalPathways() {
+        try {
+            const response = await fetch('../data/pathways.json');
+            return await response.json();
+        } catch (e) {
+            console.error('Failed to load local pathways:', e);
+            return { minors: {}, studentTracks: {} };
         }
     },
 
