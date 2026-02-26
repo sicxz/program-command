@@ -8853,6 +8853,98 @@
             return buckets;
         }
 
+        function isMissingScheduleSyncRpcError(error) {
+            const code = String(error?.code || '').toUpperCase();
+            const message = String(error?.message || '');
+            return code === 'PGRST202'
+                || code === '42883'
+                || message.includes('sync_scheduled_courses_for_academic_year');
+        }
+
+        async function syncScheduledCoursesViaRpc(client, academicYearId, records) {
+            const rpcResult = await client.rpc('sync_scheduled_courses_for_academic_year', {
+                p_academic_year_id: academicYearId,
+                p_records: records
+            });
+
+            if (rpcResult.error) {
+                if (isMissingScheduleSyncRpcError(rpcResult.error)) {
+                    console.warn('Atomic schedule sync RPC not available yet; falling back to client-side sync.', rpcResult.error);
+                    return null;
+                }
+                throw rpcResult.error;
+            }
+
+            const counts = Array.isArray(rpcResult.data) ? rpcResult.data[0] : rpcResult.data;
+            return {
+                updated: Number(counts?.updated_count) || 0,
+                inserted: Number(counts?.inserted_count) || 0,
+                deleted: Number(counts?.deleted_count) || 0
+            };
+        }
+
+        async function syncScheduledCoursesViaClientDiff(client, academicYearId, records) {
+            const existingResult = await client
+                .from('scheduled_courses')
+                .select('id, academic_year_id, course_id, quarter, day_pattern, time_slot, section')
+                .eq('academic_year_id', academicYearId);
+            if (existingResult.error) throw existingResult.error;
+
+            const existingRows = existingResult.data || [];
+            const existingBuckets = bucketScheduledCoursesBySyncKey(existingRows);
+            const matchedExistingIds = new Set();
+            const updates = [];
+            const inserts = [];
+
+            records.forEach((record) => {
+                const key = buildScheduledCourseSyncKey(record);
+                const bucket = existingBuckets.get(key);
+                const match = bucket && bucket.length > 0 ? bucket.shift() : null;
+
+                if (match?.id) {
+                    matchedExistingIds.add(match.id);
+                    updates.push({ id: match.id, record });
+                } else {
+                    inserts.push(record);
+                }
+            });
+
+            // Safer sync order: update + insert first, then delete stale rows.
+            // This avoids wiping the year if an insert fails partway through save.
+            for (const { id, record } of updates) {
+                const updateResult = await client
+                    .from('scheduled_courses')
+                    .update(record)
+                    .eq('id', id);
+                if (updateResult.error) throw updateResult.error;
+            }
+
+            if (inserts.length > 0) {
+                const insertResult = await client
+                    .from('scheduled_courses')
+                    .insert(inserts);
+                if (insertResult.error) throw insertResult.error;
+            }
+
+            const staleIds = existingRows
+                .map((row) => row.id)
+                .filter((id) => id && !matchedExistingIds.has(id));
+
+            if (staleIds.length > 0) {
+                const deleteResult = await client
+                    .from('scheduled_courses')
+                    .delete()
+                    .in('id', staleIds);
+                if (deleteResult.error) throw deleteResult.error;
+            }
+
+            return {
+                updated: updates.length,
+                inserted: inserts.length,
+                deleted: staleIds.length
+            };
+        }
+
         /**
          * Save all schedule changes to Supabase in one explicit action.
          */
@@ -8998,62 +9090,13 @@
                     })
                     .filter(Boolean);
 
-                const existingResult = await client
-                    .from('scheduled_courses')
-                    .select('id, academic_year_id, course_id, quarter, day_pattern, time_slot, section')
-                    .eq('academic_year_id', academicYearId);
-                if (existingResult.error) throw existingResult.error;
-
-                const existingRows = existingResult.data || [];
-                const existingBuckets = bucketScheduledCoursesBySyncKey(existingRows);
-                const matchedExistingIds = new Set();
-                const updates = [];
-                const inserts = [];
-
-                records.forEach((record) => {
-                    const key = buildScheduledCourseSyncKey(record);
-                    const bucket = existingBuckets.get(key);
-                    const match = bucket && bucket.length > 0 ? bucket.shift() : null;
-
-                    if (match?.id) {
-                        matchedExistingIds.add(match.id);
-                        updates.push({ id: match.id, record });
-                    } else {
-                        inserts.push(record);
-                    }
-                });
-
-                // Safer sync order: update + insert first, then delete stale rows.
-                // This avoids wiping the year if an insert fails partway through save.
-                for (const { id, record } of updates) {
-                    const updateResult = await client
-                        .from('scheduled_courses')
-                        .update(record)
-                        .eq('id', id);
-                    if (updateResult.error) throw updateResult.error;
-                }
-
-                if (inserts.length > 0) {
-                    const insertResult = await client
-                        .from('scheduled_courses')
-                        .insert(inserts);
-                    if (insertResult.error) throw insertResult.error;
-                }
-
-                const staleIds = existingRows
-                    .map((row) => row.id)
-                    .filter((id) => id && !matchedExistingIds.has(id));
-
-                if (staleIds.length > 0) {
-                    const deleteResult = await client
-                        .from('scheduled_courses')
-                        .delete()
-                        .in('id', staleIds);
-                    if (deleteResult.error) throw deleteResult.error;
+                let saveCounts = await syncScheduledCoursesViaRpc(client, academicYearId, records);
+                if (!saveCounts) {
+                    saveCounts = await syncScheduledCoursesViaClientDiff(client, academicYearId, records);
                 }
 
                 setScheduleDirty(false);
-                showToast(`Saved ${records.length} schedule entries to Supabase (${updates.length} updated, ${inserts.length} new${staleIds.length ? `, ${staleIds.length} removed` : ''}).`);
+                showToast(`Saved ${records.length} schedule entries to Supabase (${saveCounts.updated} updated, ${saveCounts.inserted} new${saveCounts.deleted ? `, ${saveCounts.deleted} removed` : ''}).`);
             } catch (error) {
                 console.error('Error saving schedule to Supabase:', error);
                 showToast('Database save failed: ' + (error.message || 'Unknown error'), 'error');
