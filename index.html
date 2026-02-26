@@ -1760,6 +1760,35 @@
             line-height: 1.45;
         }
 
+        .clss-import-batch-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .clss-import-batch-panel {
+            border: 1px solid #d8dee4;
+            border-radius: 8px;
+            background: #f6f8fa;
+            padding: 8px;
+        }
+
+        .clss-import-batch-panel h5 {
+            margin: 0 0 6px 0;
+            font-size: 12px;
+            color: #24292f;
+        }
+
+        .clss-import-batch-panel textarea {
+            min-height: 160px;
+            background: #fff;
+        }
+
+        .clss-import-hidden {
+            display: none !important;
+        }
+
         .clss-import-inline-controls {
             display: grid;
             grid-template-columns: 1fr;
@@ -1934,6 +1963,10 @@
 
         @media (max-width: 900px) {
             .clss-import-top-row {
+                grid-template-columns: 1fr;
+            }
+
+            .clss-import-batch-grid {
                 grid-template-columns: 1fr;
             }
         }
@@ -7699,6 +7732,12 @@
         // ============================================
 
         const CLSS_IMPORT_ALLOWED_ROOMS = new Set(['206', '207', '209', '210', '212', 'CEB 102', 'CEB 104']);
+        const CLSS_IMPORT_QUARTERS = ['fall', 'winter', 'spring'];
+        const CLSS_IMPORT_QUARTER_LABELS = {
+            fall: 'Fall',
+            winter: 'Winter',
+            spring: 'Spring'
+        };
         const CLSS_IMPORT_STATUS_LABELS = {
             ready: 'Ready',
             online: 'Online',
@@ -7715,6 +7754,8 @@
             if (quarterSelect) {
                 quarterSelect.value = (window.StateManager?.get('currentQuarter')) || 'spring';
             }
+            populateClssImportTargetYearOptions();
+            toggleClssImportInputMode();
             handleClssImportPngSelection();
             modal?.classList.add('active');
         }
@@ -7741,6 +7782,62 @@
             renderClssImportReview(clssImportPreviewRows);
         }
 
+        function getClssImportScope() {
+            return document.getElementById('clssImportScope')?.value === 'all' ? 'all' : 'single';
+        }
+
+        function toggleClssImportInputMode() {
+            const scope = getClssImportScope();
+            const singleField = document.getElementById('clssImportSingleTextField');
+            const batchFields = document.getElementById('clssImportBatchTextFields');
+            const quarterField = document.getElementById('clssImportQuarter')?.closest('.clss-import-field');
+            const replaceLabel = document.getElementById('clssImportReplaceLabel');
+
+            singleField?.classList.toggle('clss-import-hidden', scope === 'all');
+            batchFields?.classList.toggle('clss-import-hidden', scope !== 'all');
+            quarterField?.classList.toggle('clss-import-hidden', scope === 'all');
+
+            if (replaceLabel) {
+                replaceLabel.textContent = scope === 'all'
+                    ? 'Replace each imported quarter before import (clear Fall/Winter/Spring buckets that have pasted text)'
+                    : 'Replace target quarter before import (clear existing quarter schedule buckets first)';
+            }
+
+            refreshClssImportPreviewReview();
+        }
+
+        function populateClssImportTargetYearOptions() {
+            const select = document.getElementById('clssImportTargetYearMode');
+            if (!select) return;
+
+            const currentYearLabel = currentAcademicYear || (window.StateManager?.get('currentAcademicYear')) || '2025-26';
+            const nextYearLabel = getNextAcademicYearFromLabel(currentYearLabel) || currentYearLabel;
+
+            const currentOpt = select.querySelector('option[value="current"]');
+            const nextOpt = select.querySelector('option[value="next"]');
+            if (currentOpt) currentOpt.textContent = `This academic year (${currentYearLabel})`;
+            if (nextOpt) nextOpt.textContent = `Next academic year (${nextYearLabel})`;
+        }
+
+        function getClssImportTargetAcademicYear() {
+            const mode = document.getElementById('clssImportTargetYearMode')?.value || 'current';
+            const currentYearLabel = currentAcademicYear || (window.StateManager?.get('currentAcademicYear')) || '2025-26';
+            if (mode === 'next') {
+                return getNextAcademicYearFromLabel(currentYearLabel) || currentYearLabel;
+            }
+            return currentYearLabel;
+        }
+
+        function getNextAcademicYearFromLabel(academicYear) {
+            const parts = String(academicYear || '').split('-');
+            if (parts.length !== 2) return null;
+
+            const start = Number(parts[0]);
+            const end = Number(parts[1]);
+            if (!Number.isFinite(start) || !Number.isFinite(end)) return null;
+            return `${start + 1}-${end + 1}`;
+        }
+
         function handleClssImportPngSelection() {
             const input = document.getElementById('clssImportPngInput');
             const summaryEl = document.getElementById('clssImportPngSummary');
@@ -7761,11 +7858,11 @@
         }
 
         function parseClssImportPreview() {
-            const textInput = document.getElementById('clssImportText');
-            const text = String(textInput?.value || '').trim();
             const pngCount = (document.getElementById('clssImportPngInput')?.files || []).length;
+            const parseSources = getClssImportParseSources();
+            const hasAnyText = parseSources.some((source) => source.text);
 
-            if (!text) {
+            if (!hasAnyText) {
                 renderClssImportReview([]);
                 if (pngCount > 0) {
                     showToast('PNG selected. Paste OCR/CLSS text to parse (image OCR deferred).', 'error');
@@ -7775,7 +7872,7 @@
                 return;
             }
 
-            const parseResult = parseClssImportText(text);
+            const parseResult = parseClssImportSources(parseSources);
             clssImportPreviewRows = parseResult.rows;
             renderClssImportReview(clssImportPreviewRows, parseResult.meta);
 
@@ -7787,6 +7884,54 @@
             const readyCount = clssImportPreviewRows.filter((row) => row.status === 'ready').length;
             const needsReviewCount = clssImportPreviewRows.filter((row) => row.status === 'needs-review').length;
             showToast(`Parsed ${clssImportPreviewRows.length} row${clssImportPreviewRows.length === 1 ? '' : 's'} (${readyCount} ready${needsReviewCount ? `, ${needsReviewCount} needs review` : ''})`);
+        }
+
+        function getClssImportParseSources() {
+            const scope = getClssImportScope();
+            if (scope === 'all') {
+                return CLSS_IMPORT_QUARTERS.map((quarter) => ({
+                    quarter,
+                    text: String(document.getElementById(`clssImportText${CLSS_IMPORT_QUARTER_LABELS[quarter]}`)?.value || '').trim()
+                }));
+            }
+
+            const targetQuarter = document.getElementById('clssImportQuarter')?.value || 'spring';
+            return [{
+                quarter: targetQuarter,
+                text: String(document.getElementById('clssImportText')?.value || '').trim()
+            }];
+        }
+
+        function parseClssImportSources(sources) {
+            const combinedRows = [];
+            const warnings = [];
+
+            (Array.isArray(sources) ? sources : []).forEach((source) => {
+                const quarter = source?.quarter;
+                const text = String(source?.text || '').trim();
+                if (!text || !quarter) {
+                    return;
+                }
+
+                const result = parseClssImportText(text);
+                const quarterLabel = CLSS_IMPORT_QUARTER_LABELS[quarter] || quarter;
+
+                result.rows.forEach((row) => {
+                    combinedRows.push({
+                        ...row,
+                        targetQuarter: quarter
+                    });
+                });
+
+                if (Array.isArray(result.meta?.warnings)) {
+                    result.meta.warnings.forEach((warning) => warnings.push(`${quarterLabel}: ${warning}`));
+                }
+            });
+
+            return {
+                rows: combinedRows,
+                meta: { warnings }
+            };
         }
 
         function renderClssImportReview(rows, meta = {}) {
@@ -7816,14 +7961,26 @@
                 return acc;
             }, {});
 
-            const quarterLabel = ((document.getElementById('clssImportQuarter')?.value) || 'spring')
+            const scope = getClssImportScope();
+            const targetYear = getClssImportTargetAcademicYear();
+            const selectedQuarterLabel = ((document.getElementById('clssImportQuarter')?.value) || 'spring')
                 .replace(/^./, (m) => m.toUpperCase());
-            const modeLabel = document.getElementById('clssImportReplaceQuarter')?.checked ? 'Replace quarter' : 'Append / displace';
+            const importedQuarters = [...new Set(rows.map((row) => row.targetQuarter).filter(Boolean))];
+            const quarterLabel = importedQuarters.length > 1
+                ? importedQuarters.map((quarter) => CLSS_IMPORT_QUARTER_LABELS[quarter] || quarter).join(', ')
+                : (importedQuarters.length === 1
+                    ? (CLSS_IMPORT_QUARTER_LABELS[importedQuarters[0]] || importedQuarters[0])
+                    : selectedQuarterLabel);
+            const modeLabel = document.getElementById('clssImportReplaceQuarter')?.checked
+                ? (scope === 'all' ? 'Replace imported quarters' : 'Replace quarter')
+                : 'Append / displace';
             const pngCount = (document.getElementById('clssImportPngInput')?.files || []).length;
 
             const summaryPills = [
                 `${rows.length} row${rows.length === 1 ? '' : 's'}`,
-                `Target: ${quarterLabel}`,
+                `Year: ${targetYear}`,
+                `Scope: ${scope === 'all' ? 'All quarters' : 'Single quarter'}`,
+                `Quarter${importedQuarters.length > 1 ? 's' : ''}: ${quarterLabel}`,
                 modeLabel
             ];
 
@@ -7850,6 +8007,10 @@
 
             rows.forEach((row) => {
                 const tr = document.createElement('tr');
+
+                const quarterTd = document.createElement('td');
+                quarterTd.textContent = CLSS_IMPORT_QUARTER_LABELS[row.targetQuarter] || '—';
+                tr.appendChild(quarterTd);
 
                 const statusTd = document.createElement('td');
                 const statusBadge = document.createElement('span');
@@ -8340,18 +8501,25 @@
 
             const quarter = document.getElementById('clssImportQuarter')?.value || 'spring';
             const replaceQuarter = Boolean(document.getElementById('clssImportReplaceQuarter')?.checked);
+            const targetYear = getClssImportTargetAcademicYear();
             const reviewRows = clssImportPreviewRows.slice();
+            const currentYearLabel = currentAcademicYear || (window.StateManager?.get('currentAcademicYear')) || '2025-26';
+            const importingToCurrentYear = targetYear === currentYearLabel;
+            const impactedQuarters = [...new Set(reviewRows.map((row) => row.targetQuarter || quarter).filter((value) => CLSS_IMPORT_QUARTERS.includes(value)))];
 
-            const applySummary = buildClssApplySummary(reviewRows, quarter, replaceQuarter);
+            const applySummary = buildClssApplySummary(reviewRows, {
+                quarter,
+                replaceQuarter,
+                targetYear,
+                impactedQuarters
+            });
             if (!window.confirm(applySummary)) {
                 return;
             }
 
-            if (replaceQuarter) {
-                scheduleData[quarter] = createEmptyQuarterScheduleBucket();
-            }
-
-            const targetQuarter = ensureQuarterScheduleBucket(quarter);
+            const targetSchedule = importingToCurrentYear
+                ? scheduleData
+                : loadScheduleDataSnapshotForYear(targetYear);
             const counts = {
                 readyPlaced: 0,
                 onlinePlaced: 0,
@@ -8361,63 +8529,108 @@
                 collisionsDisplaced: 0
             };
 
+            if (replaceQuarter) {
+                impactedQuarters.forEach((targetQuarterKey) => {
+                    targetSchedule[targetQuarterKey] = createEmptyQuarterScheduleBucket();
+                });
+            }
+
             reviewRows.forEach((row) => {
                 if (!row || row.status === 'error') {
                     counts.skipped += 1;
                     return;
                 }
+                const rowQuarter = row.targetQuarter || quarter;
+
+                if (!CLSS_IMPORT_QUARTERS.includes(rowQuarter)) {
+                    counts.skipped += 1;
+                    return;
+                }
+
+                const targetQuarterBucket = ensureQuarterScheduleBucketForSchedule(targetSchedule, rowQuarter);
 
                 if (row.status === 'ready') {
-                    const placed = placeClssImportedCourseInGrid(targetQuarter, row, counts);
+                    const placed = placeClssImportedCourseInGrid(targetQuarterBucket, row, counts);
                     if (!placed) {
-                        addImportedRowToDisplacedTray(row, quarter, 'Could not place in grid');
+                        addImportedRowToDisplacedTray(row, targetYear, rowQuarter, 'Could not place in grid');
                         counts.displaced += 1;
                     }
                     return;
                 }
 
                 if (row.status === 'online') {
-                    targetQuarter.ONLINE.async.push(buildImportedScheduleCourse(row, 'ONLINE'));
+                    targetQuarterBucket.ONLINE.async.push(buildImportedScheduleCourse(row, 'ONLINE'));
                     counts.onlinePlaced += 1;
                     return;
                 }
 
                 if (row.status === 'arranged') {
-                    targetQuarter.ARRANGED.arranged.push(buildImportedScheduleCourse(row, 'ARRANGED'));
+                    targetQuarterBucket.ARRANGED.arranged.push(buildImportedScheduleCourse(row, 'ARRANGED'));
                     counts.arrangedPlaced += 1;
                     return;
                 }
 
-                addImportedRowToDisplacedTray(row, quarter, 'Needs review');
+                addImportedRowToDisplacedTray(row, targetYear, rowQuarter, 'Needs review');
                 counts.displaced += 1;
             });
 
-            saveScheduleData();
-            setScheduleDirty(true);
-
             const currentQuarter = (window.StateManager?.get('currentQuarter')) || 'spring';
-            renderSchedule(currentQuarter);
-            renderOnlineCourses(currentQuarter);
-            renderArrangedCourses(currentQuarter);
-            renderConflicts(currentQuarter);
-            updateStats(currentQuarter);
+            if (importingToCurrentYear) {
+                saveScheduleData();
+                setScheduleDirty(true);
+                renderSchedule(currentQuarter);
+                renderOnlineCourses(currentQuarter);
+                renderArrangedCourses(currentQuarter);
+                renderConflicts(currentQuarter);
+                updateStats(currentQuarter);
+            } else {
+                saveScheduleDataSnapshotForYear(targetYear, targetSchedule);
+            }
 
             const totalApplied = counts.readyPlaced + counts.onlinePlaced + counts.arrangedPlaced;
-            showToast(`CLSS import applied to ${quarter}: ${totalApplied} placed, ${counts.displaced} to displaced tray${counts.skipped ? `, ${counts.skipped} skipped` : ''}`);
+            const impactedQuarterLabel = impactedQuarters.length > 1
+                ? impactedQuarters.map((q) => CLSS_IMPORT_QUARTER_LABELS[q]).join(', ')
+                : (CLSS_IMPORT_QUARTER_LABELS[impactedQuarters[0]] || CLSS_IMPORT_QUARTER_LABELS[quarter] || quarter);
+            showToast(`CLSS import applied to ${targetYear} (${impactedQuarterLabel}): ${totalApplied} placed, ${counts.displaced} to displaced tray${counts.skipped ? `, ${counts.skipped} skipped` : ''}`);
 
             clssImportPreviewRows = [];
             renderClssImportReview([]);
             closeClssImportModal();
+
+            if (!importingToCurrentYear) {
+                if (window.confirm(`CLSS import applied to ${targetYear}. Switch to that academic year now?`)) {
+                    switchSchedulerYearFromImport(targetYear);
+                    if (impactedQuarters.length === 1 && impactedQuarters[0] !== ((window.StateManager?.get('currentQuarter')) || quarter)) {
+                        if (window.confirm(`Switch to ${CLSS_IMPORT_QUARTER_LABELS[impactedQuarters[0]]} now?`)) {
+                            switchSchedulerQuarterFromImport(impactedQuarters[0]);
+                        }
+                    }
+                }
+                return;
+            }
+
+            if (impactedQuarters.length === 1 && impactedQuarters[0] !== currentQuarter && window.confirm(`CLSS import applied to ${CLSS_IMPORT_QUARTER_LABELS[impactedQuarters[0]]}. Switch to that quarter now?`)) {
+                switchSchedulerQuarterFromImport(impactedQuarters[0]);
+            }
         }
 
-        function buildClssApplySummary(rows, quarter, replaceQuarter) {
+        function buildClssApplySummary(rows, { quarter, replaceQuarter, targetYear, impactedQuarters = [] } = {}) {
             const counts = rows.reduce((acc, row) => {
                 acc[row.status] = (acc[row.status] || 0) + 1;
                 return acc;
             }, {});
 
+            const quartersLabel = (impactedQuarters.length
+                ? impactedQuarters
+                : [quarter]
+            )
+                .map((q) => CLSS_IMPORT_QUARTER_LABELS[q] || (q ? q.charAt(0).toUpperCase() + q.slice(1) : 'Unknown'))
+                .join(', ');
+
             const lines = [
-                `Apply CLSS import to ${quarter.toUpperCase()}?`,
+                replaceQuarter
+                    ? `Are you sure you want to import CLSS rows into ${targetYear} (${quartersLabel}) and REPLACE the existing schedule data for those quarter(s)?`
+                    : `Import CLSS rows into ${targetYear} (${quartersLabel}) and append/displace into the existing schedule data?`,
                 '',
                 `Rows: ${rows.length}`,
                 `Ready: ${counts.ready || 0}`,
@@ -8428,10 +8641,68 @@
             ];
 
             if (replaceQuarter) {
-                lines.push('', 'Target quarter will be cleared first.');
+                lines.push('', `This will overwrite existing ${quartersLabel} schedule bucket(s) in ${targetYear} before import.`);
+            } else {
+                lines.push('', `Existing room collisions in ${targetYear} will be moved to the displaced tray.`);
             }
 
             return lines.join('\n');
+        }
+
+        function switchSchedulerQuarterFromImport(targetQuarter) {
+            if (!targetQuarter) return;
+
+            const navComponent = document.getElementById('mainQuarterNav');
+            if (navComponent) {
+                navComponent.currentQuarter = targetQuarter;
+                if (typeof navComponent.updateActiveTab === 'function') {
+                    navComponent.updateActiveTab();
+                }
+            }
+
+            document.dispatchEvent(new CustomEvent('quarter-change', {
+                detail: { quarter: targetQuarter }
+            }));
+
+            if (typeof renderOnlineCourses === 'function') renderOnlineCourses(targetQuarter);
+            if (typeof renderArrangedCourses === 'function') renderArrangedCourses(targetQuarter);
+            if (typeof renderEnrollmentAnalytics === 'function') renderEnrollmentAnalytics(targetQuarter);
+            if (typeof renderConflicts === 'function') renderConflicts(targetQuarter);
+            if (typeof renderConflictSolver === 'function') renderConflictSolver(targetQuarter);
+            if (typeof renderRecommendations === 'function') renderRecommendations(targetQuarter);
+            if (typeof updateStats === 'function') updateStats(targetQuarter);
+        }
+
+        function switchSchedulerYearFromImport(targetYear) {
+            if (!targetYear) return;
+
+            const navComponent = document.getElementById('mainQuarterNav');
+            if (navComponent) {
+                const yearList = Array.isArray(navComponent.availableYears)
+                    ? navComponent.availableYears
+                    : (Array.isArray(navComponent.years) ? navComponent.years : null);
+
+                if (yearList && !yearList.includes(targetYear)) {
+                    yearList.push(targetYear);
+                }
+
+                if (typeof navComponent.changeYear === 'function') {
+                    navComponent.changeYear(targetYear);
+                    return;
+                }
+
+                navComponent.currentYear = targetYear;
+                if (typeof navComponent.render === 'function') {
+                    navComponent.render();
+                }
+                if (typeof navComponent.setupEventListeners === 'function') {
+                    navComponent.setupEventListeners();
+                }
+            }
+
+            if (typeof switchAcademicYear === 'function') {
+                switchAcademicYear(targetYear);
+            }
         }
 
         function createEmptyQuarterScheduleBucket() {
@@ -8443,12 +8714,55 @@
             };
         }
 
-        function ensureQuarterScheduleBucket(quarter) {
-            if (!scheduleData[quarter] || typeof scheduleData[quarter] !== 'object') {
-                scheduleData[quarter] = createEmptyQuarterScheduleBucket();
+        function createEmptyAcademicYearScheduleData() {
+            return {
+                fall: createEmptyQuarterScheduleBucket(),
+                winter: createEmptyQuarterScheduleBucket(),
+                spring: createEmptyQuarterScheduleBucket()
+            };
+        }
+
+        function loadScheduleDataSnapshotForYear(year) {
+            const targetYear = year || currentAcademicYear;
+            try {
+                const saved = localStorage.getItem(getStorageKey(targetYear));
+                if (!saved) {
+                    return createEmptyAcademicYearScheduleData();
+                }
+
+                let parsed = JSON.parse(saved);
+                parsed = migrateTimeSlots(parsed);
+                parsed = normalizeScheduleCourseCodes(parsed);
+
+                const snapshot = createEmptyAcademicYearScheduleData();
+                CLSS_IMPORT_QUARTERS.forEach((quarter) => {
+                    if (parsed?.[quarter] && typeof parsed[quarter] === 'object') {
+                        snapshot[quarter] = parsed[quarter];
+                    }
+                    ensureQuarterScheduleBucketForSchedule(snapshot, quarter);
+                });
+                return snapshot;
+            } catch (error) {
+                console.warn('Could not load schedule snapshot for year:', targetYear, error);
+                return createEmptyAcademicYearScheduleData();
+            }
+        }
+
+        function saveScheduleDataSnapshotForYear(year, data) {
+            try {
+                normalizeScheduleCourseCodes(data);
+                localStorage.setItem(getStorageKey(year), JSON.stringify(data));
+            } catch (error) {
+                console.warn('Could not save schedule snapshot for year:', year, error);
+            }
+        }
+
+        function ensureQuarterScheduleBucketForSchedule(scheduleStore, quarter) {
+            if (!scheduleStore[quarter] || typeof scheduleStore[quarter] !== 'object') {
+                scheduleStore[quarter] = createEmptyQuarterScheduleBucket();
             }
 
-            const bucket = scheduleData[quarter];
+            const bucket = scheduleStore[quarter];
             if (!bucket.MW || typeof bucket.MW !== 'object') bucket.MW = {};
             if (!bucket.TR || typeof bucket.TR !== 'object') bucket.TR = {};
             if (!bucket.ONLINE || typeof bucket.ONLINE !== 'object') bucket.ONLINE = {};
@@ -8456,6 +8770,10 @@
             if (!bucket.ARRANGED || typeof bucket.ARRANGED !== 'object') bucket.ARRANGED = {};
             if (!Array.isArray(bucket.ARRANGED.arranged)) bucket.ARRANGED.arranged = [];
             return bucket;
+        }
+
+        function ensureQuarterScheduleBucket(quarter) {
+            return ensureQuarterScheduleBucketForSchedule(scheduleData, quarter);
         }
 
         function buildImportedScheduleCourse(row, roomOverride) {
@@ -8525,13 +8843,13 @@
             return true;
         }
 
-        function addImportedRowToDisplacedTray(row, quarter, reason) {
+        function addImportedRowToDisplacedTray(row, year, quarter, reason) {
             addToDisplacedTray({
                 code: normalizeCourseCode(row.code),
                 name: row.title || '',
                 instructor: getCanonicalFacultyName(row.instructor || 'TBD'),
                 credits: Number(row.credits) || 5,
-                originalDay: row.schedulerDay || `CLSS ${quarter.toUpperCase()}`,
+                originalDay: row.schedulerDay || `CLSS ${year} ${String(quarter || '').toUpperCase()}`,
                 originalTime: row.schedulerTime || reason || 'needs review',
                 originalRoom: row.schedulerRoom || row.roomLabel || 'TBD'
             });
@@ -9213,6 +9531,7 @@
             handleClssImportPngSelection,
             invalidateClssImportPreview,
             refreshClssImportPreviewReview,
+            toggleClssImportInputMode,
             parseClssImportPreview,
             applyClssImport,
             openAddCourseModal,
@@ -9415,15 +9734,46 @@
                                 <input type="file" id="clssImportPngInput" accept=".png,image/png" multiple onchange="handleClssImportPngSelection()">
                                 <div class="clss-import-file-list" id="clssImportPngSummary">No screenshots selected.</div>
                             </div>
-                            <div class="clss-import-field">
+                            <div class="clss-import-field" id="clssImportSingleTextField">
                                 <label for="clssImportText">Paste OCR text or copied CLSS rows</label>
                                 <textarea id="clssImportText" placeholder="Paste CLSS OCR text here (course headers + section rows)..." oninput="invalidateClssImportPreview()"></textarea>
+                            </div>
+                            <div class="clss-import-field clss-import-hidden" id="clssImportBatchTextFields">
+                                <label>Paste OCR/CLSS text for all three quarters (one box per quarter)</label>
+                                <div class="clss-import-batch-grid">
+                                    <div class="clss-import-batch-panel">
+                                        <h5>Fall</h5>
+                                        <textarea id="clssImportTextFall" placeholder="Paste Fall CLSS/OCR text..." oninput="invalidateClssImportPreview()"></textarea>
+                                    </div>
+                                    <div class="clss-import-batch-panel">
+                                        <h5>Winter</h5>
+                                        <textarea id="clssImportTextWinter" placeholder="Paste Winter CLSS/OCR text..." oninput="invalidateClssImportPreview()"></textarea>
+                                    </div>
+                                    <div class="clss-import-batch-panel">
+                                        <h5>Spring</h5>
+                                        <textarea id="clssImportTextSpring" placeholder="Paste Spring CLSS/OCR text..." oninput="invalidateClssImportPreview()"></textarea>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
                         <div class="clss-import-panel">
                             <h4>Import Options</h4>
                             <div class="clss-import-inline-controls">
+                                <div class="clss-import-field">
+                                    <label for="clssImportTargetYearMode">Target academic year</label>
+                                    <select id="clssImportTargetYearMode" onchange="refreshClssImportPreviewReview()">
+                                        <option value="current">This academic year</option>
+                                        <option value="next">Next academic year</option>
+                                    </select>
+                                </div>
+                                <div class="clss-import-field">
+                                    <label for="clssImportScope">Import scope</label>
+                                    <select id="clssImportScope" onchange="toggleClssImportInputMode(); invalidateClssImportPreview()">
+                                        <option value="single">Single quarter (recommended)</option>
+                                        <option value="all">All three quarters (batch rollout)</option>
+                                    </select>
+                                </div>
                                 <div class="clss-import-field">
                                     <label for="clssImportQuarter">Target quarter</label>
                                     <select id="clssImportQuarter" onchange="refreshClssImportPreviewReview()">
@@ -9434,10 +9784,10 @@
                                 </div>
                                 <label class="clss-import-checkbox" for="clssImportReplaceQuarter">
                                     <input type="checkbox" id="clssImportReplaceQuarter" onchange="refreshClssImportPreviewReview()">
-                                    <span>Replace target quarter before import (clear existing quarter schedule buckets first)</span>
+                                    <span id="clssImportReplaceLabel">Replace target quarter before import (clear existing quarter schedule buckets first)</span>
                                 </label>
                                 <div class="clss-import-help-text">
-                                    Parse first to review row-by-row status. Ready rows can be placed into the grid. Online and arranged rows route to special sections. Needs-review rows go to the displaced tray for manual placement.
+                                    Single-quarter import is safest for accuracy. Batch mode is available for rollout work and imports Fall/Winter/Spring together using the three text boxes above. Parse first to review row-by-row status. Ready rows can be placed into the grid. Online and arranged rows route to special sections. Needs-review rows go to the displaced tray for manual placement.
                                 </div>
                             </div>
                         </div>
@@ -9453,6 +9803,7 @@
                             <table class="clss-import-table" aria-label="CLSS import review table">
                                 <thead>
                                     <tr>
+                                        <th>Quarter</th>
                                         <th>Status</th>
                                         <th>Course</th>
                                         <th>Section</th>
