@@ -3409,14 +3409,669 @@ function renderFullTimeFaculty(fullTimeData) {
 /**
  * Render adjunct faculty section
  */
+function ensureAdjunctNeedReportStyles() {
+    if (document.getElementById('adjunctNeedReportStyles')) return;
+    const style = document.createElement('style');
+    style.id = 'adjunctNeedReportStyles';
+    style.textContent = `
+        .adjunct-need-report {
+            margin-bottom: 12px;
+            border: 1px solid #d8dee4;
+            border-radius: 12px;
+            background: #ffffff;
+            box-shadow: 0 1px 0 rgba(27, 31, 36, 0.04);
+            overflow: hidden;
+        }
+        .adjunct-need-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 12px 14px 10px;
+            border-bottom: 1px solid #eaeef2;
+            background: #f6f8fa;
+        }
+        .adjunct-need-head h3 {
+            margin: 0;
+            font-size: 0.95rem;
+            line-height: 1.35;
+            color: #24292f;
+            letter-spacing: -0.01em;
+        }
+        .adjunct-need-head p {
+            margin: 4px 0 0;
+            color: #57606a;
+            font-size: 0.8rem;
+            line-height: 1.45;
+            max-width: 72ch;
+        }
+        .adjunct-need-chip-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .adjunct-need-chip {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 4px 10px;
+            border: 1px solid #d0d7de;
+            background: #ffffff;
+            color: #57606a;
+            font-size: 0.73rem;
+            font-weight: 600;
+            line-height: 1;
+            white-space: nowrap;
+        }
+        .adjunct-need-chip.warn {
+            border-color: #d4a72c;
+            background: #fff8c5;
+            color: #7d4e00;
+        }
+        .adjunct-need-chip.info {
+            border-color: #54aeff;
+            background: #ddf4ff;
+            color: #0550ae;
+        }
+        .adjunct-need-chip.success {
+            border-color: #4ac26b;
+            background: #dafbe1;
+            color: #1a7f37;
+        }
+        .adjunct-need-banner {
+            margin: 10px 12px 0;
+            padding: 9px 10px;
+            border-radius: 8px;
+            border: 1px solid #54aeff;
+            background: #ddf4ff;
+            color: #0550ae;
+            font-size: 0.8rem;
+            line-height: 1.4;
+        }
+        .adjunct-need-banner.warn {
+            border-color: #d4a72c;
+            background: #fff8c5;
+            color: #7d4e00;
+        }
+        .adjunct-need-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 10px;
+            padding: 12px;
+        }
+        .adjunct-need-card {
+            border: 1px solid #d8dee4;
+            background: #f6f8fa;
+            border-radius: 10px;
+            padding: 10px;
+        }
+        .adjunct-need-card .label {
+            display: block;
+            color: #656d76;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            font-weight: 600;
+        }
+        .adjunct-need-card .value {
+            display: block;
+            margin-top: 4px;
+            color: #24292f;
+            font-size: 1rem;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+        .adjunct-need-card .sub {
+            display: block;
+            margin-top: 4px;
+            color: #57606a;
+            font-size: 0.75rem;
+            line-height: 1.35;
+        }
+        .adjunct-need-card .value.warn { color: #7d4e00; }
+        .adjunct-need-card .value.success { color: #1a7f37; }
+        .adjunct-need-card .value.overfill { color: #9a6700; }
+        .adjunct-need-quarter-wrap {
+            padding: 0 12px 12px;
+            overflow: auto;
+        }
+        .adjunct-need-quarter-table {
+            width: 100%;
+            min-width: 760px;
+            border-collapse: collapse;
+            border: 1px solid #d8dee4;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .adjunct-need-quarter-table th,
+        .adjunct-need-quarter-table td {
+            border-bottom: 1px solid #eaeef2;
+            padding: 8px 10px;
+            text-align: left;
+            vertical-align: top;
+            font-size: 0.8rem;
+            color: #24292f;
+            white-space: nowrap;
+        }
+        .adjunct-need-quarter-table thead th {
+            background: #f6f8fa;
+            color: #57606a;
+            font-size: 0.73rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .adjunct-need-quarter-table td.num {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+        .adjunct-need-quarter-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        .adjunct-need-quarter-table tr.total-row td {
+            background: #f6f8fa;
+            font-weight: 600;
+        }
+        .adjunct-need-sub {
+            display: block;
+            margin-top: 2px;
+            color: #656d76;
+            font-size: 0.72rem;
+            line-height: 1.35;
+            white-space: normal;
+        }
+        .adjunct-need-muted {
+            color: #656d76;
+        }
+        .adjunct-need-gap {
+            color: #7d4e00;
+            font-weight: 600;
+        }
+        .adjunct-need-gap.good {
+            color: #1a7f37;
+        }
+        .adjunct-need-overfill {
+            color: #9a6700;
+            font-weight: 600;
+        }
+        .adjunct-need-note {
+            margin: 0;
+            padding: 0 12px 12px;
+            color: #656d76;
+            font-size: 0.76rem;
+            line-height: 1.45;
+        }
+        .adjunct-need-course-list {
+            color: #57606a;
+            font-size: 0.76rem;
+            line-height: 1.35;
+            white-space: normal;
+            max-width: 280px;
+        }
+        .adjunct-need-empty {
+            color: #57606a;
+            background: #f6f8fa;
+            white-space: normal !important;
+            line-height: 1.45;
+            padding: 14px 12px !important;
+        }
+        @media (max-width: 860px) {
+            .adjunct-need-head {
+                flex-direction: column;
+            }
+            .adjunct-need-chip-row {
+                width: 100%;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+function getAdjunctNeedTargetValuesForCurrentYear() {
+    if (!currentFilters.year || currentFilters.year === 'all') {
+        return { fall: 0, winter: 0, spring: 0, total: 0, hasTargets: false, hasYearPlan: false };
+    }
+    const { yearData } = readCurrentYearPlanData(false);
+    const adjunctTargets = yearData?.adjunctTargets || {};
+    const fall = Number(adjunctTargets.fall) || 0;
+    const winter = Number(adjunctTargets.winter) || 0;
+    const spring = Number(adjunctTargets.spring) || 0;
+    const total = Number((fall + winter + spring).toFixed(3));
+    return {
+        fall,
+        winter,
+        spring,
+        total,
+        hasTargets: total > 0,
+        hasYearPlan: Boolean(yearData)
+    };
+}
+
+function buildAdjunctNeedReportMetrics(yearData, adjunctData) {
+    const quarterDefs = [
+        { key: 'fall', label: 'Fall', sourceKey: 'Fall' },
+        { key: 'winter', label: 'Winter', sourceKey: 'Winter' },
+        { key: 'spring', label: 'Spring', sourceKey: 'Spring' }
+    ];
+    const targets = getAdjunctNeedTargetValuesForCurrentYear();
+    const adjunctEntries = Object.entries(adjunctData || {});
+    const unresolved = yearData?.meta?.unresolvedScheduleCourses || {};
+    const unresolvedByQuarter = unresolved.byQuarter || {};
+
+    const facultyRows = adjunctEntries.map(([name, data]) => {
+        const byQuarter = data?.byQuarter || {};
+        const fallWorkload = Number(byQuarter?.Fall?.workload) || 0;
+        const winterWorkload = Number(byQuarter?.Winter?.workload) || 0;
+        const springWorkload = Number(byQuarter?.Spring?.workload) || 0;
+        const fallSections = Number(byQuarter?.Fall?.sections) || 0;
+        const winterSections = Number(byQuarter?.Winter?.sections) || 0;
+        const springSections = Number(byQuarter?.Spring?.sections) || 0;
+        const coursePreview = (Array.isArray(data?.courses) ? data.courses : [])
+            .slice(0, 4)
+            .map((course) => `${course.quarter || '—'} ${course.courseCode || 'Course'}`)
+            .join(' · ');
+        const extraCourseCount = Math.max(0, (Array.isArray(data?.courses) ? data.courses.length : 0) - 4);
+
+        return {
+            facultyName: name,
+            data,
+            fallWorkload,
+            winterWorkload,
+            springWorkload,
+            fallSections,
+            winterSections,
+            springSections,
+            ayAssignedWorkload: Number(data?.totalWorkloadCredits) || 0,
+            ayAssignedCredits: Number(data?.totalCredits) || 0,
+            aySections: Number(data?.sections) || 0,
+            coursePreview,
+            extraCourseCount
+        };
+    }).sort((a, b) => b.ayAssignedWorkload - a.ayAssignedWorkload);
+
+    const assignedByQuarter = {
+        fall: facultyRows.reduce((sum, row) => sum + row.fallWorkload, 0),
+        winter: facultyRows.reduce((sum, row) => sum + row.winterWorkload, 0),
+        spring: facultyRows.reduce((sum, row) => sum + row.springWorkload, 0)
+    };
+    const assignedSectionsByQuarter = {
+        fall: facultyRows.reduce((sum, row) => sum + row.fallSections, 0),
+        winter: facultyRows.reduce((sum, row) => sum + row.winterSections, 0),
+        spring: facultyRows.reduce((sum, row) => sum + row.springSections, 0)
+    };
+    const assignedCreditsByQuarter = {
+        fall: facultyRows.reduce((sum, row) => sum + (Number(row.data?.byQuarter?.Fall?.credits) || 0), 0),
+        winter: facultyRows.reduce((sum, row) => sum + (Number(row.data?.byQuarter?.Winter?.credits) || 0), 0),
+        spring: facultyRows.reduce((sum, row) => sum + (Number(row.data?.byQuarter?.Spring?.credits) || 0), 0)
+    };
+
+    const quarterRows = quarterDefs.map((quarter) => {
+        const target = Number(targets[quarter.key]) || 0;
+        const assigned = Number(assignedByQuarter[quarter.key]) || 0;
+        const assignedCredits = Number(assignedCreditsByQuarter[quarter.key]) || 0;
+        const assignedSections = Number(assignedSectionsByQuarter[quarter.key]) || 0;
+        const unresolvedBucket = unresolvedByQuarter[quarter.sourceKey] || {};
+        const unresolvedWorkload = Number(unresolvedBucket.workload) || 0;
+        const unresolvedSections = Number(unresolvedBucket.sections) || 0;
+        const remainingNeed = targets.hasTargets ? Math.max(0, target - assigned) : null;
+        const overfill = targets.hasTargets ? Math.max(0, assigned - target) : null;
+        const coveragePercent = target > 0 ? Number(((assigned / target) * 100).toFixed(1)) : null;
+
+        return {
+            ...quarter,
+            target,
+            assigned,
+            assignedCredits,
+            assignedSections,
+            unresolvedWorkload,
+            unresolvedSections,
+            remainingNeed,
+            overfill,
+            coveragePercent
+        };
+    });
+
+    const totals = {
+        target: Number((quarterRows.reduce((sum, row) => sum + row.target, 0)).toFixed(3)),
+        assigned: Number((facultyRows.reduce((sum, row) => sum + row.ayAssignedWorkload, 0)).toFixed(3)),
+        assignedCredits: Number((facultyRows.reduce((sum, row) => sum + row.ayAssignedCredits, 0)).toFixed(3)),
+        assignedSections: facultyRows.reduce((sum, row) => sum + row.aySections, 0),
+        unresolvedWorkload: Number(unresolved.totalWorkloadCredits) || 0,
+        unresolvedCredits: Number(unresolved.totalCredits) || 0,
+        unresolvedSections: Number(unresolved.count) || 0
+    };
+    totals.remainingNeed = targets.hasTargets ? Number(Math.max(0, totals.target - totals.assigned).toFixed(3)) : null;
+    totals.overfill = targets.hasTargets ? Number(Math.max(0, totals.assigned - totals.target).toFixed(3)) : null;
+    totals.coveragePercent = totals.target > 0 ? Number(((totals.assigned / totals.target) * 100).toFixed(1)) : null;
+
+    return {
+        targets,
+        facultyRows,
+        quarterRows,
+        totals,
+        unresolved,
+        hasAdjunctAssignments: facultyRows.length > 0,
+        hasTargetGap: totals.remainingNeed !== null && totals.remainingNeed > 0.01,
+        hasOverfill: totals.overfill !== null && totals.overfill > 0.01
+    };
+}
+
+function ensureAdjunctNeedReportContainer() {
+    const table = document.getElementById('adjunctTable');
+    if (!table) return null;
+    const wrapper = table.closest('.chart-container') || table.parentElement;
+    if (!wrapper) return null;
+
+    let report = document.getElementById('adjunctNeedReport');
+    if (!report) {
+        report = document.createElement('div');
+        report.id = 'adjunctNeedReport';
+        report.className = 'adjunct-need-report';
+        wrapper.insertBefore(report, table);
+    }
+    return { wrapper, table, report };
+}
+
+function renderAdjunctNeedSummaryReport(yearData, adjunctData) {
+    ensureAdjunctNeedReportStyles();
+    const refs = ensureAdjunctNeedReportContainer();
+    if (!refs) return null;
+
+    const metrics = buildAdjunctNeedReportMetrics(yearData, adjunctData);
+    const { report } = refs;
+    const isAllYearsView = currentFilters.year === 'all';
+    const fallbackAdjunctDefaults = Array.isArray(yearData?.meta?.adjunctAssignedDefaultsApplied)
+        ? yearData.meta.adjunctAssignedDefaultsApplied.length
+        : 0;
+    const targetChip = isAllYearsView
+        ? '<span class="adjunct-need-chip info">Select a single AY for target comparisons</span>'
+        : metrics.targets.hasTargets
+        ? `<span class="adjunct-need-chip success">AY targets set (${formatWorkloadPlanNumber(metrics.targets.total)} workload cr)</span>`
+        : '<span class="adjunct-need-chip warn">AY adjunct targets not set</span>';
+    const unresolvedChip = metrics.totals.unresolvedSections > 0
+        ? `<span class="adjunct-need-chip warn">TBD risk: ${metrics.totals.unresolvedSections} section${metrics.totals.unresolvedSections === 1 ? '' : 's'}</span>`
+        : '<span class="adjunct-need-chip success">No TBD / unassigned sections</span>';
+    const fallbackChip = fallbackAdjunctDefaults > 0
+        ? `<span class="adjunct-need-chip info">${fallbackAdjunctDefaults} adjunct default target${fallbackAdjunctDefaults === 1 ? '' : 's'} derived from assigned load</span>`
+        : '';
+    const targetBanner = isAllYearsView
+        ? `<div class="adjunct-need-banner">Quarter target comparisons are only available in a single academic-year view. The table below still shows current adjunct assignments and unresolved staffing risk for the displayed data.</div>`
+        : metrics.targets.hasTargets
+        ? ''
+        : `<div class="adjunct-need-banner warn"><strong>Adjunct targets are not set for AY ${escapeWorkloadPlanHtml(currentFilters.year)}.</strong> Need/gap and coverage percentages are hidden until quarter targets are entered in AY Setup (interpreted as <strong>workload credits</strong>).</div>`;
+    const unitsBanner = `<div class="adjunct-need-banner">Adjunct need metrics use <strong>workload credits</strong> (weighted workload units), with schedule credits and section counts shown as supporting context. TBD / unassigned sections are shown as staffing risk and are not counted as assigned adjunct coverage.</div>`;
+
+    const gapValueClass = metrics.hasOverfill ? 'overfill' : (metrics.hasTargetGap ? 'warn' : 'success');
+    const gapValueText = !metrics.targets.hasTargets
+        ? 'Target not set'
+        : metrics.hasOverfill
+            ? `${formatWorkloadPlanNumber(metrics.totals.overfill)} overfill`
+            : metrics.hasTargetGap
+                ? `${formatWorkloadPlanNumber(metrics.totals.remainingNeed)} remaining`
+                : 'Balanced';
+    const gapSubText = !metrics.targets.hasTargets
+        ? 'Set AY adjunct targets to compute remaining need'
+        : metrics.hasOverfill
+            ? `${formatWorkloadPlanNumber(metrics.totals.assigned)} assigned vs ${formatWorkloadPlanNumber(metrics.totals.target)} target`
+            : metrics.hasTargetGap
+                ? `${formatWorkloadPlanNumber(metrics.totals.target)} target vs ${formatWorkloadPlanNumber(metrics.totals.assigned)} assigned`
+                : 'Assigned adjunct coverage matches the AY target';
+
+    const quarterRowsHtml = metrics.quarterRows.map((row) => {
+        const gapLabel = !metrics.targets.hasTargets
+            ? '<span class="adjunct-need-muted">Target not set</span>'
+            : row.remainingNeed > 0.01
+                ? `<span class="adjunct-need-gap">${formatWorkloadPlanNumber(row.remainingNeed)}</span>`
+                : '<span class="adjunct-need-gap good">0</span>';
+        const overfillLabel = !metrics.targets.hasTargets
+            ? '<span class="adjunct-need-muted">—</span>'
+            : row.overfill > 0.01
+                ? `<span class="adjunct-need-overfill">${formatWorkloadPlanNumber(row.overfill)}</span>`
+                : '<span class="adjunct-need-muted">0</span>';
+        const coverageLabel = row.coveragePercent === null
+            ? '<span class="adjunct-need-muted">—</span>'
+            : `${formatWorkloadPlanNumber(row.coveragePercent)}%`;
+
+        return `
+            <tr>
+                <td><strong>${escapeWorkloadPlanHtml(row.label)}</strong></td>
+                <td class="num">${formatWorkloadPlanNumber(row.target)}</td>
+                <td class="num">
+                    ${formatWorkloadPlanNumber(row.assigned)}
+                    <span class="adjunct-need-sub">${formatWorkloadPlanNumber(row.assignedCredits)} sched cr · ${row.assignedSections} section${row.assignedSections === 1 ? '' : 's'}</span>
+                </td>
+                <td class="num">${gapLabel}</td>
+                <td class="num">${overfillLabel}</td>
+                <td class="num">
+                    ${formatWorkloadPlanNumber(row.unresolvedWorkload)}
+                    <span class="adjunct-need-sub">${row.unresolvedSections} TBD section${row.unresolvedSections === 1 ? '' : 's'}</span>
+                </td>
+                <td class="num">${coverageLabel}</td>
+            </tr>
+        `;
+    }).join('');
+
+    const totalCoverageLabel = metrics.totals.coveragePercent === null
+        ? '<span class="adjunct-need-muted">—</span>'
+        : `${formatWorkloadPlanNumber(metrics.totals.coveragePercent)}%`;
+    const totalGapLabel = !metrics.targets.hasTargets
+        ? '<span class="adjunct-need-muted">Target not set</span>'
+        : metrics.totals.remainingNeed > 0.01
+            ? `<span class="adjunct-need-gap">${formatWorkloadPlanNumber(metrics.totals.remainingNeed)}</span>`
+            : '<span class="adjunct-need-gap good">0</span>';
+    const totalOverfillLabel = !metrics.targets.hasTargets
+        ? '<span class="adjunct-need-muted">—</span>'
+        : metrics.totals.overfill > 0.01
+            ? `<span class="adjunct-need-overfill">${formatWorkloadPlanNumber(metrics.totals.overfill)}</span>`
+            : '<span class="adjunct-need-muted">0</span>';
+
+    report.innerHTML = `
+        <div class="adjunct-need-head">
+            <div>
+                <h3>Projected Adjunct Need (Quarter + AY)</h3>
+                <p>Adjunct planning is reported as <strong>need / assigned coverage / remaining gap</strong>, not full-time utilization. ${isAllYearsView ? 'Select a single academic year to compare against AY Setup quarter targets.' : 'Targets come from AY Setup adjunct targets (quarter workload-credit goals) when configured.'}</p>
+            </div>
+            <div class="adjunct-need-chip-row">
+                ${targetChip}
+                ${unresolvedChip}
+                ${fallbackChip}
+            </div>
+        </div>
+        ${targetBanner}
+        ${unitsBanner}
+        <div class="adjunct-need-summary">
+            <div class="adjunct-need-card">
+                <span class="label">Projected Adjunct Need (AY Target)</span>
+                <span class="value">${metrics.targets.hasTargets ? `${formatWorkloadPlanNumber(metrics.totals.target)} workload cr` : 'Not set'}</span>
+                <span class="sub">AY Setup targets: F ${formatWorkloadPlanNumber(metrics.targets.fall)} · W ${formatWorkloadPlanNumber(metrics.targets.winter)} · S ${formatWorkloadPlanNumber(metrics.targets.spring)}</span>
+            </div>
+            <div class="adjunct-need-card">
+                <span class="label">Assigned Adjunct Coverage</span>
+                <span class="value">${formatWorkloadPlanNumber(metrics.totals.assigned)} workload cr</span>
+                <span class="sub">${metrics.facultyRows.length} adjunct faculty · ${metrics.totals.assignedSections} section${metrics.totals.assignedSections === 1 ? '' : 's'} · ${formatWorkloadPlanNumber(metrics.totals.assignedCredits)} sched cr</span>
+            </div>
+            <div class="adjunct-need-card">
+                <span class="label">Remaining Need / Overfill</span>
+                <span class="value ${gapValueClass}">${gapValueText}</span>
+                <span class="sub">${gapSubText}</span>
+            </div>
+            <div class="adjunct-need-card">
+                <span class="label">TBD / Unassigned Staffing Risk</span>
+                <span class="value ${metrics.totals.unresolvedSections > 0 ? 'warn' : 'success'}">${metrics.totals.unresolvedSections} section${metrics.totals.unresolvedSections === 1 ? '' : 's'}</span>
+                <span class="sub">${formatWorkloadPlanNumber(metrics.totals.unresolvedWorkload)} workload cr · ${formatWorkloadPlanNumber(metrics.totals.unresolvedCredits)} sched cr (not counted as assigned)</span>
+            </div>
+            <div class="adjunct-need-card">
+                <span class="label">Coverage vs AY Target</span>
+                <span class="value">${metrics.targets.hasTargets && metrics.totals.coveragePercent !== null ? `${formatWorkloadPlanNumber(metrics.totals.coveragePercent)}%` : '—'}</span>
+                <span class="sub">${metrics.targets.hasTargets ? 'Assigned adjunct workload as % of AY adjunct target' : 'Hidden until targets are entered'}</span>
+            </div>
+        </div>
+        <div class="adjunct-need-quarter-wrap">
+            <table class="adjunct-need-quarter-table">
+                <thead>
+                    <tr>
+                        <th>Quarter</th>
+                        <th>Target (Workload Cr)</th>
+                        <th>Assigned Adjunct Coverage</th>
+                        <th>Remaining Need</th>
+                        <th>Overfill</th>
+                        <th>TBD Risk</th>
+                        <th>Coverage %</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${quarterRowsHtml}
+                    <tr class="total-row">
+                        <td><strong>AY Total</strong></td>
+                        <td class="num">${formatWorkloadPlanNumber(metrics.totals.target)}</td>
+                        <td class="num">
+                            ${formatWorkloadPlanNumber(metrics.totals.assigned)}
+                            <span class="adjunct-need-sub">${formatWorkloadPlanNumber(metrics.totals.assignedCredits)} sched cr · ${metrics.totals.assignedSections} section${metrics.totals.assignedSections === 1 ? '' : 's'}</span>
+                        </td>
+                        <td class="num">${totalGapLabel}</td>
+                        <td class="num">${totalOverfillLabel}</td>
+                        <td class="num">
+                            ${formatWorkloadPlanNumber(metrics.totals.unresolvedWorkload)}
+                            <span class="adjunct-need-sub">${metrics.totals.unresolvedSections} TBD section${metrics.totals.unresolvedSections === 1 ? '' : 's'}</span>
+                        </td>
+                        <td class="num">${totalCoverageLabel}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <p class="adjunct-need-note">Adjunct targets are interpreted as <strong>workload credits</strong> (the same weighted workload units used throughout this dashboard). Schedule credits and section counts are included as supporting context for staffing decisions.</p>
+    `;
+
+    return metrics;
+}
+
 function renderAdjunctFaculty(adjunctData) {
-    const faculty = Object.entries(adjunctData);
+    const faculty = Object.entries(adjunctData || {});
+    const headerTitle = document.querySelector('#adjunctBadge')?.previousElementSibling;
+    if (headerTitle) {
+        headerTitle.textContent = 'Projected Adjunct Need';
+    }
+
+    const metrics = renderAdjunctNeedSummaryReport(currentYearData, adjunctData || {});
 
     // Update badge
-    document.getElementById('adjunctBadge').textContent = `${faculty.length} Faculty`;
+    const badge = document.getElementById('adjunctBadge');
+    if (badge) {
+        const assignedCount = faculty.length;
+        const targetText = metrics?.targets?.hasTargets
+            ? ` · ${formatWorkloadPlanNumber(metrics.totals.coveragePercent || 0)}% target covered`
+            : ' · target not set';
+        badge.textContent = `${assignedCount} Assigned Adjunct${assignedCount === 1 ? '' : 's'}${targetText}`;
+    }
 
-    // Render table
-    renderFacultyTable(adjunctData, 'adjunctTable', false);
+    const table = document.getElementById('adjunctTable');
+    if (!table) return;
+
+    const thead = table.querySelector('thead');
+    if (thead) {
+        thead.innerHTML = `
+            <tr>
+                <th>Adjunct Faculty</th>
+                <th>Fall (wl)</th>
+                <th>Winter (wl)</th>
+                <th>Spring (wl)</th>
+                <th>AY Assigned (wl)</th>
+                <th>AY Credits</th>
+                <th>Sections</th>
+                <th>Course Preview</th>
+                <th>Actions</th>
+            </tr>
+        `;
+    }
+
+    const tbody = table.querySelector('tbody');
+    if (!tbody) return;
+    while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+
+    const rows = metrics?.facultyRows || [];
+    if (!rows.length) {
+        const emptyRow = document.createElement('tr');
+        const cell = document.createElement('td');
+        cell.colSpan = 9;
+        cell.className = 'adjunct-need-empty';
+        cell.textContent = 'No adjunct assignments are currently in the scheduler draft for this AY. Use the quarter targets above to plan need, and monitor TBD / unassigned sections as staffing risk.';
+        emptyRow.appendChild(cell);
+        tbody.appendChild(emptyRow);
+        return;
+    }
+
+    const ayTargetTotal = Number(metrics?.totals?.target) || 0;
+    rows.forEach((rowData) => {
+        const row = document.createElement('tr');
+
+        const nameCell = document.createElement('td');
+        const strong = document.createElement('strong');
+        strong.textContent = rowData.facultyName;
+        nameCell.appendChild(strong);
+        const nameSub = document.createElement('span');
+        nameSub.className = 'adjunct-need-sub';
+        nameSub.textContent = 'Assigned adjunct coverage';
+        nameCell.appendChild(nameSub);
+        row.appendChild(nameCell);
+
+        ['fall', 'winter', 'spring'].forEach((quarterKey) => {
+            const qCell = document.createElement('td');
+            qCell.className = 'num';
+            const workloadValue = quarterKey === 'fall'
+                ? rowData.fallWorkload
+                : quarterKey === 'winter'
+                    ? rowData.winterWorkload
+                    : rowData.springWorkload;
+            const sectionCount = quarterKey === 'fall'
+                ? rowData.fallSections
+                : quarterKey === 'winter'
+                    ? rowData.winterSections
+                    : rowData.springSections;
+            qCell.textContent = formatWorkloadPlanNumber(workloadValue);
+            const sub = document.createElement('span');
+            sub.className = 'adjunct-need-sub';
+            sub.textContent = `${sectionCount} section${sectionCount === 1 ? '' : 's'}`;
+            qCell.appendChild(sub);
+            row.appendChild(qCell);
+        });
+
+        const ayAssignedCell = document.createElement('td');
+        ayAssignedCell.className = 'num';
+        const ayAssignedStrong = document.createElement('strong');
+        ayAssignedStrong.textContent = formatWorkloadPlanNumber(rowData.ayAssignedWorkload);
+        ayAssignedCell.appendChild(ayAssignedStrong);
+        const coverageSub = document.createElement('span');
+        coverageSub.className = 'adjunct-need-sub';
+        if (ayTargetTotal > 0) {
+            const pct = Number(((rowData.ayAssignedWorkload / ayTargetTotal) * 100).toFixed(1));
+            coverageSub.textContent = `${formatWorkloadPlanNumber(pct)}% of AY target`;
+        } else {
+            coverageSub.textContent = 'AY target not set';
+        }
+        ayAssignedCell.appendChild(coverageSub);
+        row.appendChild(ayAssignedCell);
+
+        const creditsCell = document.createElement('td');
+        creditsCell.className = 'num';
+        creditsCell.textContent = formatWorkloadPlanNumber(rowData.ayAssignedCredits);
+        row.appendChild(creditsCell);
+
+        const sectionsCell = document.createElement('td');
+        sectionsCell.className = 'num';
+        sectionsCell.textContent = String(rowData.aySections);
+        row.appendChild(sectionsCell);
+
+        const courseCell = document.createElement('td');
+        courseCell.className = 'adjunct-need-course-list';
+        if (rowData.coursePreview) {
+            courseCell.textContent = rowData.coursePreview + (rowData.extraCourseCount > 0 ? ` · +${rowData.extraCourseCount} more` : '');
+        } else {
+            courseCell.textContent = 'No course detail available';
+        }
+        row.appendChild(courseCell);
+
+        row.appendChild(createActionsCell(rowData.facultyName));
+        tbody.appendChild(row);
+    });
 }
 
 /**
