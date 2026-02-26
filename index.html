@@ -8445,6 +8445,7 @@
             let schedulerTime = '';
             let schedulerRoom = '';
             let schedulerSlotLabel = '';
+            let requiresAutoRoomAssignment = false;
 
             const onlineHint = meeting.classification === 'online' || room.isOnline || /\b(online|web|async|asynch|asynchronous)\b/i.test(rawText);
             const arrangedHint = meeting.classification === 'arranged' || /does\s+not\s+meet/i.test(rawText) || (detailType === 'IND' && !meeting.dayPattern);
@@ -8471,12 +8472,15 @@
                 if (room.mappedRoom) {
                     schedulerRoom = room.mappedRoom;
                 } else {
-                    notes.push('Room not mapped to scheduler grid');
+                    requiresAutoRoomAssignment = true;
+                    notes.push('Room not detected; import will auto-assign an open room');
                 }
 
-                if (schedulerDay && schedulerTime && schedulerRoom) {
+                if (schedulerDay && schedulerTime && (schedulerRoom || requiresAutoRoomAssignment)) {
                     status = 'ready';
-                    schedulerSlotLabel = `${schedulerDay} ${schedulerTime} • ${schedulerRoom}`;
+                    schedulerSlotLabel = schedulerRoom
+                        ? `${schedulerDay} ${schedulerTime} • ${schedulerRoom}`
+                        : `${schedulerDay} ${schedulerTime} • Auto room`;
                 }
             } else if (!meeting.raw) {
                 notes.push('Meeting pattern not found');
@@ -8514,6 +8518,7 @@
                 schedulerDay,
                 schedulerTime,
                 schedulerRoom,
+                requiresAutoRoomAssignment,
                 schedulerSlotLabel,
                 notes: [...new Set(notes.filter(Boolean))],
                 rawText
@@ -9020,7 +9025,7 @@
         }
 
         function placeClssImportedCourseInGrid(quarterBucket, row, counts) {
-            if (!row.schedulerDay || !row.schedulerTime || !row.schedulerRoom) {
+            if (!row.schedulerDay || !row.schedulerTime) {
                 return false;
             }
 
@@ -9036,9 +9041,14 @@
             }
 
             const slotCourses = quarterBucket[row.schedulerDay][row.schedulerTime];
+            const resolvedRoom = row.schedulerRoom || getAutoAssignableImportRoom(slotCourses);
+            if (!resolvedRoom) {
+                return false;
+            }
+
             const duplicateExisting = slotCourses.find((course) =>
                 normalizeCourseCode(course.code) === normalizeCourseCode(row.code)
-                && String(course.room || '') === row.schedulerRoom
+                && String(course.room || '') === resolvedRoom
                 && getCanonicalFacultyName(course.instructor || 'TBD') === getCanonicalFacultyName(row.instructor || 'TBD')
             );
 
@@ -9047,7 +9057,7 @@
                 return true;
             }
 
-            const conflictingCourses = slotCourses.filter((course) => String(course.room || '') === row.schedulerRoom);
+            const conflictingCourses = slotCourses.filter((course) => String(course.room || '') === resolvedRoom);
             conflictingCourses.forEach((existing) => {
                 addToDisplacedTray({
                     code: existing.code,
@@ -9056,7 +9066,7 @@
                     credits: existing.credits,
                     originalDay: row.schedulerDay,
                     originalTime: row.schedulerTime,
-                    originalRoom: row.schedulerRoom
+                    originalRoom: resolvedRoom
                 });
 
                 const idx = slotCourses.findIndex((course) =>
@@ -9070,9 +9080,26 @@
                 }
             });
 
-            slotCourses.push(buildImportedScheduleCourse(row, row.schedulerRoom));
+            slotCourses.push(buildImportedScheduleCourse(row, resolvedRoom));
             counts.readyPlaced += 1;
             return true;
+        }
+
+        function getAutoAssignableImportRoom(slotCourses) {
+            const occupiedRooms = new Set(
+                (Array.isArray(slotCourses) ? slotCourses : [])
+                    .map((course) => String(course.room || '').trim())
+                    .filter(Boolean)
+            );
+
+            const preferredRoomOrder = ['206', '207', '209', '210', '212', 'CEB 102', 'CEB 104'];
+            for (const room of preferredRoomOrder) {
+                if (!occupiedRooms.has(room)) {
+                    return room;
+                }
+            }
+
+            return null;
         }
 
         function addImportedRowToDisplacedTray(row, year, quarter, reason) {
