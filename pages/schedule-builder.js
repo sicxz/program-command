@@ -2705,20 +2705,16 @@ function exportJSON() {
 /**
  * Export to main schedule page (all three quarters)
  */
-function exportToEditor() {
-    if (!currentSchedule) {
-        showToast('No schedule to export', 'error');
-        return;
-    }
-
-    // Save current quarter state first
+function syncCurrentQuarterIntoAllQuartersSchedule() {
+    if (!currentSchedule) return;
     allQuartersSchedule[activeQuarter] = {
         ...allQuartersSchedule[activeQuarter],
         assignedCourses: { ...assignedCourses },
         caseByeCaseCourses: [...caseByeCaseCourses]
     };
+}
 
-    // Build schedule data in the format the main page expects
+function buildProgramCommandScheduleDataFromBuilder() {
     const scheduleData = {
         fall: { MW: {}, TR: {} },
         winter: { MW: {}, TR: {} },
@@ -2733,7 +2729,7 @@ function exportToEditor() {
         if (!quarterData?.assignedCourses) return;
 
         // Initialize time slots
-        TIMES.forEach(time => {
+        TIME_KEYS.forEach(time => {
             scheduleData[quarterKey]['MW'][time] = [];
             scheduleData[quarterKey]['TR'][time] = [];
         });
@@ -2764,6 +2760,49 @@ function exportToEditor() {
             });
         });
     });
+
+    return scheduleData;
+}
+
+function persistBuilderScheduleForProgramCommand(year, scheduleData) {
+    if (!year || !scheduleData) return false;
+    try {
+        localStorage.setItem(`designSchedulerData_${year}`, JSON.stringify(scheduleData));
+        return true;
+    } catch (error) {
+        console.error('Error saving builder schedule for Program Command handoff:', error);
+        return false;
+    }
+}
+
+function openWorkloadReview() {
+    if (!currentSchedule) {
+        showToast('No schedule to export', 'error');
+        return;
+    }
+
+    syncCurrentQuarterIntoAllQuartersSchedule();
+    const scheduleData = buildProgramCommandScheduleDataFromBuilder();
+    const saved = persistBuilderScheduleForProgramCommand(currentSchedule.year, scheduleData);
+    if (!saved) {
+        showToast('Could not prepare workload handoff', 'error');
+        return;
+    }
+
+    showToast(`Opening workload review for ${currentSchedule.year}...`, 'info');
+    setTimeout(() => {
+        window.location.href = `workload-dashboard.html?year=${encodeURIComponent(currentSchedule.year)}`;
+    }, 300);
+}
+
+function exportToEditor() {
+    if (!currentSchedule) {
+        showToast('No schedule to export', 'error');
+        return;
+    }
+
+    syncCurrentQuarterIntoAllQuartersSchedule();
+    const scheduleData = buildProgramCommandScheduleDataFromBuilder();
 
     // Store in localStorage for main page to import
     const exportData = {
