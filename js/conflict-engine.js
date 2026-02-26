@@ -82,6 +82,79 @@ const ConflictEngine = (function() {
         student_scheduling_conflict: 'student_conflict'
     };
 
+    const ISSUE_SEVERITY_SCORE = {
+        critical: 100,
+        warning: 60,
+        info: 25
+    };
+
+    const ISSUE_PRIORITY_SCORE = {
+        critical: 18,
+        high: 12,
+        medium: 6,
+        low: 2
+    };
+
+    const CONFLICT_RULE_REGISTRY = {
+        room_restriction: {
+            id: 'room_restriction',
+            label: 'Room Restriction',
+            category: 'room',
+            hardness: 'hard',
+            baseWeight: 16
+        },
+        student_conflict: {
+            id: 'student_conflict',
+            label: 'Student Pathway Conflict',
+            category: 'pathway',
+            hardness: 'hard',
+            baseWeight: 28,
+            pairings: COMMON_PAIRINGS
+        },
+        faculty_double_book: {
+            id: 'faculty_double_book',
+            label: 'Faculty Double Booking',
+            category: 'faculty',
+            hardness: 'hard',
+            baseWeight: 30
+        },
+        room_double_book: {
+            id: 'room_double_book',
+            label: 'Room Double Booking',
+            category: 'room',
+            hardness: 'hard',
+            baseWeight: 30
+        },
+        evening_safety: {
+            id: 'evening_safety',
+            label: 'Evening Safety',
+            category: 'safety',
+            hardness: 'soft',
+            baseWeight: 18
+        },
+        ay_setup_alignment: {
+            id: 'ay_setup_alignment',
+            label: 'AY Setup Alignment',
+            category: 'workload',
+            hardness: 'soft',
+            baseWeight: 14
+        },
+        enrollment_threshold: {
+            id: 'enrollment_threshold',
+            label: 'Enrollment Threshold',
+            category: 'enrollment',
+            hardness: 'soft',
+            baseWeight: 10
+        },
+        _default: {
+            id: 'generic',
+            label: 'Generic Rule',
+            category: 'general',
+            hardness: 'soft',
+            baseWeight: 10
+        }
+    };
+
     function normalizeConstraintType(type) {
         const normalized = String(type || '').trim().toLowerCase();
         return CONSTRAINT_TYPE_ALIASES[normalized] || normalized;
@@ -198,6 +271,61 @@ const ConflictEngine = (function() {
         });
 
         return deduped;
+    }
+
+    function getRuleRegistryEntry(normalizedConstraintType) {
+        return CONFLICT_RULE_REGISTRY[normalizedConstraintType] || CONFLICT_RULE_REGISTRY._default;
+    }
+
+    function calculateWeightedIssueScore(issue, normalizedConstraintType, ruleDetails = {}) {
+        const registry = getRuleRegistryEntry(normalizedConstraintType);
+        const severity = String(issue?.severity || 'info').toLowerCase();
+        const priority = String(issue?.priority || '').toLowerCase();
+        const ruleWeightOverride = Number(ruleDetails?.weight);
+        const ruleWeight = Number.isFinite(ruleWeightOverride) ? ruleWeightOverride : 1;
+        const severityWeight = ISSUE_SEVERITY_SCORE[severity] || ISSUE_SEVERITY_SCORE.info;
+        const priorityWeight = ISSUE_PRIORITY_SCORE[priority] || 0;
+        const hardnessMultiplier = registry.hardness === 'hard' ? 1.15 : 0.85;
+        const impactCourseCount = Array.isArray(issue?.courses) ? issue.courses.length : 0;
+        const impactWeight = Math.min(impactCourseCount * 2, 10);
+        const baseWeight = registry.baseWeight || 0;
+
+        const contributions = [
+            { source: 'severity', value: severityWeight, detail: severity },
+            { source: 'registry-base', value: baseWeight, detail: registry.id },
+            { source: 'priority', value: priorityWeight, detail: priority || 'none' },
+            { source: 'affected-courses', value: impactWeight, detail: impactCourseCount }
+        ];
+
+        if (ruleWeight !== 1) {
+            contributions.push({ source: 'rule-weight', value: Math.round((ruleWeight - 1) * 20), detail: ruleWeight });
+        }
+
+        const preMultiplier = contributions.reduce((sum, item) => sum + item.value, 0);
+        const total = Math.max(0, Math.round(preMultiplier * hardnessMultiplier * ruleWeight));
+
+        return {
+            total,
+            explanation: [
+                `${registry.label} (${registry.hardness})`,
+                `severity=${severity}`,
+                priority ? `priority=${priority}` : null,
+                `courses=${impactCourseCount}`,
+                ruleWeight !== 1 ? `ruleWeight=${ruleWeight}` : null
+            ].filter(Boolean).join(' | '),
+            breakdown: {
+                hardnessMultiplier,
+                preMultiplier,
+                contributions
+            },
+            rule: {
+                id: registry.id,
+                label: registry.label,
+                category: registry.category,
+                hardness: registry.hardness,
+                baseWeight
+            }
+        };
     }
 
     function getIssueSeverityRank(severity) {
@@ -517,7 +645,13 @@ const ConflictEngine = (function() {
             summary: {
                 totalIssues: 0,
                 criticalCount: 0,
-                warningCount: 0
+                warningCount: 0,
+                weightedScore: 0,
+                weightedByConstraintType: {}
+            },
+            scoringModel: {
+                version: 'v2',
+                registry: CONFLICT_RULE_REGISTRY
             }
         };
 
@@ -535,6 +669,21 @@ const ConflictEngine = (function() {
                     issue.constraintId = constraint.id;
                     issue.constraintType = normalizedConstraintType;
                     issue.constraintTypeOriginal = constraint.constraint_type;
+                    issue.constraintRule = getRuleRegistryEntry(normalizedConstraintType);
+
+                    const weighted = calculateWeightedIssueScore(
+                        issue,
+                        normalizedConstraintType,
+                        constraint.rule_details
+                    );
+                    issue.score = weighted.total;
+                    issue.scoreExplanation = weighted.explanation;
+                    issue.scoreBreakdown = weighted.breakdown;
+                    issue.scoreRuleMeta = weighted.rule;
+
+                    results.summary.weightedScore += issue.score;
+                    results.summary.weightedByConstraintType[normalizedConstraintType] =
+                        (results.summary.weightedByConstraintType[normalizedConstraintType] || 0) + issue.score;
 
                     if (issue.severity === 'critical') {
                         results.conflicts.push(issue);
@@ -622,6 +771,9 @@ const ConflictEngine = (function() {
             const issues = [];
             const foundConflicts = new Set(); // Track reported conflicts to avoid duplicates
             const validTimeSlots = deriveResolutionTimeSlots(schedule, context);
+            const pairingRules = Array.isArray(rule?.pairings)
+                ? rule.pairings
+                : (getRuleRegistryEntry('student_conflict').pairings || COMMON_PAIRINGS);
             
             // Group courses by day+time
             const slots = {};
@@ -641,7 +793,7 @@ const ConflictEngine = (function() {
                 const conflictingPairs = [];
                 
                 // Check if any common pairings are in the same slot
-                COMMON_PAIRINGS.forEach(([course1, course2]) => {
+                pairingRules.forEach(([course1, course2]) => {
                     if (courseCodes.includes(course1) && courseCodes.includes(course2)) {
                         const pairKey = [course1, course2].sort().join('-');
                         if (!foundConflicts.has(`${key}-${pairKey}`)) {
@@ -939,7 +1091,8 @@ const ConflictEngine = (function() {
         evaluate,
         checkers,
         COMMON_PAIRINGS,
-        evaluateAySetup
+        evaluateAySetup,
+        ruleRegistry: CONFLICT_RULE_REGISTRY
     };
 })();
 
