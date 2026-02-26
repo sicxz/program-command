@@ -12,10 +12,13 @@ let currentFilters = {
     category: 'all'
 };
 let excelJsLoadPromise = null;
+let jsZipLoadPromise = null;
+let workloadExportTemplateBufferPromise = null;
 
 const WORKLOAD_EXPORT_TEMPLATE_PATH = '../docs/examples/workload/MasingaleT_Wkld_2526_20May2025.xlsx';
 const WORKLOAD_EXPORT_TEMPLATE_SHEET = 'Sheet1';
 const WORKLOAD_EXPORT_EXCELJS_URL = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+const WORKLOAD_EXPORT_JSZIP_URL = 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';
 const WORKLOAD_PLAN_STORAGE_KEY = 'programCommandAySetup';
 const WORKLOAD_PLAN_ROLE_OPTIONS = [
     'Full Professor',
@@ -1091,6 +1094,7 @@ function renderWorkloadPlanningPanel(yearData) {
                 <p>Chair-editable workload settings for target credits, chair/release time, and AY plan coverage. This feeds preliminary workload calculations and export sheets.</p>
             </div>
             <div class="workload-plan-actions">
+                <button type="button" class="workload-plan-btn primary" data-action="batch-export-plan-sheets">Export All Workload Sheets (.zip)</button>
                 <button type="button" class="workload-plan-btn" data-action="seed-plan-from-current">Seed Missing Faculty From Current AY Schedule</button>
                 <button type="button" class="workload-plan-btn" data-action="copy-prev-plan"${previousAy ? '' : ' disabled'}>Copy ${escapeWorkloadPlanHtml(previousAy || 'Previous AY')} Plan</button>
                 <button type="button" class="workload-plan-btn" data-action="open-ay-setup">Open AY Setup</button>
@@ -1502,6 +1506,10 @@ function handleWorkloadPlanningPanelClick(event) {
     }
     if (action === 'export-plan-sheet' && facultyName) {
         exportFacultyWorkloadSheet(facultyName);
+        return;
+    }
+    if (action === 'batch-export-plan-sheets') {
+        exportAllFacultyWorkloadSheetsZip();
         return;
     }
     if (action === 'seed-plan-from-current') {
@@ -2158,6 +2166,64 @@ async function ensureExcelJsLoaded() {
     return excelJsLoadPromise;
 }
 
+async function ensureJsZipLoaded() {
+    if (typeof window.JSZip !== 'undefined') {
+        return window.JSZip;
+    }
+    if (jsZipLoadPromise) {
+        return jsZipLoadPromise;
+    }
+
+    jsZipLoadPromise = new Promise((resolve, reject) => {
+        const existing = document.querySelector('script[data-jszip="workload-export"]');
+        if (existing) {
+            existing.addEventListener('load', () => resolve(window.JSZip));
+            existing.addEventListener('error', () => reject(new Error('Failed to load JSZip library.')));
+            return;
+        }
+
+        const script = document.createElement('script');
+        script.src = WORKLOAD_EXPORT_JSZIP_URL;
+        script.async = true;
+        script.dataset.jszip = 'workload-export';
+        script.onload = () => {
+            if (typeof window.JSZip === 'undefined') {
+                reject(new Error('JSZip loaded but global object was not available.'));
+                return;
+            }
+            resolve(window.JSZip);
+        };
+        script.onerror = () => reject(new Error('Failed to load JSZip library from CDN.'));
+        document.head.appendChild(script);
+    }).finally(() => {
+        if (typeof window.JSZip === 'undefined') {
+            jsZipLoadPromise = null;
+        }
+    });
+
+    return jsZipLoadPromise;
+}
+
+async function getWorkloadExportTemplateBuffer() {
+    if (workloadExportTemplateBufferPromise) {
+        return workloadExportTemplateBufferPromise;
+    }
+
+    workloadExportTemplateBufferPromise = fetch(WORKLOAD_EXPORT_TEMPLATE_PATH, { cache: 'no-store' })
+        .then(async (response) => {
+            if (!response.ok) {
+                throw new Error(`Template workbook not found (${response.status}).`);
+            }
+            return response.arrayBuffer();
+        })
+        .catch((error) => {
+            workloadExportTemplateBufferPromise = null;
+            throw error;
+        });
+
+    return workloadExportTemplateBufferPromise;
+}
+
 function getFacultyRecordForExport(facultyName) {
     const all = currentYearData?.all || {};
     return all?.[facultyName] || null;
@@ -2228,6 +2294,24 @@ function buildWorkloadExportFilename(facultyName, academicYear) {
     return `${templateName}_Wkld_${compact}_${y}${m}${d}.xlsx`;
 }
 
+function buildWorkloadBatchZipFilename(academicYear) {
+    const { compact } = getAcademicYearYears(academicYear);
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `WorkloadSheets_${compact}_${y}${m}${d}.zip`;
+}
+
+function getBatchWorkloadExportFacultyNames() {
+    const rows = buildWorkloadPlanningRows(currentYearData)
+        .filter((row) => row && row.active !== false)
+        .map((row) => String(row.facultyName || '').trim())
+        .filter(Boolean);
+    const unique = Array.from(new Set(rows));
+    return unique.sort((a, b) => a.localeCompare(b));
+}
+
 function triggerBlobDownload(blob, filename) {
     const objectUrl = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
@@ -2239,59 +2323,142 @@ function triggerBlobDownload(blob, filename) {
     window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
 }
 
+async function buildFacultyWorkloadExportArtifact(facultyName, options = {}) {
+    const academicYear = String(options.academicYear || currentFilters.year || '').trim();
+    if (!academicYear || academicYear === 'all') {
+        throw new Error('Select a single academic year before exporting workload sheets.');
+    }
+
+    const facultyRecord = getFacultyRecordForExport(facultyName);
+    if (!facultyRecord) {
+        throw new Error(`Could not find workload data for ${facultyName} in AY ${academicYear}.`);
+    }
+
+    const quarterRowsByQuarter = buildQuarterExportRows(facultyRecord);
+    const ExcelJS = options.ExcelJS || await ensureExcelJsLoaded();
+    const templateBuffer = options.templateBuffer || await getWorkloadExportTemplateBuffer();
+
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(templateBuffer.slice(0));
+
+    const ws = workbook.getWorksheet(WORKLOAD_EXPORT_TEMPLATE_SHEET) || workbook.worksheets?.[0];
+    if (!ws) {
+        throw new Error('Template worksheet not found.');
+    }
+
+    const years = getAcademicYearYears(academicYear);
+    ws.getCell('A1').value = inferFacultyWorkloadExportRole(facultyRecord);
+    ws.getCell('A2').value = getTemplateFacultyName(facultyName);
+    ws.getCell('B1').value = `Fall Quarter, ${years.startYear}`;
+    ws.getCell('E1').value = `Winter Quarter, ${years.endYear}`;
+    ws.getCell('H1').value = `Spring Quarter, ${years.endYear}`;
+
+    applyQuarterRowsToWorksheet(ws, quarterRowsByQuarter);
+    applyWorkloadSummaryAssumptions(ws, facultyRecord, quarterRowsByQuarter);
+
+    const fileBuffer = await workbook.xlsx.writeBuffer();
+    const filename = buildWorkloadExportFilename(facultyName, academicYear);
+
+    return {
+        facultyName,
+        academicYear,
+        filename,
+        fileBuffer,
+        facultyRecord
+    };
+}
+
 async function exportFacultyWorkloadSheet(facultyName) {
     try {
-        if (!currentFilters.year || currentFilters.year === 'all') {
-            alert('Select a single academic year before exporting a workload sheet.');
-            return;
-        }
-
-        const facultyRecord = getFacultyRecordForExport(facultyName);
-        if (!facultyRecord) {
-            alert(`Could not find workload data for ${facultyName} in AY ${currentFilters.year}.`);
-            return;
-        }
-
-        const quarterRowsByQuarter = buildQuarterExportRows(facultyRecord);
-        const ExcelJS = await ensureExcelJsLoaded();
-
-        const templateResponse = await fetch(WORKLOAD_EXPORT_TEMPLATE_PATH, { cache: 'no-store' });
-        if (!templateResponse.ok) {
-            throw new Error(`Template workbook not found (${templateResponse.status}).`);
-        }
-
-        const templateBuffer = await templateResponse.arrayBuffer();
-        const workbook = new ExcelJS.Workbook();
-        await workbook.xlsx.load(templateBuffer);
-
-        const ws = workbook.getWorksheet(WORKLOAD_EXPORT_TEMPLATE_SHEET) || workbook.worksheets?.[0];
-        if (!ws) {
-            throw new Error('Template worksheet not found.');
-        }
-
-        const years = getAcademicYearYears(currentFilters.year);
-        ws.getCell('A1').value = inferFacultyWorkloadExportRole(facultyRecord);
-        ws.getCell('A2').value = getTemplateFacultyName(facultyName);
-        ws.getCell('B1').value = `Fall Quarter, ${years.startYear}`;
-        ws.getCell('E1').value = `Winter Quarter, ${years.endYear}`;
-        ws.getCell('H1').value = `Spring Quarter, ${years.endYear}`;
-
-        applyQuarterRowsToWorksheet(ws, quarterRowsByQuarter);
-        applyWorkloadSummaryAssumptions(ws, facultyRecord, quarterRowsByQuarter);
-
-        const fileBuffer = await workbook.xlsx.writeBuffer();
-        const filename = buildWorkloadExportFilename(facultyName, currentFilters.year);
+        const artifact = await buildFacultyWorkloadExportArtifact(facultyName);
         triggerBlobDownload(
-            new Blob([fileBuffer], {
+            new Blob([artifact.fileBuffer], {
                 type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             }),
-            filename
+            artifact.filename
         );
 
-        console.log(`📤 Exported workload sheet for ${facultyName}: ${filename}`);
+        console.log(`📤 Exported workload sheet for ${facultyName}: ${artifact.filename}`);
     } catch (error) {
         console.error('Workload export failed:', error);
         alert(`Workload export failed: ${error.message}`);
+    }
+}
+
+async function exportAllFacultyWorkloadSheetsZip() {
+    try {
+        if (!currentFilters.year || currentFilters.year === 'all') {
+            alert('Select a single academic year before running batch export.');
+            return;
+        }
+
+        const facultyNames = getBatchWorkloadExportFacultyNames();
+        if (!facultyNames.length) {
+            alert(`No faculty workload rows found for AY ${currentFilters.year} to export.`);
+            return;
+        }
+
+        setWorkloadPlanningStatus(`Starting batch workload export for ${facultyNames.length} faculty...`, 'info');
+
+        const [ExcelJS, JSZip, templateBuffer] = await Promise.all([
+            ensureExcelJsLoaded(),
+            ensureJsZipLoaded(),
+            getWorkloadExportTemplateBuffer()
+        ]);
+
+        const zip = new JSZip();
+        const rootFolder = `${currentFilters.year}`;
+        const report = {
+            academicYear: currentFilters.year,
+            generatedAt: new Date().toISOString(),
+            totalRequested: facultyNames.length,
+            exportedCount: 0,
+            failedCount: 0,
+            successes: [],
+            failures: []
+        };
+
+        for (const facultyName of facultyNames) {
+            try {
+                const artifact = await buildFacultyWorkloadExportArtifact(facultyName, {
+                    academicYear: currentFilters.year,
+                    ExcelJS,
+                    templateBuffer
+                });
+                zip.file(`${rootFolder}/${artifact.filename}`, artifact.fileBuffer);
+                report.successes.push({ facultyName, filename: artifact.filename });
+            } catch (error) {
+                console.error(`Batch workload export failed for ${facultyName}:`, error);
+                report.failures.push({
+                    facultyName,
+                    error: String(error?.message || error || 'Unknown error')
+                });
+            }
+        }
+
+        report.exportedCount = report.successes.length;
+        report.failedCount = report.failures.length;
+        zip.file(`${rootFolder}/batch-export-report.json`, JSON.stringify(report, null, 2));
+
+        if (!report.exportedCount) {
+            throw new Error(`Batch export failed for all ${facultyNames.length} faculty. See console for details.`);
+        }
+
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        const zipFilename = buildWorkloadBatchZipFilename(currentFilters.year);
+        triggerBlobDownload(zipBlob, zipFilename);
+
+        if (report.failedCount > 0) {
+            setWorkloadPlanningStatus(`Batch export complete: ${report.exportedCount} exported, ${report.failedCount} failed (downloaded ${zipFilename}).`, 'warn');
+            alert(`Batch export completed with warnings.\n\nExported: ${report.exportedCount}\nFailed: ${report.failedCount}\n\nA report is included in ${zipFilename}.`);
+        } else {
+            setWorkloadPlanningStatus(`Batch export complete: ${report.exportedCount} workload sheets exported to ${zipFilename}.`, 'success');
+        }
+        console.log('📦 Batch workload export report:', report);
+    } catch (error) {
+        console.error('Batch workload export failed:', error);
+        setWorkloadPlanningStatus(`Batch workload export failed: ${error.message}`, 'warn');
+        alert(`Batch workload export failed: ${error.message}`);
     }
 }
 
