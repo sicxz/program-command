@@ -778,6 +778,7 @@ const WorkloadIntegration = (function() {
 
         const fallbackRulesApplied = [];
         const fallbackRuleIdsApplied = new Set();
+        const adjunctAssignedDefaultsApplied = [];
 
         recordsByKey.forEach((record, key) => {
             const ayRecord = ayByKey.get(key);
@@ -850,7 +851,38 @@ const WorkloadIntegration = (function() {
                         }
                     }
                 } else {
-                    record.maxWorkload = inferDefaultMaxWorkload(record.rank, category, record.maxWorkload);
+                    const isFormer = String(record.category || '').toLowerCase() === 'former';
+                    const hasAssignedWorkload = Number(record.totalWorkloadCredits) > 0
+                        || (Array.isArray(record.courses) && record.courses.length > 0);
+
+                    if (!isFormer && hasAssignedWorkload) {
+                        const assignedTarget = Number((Array.isArray(record.courses)
+                            ? record.courses.reduce((sum, course) => {
+                                const workload = Number(course?.workloadCredits);
+                                const credits = Number(course?.credits);
+                                return sum + (Number.isFinite(workload) ? workload : (Number.isFinite(credits) ? credits : 0));
+                            }, 0)
+                            : Number(record.totalWorkloadCredits) || 0).toFixed(2));
+
+                        record.category = 'adjunct';
+                        record.rank = 'Adjunct';
+                        record.ayRole = 'Adjunct';
+                        record.ayTargetCredits = assignedTarget;
+                        record.ayReleaseCredits = 0;
+                        record.ayNetTargetCredits = assignedTarget;
+                        record.ayReleasePercent = 0;
+                        record.ayReleaseReason = '';
+                        record.ayNotes = String(record.ayNotes || '').trim();
+                        record.ayActive = true;
+                        record.maxWorkload = assignedTarget;
+
+                        adjunctAssignedDefaultsApplied.push({
+                            facultyName: record.facultyName,
+                            assignedTargetCredits: assignedTarget
+                        });
+                    } else {
+                        record.maxWorkload = inferDefaultMaxWorkload(record.rank, category, record.maxWorkload);
+                    }
                 }
             }
 
@@ -885,6 +917,9 @@ const WorkloadIntegration = (function() {
         if (fallbackRulesApplied.length > 0) {
             preliminaryAssumptions.push('Fallback chair planning targets were applied for matched faculty (tenure/tenure-track 36, lecturers 45, Mindy chair teaching target 18 via 18-credit release).');
         }
+        if (adjunctAssignedDefaultsApplied.length > 0) {
+            preliminaryAssumptions.push('Unlisted instructors are treated as adjuncts by default; adjunct target credits default to their currently assigned AY workload unless edited in AY Setup / workload planning.');
+        }
 
         return {
             all,
@@ -901,7 +936,8 @@ const WorkloadIntegration = (function() {
                 detailFaculty: Object.keys(detailFacultyMap).length,
                 hasLiveSchedule,
                 preliminaryAssumptions,
-                fallbackTargetRulesApplied: fallbackRulesApplied
+                fallbackTargetRulesApplied: fallbackRulesApplied,
+                adjunctAssignedDefaultsApplied
             }
         };
     }
