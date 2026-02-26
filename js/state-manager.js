@@ -1,258 +1,217 @@
 /**
  * EWU Design Schedule Analyzer - State Manager
- * Centralized state management for dashboard applications
- *
- * Features:
- * - Centralized state storage
- * - Subscription-based updates
- * - State persistence (localStorage)
- * - State history for undo functionality
+ * Centralized state management for dashboard applications, now with Signals.
  */
 
-const StateManager = (function() {
-    'use strict';
+class Signal {
+    constructor(initialValue) {
+        this._value = initialValue;
+        this._subscribers = new Set();
+    }
 
-    /**
-     * Internal state storage
-     */
-    const state = new Map();
+    get value() {
+        return this._value;
+    }
 
-    /**
-     * Subscribers for state changes
-     */
-    const subscribers = new Map();
+    set value(newValue) {
+        if (this._value !== newValue) {
+            this._value = newValue;
+            this.notify();
+        }
+    }
 
-    /**
-     * State history for undo functionality
-     */
-    const history = [];
-    const MAX_HISTORY = 20;
+    subscribe(callback) {
+        this._subscribers.add(callback);
+        // Immediately run with current value
+        callback(this._value);
+        return () => this._subscribers.delete(callback);
+    }
 
-    /**
-     * Configuration
-     */
-    const config = {
-        persistKeys: [], // Keys to persist to localStorage
-        storagePrefix: 'ewu_schedule_',
-        debug: false
+    notify() {
+        for (const callback of this._subscribers) {
+            callback(this._value);
+        }
+    }
+}
+
+/**
+ * Internal state storage mapping keys to Signals
+ */
+const state = new Map();
+
+/**
+ * State history for undo functionality
+ */
+const history = [];
+const MAX_HISTORY = 20;
+
+const config = {
+    persistKeys: [],
+    storagePrefix: 'ewu_schedule_',
+    debug: false
+};
+
+// Backwards-compatible subscriber mapping for non-signal legacy code
+const legacySubscribers = new Map();
+
+function init(options = {}) {
+    Object.assign(config, options);
+    if (config.persistKeys.length > 0) {
+        loadPersistedState();
+    }
+    log('State manager initialized');
+}
+
+function createSignal(key, initialValue) {
+    if (!state.has(key)) {
+        state.set(key, new Signal(initialValue));
+    }
+    return state.get(key);
+}
+
+function getSignal(key) {
+    return state.get(key);
+}
+
+function get(key, defaultValue = null) {
+    return state.has(key) ? state.get(key).value : defaultValue;
+}
+
+function set(key, value, options = {}) {
+    const { silent = false, persist = false, recordHistory = true } = options;
+
+    let signal = state.get(key);
+    let oldValue;
+
+    if (!signal) {
+        signal = new Signal(value);
+        state.set(key, signal);
+        oldValue = undefined;
+    } else {
+        oldValue = signal.value;
+    }
+
+    if (recordHistory && oldValue !== undefined && oldValue !== value) {
+        recordStateChange(key, oldValue, value);
+    }
+
+    // Set the signal value (this notifies signal subscribers automatically)
+    if (!silent) {
+        signal.value = value;
+        notifyLegacySubscribers(key, value, oldValue);
+    } else {
+        // Bypass notification, update internal value directly
+        signal._value = value;
+    }
+
+    log(`State set: ${key}`, value);
+
+    if (persist || config.persistKeys.includes(key)) {
+        persistState(key, value);
+    }
+}
+
+function getNested(key, path, defaultValue = null) {
+    const current = get(key);
+    if (!current) return defaultValue;
+
+    const parts = path.split('.');
+    let obj = current;
+
+    for (const part of parts) {
+        if (obj === null || obj === undefined || !Object.prototype.hasOwnProperty.call(obj, part)) {
+            return defaultValue;
+        }
+        obj = obj[part];
+    }
+    return obj;
+}
+
+function setNested(key, path, value) {
+    const current = get(key) || {};
+    // Clone to ensure reactivity triggers due to reference change
+    const updated = { ...current };
+    const parts = path.split('.');
+    let obj = updated;
+
+    for (let i = 0; i < parts.length - 1; i++) {
+        if (!obj[parts[i]]) {
+            obj[parts[i]] = {};
+        }
+        obj[parts[i]] = { ...obj[parts[i]] }; // Clone nested object
+        obj = obj[parts[i]];
+    }
+
+    obj[parts[parts.length - 1]] = value;
+    set(key, updated);
+}
+
+function remove(key) {
+    const oldValue = get(key);
+    state.delete(key);
+
+    try {
+        localStorage.removeItem(config.storagePrefix + key);
+    } catch (e) {
+        // Storage not available
+    }
+
+    notifyLegacySubscribers(key, undefined, oldValue);
+    log(`State removed: ${key}`);
+}
+
+function has(key) {
+    return state.has(key);
+}
+
+function keys() {
+    return Array.from(state.keys());
+}
+
+// Legacy Subscribe Interface
+function subscribe(key, callback) {
+    if (!legacySubscribers.has(key)) {
+        legacySubscribers.set(key, new Set());
+    }
+    legacySubscribers.get(key).add(callback);
+    log(`Subscriber added for: ${key}`);
+
+    return function unsubscribe() {
+        const subs = legacySubscribers.get(key);
+        if (subs) {
+            subs.delete(callback);
+            log(`Subscriber removed for: ${key}`);
+        }
     };
+}
 
-    /**
-     * Initialize the state manager
-     * @param {Object} options - Configuration options
-     */
-    function init(options = {}) {
-        Object.assign(config, options);
+function subscribeMultiple(keys, callback) {
+    const unsubscribers = keys.map(k => subscribe(k, callback));
+    return function unsubscribeAll() {
+        unsubscribers.forEach(unsub => unsub());
+    };
+}
 
-        // Load persisted state
-        if (config.persistKeys.length > 0) {
-            loadPersistedState();
-        }
-
-        log('State manager initialized');
+function notifyLegacySubscribers(key, newValue, oldValue) {
+    const keySubscribers = legacySubscribers.get(key);
+    if (keySubscribers) {
+        keySubscribers.forEach(callback => {
+            try { callback(newValue, oldValue, key); }
+            catch (e) { console.error('State subscriber error:', e); }
+        });
     }
 
-    /**
-     * Get a value from state
-     * @param {string} key - State key
-     * @param {*} defaultValue - Default value if key doesn't exist
-     * @returns {*} State value
-     */
-    function get(key, defaultValue = null) {
-        return state.has(key) ? state.get(key) : defaultValue;
+    const wildcardSubscribers = legacySubscribers.get('*');
+    if (wildcardSubscribers) {
+        wildcardSubscribers.forEach(callback => {
+            try { callback(newValue, oldValue, key); }
+            catch (e) { console.error('State subscriber error:', e); }
+        });
     }
+}
 
-    /**
-     * Set a value in state
-     * @param {string} key - State key
-     * @param {*} value - Value to set
-     * @param {Object} options - Options (silent: don't notify, persist: save to storage)
-     */
-    function set(key, value, options = {}) {
-        const { silent = false, persist = false, recordHistory = true } = options;
-
-        const oldValue = state.get(key);
-
-        // Record history for undo
-        if (recordHistory && oldValue !== undefined) {
-            recordStateChange(key, oldValue, value);
-        }
-
-        state.set(key, value);
-
-        log(`State set: ${key}`, value);
-
-        // Persist if needed
-        if (persist || config.persistKeys.includes(key)) {
-            persistState(key, value);
-        }
-
-        // Notify subscribers
-        if (!silent) {
-            notifySubscribers(key, value, oldValue);
-        }
-    }
-
-    /**
-     * Update a nested value in state
-     * @param {string} key - State key
-     * @param {string} path - Dot-notation path (e.g., 'user.settings.theme')
-     * @param {*} value - Value to set
-     */
-    function setNested(key, path, value) {
-        const current = get(key) || {};
-        const parts = path.split('.');
-        let obj = current;
-
-        for (let i = 0; i < parts.length - 1; i++) {
-            if (!obj[parts[i]]) {
-                obj[parts[i]] = {};
-            }
-            obj = obj[parts[i]];
-        }
-
-        obj[parts[parts.length - 1]] = value;
-        set(key, current);
-    }
-
-    /**
-     * Get a nested value from state
-     * @param {string} key - State key
-     * @param {string} path - Dot-notation path
-     * @param {*} defaultValue - Default value
-     * @returns {*} Nested value
-     */
-    function getNested(key, path, defaultValue = null) {
-        const current = get(key);
-        if (!current) return defaultValue;
-
-        const parts = path.split('.');
-        let obj = current;
-
-        for (const part of parts) {
-            if (obj === null || obj === undefined || !Object.prototype.hasOwnProperty.call(obj, part)) {
-                return defaultValue;
-            }
-            obj = obj[part];
-        }
-
-        return obj;
-    }
-
-    /**
-     * Delete a key from state
-     * @param {string} key - State key
-     */
-    function remove(key) {
-        const oldValue = state.get(key);
-        state.delete(key);
-
-        // Remove from storage
-        try {
-            localStorage.removeItem(config.storagePrefix + key);
-        } catch (e) {
-            // Storage not available
-        }
-
-        notifySubscribers(key, undefined, oldValue);
-        log(`State removed: ${key}`);
-    }
-
-    /**
-     * Check if key exists in state
-     * @param {string} key - State key
-     * @returns {boolean}
-     */
-    function has(key) {
-        return state.has(key);
-    }
-
-    /**
-     * Get all state keys
-     * @returns {Array<string>}
-     */
-    function keys() {
-        return Array.from(state.keys());
-    }
-
-    /**
-     * Subscribe to state changes
-     * @param {string} key - State key to watch (or '*' for all)
-     * @param {Function} callback - Callback function (newValue, oldValue, key)
-     * @returns {Function} Unsubscribe function
-     */
-    function subscribe(key, callback) {
-        if (!subscribers.has(key)) {
-            subscribers.set(key, new Set());
-        }
-
-        subscribers.get(key).add(callback);
-
-        log(`Subscriber added for: ${key}`);
-
-        // Return unsubscribe function
-        return function unsubscribe() {
-            const subs = subscribers.get(key);
-            if (subs) {
-                subs.delete(callback);
-                log(`Subscriber removed for: ${key}`);
-            }
-        };
-    }
-
-    /**
-     * Subscribe to multiple keys
-     * @param {Array<string>} keys - State keys to watch
-     * @param {Function} callback - Callback function
-     * @returns {Function} Unsubscribe function
-     */
-    function subscribeMultiple(keys, callback) {
-        const unsubscribers = keys.map(key => subscribe(key, callback));
-
-        return function unsubscribeAll() {
-            unsubscribers.forEach(unsub => unsub());
-        };
-    }
-
-    /**
-     * Notify subscribers of state change
-     * @param {string} key - Changed key
-     * @param {*} newValue - New value
-     * @param {*} oldValue - Old value
-     */
-    function notifySubscribers(key, newValue, oldValue) {
-        // Notify key-specific subscribers
-        const keySubscribers = subscribers.get(key);
-        if (keySubscribers) {
-            keySubscribers.forEach(callback => {
-                try {
-                    callback(newValue, oldValue, key);
-                } catch (e) {
-                    console.error('State subscriber error:', e);
-                }
-            });
-        }
-
-        // Notify wildcard subscribers
-        const wildcardSubscribers = subscribers.get('*');
-        if (wildcardSubscribers) {
-            wildcardSubscribers.forEach(callback => {
-                try {
-                    callback(newValue, oldValue, key);
-                } catch (e) {
-                    console.error('State subscriber error:', e);
-                }
-            });
-        }
-    }
-
-    /**
-     * Record state change for undo
-     * @param {string} key - State key
-     * @param {*} oldValue - Previous value
-     * @param {*} newValue - New value
-     */
-    function recordStateChange(key, oldValue, newValue) {
+function recordStateChange(key, oldValue, newValue) {
+    try {
         history.push({
             timestamp: Date.now(),
             key,
@@ -260,170 +219,107 @@ const StateManager = (function() {
             newValue: JSON.parse(JSON.stringify(newValue))
         });
 
-        // Limit history size
         if (history.length > MAX_HISTORY) {
             history.shift();
         }
+    } catch (e) { /* Ignore non-serializable states */ }
+}
+
+function undo() {
+    if (history.length === 0) return null;
+    const lastChange = history.pop();
+    set(lastChange.key, lastChange.oldValue, { recordHistory: false });
+    log(`Undid change to: ${lastChange.key}`);
+    return lastChange;
+}
+
+function getHistory() {
+    return [...history];
+}
+
+function clearHistory() {
+    history.length = 0;
+}
+
+function persistState(key, value) {
+    try {
+        const storageKey = config.storagePrefix + key;
+        localStorage.setItem(storageKey, JSON.stringify(value));
+        log(`Persisted state: ${key}`);
+    } catch (e) {
+        console.warn('Failed to persist state:', e);
     }
+}
 
-    /**
-     * Undo last state change
-     * @returns {Object|null} Undone change or null if nothing to undo
-     */
-    function undo() {
-        if (history.length === 0) {
-            return null;
-        }
-
-        const lastChange = history.pop();
-        set(lastChange.key, lastChange.oldValue, { recordHistory: false });
-
-        log(`Undid change to: ${lastChange.key}`);
-        return lastChange;
-    }
-
-    /**
-     * Get undo history
-     * @returns {Array} History entries
-     */
-    function getHistory() {
-        return [...history];
-    }
-
-    /**
-     * Clear undo history
-     */
-    function clearHistory() {
-        history.length = 0;
-    }
-
-    /**
-     * Persist state to localStorage
-     * @param {string} key - State key
-     * @param {*} value - Value to persist
-     */
-    function persistState(key, value) {
+function loadPersistedState() {
+    config.persistKeys.forEach(key => {
         try {
             const storageKey = config.storagePrefix + key;
-            localStorage.setItem(storageKey, JSON.stringify(value));
-            log(`Persisted state: ${key}`);
+            const stored = localStorage.getItem(storageKey);
+            if (stored !== null) {
+                set(key, JSON.parse(stored), { silent: true, recordHistory: false });
+                log(`Loaded persisted state: ${key}`);
+            }
         } catch (e) {
-            console.warn('Failed to persist state:', e);
+            console.warn('Failed to load persisted state:', e);
         }
+    });
+}
+
+function clearPersistedState() {
+    config.persistKeys.forEach(key => {
+        try {
+            localStorage.removeItem(config.storagePrefix + key);
+        } catch (e) { }
+    });
+}
+
+function reset(initialState = {}) {
+    state.clear();
+    clearHistory();
+
+    Object.entries(initialState).forEach(([key, value]) => {
+        set(key, value, { silent: true, recordHistory: false });
+    });
+
+    notifyLegacySubscribers('*', null, null);
+    log('State reset');
+}
+
+function getAll() {
+    const obj = {};
+    state.forEach((signal, key) => {
+        obj[key] = signal.value;
+    });
+    return obj;
+}
+
+function setMultiple(values, options = {}) {
+    Object.entries(values).forEach(([key, value]) => {
+        set(key, value, { ...options, silent: true });
+    });
+
+    if (!options.silent) {
+        notifyLegacySubscribers('*', values, null);
     }
+}
 
-    /**
-     * Load persisted state from localStorage
-     */
-    function loadPersistedState() {
-        config.persistKeys.forEach(key => {
-            try {
-                const storageKey = config.storagePrefix + key;
-                const stored = localStorage.getItem(storageKey);
-
-                if (stored !== null) {
-                    const value = JSON.parse(stored);
-                    state.set(key, value);
-                    log(`Loaded persisted state: ${key}`);
-                }
-            } catch (e) {
-                console.warn('Failed to load persisted state:', e);
-            }
-        });
+function log(...args) {
+    if (config.debug) {
+        console.log('[StateManager]', ...args);
     }
+}
 
-    /**
-     * Clear all persisted state
-     */
-    function clearPersistedState() {
-        config.persistKeys.forEach(key => {
-            try {
-                localStorage.removeItem(config.storagePrefix + key);
-            } catch (e) {
-                // Ignore
-            }
-        });
-    }
+// Global exposure for legacy scripts that haven't been migrated yet to ES imports
+const globalScope = typeof window !== 'undefined' ? window : globalThis;
+globalScope.StateManager = {
+    init, get, set, getNested, setNested, remove, has, keys,
+    subscribe, subscribeMultiple, undo, getHistory, clearHistory,
+    reset, getAll, setMultiple, clearPersistedState,
+    Signal, createSignal, getSignal
+};
 
-    /**
-     * Reset state to initial values
-     * @param {Object} initialState - Initial state object
-     */
-    function reset(initialState = {}) {
-        state.clear();
-        clearHistory();
-
-        Object.entries(initialState).forEach(([key, value]) => {
-            set(key, value, { silent: true, recordHistory: false });
-        });
-
-        // Notify all subscribers of reset
-        notifySubscribers('*', null, null);
-
-        log('State reset');
-    }
-
-    /**
-     * Get entire state as object
-     * @returns {Object} State object
-     */
-    function getAll() {
-        const obj = {};
-        state.forEach((value, key) => {
-            obj[key] = value;
-        });
-        return obj;
-    }
-
-    /**
-     * Set multiple state values at once
-     * @param {Object} values - Key-value pairs
-     * @param {Object} options - Set options
-     */
-    function setMultiple(values, options = {}) {
-        Object.entries(values).forEach(([key, value]) => {
-            set(key, value, { ...options, silent: true });
-        });
-
-        // Notify once for batch update
-        if (!options.silent) {
-            notifySubscribers('*', values, null);
-        }
-    }
-
-    /**
-     * Debug logging
-     * @param {...*} args - Log arguments
-     */
-    function log(...args) {
-        if (config.debug) {
-            console.log('[StateManager]', ...args);
-        }
-    }
-
-    // Public API
-    return {
-        init,
-        get,
-        set,
-        getNested,
-        setNested,
-        remove,
-        has,
-        keys,
-        subscribe,
-        subscribeMultiple,
-        undo,
-        getHistory,
-        clearHistory,
-        reset,
-        getAll,
-        setMultiple,
-        clearPersistedState
-    };
-})();
-
-// Export for both browser and Node.js environments
+// Keep compatibility with Node/CommonJS consumers (tests/tooling).
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = StateManager;
+    module.exports = globalScope.StateManager;
 }

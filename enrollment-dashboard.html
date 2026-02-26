@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,7 +15,6 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
         }
@@ -24,12 +24,10 @@
             margin: 0 auto;
             background: white;
             border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
             overflow: hidden;
         }
 
         header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 30px;
             text-align: center;
@@ -54,19 +52,18 @@
             color: white;
             text-decoration: none;
             padding: 10px 20px;
-            background: rgba(255,255,255,0.2);
+            background: rgba(255, 255, 255, 0.2);
             border-radius: 8px;
             transition: all 0.3s;
         }
 
         .back-link:hover {
-            background: rgba(255,255,255,0.3);
+            background: rgba(255, 255, 255, 0.3);
             transform: translateY(-50%) translateX(-5px);
         }
 
         .controls {
             padding: 30px;
-            background: #f8f9fa;
             border-bottom: 2px solid #dee2e6;
             display: flex;
             gap: 20px;
@@ -86,9 +83,9 @@
             font-size: 0.9em;
         }
 
-        select, button {
+        select,
+        button {
             padding: 10px 15px;
-            border: 2px solid #dee2e6;
             border-radius: 8px;
             font-size: 1em;
             background: white;
@@ -96,21 +93,10 @@
             transition: all 0.3s;
         }
 
-        select:hover, select:focus {
-            border-color: #667eea;
-            outline: none;
-        }
-
         button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
+            color: #333;
+            border: 1px solid #ccc;
             font-weight: 600;
-        }
-
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
         }
 
         .stats-bar {
@@ -129,27 +115,19 @@
             transition: transform 0.3s;
         }
 
-        .stat-card:hover {
-            transform: translateY(-5px);
-        }
-
         .stat-card.declining {
-            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
-            color: white;
+            color: #333;
         }
 
         .stat-card.growing {
-            background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%);
-            color: white;
+            color: #333;
         }
 
         .stat-card.stable {
-            background: linear-gradient(135deg, #74c0fc 0%, #4dabf7 100%);
-            color: white;
+            color: #333;
         }
 
         .stat-card.total {
-            background: linear-gradient(135deg, #ffd93d 0%, #ff9f1c 100%);
             color: #333;
         }
 
@@ -271,16 +249,17 @@
         }
 
         .insight-item {
-            background: rgba(255,255,255,0.15);
+            background: #f6f8fa;
+            border: 1px solid #d0d7de;
             padding: 15px;
             border-radius: 8px;
             margin-bottom: 10px;
-            backdrop-filter: blur(10px);
         }
 
         .insight-item h3 {
             margin-bottom: 8px;
             font-size: 1.1em;
+            color: #1f2328;
         }
 
         .capacity-grid {
@@ -334,10 +313,17 @@
     </style>
     <link rel="stylesheet" href="css/program-command-dashboard-theme.css">
 </head>
+
 <body>
     <div class="container">
         <header>
-            <a href="index.html" class="back-link">← Back to Schedule</a>
+            <div
+                style="position: absolute; left: 30px; top: 50%; transform: translateY(-50%); display: flex; gap: 10px;">
+                <a href="index.html" class="back-link" style="position: relative; left: 0; transform: none;">←
+                    Schedule</a>
+                <a href="pages/workload-dashboard.html" class="back-link"
+                    style="position: relative; left: 0; transform: none;">👥 Workload</a>
+            </div>
             <h1>📊 Enrollment Trends Dashboard</h1>
             <p class="subtitle">EWU Design Program Analytics 2022-2025</p>
         </header>
@@ -374,12 +360,12 @@
                 </select>
             </div>
 
-            <button onclick="window.location.href='pages/workload-dashboard.html'" style="background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);">👥 Workload</button>
-            <button onclick="window.location.href='pages/applied-learning-dashboard.html'" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">📚 Applied Learning</button>
-            <button onclick="window.location.href='pages/recommendations-dashboard.html'" style="background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);">💡 Recommendations</button>
-            <button onclick="window.location.href='pages/capacity-planning-dashboard.html'" style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);">📊 Capacity</button>
-            <button onclick="window.location.href='pages/course-optimizer-dashboard.html'" style="background: linear-gradient(135deg, #1abc9c 0%, #16a085 100%);">🎓 Optimizer</button>
-            <button onclick="window.location.href='pages/pamcam-playground.html'" style="background: linear-gradient(135deg, #b7142e 0%, #8f1024 100%);">🧪 PamCam Lab</button>
+            <button onclick="window.location.href='pages/workload-dashboard.html'">👥 Workload</button>
+            <button onclick="window.location.href='pages/applied-learning-dashboard.html'">📚 Applied Learning</button>
+            <button onclick="window.location.href='pages/recommendations-dashboard.html'">💡 Recommendations</button>
+            <button onclick="window.location.href='pages/capacity-planning-dashboard.html'">📊 Capacity</button>
+            <button onclick="window.location.href='pages/course-optimizer-dashboard.html'">🎓 Optimizer</button>
+            <button onclick="window.location.href='pages/pamcam-playground.html'">🧪 PamCam Lab</button>
         </div>
 
         <div class="stats-bar">
@@ -403,28 +389,31 @@
 
         <div class="content">
             <!-- Forecast Panel -->
-            <div id="forecastPanel" class="insights-panel" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); margin-top: 0; margin-bottom: 30px;">
-                <h2>🔮 Enrollment Forecast</h2>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-top: 20px;">
-                    <div class="insight-item" style="background: rgba(255,255,255,0.25);">
+            <div id="forecastPanel" class="insights-panel"
+                style="background: #ffffff; border: 1px solid #d0d7de; border-radius: 12px; padding: 25px; margin-top: 0; margin-bottom: 30px;">
+                <h2 style="margin-bottom: 20px;">🔮 Enrollment Forecast</h2>
+                <div
+                    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-top: 20px;">
+                    <div class="insight-item">
                         <h3 style="font-size: 2em; margin-bottom: 10px;" id="forecastPredicted">--</h3>
-                        <p style="font-size: 0.9em; opacity: 0.9;">Predicted Enrollment</p>
+                        <p style="font-size: 0.9em; color: #59636e;">Predicted Enrollment</p>
                     </div>
-                    <div class="insight-item" style="background: rgba(255,255,255,0.25);">
-                        <h3 style="font-size: 1.5em; margin-bottom: 10px;"><span id="forecastLower">--</span> - <span id="forecastUpper">--</span></h3>
-                        <p style="font-size: 0.9em; opacity: 0.9;">95% Confidence Interval</p>
+                    <div class="insight-item">
+                        <h3 style="font-size: 1.5em; margin-bottom: 10px;"><span id="forecastLower">--</span> - <span
+                                id="forecastUpper">--</span></h3>
+                        <p style="font-size: 0.9em; color: #59636e;">95% Confidence Interval</p>
                     </div>
-                    <div class="insight-item" style="background: rgba(255,255,255,0.25);">
+                    <div class="insight-item">
                         <h3 style="font-size: 1.5em; margin-bottom: 10px;" id="forecastTrend">--</h3>
-                        <p style="font-size: 0.9em; opacity: 0.9;">Enrollment Trend</p>
+                        <p style="font-size: 0.9em; color: #59636e;">Enrollment Trend</p>
                     </div>
-                    <div class="insight-item" style="background: rgba(255,255,255,0.25);">
+                    <div class="insight-item">
                         <h3 style="font-size: 1.5em; margin-bottom: 10px;" id="forecastGrowth">--</h3>
-                        <p style="font-size: 0.9em; opacity: 0.9;">Growth Rate (QoQ)</p>
+                        <p style="font-size: 0.9em; color: #59636e;">Growth Rate (QoQ)</p>
                     </div>
                 </div>
-                <p style="margin-top: 20px; font-size: 0.9em; opacity: 0.9;">
-                    📊 Based on linear regression analysis of 10 quarters of enrollment data (Fall 2022 - Fall 2025)
+                <p id="forecastSubtext" style="margin-top: 20px; font-size: 0.9em; color: #59636e;">
+                    📊 Based on linear regression analysis of enrollment data.
                 </p>
             </div>
 
@@ -435,8 +424,10 @@
                         <canvas id="overallTrendChart"></canvas>
                     </div>
                     <p style="color: #666; font-size: 0.9em; margin-top: 15px;">
-                        <strong>Note:</strong> This shows unique students enrolled in <em>at least one Design course</em> per quarter,
-                        not total declared Design majors. Students may skip quarters for gen-eds, internships, or personal reasons.
+                        <strong>Note:</strong> This shows unique students enrolled in <em>at least one Design
+                            course</em> per quarter,
+                        not total declared Design majors. Students may skip quarters for gen-eds, internships, or
+                        personal reasons.
                         <br><strong>Current declared Design majors:</strong> 124 students (Fall 2025)
                     </p>
                 </div>
@@ -457,7 +448,8 @@
                         <canvas id="trendPieChart"></canvas>
                     </div>
                     <p style="color: #666; font-size: 0.9em; margin-top: 15px;">
-                        <strong>Note:</strong> Number of courses in each trend category based on multi-year enrollment patterns.
+                        <strong>Note:</strong> Number of courses in each trend category based on multi-year enrollment
+                        patterns.
                     </p>
                 </div>
 
@@ -494,7 +486,8 @@
                     <div class="chart-wrapper tall">
                         <canvas id="facultyWorkloadChart"></canvas>
                     </div>
-                    <div id="capacityPlanningInfo" style="background: #e7f5ff; border-left: 4px solid #339af0; padding: 12px 16px; margin-top: 16px; border-radius: 8px; font-size: 0.85em;">
+                    <div id="capacityPlanningInfo"
+                        style="background: #e7f5ff; border-left: 4px solid #339af0; padding: 12px 16px; margin-top: 16px; border-radius: 8px; font-size: 0.85em;">
                         <strong>📊 Capacity:</strong> Full-time faculty baseline. Adjunct capacity = 0 for planning.
                     </div>
                 </div>
@@ -648,16 +641,36 @@
             if (window.enrollmentDashboardData && window.enrollmentDashboardData.forecast) {
                 const forecast = window.enrollmentDashboardData.forecast;
 
-                document.getElementById('forecastPredicted').textContent = forecast.predicted || '--';
+                let predictedHtml = '--';
+                if (forecast.scenarios) {
+                    predictedHtml = `
+                        ${forecast.scenarios.base}
+                        <div style="font-size: 0.45em; color: #59636e; font-weight: normal; margin-top: 8px;">
+                            <span style="color:#d1242f;">Conservative: ${forecast.scenarios.conservative}</span> | 
+                            <span style="color:#1a7f37;">Aggressive: ${forecast.scenarios.aggressive}</span>
+                        </div>
+                    `;
+                } else {
+                    predictedHtml = forecast.predicted || '--';
+                }
+
+                document.getElementById('forecastPredicted').innerHTML = predictedHtml;
                 document.getElementById('forecastLower').textContent = forecast.lower95 || '--';
                 document.getElementById('forecastUpper').textContent = forecast.upper95 || '--';
 
                 const trendIcon = forecast.trend === 'declining' ? '📉 Declining' :
-                                  forecast.trend === 'growing' ? '📈 Growing' :
-                                  forecast.trend === 'stable' ? '➡️ Stable' : forecast.trend;
+                    forecast.trend === 'growing' ? '📈 Growing' :
+                        forecast.trend === 'stable' ? '➡️ Stable' : forecast.trend;
                 document.getElementById('forecastTrend').textContent = trendIcon;
 
                 document.getElementById('forecastGrowth').textContent = forecast.growthRate || '--';
+
+                // Update subtext with seasonal info
+                if (forecast.seasonalAdjustmentApplied) {
+                    document.getElementById('forecastSubtext').innerHTML = `
+                        📊 Based on linear regression analysis. <strong>Adjusted for ${forecast.seasonalAdjustmentApplied} Seasonality (${forecast.seasonalWeight}x)</strong>.
+                    `;
+                }
             } else {
                 // Hide forecast panel if no data available
                 const panel = document.getElementById('forecastPanel');
@@ -763,7 +776,7 @@
                         },
                         tooltip: {
                             callbacks: {
-                                label: function(context) {
+                                label: function (context) {
                                     return `${context.dataset.label}: ${context.parsed.y}`;
                                 }
                             }
@@ -1015,8 +1028,8 @@
             // Build rows safely without innerHTML
             sortedCourses.forEach(([code, data]) => {
                 const trendIcon = data.trend === 'declining' ? '📉' :
-                                  data.trend === 'growing' ? '📈' :
-                                  data.trend === 'new' ? '✨' : '➡️';
+                    data.trend === 'growing' ? '📈' :
+                        data.trend === 'new' ? '✨' : '➡️';
 
                 const row = document.createElement('tr');
 
@@ -1086,10 +1099,10 @@
                         },
                         tooltip: {
                             callbacks: {
-                                label: function(context) {
+                                label: function (context) {
                                     return `${context.parsed.y} students`;
                                 },
-                                afterLabel: function(context) {
+                                afterLabel: function (context) {
                                     const index = context.dataIndex;
                                     if (index === 0) return '';
                                     const prevValue = censusData.headcount[index - 1];
@@ -1215,7 +1228,7 @@
                         },
                         tooltip: {
                             callbacks: {
-                                label: function(context) {
+                                label: function (context) {
                                     const value = context.parsed.y;
                                     return `${context.dataset.label}: ${value ? value.toLocaleString() : '0'} seat enrollments`;
                                 }
@@ -1346,15 +1359,15 @@
                         data: facultyData.map(f => f.capacity),
                         backgroundColor: facultyData.map(f =>
                             !f.isFullTime ? 'rgba(255, 107, 107, 0.8)' :
-                            f.capacity >= 45 ? 'rgba(81, 207, 102, 0.8)' :
-                            f.capacity >= 36 ? 'rgba(100, 181, 246, 0.8)' :
-                            'rgba(255, 215, 61, 0.8)'
+                                f.capacity >= 45 ? 'rgba(81, 207, 102, 0.8)' :
+                                    f.capacity >= 36 ? 'rgba(100, 181, 246, 0.8)' :
+                                        'rgba(255, 215, 61, 0.8)'
                         ),
                         borderColor: facultyData.map(f =>
                             !f.isFullTime ? '#ff6b6b' :
-                            f.capacity >= 45 ? '#51cf66' :
-                            f.capacity >= 36 ? '#64b5f6' :
-                            '#ffd93d'
+                                f.capacity >= 45 ? '#51cf66' :
+                                    f.capacity >= 36 ? '#64b5f6' :
+                                        '#ffd93d'
                         ),
                         borderWidth: 2
                     }]
@@ -1369,7 +1382,7 @@
                         },
                         tooltip: {
                             callbacks: {
-                                label: function(context) {
+                                label: function (context) {
                                     const index = context.dataIndex;
                                     const faculty = facultyData[index];
                                     if (!faculty.isFullTime) {
@@ -1377,7 +1390,7 @@
                                     }
                                     return `Baseline Capacity: ${faculty.capacity} credits/quarter`;
                                 },
-                                afterLabel: function(context) {
+                                afterLabel: function (context) {
                                     const index = context.dataIndex;
                                     const faculty = facultyData[index];
                                     if (faculty.note) {
@@ -1504,60 +1517,109 @@
         }
 
         // Event listeners for filters
-        document.getElementById('courseFilter').addEventListener('change', function() {
+        document.getElementById('courseFilter').addEventListener('change', function () {
             // Filter logic would be implemented here
             console.log('Filter by:', this.value);
         });
 
-        document.getElementById('trendFilter').addEventListener('change', function() {
+        document.getElementById('trendFilter').addEventListener('change', function () {
             // Filter logic would be implemented here
             console.log('Filter by trend:', this.value);
         });
 
-        document.getElementById('academicYearFilter').addEventListener('change', function() {
+        document.getElementById('academicYearFilter').addEventListener('change', function () {
             const selectedYear = this.value;
             console.log('Filter by academic year:', selectedYear);
 
+            if (!window.enrollmentDashboardData || !window.enrollmentDashboardData.censusData || !window.enrollmentDashboardData.courseStats) {
+                console.warn('Dynamic data required for robust filtering.');
+                return;
+            }
+
+            const originalQuarters = window.enrollmentDashboardData.censusData.quarters;
+            const originalHeadcount = window.enrollmentDashboardData.censusData.headcount;
+            const originalTotalEnrollments = window.enrollmentDashboardData.censusData.totalEnrollments || [];
+            const originalCourseStats = window.enrollmentDashboardData.courseStats;
+
             if (selectedYear === 'all') {
-                // Restore original data
-                if (window.enrollmentDashboardData && window.enrollmentDashboardData.censusData) {
-                    censusData.quarters = window.enrollmentDashboardData.censusData.quarters;
-                    censusData.headcount = window.enrollmentDashboardData.censusData.headcount;
-                    censusData.totalEnrollments = window.enrollmentDashboardData.censusData.totalEnrollments || [];
-                }
+                // Restore original census data
+                censusData.quarters = originalQuarters;
+                censusData.headcount = originalHeadcount;
+                censusData.totalEnrollments = originalTotalEnrollments;
+
+                // Restore original enrollment data
+                Object.keys(enrollmentData).forEach(key => delete enrollmentData[key]);
+                Object.assign(enrollmentData, originalCourseStats);
+
             } else {
                 // Filter census data by selected year
-                if (window.enrollmentDashboardData && window.enrollmentDashboardData.censusData) {
-                    const originalQuarters = window.enrollmentDashboardData.censusData.quarters;
-                    const originalHeadcount = window.enrollmentDashboardData.censusData.headcount;
-                    const originalTotalEnrollments = window.enrollmentDashboardData.censusData.totalEnrollments || [];
+                const filtered = originalQuarters.reduce((acc, quarter, index) => {
+                    const yearMatch = selectedYear.match(/(\d{4})-(\d{2})/);
+                    if (yearMatch) {
+                        const startYear = yearMatch[1];
+                        const endYear = '20' + yearMatch[2];
 
-                    const filtered = originalQuarters.reduce((acc, quarter, index) => {
-                        // Check if quarter belongs to selected academic year
-                        // Academic year format: "2022-23" includes Fall 2022, Winter 2023, Spring 2023
-                        const yearMatch = selectedYear.match(/(\d{4})-(\d{2})/);
-                        if (yearMatch) {
-                            const startYear = yearMatch[1];
-                            const endYear = '20' + yearMatch[2];
-
-                            if (quarter.includes(startYear) || quarter.includes(endYear)) {
-                                acc.quarters.push(quarter);
-                                acc.headcount.push(originalHeadcount[index]);
-                                acc.totalEnrollments.push(originalTotalEnrollments[index]);
-                            }
+                        if (quarter.includes(startYear) || quarter.includes(endYear)) {
+                            acc.quarters.push(quarter);
+                            acc.headcount.push(originalHeadcount[index]);
+                            acc.totalEnrollments.push(originalTotalEnrollments[index]);
                         }
-                        return acc;
-                    }, { quarters: [], headcount: [], totalEnrollments: [] });
+                    }
+                    return acc;
+                }, { quarters: [], headcount: [], totalEnrollments: [] });
 
-                    censusData.quarters = filtered.quarters;
-                    censusData.headcount = filtered.headcount;
-                    censusData.totalEnrollments = filtered.totalEnrollments;
+                censusData.quarters = filtered.quarters;
+                censusData.headcount = filtered.headcount;
+                censusData.totalEnrollments = filtered.totalEnrollments;
+
+                // Filter enrollmentData based on quarterly activity within the selected year
+                const yearMatch = selectedYear.match(/(\d{4})-(\d{2})/);
+                if (yearMatch) {
+                    const startYear = yearMatch[1];
+                    const endYear = '20' + yearMatch[2];
+
+                    Object.keys(enrollmentData).forEach(key => delete enrollmentData[key]);
+
+                    for (const [courseCode, courseData] of Object.entries(originalCourseStats)) {
+                        if (!courseData.quarterly) continue;
+
+                        // Look for quarters matching the selected year (e.g. 'fall-2024', 'winter-2025', 'spring-2025')
+                        const relevantQuarters = Object.entries(courseData.quarterly).filter(([q]) => {
+                            return q.includes(startYear) || q.includes(endYear);
+                        });
+
+                        if (relevantQuarters.length > 0) {
+                            let total = 0;
+                            relevantQuarters.forEach(([_, val]) => {
+                                total += (typeof val === 'object' ? val.total : val);
+                            });
+                            const newAverage = Math.round(total / relevantQuarters.length);
+
+                            // Create a filtered clone
+                            enrollmentData[courseCode] = {
+                                ...courseData,
+                                average: newAverage,
+                                quarterly: Object.fromEntries(relevantQuarters)
+                            };
+                        }
+                    }
                 }
             }
 
-            // Re-render program headcount chart with filtered data
+            // Re-render ALL visualizations with filtered data
+            renderForecast();
+            updateStats();
+            renderOverallTrendChart();
+            renderCourseLevelChart();
+            renderTrendPieChart();
+            renderTopCoursesChart();
+            renderWinterTrendChart();
             renderProgramHeadcountChart();
             renderCumulativeCreditsChart();
+            renderFacultyWorkloadChart();
+            renderCapacityUtilization();
+            renderCourseTable();
+            renderInsights();
 
             // Show filtered status in subtitle
             const subtitle = document.querySelector('.subtitle');
@@ -1572,4 +1634,5 @@
         window.addEventListener('load', initDashboard);
     </script>
 </body>
+
 </html>

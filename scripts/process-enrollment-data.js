@@ -9,8 +9,13 @@
  * 5. JSON output for dashboard consumption
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import AdvancedForecaster from './advanced-forecasting.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 class EnrollmentProcessor {
     constructor(dataPath = './enrollment-data/processed') {
@@ -474,53 +479,13 @@ class EnrollmentProcessor {
     }
 
     /**
-     * Generate predictive forecast for next quarter
+     * Generate predictive forecast for next quarter using AdvancedForecaster
      */
     generateForecast() {
         console.log('🔮 Generating enrollment forecast...');
 
-        if (this.censusData.headcount.length < 4) {
-            console.log('⚠️  Not enough data for forecasting (need at least 4 quarters)\n');
-            return null;
-        }
-
-        const headcounts = this.censusData.headcount;
-        const n = headcounts.length;
-
-        // Simple linear trend
-        const x = Array.from({ length: n }, (_, i) => i);
-        const y = headcounts;
-
-        const sumX = x.reduce((a, b) => a + b, 0);
-        const sumY = y.reduce((a, b) => a + b, 0);
-        const sumXY = x.reduce((sum, xi, i) => sum + xi * y[i], 0);
-        const sumX2 = x.reduce((sum, xi) => sum + xi * xi, 0);
-
-        const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
-        const intercept = (sumY - slope * sumX) / n;
-
-        // Predict next quarter
-        const nextX = n;
-        const predicted = Math.round(slope * nextX + intercept);
-
-        // Calculate confidence interval (95%)
-        const residuals = y.map((yi, i) => yi - (slope * x[i] + intercept));
-        const mse = residuals.reduce((sum, r) => sum + r * r, 0) / (n - 2);
-        const stdError = Math.sqrt(mse);
-        const marginOfError = 1.96 * stdError; // 95% confidence
-
-        const forecast = {
-            predicted,
-            lower95: Math.round(predicted - marginOfError),
-            upper95: Math.round(predicted + marginOfError),
-            trend: slope > 0 ? 'growing' : slope < 0 ? 'declining' : 'stable',
-            growthRate: ((slope / (sumY / n)) * 100).toFixed(1) + '%'
-        };
-
-        console.log(`   Forecast: ${forecast.predicted} students (95% CI: ${forecast.lower95}-${forecast.upper95})`);
-        console.log(`   Trend: ${forecast.trend} (${forecast.growthRate} per quarter)\n`);
-
-        return forecast;
+        const forecaster = new AdvancedForecaster();
+        return forecaster.generateForecast(this.censusData.quarters, this.censusData.headcount);
     }
 
     /**
@@ -648,7 +613,7 @@ class EnrollmentProcessor {
 }
 
 // CLI Interface
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
     const args = process.argv.slice(2);
     const dataPath = args[0] || './enrollment-data/processed';
 
@@ -659,4 +624,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = EnrollmentProcessor;
+export default EnrollmentProcessor;

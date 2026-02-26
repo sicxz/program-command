@@ -1,4 +1,6 @@
-import http from 'http';
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -7,111 +9,39 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT_DIR = __dirname;
 
-function loadEnvFile(filePath) {
-  if (!fs.existsSync(filePath)) {
-    return;
-  }
+// Load environment variables
+dotenv.config({ path: path.join(ROOT_DIR, '.env') });
+dotenv.config({ path: path.join(ROOT_DIR, '.env.local') });
 
-  const raw = fs.readFileSync(filePath, 'utf8');
-  const lines = raw.split(/\r?\n/);
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) {
-      continue;
-    }
-
-    const separatorIndex = trimmed.indexOf('=');
-    if (separatorIndex <= 0) {
-      continue;
-    }
-
-    const key = trimmed.slice(0, separatorIndex).trim();
-    if (!key || process.env[key] !== undefined) {
-      continue;
-    }
-
-    let value = trimmed.slice(separatorIndex + 1).trim();
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
-      value = value.slice(1, -1);
-    }
-
-    process.env[key] = value;
-  }
-}
-
-loadEnvFile(path.join(ROOT_DIR, '.env'));
-loadEnvFile(path.join(ROOT_DIR, '.env.local'));
-
+const app = express();
 const PORT = Number(process.env.PORT || 5000);
 const HOST = process.env.HOST || '0.0.0.0';
+
+// Constants
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 const ANTHROPIC_VERSION = '2023-06-01';
 const DEFAULT_OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 const DEFAULT_ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5';
+
 let createScheduleSpreadsheet = null;
 
-const mimeTypes = {
-  '.html': 'text/html',
-  '.css': 'text/css',
-  '.js': 'application/javascript',
-  '.json': 'application/json',
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.gif': 'image/gif',
-  '.svg': 'image/svg+xml',
-  '.ico': 'image/x-icon',
-  '.md': 'text/markdown',
-  '.csv': 'text/csv',
-  '.txt': 'text/plain'
-};
+// Middleware
+app.use(cors());
+app.use(express.json());
 
-function sendJson(res, statusCode, payload) {
-  res.writeHead(statusCode, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify(payload));
-}
-
-function parseBody(req) {
-  return new Promise((resolve, reject) => {
-    let body = '';
-    req.on('data', (chunk) => {
-      body += chunk;
-    });
-    req.on('end', () => {
-      if (!body.trim()) {
-        resolve({});
-        return;
-      }
-      try {
-        resolve(JSON.parse(body));
-      } catch {
-        reject(new Error('Invalid JSON body'));
-      }
-    });
-    req.on('error', reject);
-  });
-}
-
+// Helper Functions
 function inferProviderFromKey(apiKey) {
-  if (typeof apiKey !== 'string') {
-    return 'openai';
-  }
-  if (apiKey.startsWith('sk-ant-')) {
-    return 'anthropic';
-  }
+  if (typeof apiKey !== 'string') return 'openai';
+  if (apiKey.startsWith('sk-ant-')) return 'anthropic';
   return 'openai';
 }
 
 function getApiCredential(req, preferredProvider = null) {
   const headerKey =
-    req.headers['x-ai-api-key'] ||
-    req.headers['x-openai-api-key'] ||
-    req.headers['x-api-key'];
+    req.header('x-ai-api-key') ||
+    req.header('x-openai-api-key') ||
+    req.header('x-api-key');
 
   if (typeof headerKey === 'string' && headerKey.trim()) {
     const key = headerKey.trim();
@@ -140,19 +70,16 @@ function normalizeModelForProvider(provider, requestedModel) {
   if (!requestedModel || typeof requestedModel !== 'string') {
     return provider === 'anthropic' ? DEFAULT_ANTHROPIC_MODEL : DEFAULT_OPENAI_MODEL;
   }
-
   const model = requestedModel.trim();
   if (!model) {
     return provider === 'anthropic' ? DEFAULT_ANTHROPIC_MODEL : DEFAULT_OPENAI_MODEL;
   }
-
   if (provider === 'anthropic' && model.startsWith('gpt-')) {
     return DEFAULT_ANTHROPIC_MODEL;
   }
   if (provider === 'openai' && model.startsWith('claude-')) {
     return DEFAULT_OPENAI_MODEL;
   }
-
   return model;
 }
 
@@ -313,151 +240,125 @@ async function callAiProvider({
   });
 }
 
-const server = http.createServer(async (req, res) => {
-  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '0');
+// API Routes
+app.post('/api/export-to-sheets', async (req, res) => {
+  try {
+    const { scheduleData = {}, academicYear } = req.body;
 
-  const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-  const pathname = decodeURIComponent(parsedUrl.pathname);
+    console.log('Export request received for year:', academicYear);
+    console.log('Fall courses:', (scheduleData.fall || []).length);
+    console.log('Winter courses:', (scheduleData.winter || []).length);
+    console.log('Spring courses:', (scheduleData.spring || []).length);
 
-  if (req.method === 'POST' && pathname === '/api/export-to-sheets') {
-    try {
-      const body = await parseBody(req);
-      const { scheduleData = {}, academicYear } = body;
-
-      console.log('Export request received for year:', academicYear);
-      console.log('Fall courses:', (scheduleData.fall || []).length);
-      console.log('Winter courses:', (scheduleData.winter || []).length);
-      console.log('Spring courses:', (scheduleData.spring || []).length);
-
-      if (scheduleData.fall && scheduleData.fall.length > 0) {
-        console.log('All fall courses:');
-        scheduleData.fall.forEach((course) => {
-          console.log(`  ${course.code} | ${course.day} | ${course.time} | Room: ${course.room}`);
-        });
-      }
-
-      const exportFn = await getCreateScheduleSpreadsheet();
-      const result = await exportFn(scheduleData, academicYear || '2025-26');
-      console.log('Export successful:', result.spreadsheetUrl);
-      sendJson(res, 200, { success: true, ...result });
-    } catch (error) {
-      console.error('Export error:', error);
-      sendJson(res, 500, { success: false, error: error.message });
-    }
-    return;
-  }
-
-  if (req.method === 'POST' && pathname === '/api/ai/test') {
-    try {
-      const body = await parseBody(req);
-      const preferredProvider = body.provider === 'anthropic' || body.provider === 'openai' ? body.provider : null;
-      const credential = getApiCredential(req, preferredProvider);
-      if (!credential) {
-        sendJson(res, 400, {
-          success: false,
-          error: 'No AI API key found. Set OPENAI_API_KEY/ANTHROPIC_API_KEY or save a key in app settings.'
-        });
-        return;
-      }
-
-      const model = normalizeModelForProvider(credential.provider, body.model);
-      const result = await callAiProvider({
-        provider: credential.provider,
-        apiKey: credential.key,
-        model,
-        maxTokens: 20,
-        temperature: 0,
-        messages: [{ role: 'user', content: 'Reply with the single word OK.' }],
-        systemPrompt: null,
-        responseFormat: null
+    if (scheduleData.fall && scheduleData.fall.length > 0) {
+      console.log('All fall courses:');
+      scheduleData.fall.forEach((course) => {
+        console.log(`  ${course.code} | ${course.day} | ${course.time} | Room: ${course.room}`);
       });
-
-      sendJson(res, 200, {
-        success: true,
-        provider: result.provider,
-        model: result.model,
-        message: result.text.trim() || 'OK'
-      });
-    } catch (error) {
-      sendJson(res, 500, { success: false, error: error.message });
-    }
-    return;
-  }
-
-  if (req.method === 'POST' && pathname === '/api/ai/chat') {
-    try {
-      const body = await parseBody(req);
-      const preferredProvider = body.provider === 'anthropic' || body.provider === 'openai' ? body.provider : null;
-      const credential = getApiCredential(req, preferredProvider);
-      if (!credential) {
-        sendJson(res, 400, {
-          success: false,
-          error: 'No AI API key found. Set OPENAI_API_KEY/ANTHROPIC_API_KEY or save a key in app settings.'
-        });
-        return;
-      }
-
-      const messages = toMessages(body);
-      if (!messages.length) {
-        sendJson(res, 400, { success: false, error: 'Request must include `prompt` or non-empty `messages`.' });
-        return;
-      }
-
-      const result = await callAiProvider({
-        provider: credential.provider,
-        apiKey: credential.key,
-        messages,
-        model: normalizeModelForProvider(credential.provider, body.model),
-        maxTokens: Number(body.maxTokens || body.max_tokens) || 1200,
-        temperature: typeof body.temperature === 'number' ? body.temperature : 0.3,
-        responseFormat: body.responseFormat,
-        systemPrompt: typeof body.systemPrompt === 'string' ? body.systemPrompt : null
-      });
-
-      sendJson(res, 200, {
-        success: true,
-        provider: result.provider,
-        text: result.text,
-        usage: result.usage,
-        model: result.model
-      });
-    } catch (error) {
-      sendJson(res, 500, { success: false, error: error.message });
-    }
-    return;
-  }
-
-  const normalizedPath = pathname === '/' ? '/index.html' : pathname;
-  const safePath = path.normalize(normalizedPath).replace(/^(\.\.[/\\])+/, '');
-  const relativePath = safePath.replace(/^[/\\]+/, '');
-  const resolvedPath = path.join(ROOT_DIR, relativePath);
-
-  if (!resolvedPath.startsWith(ROOT_DIR)) {
-    sendJson(res, 403, { success: false, error: 'Access denied' });
-    return;
-  }
-
-  fs.readFile(resolvedPath, (error, content) => {
-    if (error) {
-      if (error.code === 'ENOENT') {
-        res.writeHead(404, { 'Content-Type': 'text/html' });
-        res.end('<h1>404 - File Not Found</h1>', 'utf-8');
-      } else {
-        res.writeHead(500, { 'Content-Type': 'text/plain' });
-        res.end(`Server Error: ${error.code}`, 'utf-8');
-      }
-      return;
     }
 
-    const extname = String(path.extname(resolvedPath)).toLowerCase();
-    const contentType = mimeTypes[extname] || 'application/octet-stream';
-    res.writeHead(200, { 'Content-Type': contentType });
-    res.end(content, 'utf-8');
-  });
+    const exportFn = await getCreateScheduleSpreadsheet();
+    const result = await exportFn(scheduleData, academicYear || '2025-26');
+    console.log('Export successful:', result.spreadsheetUrl);
+    res.json({ success: true, ...result });
+  } catch (error) {
+    console.error('Export error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
-server.listen(PORT, HOST, () => {
+app.post('/api/ai/test', async (req, res) => {
+  try {
+    const body = req.body;
+    const preferredProvider = body.provider === 'anthropic' || body.provider === 'openai' ? body.provider : null;
+    const credential = getApiCredential(req, preferredProvider);
+    
+    if (!credential) {
+      return res.status(400).json({
+        success: false,
+        error: 'No AI API key found. Set OPENAI_API_KEY/ANTHROPIC_API_KEY or save a key in app settings.'
+      });
+    }
+
+    const model = normalizeModelForProvider(credential.provider, body.model);
+    const result = await callAiProvider({
+      provider: credential.provider,
+      apiKey: credential.key,
+      model,
+      maxTokens: 20,
+      temperature: 0,
+      messages: [{ role: 'user', content: 'Reply with the single word OK.' }],
+      systemPrompt: null,
+      responseFormat: null
+    });
+
+    res.json({
+      success: true,
+      provider: result.provider,
+      model: result.model,
+      message: result.text.trim() || 'OK'
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/ai/chat', async (req, res) => {
+  try {
+    const body = req.body;
+    const preferredProvider = body.provider === 'anthropic' || body.provider === 'openai' ? body.provider : null;
+    const credential = getApiCredential(req, preferredProvider);
+    
+    if (!credential) {
+      return res.status(400).json({
+        success: false,
+        error: 'No AI API key found. Set OPENAI_API_KEY/ANTHROPIC_API_KEY or save a key in app settings.'
+      });
+    }
+
+    const messages = toMessages(body);
+    if (!messages.length) {
+      return res.status(400).json({ success: false, error: 'Request must include `prompt` or non-empty `messages`.' });
+    }
+
+    const result = await callAiProvider({
+      provider: credential.provider,
+      apiKey: credential.key,
+      messages,
+      model: normalizeModelForProvider(credential.provider, body.model),
+      maxTokens: Number(body.maxTokens || body.max_tokens) || 1200,
+      temperature: typeof body.temperature === 'number' ? body.temperature : 0.3,
+      responseFormat: body.responseFormat,
+      systemPrompt: typeof body.systemPrompt === 'string' ? body.systemPrompt : null
+    });
+
+    res.json({
+      success: true,
+      provider: result.provider,
+      text: result.text,
+      usage: result.usage,
+      model: result.model
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Static File Serving
+// Serve index.html for root route
+app.get('/', (req, res) => {
+  res.sendFile(path.join(ROOT_DIR, 'index.html'));
+});
+
+// Serve everything else as static files
+app.use(express.static(ROOT_DIR));
+
+// Handle 404s for anything not matched by express.static
+app.use((req, res) => {
+  res.status(404).send('<h1>404 - File Not Found</h1>');
+});
+
+// Start Server
+app.listen(PORT, HOST, () => {
   console.log(`Server running at http://${HOST}:${PORT}/`);
 });

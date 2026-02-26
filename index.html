@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,7 +16,7 @@
             --ewu-red: #a10022;
             --ewu-red-dark: #8a001d;
             --primary-gradient: linear-gradient(180deg, #a10022 0%, #8a001d 100%);
-            
+
             /* Primer Color Scale */
             --color-fg-default: #1F2328;
             --color-fg-muted: #656d76;
@@ -35,7 +36,7 @@
             --color-attention-emphasis: #9a6700;
             --color-danger-fg: #d1242f;
             --color-danger-emphasis: #cf222e;
-            
+
             /* Primer Spacing Scale (4px base) */
             --space-0: 0;
             --space-1: 4px;
@@ -44,12 +45,12 @@
             --space-4: 24px;
             --space-5: 32px;
             --space-6: 40px;
-            
+
             /* Primer Border Radius */
             --radius-1: 3px;
             --radius-2: 6px;
             --radius-3: 12px;
-            
+
             /* Primer Shadows */
             --shadow-sm: 0 1px 0 rgba(27, 31, 36, 0.04);
             --shadow-md: 0 3px 6px rgba(140, 149, 159, 0.15);
@@ -108,218 +109,9 @@
             font-weight: 400;
         }
 
-        /* Year Navigation */
-        .year-nav {
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            padding: var(--space-2) var(--space-3);
-            background: var(--color-canvas-subtle);
-            border-bottom: 1px solid var(--color-border-muted);
-        }
 
-        .year-selector {
-            display: flex;
-            align-items: center;
-            gap: var(--space-2);
-            font-size: 13px;
-        }
 
-        .year-selector label {
-            color: var(--color-fg-muted);
-            font-weight: 500;
-        }
 
-        .year-selector select {
-            padding: 4px 8px;
-            font-size: 13px;
-            font-weight: 600;
-            border-radius: var(--radius-2);
-        }
-
-        .copy-year-btn {
-            padding: 4px 12px;
-            font-size: 12px;
-            background: var(--color-canvas-default);
-            border: 1px solid var(--color-border-default);
-            border-radius: var(--radius-2);
-            color: var(--color-fg-default);
-            cursor: pointer;
-            transition: background 0.15s;
-        }
-
-        .copy-year-btn:hover {
-            background: var(--color-canvas-subtle);
-        }
-
-        .tab-year {
-            font-weight: 400;
-            opacity: 0.8;
-        }
-
-        /* Quarter Tabs - Primer UnderlineNav style */
-        .quarter-tabs {
-            display: flex;
-            background: var(--color-canvas-default);
-            border-bottom: 1px solid var(--color-border-muted);
-            padding: 0 var(--space-3);
-            gap: var(--space-2);
-        }
-
-        .quarter-tab {
-            padding: var(--space-2) var(--space-3);
-            border: none;
-            background: transparent;
-            font-size: 14px;
-            font-weight: 500;
-            color: var(--color-fg-muted);
-            cursor: pointer;
-            transition: color 0.15s ease;
-            position: relative;
-            border-radius: var(--radius-2) var(--radius-2) 0 0;
-            box-shadow: none;
-            flex: 0;
-            white-space: nowrap;
-        }
-
-        .quarter-tab:hover {
-            color: var(--color-fg-default);
-            background: transparent;
-            transform: none;
-            box-shadow: none;
-        }
-
-        .quarter-tab.active {
-            color: var(--color-fg-default);
-            font-weight: 600;
-            background: transparent;
-        }
-
-        .quarter-tab.active::after {
-            content: '';
-            position: absolute;
-            bottom: -1px;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: var(--ewu-red);
-            border-radius: var(--radius-1);
-        }
-
-        /* Collapsible Filters Panel - Primer style */
-        .filters-panel {
-            background: var(--color-canvas-default);
-            border-bottom: 1px solid var(--color-border-muted);
-        }
-
-        .filters-toggle {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: var(--space-2) var(--space-3);
-            background: var(--color-canvas-subtle);
-            cursor: pointer;
-            font-weight: 500;
-            font-size: 12px;
-            color: var(--color-fg-muted);
-            transition: background 0.15s ease;
-        }
-
-        .filters-toggle:hover {
-            background: var(--color-canvas-inset);
-            color: var(--color-fg-default);
-        }
-
-        .filters-toggle .toggle-icon {
-            transition: transform 0.2s ease;
-            font-size: 10px;
-        }
-
-        .filters-panel.collapsed .toggle-icon {
-            transform: rotate(-90deg);
-        }
-
-        .filters-content {
-            padding: var(--space-3);
-            background: var(--color-canvas-default);
-            display: block;
-        }
-
-        .filters-panel.collapsed .filters-content {
-            display: none;
-        }
-
-        .filters-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: var(--space-3);
-        }
-
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .filter-group label {
-            font-weight: 600;
-            color: var(--color-fg-default);
-            font-size: 12px;
-            text-transform: none;
-            letter-spacing: 0;
-        }
-
-        .filter-group select {
-            padding: 5px 12px;
-            border: 1px solid var(--color-border-default);
-            border-radius: var(--radius-2);
-            font-size: 14px;
-            background: var(--color-canvas-default);
-            cursor: pointer;
-            transition: border-color 0.15s ease, box-shadow 0.15s ease;
-            font-weight: 400;
-            color: var(--color-fg-default);
-            height: 32px;
-        }
-
-        .filter-group select:hover {
-            border-color: var(--color-border-default);
-            background: var(--color-canvas-default);
-        }
-
-        .filter-group select:focus {
-            border-color: var(--ewu-red);
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(161, 0, 34, 0.15);
-        }
-
-        .filters-actions {
-            display: flex;
-            align-items: flex-end;
-            justify-content: flex-start;
-            gap: 8px;
-        }
-
-        .lens-status {
-            margin-top: var(--space-2);
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            font-size: 12px;
-            color: var(--color-fg-muted);
-        }
-
-        .lens-chip {
-            display: inline-flex;
-            align-items: center;
-            border: 1px solid var(--color-border-default);
-            border-radius: 999px;
-            padding: 2px 8px;
-            background: var(--color-canvas-subtle);
-            color: var(--color-fg-default);
-            font-weight: 600;
-            font-size: 12px;
-        }
 
         .header-shell {
             display: flex;
@@ -361,73 +153,14 @@
             border-color: #afb8c1;
         }
 
-        .header-settings-menu {
-            position: absolute;
-            right: 0;
-            top: calc(100% + 8px);
-            z-index: 1100;
-            width: 280px;
-            padding: 8px;
-            display: none;
-            flex-direction: column;
-            gap: 4px;
-            border: 1px solid var(--color-border-default);
-            border-radius: 10px;
-            background: var(--color-canvas-default);
-            box-shadow: var(--shadow-lg);
-        }
 
-        .header-actions.open .header-settings-menu {
-            display: flex;
-        }
-
-        .header-settings-section-label {
-            margin: 4px 4px 2px;
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            font-weight: 700;
-            color: var(--color-fg-muted);
-        }
-
-        .header-settings-divider {
-            height: 1px;
-            margin: 4px 2px;
-            background: var(--color-border-muted);
-        }
-
-        .header-settings-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            height: 34px;
-            padding: 0 10px;
-            border: 1px solid transparent;
-            border-radius: 8px;
-            background: transparent;
-            color: var(--color-fg-default);
-            font-size: 14px;
-            font-weight: 500;
-            justify-content: flex-start;
-            text-align: left;
-        }
-
-        .header-settings-item:hover {
-            background: var(--color-canvas-subtle);
-            border-color: var(--color-border-muted);
-        }
-
-        .header-settings-item-icon {
-            width: 18px;
-            text-align: center;
-            flex-shrink: 0;
-        }
 
         @keyframes slideDown {
             from {
                 opacity: 0;
                 transform: translateY(-10px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -442,7 +175,8 @@
             letter-spacing: 0;
         }
 
-        select, button {
+        select,
+        button {
             padding: 5px 12px;
             border: 1px solid var(--color-border-default);
             border-radius: var(--radius-2);
@@ -603,6 +337,7 @@
                 flex-direction: column;
                 align-items: flex-start;
             }
+
             .nav-row-header {
                 margin-bottom: var(--space-2);
             }
@@ -633,7 +368,7 @@
             max-width: 500px;
             max-height: 90vh;
             overflow: hidden;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
         }
 
         .faculty-modal-header {
@@ -967,7 +702,7 @@
 
         .course-block:hover {
             transform: translateX(5px);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
 
         .course-block.conflict-0 {
@@ -1169,7 +904,7 @@
 
         .conflict-item:hover {
             transform: translateX(5px);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
 
         .conflict-item.critical {
@@ -1249,7 +984,7 @@
         }
 
         .recommendation-item {
-            background: rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.1);
             padding: 15px;
             border-radius: 8px;
             margin-bottom: 10px;
@@ -1322,19 +1057,83 @@
         }
 
         /* Faculty color coding */
-        .faculty-masingale { --faculty-accent: #667eea; --faculty-glow: rgba(102, 126, 234, 0.28); border-left-color: #667eea !important; }
-        .faculty-durr { --faculty-accent: #e67e22; --faculty-glow: rgba(230, 126, 34, 0.28); border-left-color: #e67e22 !important; }
-        .faculty-manikoth { --faculty-accent: #27ae60; --faculty-glow: rgba(39, 174, 96, 0.28); border-left-color: #27ae60 !important; }
-        .faculty-mills { --faculty-accent: #9b59b6; --faculty-glow: rgba(155, 89, 182, 0.28); border-left-color: #9b59b6 !important; }
-        .faculty-lybbert { --faculty-accent: #e74c3c; --faculty-glow: rgba(231, 76, 60, 0.28); border-left-color: #e74c3c !important; }
-        .faculty-hustrulid { --faculty-accent: #f39c12; --faculty-glow: rgba(243, 156, 18, 0.28); border-left-color: #f39c12 !important; }
-        .faculty-sopu { --faculty-accent: #3498db; --faculty-glow: rgba(52, 152, 219, 0.28); border-left-color: #3498db !important; }
-        .faculty-norris { --faculty-accent: #1abc9c; --faculty-glow: rgba(26, 188, 156, 0.28); border-left-color: #1abc9c !important; }
-        .faculty-braukmann { --faculty-accent: #34495e; --faculty-glow: rgba(52, 73, 94, 0.28); border-left-color: #34495e !important; }
-        .faculty-allison { --faculty-accent: #d35400; --faculty-glow: rgba(211, 84, 0, 0.28); border-left-color: #d35400 !important; }
-        .faculty-online { --faculty-accent: #7f8c8d; --faculty-glow: rgba(127, 140, 141, 0.28); border-left-color: #7f8c8d !important; }
-        .faculty-adjunct { --faculty-accent: #95a5a6; --faculty-glow: rgba(149, 165, 166, 0.28); border-left-color: #95a5a6 !important; }
-        .faculty-tbd { --faculty-accent: #bdc3c7; --faculty-glow: rgba(189, 195, 199, 0.28); border-left-color: #bdc3c7 !important; }
+        .faculty-masingale {
+            --faculty-accent: #667eea;
+            --faculty-glow: rgba(102, 126, 234, 0.28);
+            border-left-color: #667eea !important;
+        }
+
+        .faculty-durr {
+            --faculty-accent: #e67e22;
+            --faculty-glow: rgba(230, 126, 34, 0.28);
+            border-left-color: #e67e22 !important;
+        }
+
+        .faculty-manikoth {
+            --faculty-accent: #27ae60;
+            --faculty-glow: rgba(39, 174, 96, 0.28);
+            border-left-color: #27ae60 !important;
+        }
+
+        .faculty-mills {
+            --faculty-accent: #9b59b6;
+            --faculty-glow: rgba(155, 89, 182, 0.28);
+            border-left-color: #9b59b6 !important;
+        }
+
+        .faculty-lybbert {
+            --faculty-accent: #e74c3c;
+            --faculty-glow: rgba(231, 76, 60, 0.28);
+            border-left-color: #e74c3c !important;
+        }
+
+        .faculty-hustrulid {
+            --faculty-accent: #f39c12;
+            --faculty-glow: rgba(243, 156, 18, 0.28);
+            border-left-color: #f39c12 !important;
+        }
+
+        .faculty-sopu {
+            --faculty-accent: #3498db;
+            --faculty-glow: rgba(52, 152, 219, 0.28);
+            border-left-color: #3498db !important;
+        }
+
+        .faculty-norris {
+            --faculty-accent: #1abc9c;
+            --faculty-glow: rgba(26, 188, 156, 0.28);
+            border-left-color: #1abc9c !important;
+        }
+
+        .faculty-braukmann {
+            --faculty-accent: #34495e;
+            --faculty-glow: rgba(52, 73, 94, 0.28);
+            border-left-color: #34495e !important;
+        }
+
+        .faculty-allison {
+            --faculty-accent: #d35400;
+            --faculty-glow: rgba(211, 84, 0, 0.28);
+            border-left-color: #d35400 !important;
+        }
+
+        .faculty-online {
+            --faculty-accent: #7f8c8d;
+            --faculty-glow: rgba(127, 140, 141, 0.28);
+            border-left-color: #7f8c8d !important;
+        }
+
+        .faculty-adjunct {
+            --faculty-accent: #95a5a6;
+            --faculty-glow: rgba(149, 165, 166, 0.28);
+            border-left-color: #95a5a6 !important;
+        }
+
+        .faculty-tbd {
+            --faculty-accent: #bdc3c7;
+            --faculty-glow: rgba(189, 195, 199, 0.28);
+            border-left-color: #bdc3c7 !important;
+        }
 
         .faculty-legend {
             display: flex;
@@ -1416,7 +1215,7 @@
         }
 
         .minor-course-tag {
-            background: rgba(255,255,255,0.2);
+            background: rgba(255, 255, 255, 0.2);
             padding: 10px;
             border-radius: 6px;
             backdrop-filter: blur(10px);
@@ -1424,7 +1223,7 @@
         }
 
         .minor-note {
-            background: rgba(255,255,255,0.15);
+            background: rgba(255, 255, 255, 0.15);
             padding: 12px;
             border-radius: 6px;
             margin-top: 15px;
@@ -1615,7 +1414,7 @@
             font-size: 0.8em;
             z-index: 1000;
             min-width: 200px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
             display: none;
             pointer-events: none;
         }
@@ -1813,9 +1612,11 @@
             align-items: center;
             z-index: 1000;
         }
+
         .modal-overlay.active {
             display: flex;
         }
+
         .modal {
             background: white;
             border-radius: 12px;
@@ -1825,6 +1626,7 @@
             overflow-y: auto;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
         }
+
         .modal-header {
             display: flex;
             justify-content: space-between;
@@ -1832,11 +1634,13 @@
             padding: 20px 24px;
             border-bottom: 1px solid #e5e7eb;
         }
+
         .modal-title {
             font-size: 1.25rem;
             font-weight: 600;
             color: #1f2937;
         }
+
         .modal-close {
             background: none;
             border: none;
@@ -1846,12 +1650,15 @@
             padding: 0;
             line-height: 1;
         }
+
         .modal-close:hover {
             color: #1f2937;
         }
+
         .modal-body {
             padding: 24px;
         }
+
         .modal-actions {
             display: flex;
             justify-content: flex-end;
@@ -1979,9 +1786,11 @@
             white-space: pre-wrap;
             word-break: break-word;
         }
+
         .form-group {
             margin-bottom: 16px;
         }
+
         .form-label {
             display: block;
             margin-bottom: 6px;
@@ -1989,23 +1798,29 @@
             color: #374151;
             font-size: 0.9rem;
         }
-        .form-input, .form-select {
+
+        .form-input,
+        .form-select {
             width: 100%;
             padding: 10px 12px;
             border: 1px solid #d1d5db;
             border-radius: 6px;
             font-size: 0.95rem;
         }
-        .form-input:focus, .form-select:focus {
+
+        .form-input:focus,
+        .form-select:focus {
             outline: none;
             border-color: #667eea;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
         }
+
         .form-input-group {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 16px;
         }
+
         .btn-primary {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -2015,6 +1830,7 @@
             cursor: pointer;
             font-weight: 500;
         }
+
         .btn-secondary {
             background: #f3f4f6;
             color: #374151;
@@ -2024,10 +1840,12 @@
             cursor: pointer;
             font-weight: 500;
         }
+
         .btn-primary:hover {
             transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
         }
+
         .btn-secondary:hover {
             background: #e5e7eb;
         }
@@ -2039,6 +1857,7 @@
             align-items: flex-end;
             margin-left: auto;
         }
+
         .btn-save {
             background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
             color: white;
@@ -2051,13 +1870,16 @@
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
             box-shadow: 0 4px 14px rgba(34, 197, 94, 0.25);
         }
+
         .btn-save:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(34, 197, 94, 0.4);
         }
+
         .btn-save:active {
             transform: translateY(0);
         }
+
         .btn-evaluate {
             background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
             color: white;
@@ -2070,13 +1892,16 @@
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
             box-shadow: 0 4px 14px rgba(245, 158, 11, 0.25);
         }
+
         .btn-evaluate:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(245, 158, 11, 0.4);
         }
+
         .btn-evaluate:active {
             transform: translateY(0);
         }
+
         .btn-ai {
             background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
             color: white;
@@ -2089,13 +1914,16 @@
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
             box-shadow: 0 4px 14px rgba(139, 92, 246, 0.25);
         }
+
         .btn-ai:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4);
         }
+
         .btn-ai:active {
             transform: translateY(0);
         }
+
         .btn-settings {
             background: white;
             border: 2px solid #e2e8f0;
@@ -2106,6 +1934,7 @@
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
             color: #4a5568;
         }
+
         .btn-settings:hover {
             background: #f7fafc;
             border-color: var(--ewu-red);
@@ -2113,6 +1942,7 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         }
+
         .btn-settings:active {
             transform: translateY(0);
         }
@@ -2125,11 +1955,13 @@
             height: 24px;
             flex-shrink: 0;
         }
+
         .toggle-switch input {
             opacity: 0;
             width: 0;
             height: 0;
         }
+
         .toggle-slider {
             position: absolute;
             cursor: pointer;
@@ -2141,6 +1973,7 @@
             transition: 0.3s;
             border-radius: 24px;
         }
+
         .toggle-slider:before {
             position: absolute;
             content: "";
@@ -2152,23 +1985,28 @@
             transition: 0.3s;
             border-radius: 50%;
         }
-        .toggle-switch input:checked + .toggle-slider {
+
+        .toggle-switch input:checked+.toggle-slider {
             background-color: #10b981;
         }
-        .toggle-switch input:checked + .toggle-slider:before {
+
+        .toggle-switch input:checked+.toggle-slider:before {
             transform: translateX(20px);
         }
 
         .course-details-content {
             padding: 20px 24px;
         }
+
         .course-details-content p {
             margin: 8px 0;
             color: #4b5563;
         }
+
         .course-details-content strong {
             color: #1f2937;
         }
+
         .toast {
             position: fixed;
             bottom: 20px;
@@ -2182,6 +2020,7 @@
             transition: all 0.3s ease;
             z-index: 1100;
         }
+
         .toast.visible {
             opacity: 1;
             transform: translateX(-50%) translateY(0);
@@ -2191,26 +2030,32 @@
         .course-block[draggable="true"] {
             cursor: grab;
         }
+
         .course-block[draggable="true"]:active {
             cursor: grabbing;
         }
+
         .course-block.dragging {
             opacity: 0.5;
             transform: scale(0.95);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
         }
+
         .schedule-cell.drop-zone {
             transition: all 0.2s ease;
         }
+
         .schedule-cell.drag-over {
             background: #e7f5ff !important;
             border: 2px dashed #339af0;
             box-shadow: inset 0 0 10px rgba(51, 154, 240, 0.2);
         }
+
         .schedule-cell.drop-highlight {
             background: #d3f9d8 !important;
             border: 2px solid #51cf66;
         }
+
         .drag-ghost {
             position: fixed;
             pointer-events: none;
@@ -2218,6 +2063,7 @@
             opacity: 0.9;
             transform: rotate(3deg);
         }
+
         .drop-indicator {
             position: fixed;
             bottom: 80px;
@@ -2228,19 +2074,28 @@
             padding: 12px 24px;
             border-radius: 30px;
             font-weight: 500;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
             z-index: 1500;
             display: none;
             align-items: center;
             gap: 10px;
         }
+
         .drop-indicator.active {
             display: flex;
             animation: slideUp 0.3s ease;
         }
+
         @keyframes slideUp {
-            from { transform: translateX(-50%) translateY(20px); opacity: 0; }
-            to { transform: translateX(-50%) translateY(0); opacity: 1; }
+            from {
+                transform: translateX(-50%) translateY(20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
         }
 
         /* Displaced Course Tray Sidebar */
@@ -2251,16 +2106,18 @@
             bottom: 0;
             width: 280px;
             background: white;
-            box-shadow: 4px 0 20px rgba(0,0,0,0.15);
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
             z-index: 1000;
             transform: translateX(-100%);
             transition: transform 0.3s ease;
             display: flex;
             flex-direction: column;
         }
+
         .displaced-tray.open {
             transform: translateX(0);
         }
+
         .displaced-tray-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -2269,6 +2126,7 @@
             justify-content: space-between;
             align-items: center;
         }
+
         .displaced-tray-title {
             font-size: 1.1rem;
             font-weight: 600;
@@ -2276,12 +2134,14 @@
             align-items: center;
             gap: 10px;
         }
+
         .displaced-count {
-            background: rgba(255,255,255,0.2);
+            background: rgba(255, 255, 255, 0.2);
             padding: 2px 10px;
             border-radius: 12px;
             font-size: 0.85rem;
         }
+
         .displaced-tray-close {
             background: none;
             border: none;
@@ -2292,14 +2152,17 @@
             line-height: 1;
             opacity: 0.8;
         }
+
         .displaced-tray-close:hover {
             opacity: 1;
         }
+
         .displaced-tray-content {
             flex: 1;
             overflow-y: auto;
             padding: 16px;
         }
+
         .displaced-course-card {
             background: #f8f9fa;
             border: 1px solid #e5e7eb;
@@ -2310,24 +2173,29 @@
             cursor: grab;
             transition: all 0.2s;
         }
+
         .displaced-course-card:hover {
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             transform: translateY(-2px);
         }
+
         .displaced-course-card.dragging {
             opacity: 0.5;
             cursor: grabbing;
         }
+
         .displaced-course-header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
             margin-bottom: 8px;
         }
+
         .displaced-course-code {
             font-weight: 600;
             color: #1f2937;
         }
+
         .displaced-course-remove {
             background: none;
             border: none;
@@ -2337,14 +2205,17 @@
             font-size: 1rem;
             line-height: 1;
         }
+
         .displaced-course-remove:hover {
             color: #ef4444;
         }
+
         .displaced-course-name {
             font-size: 0.85rem;
             color: #4b5563;
             margin-bottom: 6px;
         }
+
         .displaced-course-origin {
             font-size: 0.75rem;
             color: #9ca3af;
@@ -2353,6 +2224,7 @@
             border-radius: 4px;
             display: inline-block;
         }
+
         .displaced-tray-actions {
             padding: 16px;
             border-top: 1px solid #e5e7eb;
@@ -2360,6 +2232,7 @@
             flex-direction: column;
             gap: 8px;
         }
+
         .displaced-tray-actions button {
             width: 100%;
             padding: 10px;
@@ -2367,19 +2240,23 @@
             font-size: 0.9rem;
             cursor: pointer;
         }
+
         .btn-add-course {
             color: white;
             border: none;
             font-weight: 600;
         }
+
         .btn-clear-all {
             background: #fee2e2;
             color: #dc2626;
             border: 1px solid #fecaca;
         }
+
         .btn-clear-all:hover {
             background: #fecaca;
         }
+
         /* Swap Mode Toggle Switch */
         .swap-toggle-container {
             display: flex;
@@ -2390,26 +2267,31 @@
             border-radius: 8px;
             border: 1px solid #e5e7eb;
         }
+
         .swap-toggle-label {
             font-size: 0.85rem;
             color: #6b7280;
             font-weight: 500;
         }
+
         .swap-toggle-label.active {
             color: #059669;
             font-weight: 600;
         }
+
         .swap-toggle {
             position: relative;
             width: 50px;
             height: 26px;
             cursor: pointer;
         }
+
         .swap-toggle input {
             opacity: 0;
             width: 0;
             height: 0;
         }
+
         .swap-toggle-slider {
             position: absolute;
             top: 0;
@@ -2420,6 +2302,7 @@
             border-radius: 26px;
             transition: 0.3s;
         }
+
         .swap-toggle-slider:before {
             position: absolute;
             content: "";
@@ -2430,65 +2313,94 @@
             background: white;
             border-radius: 50%;
             transition: 0.3s;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
-        .swap-toggle input:checked + .swap-toggle-slider {
+
+        .swap-toggle input:checked+.swap-toggle-slider {
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
         }
-        .swap-toggle input:checked + .swap-toggle-slider:before {
+
+        .swap-toggle input:checked+.swap-toggle-slider:before {
             transform: translateX(24px);
         }
+
         .displaced-tray.drag-over {
             background: #ecfdf5;
             box-shadow: 4px 0 20px rgba(16, 185, 129, 0.3);
         }
+
         .displaced-tray.drag-over .displaced-tray-content {
             border: 2px dashed #10b981;
             border-radius: 8px;
             margin: 8px;
         }
+
         .displaced-empty {
             text-align: center;
             padding: 40px 20px;
             color: #9ca3af;
         }
+
         .displaced-empty-icon {
             font-size: 2.5rem;
             margin-bottom: 12px;
         }
+
         /* Toggle button when tray is closed */
         .displaced-tray-toggle {
             position: fixed;
             left: 0;
             top: 50%;
             transform: translateY(-50%);
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 12px 8px;
-            border-radius: 0 8px 8px 0;
+            background: linear-gradient(180deg, #111827 0%, #1f2937 100%);
+            color: #f9fafb;
+            border: 1px solid #0f172a;
+            border-left: none;
+            padding: 12px 8px 12px 10px;
+            border-radius: 0 10px 10px 0;
             cursor: pointer;
-            z-index: 999;
+            z-index: 1002;
             writing-mode: vertical-rl;
             text-orientation: mixed;
-            font-size: 0.85rem;
-            font-weight: 500;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.2);
+            font-size: 0.88rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            box-shadow: 2px 0 12px rgba(15, 23, 42, 0.42);
             display: none;
         }
+
         .displaced-tray-toggle.visible {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         }
+
+        .displaced-tray-toggle:hover {
+            background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
+        }
+
         .displaced-tray-toggle .toggle-count {
-            background: #ef4444;
+            background: #dc2626;
             color: white;
             padding: 2px 6px;
             border-radius: 10px;
             font-size: 0.75rem;
             writing-mode: horizontal-tb;
+            border: 1px solid rgba(255, 255, 255, 0.35);
         }
+
+        .displaced-tray-toggle .toggle-affordance {
+            writing-mode: horizontal-tb;
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            color: #cbd5e1;
+        }
+
+        .displaced-tray-toggle .toggle-label {
+            color: #f9fafb;
+        }
+
         /* Delete button on course blocks - subtle gray X */
         .course-block .delete-btn {
             position: absolute;
@@ -2510,15 +2422,18 @@
             justify-content: center;
             line-height: 1;
         }
+
         .course-block:hover .delete-btn {
             opacity: 0.6;
         }
+
         .course-block .delete-btn:hover {
             opacity: 1;
             background: rgba(0, 0, 0, 0.1);
             color: var(--color-fg-default);
             transform: none;
         }
+
         /* Confirmation Modal */
         .confirm-modal {
             position: fixed;
@@ -2526,15 +2441,17 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0, 0, 0, 0.5);
             display: none;
             justify-content: center;
             align-items: center;
             z-index: 2000;
         }
+
         .confirm-modal.active {
             display: flex;
         }
+
         .confirm-dialog {
             background: white;
             border-radius: 12px;
@@ -2542,35 +2459,42 @@
             max-width: 400px;
             width: 90%;
             text-align: center;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
         }
+
         .confirm-dialog h3 {
             margin: 0 0 12px 0;
             color: #1f2937;
         }
+
         .confirm-dialog p {
             color: #6b7280;
             margin: 0 0 20px 0;
         }
+
         .confirm-actions {
             display: flex;
             gap: 12px;
             justify-content: center;
         }
+
         .confirm-actions button {
             padding: 10px 24px;
             border-radius: 8px;
             font-weight: 500;
             cursor: pointer;
         }
+
         .btn-confirm-delete {
             background: #ef4444;
             color: white;
             border: none;
         }
+
         .btn-confirm-delete:hover {
             background: #dc2626;
         }
+
         .btn-confirm-cancel {
             background: #f3f4f6;
             color: #374151;
@@ -2582,6 +2506,7 @@
             .controls {
                 gap: 20px;
             }
+
             .action-buttons {
                 flex-wrap: wrap;
                 justify-content: flex-end;
@@ -2592,22 +2517,28 @@
             body {
                 padding: 20px 10px;
             }
+
             .container {
                 border-radius: 16px;
             }
+
             header {
                 padding: 35px 20px;
             }
+
             h1 {
                 font-size: 2.2em;
             }
+
             .controls {
                 padding: 24px;
                 gap: 16px;
             }
+
             .control-group {
                 min-width: 180px;
             }
+
             .action-buttons {
                 width: 100%;
                 justify-content: center;
@@ -2619,39 +2550,49 @@
             body {
                 padding: 10px 5px;
             }
+
             .container {
                 border-radius: 12px;
             }
+
             header {
                 padding: 28px 16px;
             }
+
             h1 {
                 font-size: 1.8em;
             }
+
             .subtitle {
                 font-size: 1em;
             }
+
             .controls {
                 padding: 16px;
                 flex-direction: column;
                 gap: 12px;
             }
+
             .control-group {
                 width: 100%;
                 min-width: unset;
             }
+
             .action-buttons {
                 flex-direction: column;
                 width: 100%;
                 gap: 8px;
             }
+
             .action-buttons button {
                 width: 100%;
                 justify-content: center;
             }
+
             .nav-accordion-toggle {
                 padding: 12px 16px;
             }
+
             .nav-accordion-content {
                 padding: 16px;
             }
@@ -2661,18 +2602,23 @@
             body {
                 padding: 5px;
             }
+
             h1 {
                 font-size: 1.5em;
             }
+
             .subtitle {
                 font-size: 0.9em;
             }
+
             header {
                 padding: 20px 12px;
             }
+
             .controls {
                 padding: 12px;
             }
+
             select {
                 font-size: 0.95em;
                 padding: 10px 12px;
@@ -3142,6 +3088,28 @@
             height: auto !important;
         }
 
+        .btn-save-db {
+            display: none !important;
+            background: #166534 !important;
+            border: 1px solid #14532d !important;
+            color: #fff !important;
+        }
+
+        .btn-save-db.visible {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 8px !important;
+        }
+
+        .btn-save-db[disabled] {
+            opacity: 0.72;
+            cursor: wait;
+        }
+
+        .btn-save-db:hover:not([disabled]) {
+            background: #14532d !important;
+        }
+
         .btn-add-icon {
             font-family: var(--ewu-mono);
             font-size: 16px;
@@ -3160,7 +3128,7 @@
         /* Program Command + Primer Product UI Refinement */
         :root {
             --tray-width: 220px;
-            --tray-edge: 10px;
+            --tray-edge: 0px;
             --primer-fg-default: #1f2328;
             --primer-fg-muted: #59636e;
             --primer-border-default: #d0d7de;
@@ -3362,39 +3330,15 @@
 
         .course-block {
             --faculty-accent: var(--ewu-red);
-            --faculty-glow: rgba(161, 0, 34, 0.22);
             border-radius: 8px;
             border: 1px solid var(--primer-border-default);
             border-left: 3px solid var(--faculty-accent);
-            box-shadow: 0 1px 0 rgba(27, 31, 36, 0.04), 0 0 0 2px var(--faculty-glow);
+            box-shadow: 0 1px 0 rgba(27, 31, 36, 0.04);
         }
 
         .course-block:hover {
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(31, 35, 40, 0.12), 0 0 0 2px var(--faculty-glow);
-        }
-
-        .course-name {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            width: fit-content;
-            max-width: 100%;
-            padding: 2px 8px;
-            border-radius: 999px;
-            background: var(--faculty-accent);
-            color: #ffffff;
-            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
-        }
-
-        .course-name .enrollment-badge {
-            color: rgba(255, 255, 255, 0.9) !important;
-            font-size: 0.74em;
-            margin-left: 0;
-        }
-
-        .course-details {
-            margin-top: 4px;
+            box-shadow: 0 4px 12px rgba(31, 35, 40, 0.12);
         }
 
         .btn-ewu-accent {
@@ -3449,11 +3393,11 @@
             font-size: 14px;
         }
 
-        .markdown-output > :first-child {
+        .markdown-output> :first-child {
             margin-top: 0;
         }
 
-        .markdown-output > :last-child {
+        .markdown-output> :last-child {
             margin-bottom: 0;
         }
 
@@ -3720,43 +3664,54 @@
             .container {
                 max-width: 100%;
             }
+
             header {
                 padding: 1.4rem 1rem 1.2rem;
             }
+
             .header-shell {
                 flex-direction: column;
                 align-items: stretch;
                 gap: 12px;
             }
+
             .header-actions {
                 align-self: flex-start;
             }
+
             .header-settings-menu {
                 right: auto;
                 left: 0;
                 width: min(92vw, 320px);
             }
+
             h1 {
                 font-size: 1.55rem;
             }
+
             .subtitle {
                 font-size: 0.92rem;
             }
+
             .stats-bar {
                 grid-template-columns: 1fr 1fr;
             }
+
             .schedule-grid-header {
                 flex-direction: column;
                 align-items: flex-start;
             }
+
             .schedule-grid-actions {
                 width: 100%;
                 justify-content: space-between;
                 flex-wrap: wrap;
             }
+
             .scheduler-assistant-input-row {
                 grid-template-columns: 1fr;
             }
+
             .scheduler-assistant-actions {
                 min-width: unset;
                 width: 100%;
@@ -3769,32 +3724,38 @@
                 transition: none !important;
             }
         }
-
     </style>
 
     <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/supabase-config.js"></script>
+    <script type="module" src="js/supabase-config.js"></script>
 
     <!-- Schedule Manager Scripts -->
-    <script src="js/config/constants.js"></script>
-    <script src="js/schedule-manager.js"></script>
-    <script src="js/data-loader.js"></script>
+    <script type="module" src="js/config/constants.js"></script>
+    <script type="module" src="js/schedule-manager.js"></script>
+    <script type="module" src="js/data-loader.js"></script>
 
     <!-- Constraints & Conflict Engine -->
-    <script src="js/constraints-service.js"></script>
-    <script src="js/conflict-engine.js"></script>
-    <script src="js/graduation-optimizer.js"></script>
+    <script type="module" src="js/constraints-service.js"></script>
+    <script type="module" src="js/conflict-engine.js"></script>
+    <script type="module" src="js/graduation-optimizer.js"></script>
+
+    <!-- UI Components -->
+    <script type="module" src="js/components/app-header.js"></script>
+    <script type="module" src="js/components/quarter-nav.js"></script>
+    <script type="module" src="js/components/lens-filters.js"></script>
+
 </head>
+
 <body>
     <!-- Displaced Course Tray Sidebar -->
-    <div class="displaced-tray" id="displacedTray" ondragover="handleTrayDragOver(event)" ondragleave="handleTrayDragLeave(event)" ondrop="handleTrayDrop(event)">
+    <div class="displaced-tray" id="displacedTray">
         <div class="displaced-tray-header">
             <div class="displaced-tray-title">
                 Displaced Courses
                 <span class="displaced-count" id="displacedCount">0</span>
             </div>
-            <button class="displaced-tray-close" onclick="closeDisplacedTray()">&times;</button>
+            <button type="button" class="displaced-tray-close" onclick="closeDisplacedTray()">&times;</button>
         </div>
         <div class="displaced-tray-content" id="displacedContent">
             <div class="displaced-empty">
@@ -3829,129 +3790,15 @@
     </div>
 
     <div class="container">
-        <header>
-            <div class="header-shell">
-                <div class="header-copy">
-                    <div class="header-eyebrow">EWU DESIGN · PROGRAM COMMAND</div>
-                    <h1>Program Command</h1>
-                    <p class="subtitle">Design Program Planning, Scheduling, and Scenario Control</p>
-                </div>
-                <div class="header-actions" id="headerActions">
-                    <button class="header-settings-button" id="headerSettingsButton" type="button" onclick="toggleHeaderSettingsMenu(event)" aria-haspopup="true" aria-expanded="false" title="Open settings and actions">
-                        <span aria-hidden="true">⚙️</span>
-                        <span>Settings</span>
-                    </button>
-                    <div class="header-settings-menu" id="headerSettingsMenu" role="menu" aria-label="Program command settings">
-                        <div class="header-settings-section-label">Schedule</div>
-                        <button class="header-settings-item" type="button" onclick="runHeaderSettingsAction('save')">
-                            <span class="header-settings-item-icon">💾</span>
-                            <span>Save Schedule</span>
-                        </button>
-                        <button class="header-settings-item" type="button" onclick="runHeaderSettingsAction('conflicts')">
-                            <span class="header-settings-item-icon">🔍</span>
-                            <span>Detect Conflicts</span>
-                        </button>
-                        <button class="header-settings-item" type="button" onclick="runHeaderSettingsAction('ai')">
-                            <span class="header-settings-item-icon">✨</span>
-                            <span>AI Analysis</span>
-                        </button>
-                        <button class="header-settings-item" type="button" onclick="runHeaderSettingsAction('print')">
-                            <span class="header-settings-item-icon">🖨️</span>
-                            <span>Print Schedule</span>
-                        </button>
-                        <button class="header-settings-item" type="button" onclick="runHeaderSettingsAction('sheets')">
-                            <span class="header-settings-item-icon">📊</span>
-                            <span>Export to Sheets</span>
-                        </button>
-                        <div class="header-settings-divider"></div>
-                        <div class="header-settings-section-label">Configuration</div>
-                        <button class="header-settings-item" type="button" onclick="runHeaderSettingsAction('rules')">
-                            <span class="header-settings-item-icon">📋</span>
-                            <span>Constraint Rules</span>
-                        </button>
-                        <button class="header-settings-item" type="button" onclick="runHeaderSettingsAction('api')">
-                            <span class="header-settings-item-icon">🔐</span>
-                            <span>API Connections</span>
-                        </button>
-                        <button class="header-settings-item" type="button" onclick="runHeaderSettingsAction('accounts')">
-                            <span class="header-settings-item-icon">👤</span>
-                            <span>Users & Accounts</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </header>
+        <app-header></app-header>
 
-        <!-- Year and Quarter Navigation -->
-        <div class="year-nav">
-            <div class="year-selector">
-                <label>Academic Year:</label>
-                <select id="yearSelect" onchange="switchAcademicYear(this.value)">
-                    <option value="2025-26" selected>2025-26</option>
-                    <option value="2026-27">2026-27</option>
-                </select>
-                <button class="copy-year-btn" onclick="copyToNextYear()" title="Copy current schedule to next year">
-                    Copy to Next Year →
-                </button>
-            </div>
-        </div>
+        <!-- Year and Quarter Navigation Component -->
+        <quarter-nav id="mainQuarterNav"></quarter-nav>
 
-        <!-- Quarter Tabs - Primary Navigation -->
-        <div class="quarter-tabs">
-            <button class="quarter-tab" data-quarter="fall" onclick="selectQuarterTab('fall')">Fall <span class="tab-year">2025</span></button>
-            <button class="quarter-tab" data-quarter="winter" onclick="selectQuarterTab('winter')">Winter <span class="tab-year">2026</span></button>
-            <button class="quarter-tab active" data-quarter="spring" onclick="selectQuarterTab('spring')">Spring <span class="tab-year">2026</span></button>
-        </div>
+        <!-- Advising Lens Component -->
+        <lens-filters id="mainLensFilters"></lens-filters>
 
-        <!-- Collapsible Filters Panel -->
-        <div class="filters-panel collapsed" id="filtersPanel">
-            <div class="filters-toggle" onclick="toggleFiltersPanel()">
-                <span>🎯 Advising Lens</span>
-                <span class="toggle-icon">▼</span>
-            </div>
-            <div class="filters-content" id="filtersContent">
-                <div class="filters-grid">
-                    <div class="filter-group">
-                        <label for="trackFilter">Student Track:</label>
-                        <select id="trackFilter">
-                            <option value="all">All Tracks</option>
-                            <option value="ux">UX Design</option>
-                            <option value="interaction-design">Interaction Design</option>
-                            <option value="web-development">Web Development</option>
-                            <option value="animation">Animation</option>
-                            <option value="game-design">Game Design</option>
-                            <option value="motion">Motion Design</option>
-                            <option value="photography">Photography</option>
-                        </select>
-                    </div>
 
-                    <div class="filter-group">
-                        <label for="minorFilter">Program / Minor Lens:</label>
-                        <select id="minorFilter">
-                            <option value="all">No Minor Lens</option>
-                            <option value="ux">UX/Interaction Design</option>
-                            <option value="animation">Animation</option>
-                            <option value="gameDesign">Game Design</option>
-                            <option value="graphicDesign">Graphic Design</option>
-                            <option value="photography">Photography</option>
-                            <option value="webDevelopment">Web Development</option>
-                        </select>
-                    </div>
-
-                    <div class="filter-group filters-actions">
-                        <button class="btn-secondary" type="button" onclick="resetLensFilters()">Clear Lens</button>
-                    </div>
-                </div>
-                <div class="lens-status" id="lensStatus">No advising lens active.</div>
-            </div>
-        </div>
-
-        <!-- Hidden select for compatibility with existing code -->
-        <select id="quarterSelect" style="display: none;">
-            <option value="fall">Fall 2025</option>
-            <option value="winter">Winter 2026</option>
-            <option value="spring" selected>Spring 2026</option>
-        </select>
 
         <!-- Dashboard Navigation -->
         <div class="dashboard-nav">
@@ -3965,9 +3812,12 @@
                     <span class="nav-row-header">Analytics</span>
                     <div class="nav-row-items">
                         <a href="enrollment-dashboard.html" class="nav-link"><span class="icon">📊</span>Enrollment</a>
-                        <a href="pages/workload-dashboard.html" class="nav-link"><span class="icon">👥</span>Workload</a>
-                        <a href="pages/capacity-planning-dashboard.html" class="nav-link"><span class="icon">📈</span>Capacity</a>
-                        <a href="pages/applied-learning-dashboard.html" class="nav-link"><span class="icon">🎓</span>Applied Learning</a>
+                        <a href="pages/workload-dashboard.html" class="nav-link"><span
+                                class="icon">👥</span>Workload</a>
+                        <a href="pages/capacity-planning-dashboard.html" class="nav-link"><span
+                                class="icon">📈</span>Capacity</a>
+                        <a href="pages/applied-learning-dashboard.html" class="nav-link"><span
+                                class="icon">🎓</span>Applied Learning</a>
                     </div>
                 </div>
                 <!-- Planning Row -->
@@ -3975,22 +3825,30 @@
                     <span class="nav-row-header">Planning</span>
                     <div class="nav-row-items">
                         <a href="pages/schedule-builder.html" class="nav-link"><span class="icon">📅</span>Builder</a>
-                        <a href="pages/academic-year-setup.html" class="nav-link"><span class="icon">🗂️</span>AY Setup</a>
+                        <a href="pages/academic-year-setup.html" class="nav-link"><span class="icon">🗂️</span>AY
+                            Setup</a>
                         <a href="pages/course-management.html" class="nav-link"><span class="icon">📚</span>Courses</a>
-                        <a href="pages/workload-dashboard.html" class="nav-link"><span class="icon">👥</span>Workload</a>
-                        <a href="pages/constraints-dashboard.html" class="nav-link"><span class="icon">🔒</span>Constraints</a>
-                        <a href="pages/demand-planning-dashboard.html" class="nav-link"><span class="icon">⚡</span>Demand</a>
+                        <a href="pages/workload-dashboard.html" class="nav-link"><span
+                                class="icon">👥</span>Workload</a>
+                        <a href="pages/constraints-dashboard.html" class="nav-link"><span
+                                class="icon">🔒</span>Constraints</a>
+                        <a href="pages/demand-planning-dashboard.html" class="nav-link"><span
+                                class="icon">⚡</span>Demand</a>
                     </div>
                 </div>
                 <!-- Tools Row -->
                 <div class="nav-row">
                     <span class="nav-row-header">Tools</span>
                     <div class="nav-row-items">
-                        <button onclick="highlightConflicts()" class="nav-link"><span class="icon">🔍</span>Conflicts</button>
+                        <button onclick="highlightConflicts()" class="nav-link"><span
+                                class="icon">🔍</span>Conflicts</button>
                         <button onclick="exportReport()" class="nav-link"><span class="icon">📋</span>Export</button>
-                        <a href="pages/pamcam-playground.html" class="nav-link"><span class="icon">🧪</span>PamCam Lab</a>
-                        <a href="pages/release-time-dashboard.html" class="nav-link"><span class="icon">🔧</span>Release Time</a>
-                        <a href="pages/recommendations-dashboard.html" class="nav-link"><span class="icon">💡</span>Recommendations</a>
+                        <a href="pages/pamcam-playground.html" class="nav-link"><span class="icon">🧪</span>PamCam
+                            Lab</a>
+                        <a href="pages/release-time-dashboard.html" class="nav-link"><span class="icon">🔧</span>Release
+                            Time</a>
+                        <a href="pages/recommendations-dashboard.html" class="nav-link"><span
+                                class="icon">💡</span>Recommendations</a>
                     </div>
                 </div>
             </div>
@@ -4022,23 +3880,30 @@
             <div class="schedule-grid-header">
                 <h2 class="schedule-grid-title">Program Schedule - <span id="quarterTitle">Spring 2026</span></h2>
                 <div class="schedule-grid-actions">
-                    <div class="swap-toggle-container" title="When ON: Dropping a course onto an occupied slot swaps them. When OFF: The existing course goes to the displaced tray.">
+                    <div class="swap-toggle-container"
+                        title="When ON: Dropping a course onto an occupied slot swaps them. When OFF: The existing course goes to the displaced tray.">
                         <span class="swap-toggle-label" id="displaceLabel">Displace</span>
                         <label class="swap-toggle">
-                            <input type="checkbox" id="swapModeToggle" onchange="updateSwapModeLabels()">
+                            <input type="checkbox" id="swapModeToggle">
                             <span class="swap-toggle-slider"></span>
                         </label>
                         <span class="swap-toggle-label" id="swapLabel">Swap</span>
                     </div>
+                    <button type="button" id="saveDbButton" class="btn-ewu-accent btn-add-course-main btn-save-db" onclick="saveScheduleToDatabase()">
+                        <span id="saveDbButtonText">Save Schedule</span>
+                    </button>
                     <button class="btn-ewu-accent btn-add-course-main" onclick="openAddCourseModal()">
                         <span class="btn-add-icon">+</span> Add Course
+                    </button>
+                    <button class="btn-ewu-accent btn-add-course-main" onclick="openWorkloadReviewFromScheduler()">
+                        👥 Make Workloads
                     </button>
                 </div>
             </div>
             <div class="schedule-grid" id="scheduleGrid"></div>
 
             <div id="onlineSection"></div>
-            
+
             <div class="special-sections-grid">
                 <div id="arrangedSection"></div>
             </div>
@@ -4050,14 +3915,20 @@
                     <p>Run natural-language planning commands before committing schedule changes.</p>
                 </div>
                 <div class="scheduler-assistant-input-row">
-                    <textarea id="schedulerQuestionInput" class="scheduler-question-input" placeholder="Example: Run without the optional lecturer and redistribute 45 credits with minimum conflict risk."></textarea>
+                    <textarea id="schedulerQuestionInput" class="scheduler-question-input"
+                        placeholder="Example: Run without the optional lecturer and redistribute 45 credits with minimum conflict risk."></textarea>
                     <div class="scheduler-assistant-actions">
                         <button class="btn-ewu-accent" onclick="askSchedulerQuestion()">Run Command</button>
-                        <button class="btn-secondary" onclick="fillSchedulerQuestion('If the optional lecturer is removed from the 45-credit plan, what is the lowest-risk redistribution across Sam, Sonja, and Meg?')">Without Optional Lecturer</button>
-                        <button class="btn-secondary" onclick="fillSchedulerQuestion('Given Travis and Ginelle each have 31 credits plus 5 inload and DESN 499 at 2 per quarter, where are overload risks by quarter?')">Overload Audit</button>
+                        <button class="btn-secondary"
+                            onclick="fillSchedulerQuestion('If the optional lecturer is removed from the 45-credit plan, what is the lowest-risk redistribution across Sam, Sonja, and Meg?')">Without
+                            Optional Lecturer</button>
+                        <button class="btn-secondary"
+                            onclick="fillSchedulerQuestion('Given Travis and Ginelle each have 31 credits plus 5 inload and DESN 499 at 2 per quarter, where are overload risks by quarter?')">Overload
+                            Audit</button>
                     </div>
                 </div>
-                <div id="schedulerQuestionResponse" class="scheduler-assistant-response empty">Your answer will appear here.</div>
+                <div id="schedulerQuestionResponse" class="scheduler-assistant-response empty">Your answer will appear
+                    here.</div>
             </div>
 
             <div class="legend">
@@ -4103,7 +3974,8 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
+        console.log(">>>>>>>> MAIN SCRIPT STARTING <<<<<<<<");
         // Faculty color mapping
         const facultyColors = {
             'T.Masingale': { class: 'faculty-masingale', color: '#667eea', name: 'T.Masingale' },
@@ -4271,113 +4143,95 @@
             content.classList.toggle('collapsed');
         }
 
-        // Filters panel toggle
-        function toggleFiltersPanel() {
-            const panel = document.getElementById('filtersPanel');
-            panel.classList.toggle('collapsed');
-        }
 
-        function toggleHeaderSettingsMenu(event) {
-            if (event) event.stopPropagation();
 
-            const container = document.getElementById('headerActions');
-            const button = document.getElementById('headerSettingsButton');
-            if (!container || !button) return;
-
-            const willOpen = !container.classList.contains('open');
-            container.classList.toggle('open', willOpen);
-            button.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
-        }
-
-        function closeHeaderSettingsMenu() {
-            const container = document.getElementById('headerActions');
-            const button = document.getElementById('headerSettingsButton');
-            if (!container || !button) return;
-
-            container.classList.remove('open');
-            button.setAttribute('aria-expanded', 'false');
-        }
-
-        function runHeaderSettingsAction(action) {
-            closeHeaderSettingsMenu();
-
+        // Listen for the custom event from the AppHeader component
+        document.addEventListener('header-action', (e) => {
+            const action = e.detail.action;
             if (action === 'save') {
-                saveScheduleChanges();
-                return;
-            }
-            if (action === 'conflicts') {
+                saveScheduleToDatabase();
+            } else if (action === 'conflicts') {
                 runConflictDetection();
-                return;
-            }
-            if (action === 'ai') {
+            } else if (action === 'ai') {
                 evaluateScheduleWithAI();
-                return;
-            }
-            if (action === 'print') {
+            } else if (action === 'print') {
                 openPrintDialog();
-                return;
-            }
-            if (action === 'sheets') {
+            } else if (action === 'sheets') {
                 exportToGoogleSheets();
-                return;
-            }
-            if (action === 'rules') {
+            } else if (action === 'rules') {
                 openConstraintsModal();
-                return;
-            }
-            if (action === 'api') {
+            } else if (action === 'api') {
                 openApiSettingsModal();
-                return;
-            }
-            if (action === 'accounts') {
+            } else if (action === 'accounts') {
                 showToast('Users & accounts is the next build step: add Supabase Auth + role-based permissions.', 'success');
-            }
-        }
-
-        document.addEventListener('click', function(e) {
-            const headerActions = document.getElementById('headerActions');
-            if (headerActions && !headerActions.contains(e.target)) {
-                closeHeaderSettingsMenu();
+            } else if (action === 'nav-enrollment') {
+                window.location.href = 'enrollment-dashboard.html';
+            } else if (action === 'nav-workload') {
+                window.location.href = 'pages/workload-dashboard.html';
             }
         });
 
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                closeHeaderSettingsMenu();
+        // Listen for quarter-nav component events
+        document.addEventListener('quarter-change', (e) => {
+            const currentQuarter = e.detail.quarter;
+
+            // Update main state manager (now a signal)
+            if (window.StateManager) {
+                window.StateManager.set('currentQuarter', currentQuarter);
+            }
+
+            // Update schedule grid title visually
+            const quarterTitle = document.getElementById('quarterTitle');
+            if (quarterTitle) {
+                const navComponent = document.getElementById('mainQuarterNav');
+                const academicYear = navComponent ? navComponent.currentYear : (window.StateManager?.get('currentAcademicYear') || '2025-26');
+                const [startYear, endYear] = academicYear.split('-');
+                const fullStartYear = startYear.length === 4 ? startYear : '20' + startYear;
+                const fullEndYear = endYear.length === 4 ? endYear : '20' + endYear;
+                const qYear = currentQuarter === 'fall' ? fullStartYear : fullEndYear;
+                quarterTitle.textContent = currentQuarter.charAt(0).toUpperCase() + currentQuarter.slice(1) + ' ' + qYear;
+            }
+
+            // Re-render schedule UI
+            if (typeof renderSchedule === 'function') {
+                renderSchedule(currentQuarter);
             }
         });
 
-        // Quarter tab selection
-        function selectQuarterTab(quarter) {
-            // Update tab visual state
-            document.querySelectorAll('.quarter-tab').forEach(tab => {
-                tab.classList.remove('active');
-                if (tab.dataset.quarter === quarter) {
-                    tab.classList.add('active');
-                }
-            });
-
-            // Update hidden select for compatibility
-            const quarterSelect = document.getElementById('quarterSelect');
-            if (quarterSelect) {
-                quarterSelect.value = quarter;
-                // Trigger change event for existing handlers
-                quarterSelect.dispatchEvent(new Event('change'));
+        document.addEventListener('year-change', (e) => {
+            if (typeof switchAcademicYear === 'function') {
+                switchAcademicYear(e.detail.year);
             }
-        }
+        });
 
-        // Initialize UI state on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            // Sync quarter tabs with hidden select value
-            const quarterSelect = document.getElementById('quarterSelect');
-            if (quarterSelect) {
-                const activeQuarter = quarterSelect.value;
-                document.querySelectorAll('.quarter-tab').forEach(tab => {
-                    tab.classList.remove('active');
-                    if (tab.dataset.quarter === activeQuarter) {
-                        tab.classList.add('active');
-                    }
-                });
+        document.addEventListener('copy-year', () => {
+            if (typeof copyToNextYear === 'function') {
+                copyToNextYear();
+            }
+        });
+
+        // Listen for lens-filters component events
+        document.addEventListener('filter-change', (e) => {
+            currentTrack = e.detail.track;
+            currentMinor = e.detail.minor;
+
+            if (window.StateManager) {
+                window.StateManager.set('currentTrack', currentTrack);
+                window.StateManager.set('currentMinor', currentMinor);
+            }
+
+            // Re-render schedule UI and update URL hash
+            if (typeof renderSchedule === 'function') {
+                renderSchedule();
+            }
+            if (typeof updateUrlState === 'function') {
+                updateUrlState();
+            }
+        });
+
+        document.addEventListener('clear-lens', () => {
+            if (typeof resetLensFilters === 'function') {
+                resetLensFilters();
             }
         });
 
@@ -4462,80 +4316,32 @@
             document.getElementById('facultyModalOverlay').classList.remove('visible');
         }
 
-        // Minor data structure
-        const minors = {
-            ux: {
-                name: 'UX/Interaction Design Minor',
-                courses: ['DESN 338', 'DESN 348', 'DESN 458', 'DESN 366'],
-                tracks: ['ux', 'interaction-design', 'web-development'],
-                color: '#e74c3c',
-                typical: true
-            },
-            animation: {
-                name: 'Animation Minor',
-                courses: ['DESN 326', 'DESN 355', 'DESN 365', 'DESN 336'],
-                tracks: ['animation', 'motion'],
-                color: '#f39c12',
-                typical: false, // UX/Interaction/Web Dev typically don't pursue this
-                note: 'UX, Interaction Design, and Web Dev students typically don\'t pursue this minor'
-            },
-            gameDesign: {
-                name: 'Game Design Minor',
-                courses: ['DESN 335', 'DESN 345', 'DESN 369', 'DESN 379'],
-                tracks: ['animation', 'game-design'],
-                color: '#27ae60',
-                typical: true,
-                note: 'Animation and Game Design students may pursue this minor'
-            },
-            graphicDesign: {
-                name: 'Graphic Design Minor',
-                courses: ['DESN 243', 'DESN 263', 'DESN 360', 'DESN 463'],
-                tracks: ['all'],
-                color: '#3498db',
-                typical: true,
-                note: 'Can be picked up along the way by any track'
-            },
-            photography: {
-                name: 'Photography Minor',
-                courses: ['DESN 350', 'DESN 301'],
-                tracks: ['photography', 'visual-storytelling'],
-                color: '#9b59b6',
-                typical: true,
-                note: 'PHOTO 350 only offered in Spring',
-                seasonal: { 'DESN 350': 'spring' }
-            },
-            webDevelopment: {
-                name: 'Web Development Minor',
-                courses: ['DESN 368', 'DESN 369', 'DESN 379', 'DESN 468'],
-                tracks: ['web-development', 'code-design'],
-                color: '#667eea',
-                typical: true
-            }
-        };
-
-        // Student track definitions
-        const studentTracks = {
-            'ux': { name: 'UX Design', suggestedMinors: ['ux', 'graphicDesign', 'webDevelopment'] },
-            'interaction-design': { name: 'Interaction Design', suggestedMinors: ['ux', 'graphicDesign', 'webDevelopment'] },
-            'web-development': { name: 'Web Development', suggestedMinors: ['webDevelopment', 'graphicDesign', 'ux'] },
-            'animation': { name: 'Animation', suggestedMinors: ['animation', 'gameDesign', 'graphicDesign'] },
-            'game-design': { name: 'Game Design', suggestedMinors: ['gameDesign', 'animation', 'graphicDesign'] },
-            'motion': { name: 'Motion Design', suggestedMinors: ['animation', 'graphicDesign'] },
-            'photography': { name: 'Photography', suggestedMinors: ['photography', 'graphicDesign'] },
-            'visual-storytelling': { name: 'Visual Storytelling', suggestedMinors: ['photography', 'graphicDesign'] },
-            'code-design': { name: 'Code + Design', suggestedMinors: ['webDevelopment', 'gameDesign', 'graphicDesign'] }
-        };
+        import { minors, studentTracks } from './js/data-models.js';
 
         // Load dynamic enrollment data from JSON file
         let enrollmentData = {};
-        const NEW_COURSE_CODES = new Set(['DESN 345', 'DESN 369', 'DESN 379']);
+        let enrollmentDataByCode = {};
+        const NEW_COURSE_CODES = new Set(
+            ['DESN 345', 'DESN 369', 'DESN 379'].map((code) => normalizeCourseCode(code))
+        );
+
+        function rebuildEnrollmentLookup() {
+            enrollmentDataByCode = {};
+            Object.entries(enrollmentData || {}).forEach(([code, stats]) => {
+                enrollmentDataByCode[normalizeCourseCode(code)] = stats;
+            });
+        }
 
         async function loadEnrollmentData() {
             try {
                 const response = await fetch('./enrollment-dashboard-data.json');
                 if (response.ok) {
                     const data = await response.json();
-                    enrollmentData = data.courseStats || {};
+                    enrollmentData = {
+                        ...fallbackEnrollmentData,
+                        ...(data.courseStats || {})
+                    };
+                    rebuildEnrollmentLookup();
                     console.log('✅ Loaded dynamic enrollment data');
                     console.log(`   Total courses: ${Object.keys(enrollmentData).length}`);
                     return true;
@@ -4545,6 +4351,7 @@
             }
             // Fallback to hardcoded data if JSON fails
             enrollmentData = fallbackEnrollmentData;
+            rebuildEnrollmentLookup();
             return false;
         }
 
@@ -4610,7 +4417,10 @@
         }
 
         function getEnrollmentData(courseCode) {
-            return enrollmentData[courseCode] || { average: 0, peak: 0, trend: "unknown", peakQuarter: "" };
+            const normalizedCode = normalizeCourseCode(courseCode);
+            return enrollmentDataByCode[normalizedCode]
+                || enrollmentData[courseCode]
+                || { average: 0, peak: 0, trend: "unknown", peakQuarter: "" };
         }
 
         const scheduleData = {
@@ -4908,8 +4718,8 @@
 
                             // Get quarter-specific enrollment from previous year instead of overall average
                             const prevYearQuarter = quarter === 'fall' ? 'fall-2025' :
-                                                   quarter === 'winter' ? 'winter-2025' :
-                                                   quarter === 'spring' ? 'spring-2025' : null;
+                                quarter === 'winter' ? 'winter-2025' :
+                                    quarter === 'spring' ? 'spring-2025' : null;
 
                             let displayEnrollment = enrollment.average; // fallback
                             let tooltipText = 'Avg enrollment: ' + enrollment.average;
@@ -4955,7 +4765,7 @@
                             block.dataset.room = room;
                             block.draggable = true;
                             block.title = tooltipText + ' | Peak: ' + enrollment.peak + ' | Trend: ' + enrollment.trend + ' | Drag to move';
-                            block.onclick = function(e) {
+                            block.onclick = function (e) {
                                 // Don't trigger click if we're dragging
                                 if (!block.classList.contains('dragging')) {
                                     showCourseDetails(course.code, course.name, course.instructor, course.credits, course.room, courseId, quarter, day, time);
@@ -4974,7 +4784,7 @@
                             deleteBtn.className = 'delete-btn';
                             deleteBtn.innerHTML = '&times;';
                             deleteBtn.title = 'Click to delete, Shift+Click to move to tray';
-                            deleteBtn.onclick = function(e) {
+                            deleteBtn.onclick = function (e) {
                                 e.stopPropagation();
                                 deleteCourse(course.code, day, time, course.room, e.shiftKey);
                             };
@@ -5116,7 +4926,7 @@
             const targetDay = this.dataset.day;
             const targetTime = this.dataset.time;
             const targetRoom = this.dataset.room;
-            const quarter = document.getElementById('quarterSelect').value;
+            const quarter = window.StateManager?.get('currentQuarter') || 'spring';
             const data = scheduleData[quarter];
 
             // Check if dropping from displaced tray
@@ -5155,10 +4965,13 @@
                 removeFromDisplacedTray(draggedCourse.displacedIndex);
 
                 saveScheduleData(); // Persist changes
+                setScheduleDirty(true);
                 renderSchedule(quarter);
                 renderConflicts(quarter);
                 updateStats(quarter);
                 showToast('Placed ' + draggedCourse.courseCode + ' at ' + targetDay + ' ' + targetTime);
+                draggedCourse = null;
+                document.getElementById('dropIndicator').classList.remove('active');
                 return;
             }
 
@@ -5175,7 +4988,7 @@
         }
 
         function moveCourse(course, newDay, newTime, newRoom) {
-            const quarter = document.getElementById('quarterSelect').value;
+            const quarter = window.StateManager?.get('currentQuarter') || 'spring';
 
             // Update local schedule data
             const data = scheduleData[quarter];
@@ -5253,6 +5066,7 @@
 
                     // Save and re-render the schedule
                     saveScheduleData(); // Persist changes
+                    setScheduleDirty(true);
                     renderSchedule(quarter);
                     renderConflicts(quarter);
                     renderConflictSolver(quarter);
@@ -5317,14 +5131,14 @@
             onlineCourses.forEach((course, index) => {
                 const item = document.createElement('div');
                 item.className = 'online-course-item';
-                
+
                 const courseInfo = document.createElement('span');
                 courseInfo.innerHTML = `<strong>${course.code}</strong> <span style="color:#57606a">${course.name}</span> <span style="color:#8b949e">- ${course.instructor}</span>`;
                 courseInfo.style.cursor = 'pointer';
                 courseInfo.onclick = () => {
                     showCourseDetails(course.code, course.name, course.instructor, course.credits, 'ONLINE', null, quarter, 'ONLINE', 'async');
                 };
-                
+
                 const deleteBtn = document.createElement('button');
                 deleteBtn.innerHTML = '&times;';
                 deleteBtn.title = 'Delete this online course';
@@ -5335,7 +5149,7 @@
                         deleteOnlineCourse(quarter, index);
                     }
                 };
-                
+
                 item.appendChild(courseInfo);
                 item.appendChild(deleteBtn);
                 coursesList.appendChild(item);
@@ -5350,6 +5164,7 @@
             if (data && data['ONLINE'] && data['ONLINE']['async']) {
                 data['ONLINE']['async'].splice(index, 1);
                 saveScheduleData();
+                setScheduleDirty(true);
                 renderOnlineCourses(quarter);
                 updateStats(quarter);
                 showToast('Online course deleted');
@@ -5523,7 +5338,13 @@
                     if (!unique.find(c => c.code === course.code)) unique.push(course);
                     return unique;
                 }, [])
-                .sort((a, b) => parseInt(a.code.split(' ')[1]) - parseInt(b.code.split(' ')[1]));
+                .sort((a, b) => {
+                    const aMatch = normalizeCourseCode(a.code).match(/\d{3}[A-Z]?/);
+                    const bMatch = normalizeCourseCode(b.code).match(/\d{3}[A-Z]?/);
+                    const aValue = parseInt(aMatch ? aMatch[0] : '0', 10);
+                    const bValue = parseInt(bMatch ? bMatch[0] : '0', 10);
+                    return aValue - bValue;
+                });
 
             const quarterName = quarter.charAt(0).toUpperCase() + quarter.slice(1);
             const q2023Key = quarter + '-2023';
@@ -5564,7 +5385,7 @@
                 const contentDiv = document.createElement('div');
                 contentDiv.style.display = 'none';
 
-                accordionHeader.onclick = function() {
+                accordionHeader.onclick = function () {
                     if (contentDiv.style.display === 'none') {
                         contentDiv.style.display = 'block';
                         arrow.textContent = '▼';
@@ -5593,6 +5414,11 @@
                 const tbody = document.createElement('tbody');
                 coursesWithHistory.forEach(c => {
                     const enrollment = getEnrollmentData(c.code);
+                    const isNewCourse = Boolean(
+                        enrollment.isNew
+                        || enrollment.trend === 'new'
+                        || NEW_COURSE_CODES.has(normalizeCourseCode(c.code))
+                    );
                     const quarterly = enrollment.quarterly || {};
                     const row = document.createElement('tr');
 
@@ -5601,7 +5427,7 @@
                     const codeStrong = document.createElement('strong');
                     codeStrong.textContent = c.code;
                     codeCell.appendChild(codeStrong);
-                    if (enrollment.isNew) {
+                    if (isNewCourse) {
                         const badge = document.createElement('span');
                         badge.className = 'course-note-badge';
                         badge.textContent = 'NEW';
@@ -5615,15 +5441,16 @@
                     instructorCell.textContent = c.instructor;
 
                     const trendCell = document.createElement('td');
-                    const trendIcon = enrollment.trend === 'declining' ? '📉' : enrollment.trend === 'growing' ? '📈' : enrollment.trend === 'new' ? '✨' : '➡️';
-                    trendCell.textContent = trendIcon + ' ' + enrollment.trend;
+                    const trendValue = isNewCourse ? 'new' : enrollment.trend;
+                    const trendIcon = trendValue === 'declining' ? '📉' : trendValue === 'growing' ? '📈' : trendValue === 'new' ? '✨' : '➡️';
+                    trendCell.textContent = trendIcon + ' ' + trendValue;
 
                     row.appendChild(codeCell);
                     row.appendChild(nameCell);
                     row.appendChild(instructorCell);
-                    row.appendChild(createQuarterCell(quarterly[q2023Key], enrollment.isNew));
-                    row.appendChild(createQuarterCell(quarterly[q2024Key], enrollment.isNew));
-                    row.appendChild(createQuarterCell(quarterly[q2025Key], enrollment.isNew));
+                    row.appendChild(createQuarterCell(quarterly[q2023Key], isNewCourse));
+                    row.appendChild(createQuarterCell(quarterly[q2024Key], isNewCourse));
+                    row.appendChild(createQuarterCell(quarterly[q2025Key], isNewCourse));
                     row.appendChild(trendCell);
                     tbody.appendChild(row);
                 });
@@ -5707,10 +5534,36 @@
         }
 
         function normalizeCourseCode(courseCode) {
-            return String(courseCode || '')
+            const upper = String(courseCode || '')
                 .toUpperCase()
                 .replace(/\s+/g, ' ')
                 .trim();
+
+            return upper.replace(/^([A-Z]{2,5})\s*(\d)/, '$1 $2');
+        }
+
+        function normalizeScheduleCourseCodes(data) {
+            const quarters = ['fall', 'winter', 'spring'];
+
+            quarters.forEach((quarter) => {
+                const quarterData = data?.[quarter];
+                if (!quarterData || typeof quarterData !== 'object') return;
+
+                Object.values(quarterData).forEach((timeBucket) => {
+                    if (!timeBucket || typeof timeBucket !== 'object') return;
+
+                    Object.values(timeBucket).forEach((courses) => {
+                        if (!Array.isArray(courses)) return;
+                        courses.forEach((course) => {
+                            if (course && typeof course === 'object') {
+                                course.code = normalizeCourseCode(course.code);
+                            }
+                        });
+                    });
+                });
+            });
+
+            return data;
         }
 
         function getCourseDisplayLabel(course) {
@@ -6784,7 +6637,7 @@
                 const chip = document.createElement('div');
                 chip.className = 'minor-chip' + (!m.typical ? ' not-typical' : '');
                 chip.textContent = m.name;
-                chip.onclick = function() { selectMinor(m.key); };
+                chip.onclick = function () { selectMinor(m.key); };
                 list.appendChild(chip);
             });
 
@@ -6963,12 +6816,12 @@
                 // Handle "Sam Durr" format
                 return name.split(' ').pop().toLowerCase();
             };
-            
+
             const instructorLastName = getLastName(instructorValue);
 
             for (let i = 0; i < facultySelect.options.length; i++) {
                 const optionValue = facultySelect.options[i].value;
-                
+
                 // Try exact match first
                 if (optionValue === instructorValue) {
                     facultySelect.selectedIndex = i;
@@ -7070,11 +6923,11 @@
             if (currentCourseData) {
                 const { day, time, room, code } = currentCourseData;
                 const quarterData = scheduleData[quarterLower];
-                
+
                 if (quarterData && quarterData[day] && quarterData[day][time]) {
                     const courses = quarterData[day][time];
                     const courseIndex = courses.findIndex(c => c.code === code && c.room === room);
-                    
+
                     if (courseIndex !== -1) {
                         courses[courseIndex].instructor = newInstructor;
                         if (newRoom) courses[courseIndex].room = newRoom;
@@ -7084,6 +6937,7 @@
                         courses[courseIndex].section = updates.section;
                         if (updates.notes) courses[courseIndex].notes = updates.notes;
                         saveScheduleData();
+                        setScheduleDirty(true);
                         savedSuccessfully = true;
                     }
                 }
@@ -7107,7 +6961,7 @@
                 showToast('Course updated successfully');
                 closeEditModal();
                 // Refresh the schedule view
-                const currentQuarter = document.getElementById('quarterSelect').value;
+                const currentQuarter = window.StateManager?.get('currentQuarter') || 'spring';
                 renderSchedule(currentQuarter);
                 renderOnlineCourses(currentQuarter);
                 renderArrangedCourses(currentQuarter);
@@ -7115,7 +6969,7 @@
                 // No direct save path available - try just closing and refreshing
                 showToast('Course updated');
                 closeEditModal();
-                const currentQuarter = document.getElementById('quarterSelect').value;
+                const currentQuarter = window.StateManager?.get('currentQuarter') || 'spring';
                 renderSchedule(currentQuarter);
                 renderOnlineCourses(currentQuarter);
                 renderArrangedCourses(currentQuarter);
@@ -7141,37 +6995,24 @@
             alert('Export functionality would generate a PDF report with full conflict analysis and recommendations.');
         }
 
-        // Event listeners
-        document.getElementById('quarterSelect').addEventListener('change', function() {
-            const quarter = this.value;
-            document.getElementById('quarterTitle').textContent = quarter.charAt(0).toUpperCase() + quarter.slice(1) + ' 2026';
-            renderSchedule(quarter);
-            renderOnlineCourses(quarter);
-            renderArrangedCourses(quarter);
-            renderEnrollmentAnalytics(quarter);
-            renderConflicts(quarter);
-            renderConflictSolver(quarter);
-            renderRecommendations(quarter);
-            updateStats(quarter);
 
-            // Re-apply minor filter if active
-            const minorFilter = document.getElementById('minorFilter').value;
-            if (minorFilter !== 'all') {
-                highlightMinorCourses(minorFilter);
-            }
-        });
+        const minorFilterEl = document.getElementById('minorFilter');
+        if (minorFilterEl) {
+            minorFilterEl.addEventListener('change', function () {
+                const minorKey = this.value;
+                displayMinorInfo(minorKey);
+                highlightMinorCourses(minorKey);
+            });
+        }
 
-        document.getElementById('minorFilter').addEventListener('change', function() {
-            const minorKey = this.value;
-            displayMinorInfo(minorKey);
-            highlightMinorCourses(minorKey);
-        });
-
-        document.getElementById('trackFilter').addEventListener('change', function() {
-            const trackKey = this.value;
-            displayTrackSuggestions(trackKey);
-            updateLensStatus();
-        });
+        const trackFilterEl = document.getElementById('trackFilter');
+        if (trackFilterEl) {
+            trackFilterEl.addEventListener('change', function () {
+                const trackKey = this.value;
+                displayTrackSuggestions(trackKey);
+                updateLensStatus();
+            });
+        }
 
         // ============================================
         // DISPLACED COURSES TRAY
@@ -7180,6 +7021,9 @@
         let displacedCourses = [];
         let courseToDelete = null;
         let swapMode = false; // false = displace, true = swap
+        let scheduleDirty = false;
+        let scheduleSaveInProgress = false;
+        const dirtyYears = new Set();
 
         // Update swap mode labels when toggle changes
         function updateSwapModeLabels() {
@@ -7198,23 +7042,122 @@
             updateSwapModeLabels();
         }
 
+        function getDatabaseClient() {
+            const direct = window.supabaseClient;
+            if (direct && typeof direct.from === 'function') {
+                return direct;
+            }
+            const fromGetter = window.getSupabaseClient?.();
+            if (fromGetter && typeof fromGetter.from === 'function') {
+                return fromGetter;
+            }
+            return null;
+        }
+
+        function normalizeLookupKey(value) {
+            return String(value || '')
+                .toLowerCase()
+                .replace(/[^a-z0-9]/g, '');
+        }
+
+        function updateSaveDbButtonState() {
+            const button = document.getElementById('saveDbButton');
+            const label = document.getElementById('saveDbButtonText');
+            if (!button || !label) return;
+
+            const shouldShow = scheduleDirty || scheduleSaveInProgress;
+            button.classList.toggle('visible', shouldShow);
+            button.disabled = scheduleSaveInProgress;
+
+            if (scheduleSaveInProgress) {
+                label.textContent = 'Saving...';
+            } else if (scheduleDirty) {
+                label.textContent = 'Save Schedule';
+            } else {
+                label.textContent = 'Saved';
+            }
+        }
+
+        function setScheduleDirty(isDirty) {
+            const dirty = Boolean(isDirty);
+            scheduleDirty = dirty;
+            if (dirty) {
+                dirtyYears.add(currentAcademicYear);
+            } else {
+                dirtyYears.delete(currentAcademicYear);
+            }
+            updateSaveDbButtonState();
+        }
+
+        function syncDirtyStateForCurrentYear() {
+            scheduleDirty = dirtyYears.has(currentAcademicYear);
+            updateSaveDbButtonState();
+        }
+
+        function syncDisplacedTrayUI() {
+            const tray = document.getElementById('displacedTray');
+            const toggle = document.getElementById('displacedToggle');
+            if (!tray || !toggle) return;
+
+            const trayIsOpen = tray.classList.contains('open');
+            const hasCourses = displacedCourses.length > 0;
+
+            document.body.classList.toggle('tray-open', trayIsOpen);
+            toggle.classList.toggle('visible', hasCourses && !trayIsOpen);
+        }
+
+        function setupDisplacedTrayInteractions() {
+            const tray = document.getElementById('displacedTray');
+            const content = document.getElementById('displacedContent');
+            if (!tray || !content) return;
+
+            tray.addEventListener('dragover', handleTrayDragOver);
+            tray.addEventListener('dragleave', handleTrayDragLeave);
+            tray.addEventListener('drop', handleTrayDrop);
+
+            content.addEventListener('pointerdown', (event) => {
+                if (event.target.closest('.displaced-course-remove')) {
+                    event.stopPropagation();
+                }
+            });
+            content.addEventListener('click', handleDisplacedContentClick);
+            content.addEventListener('dragstart', handleDisplacedContentDragStart);
+            content.addEventListener('dragend', handleDisplacedContentDragEnd);
+        }
+
         // Load displaced courses from localStorage
         function loadDisplacedCourses() {
-            const saved = localStorage.getItem('displacedCourses');
-            if (saved) {
-                displacedCourses = JSON.parse(saved);
-                updateDisplacedTray();
+            try {
+                const saved = localStorage.getItem('displacedCourses');
+                const parsed = saved ? JSON.parse(saved) : [];
+                displacedCourses = Array.isArray(parsed) ? parsed : [];
+            } catch (e) {
+                displacedCourses = [];
+                console.warn('Could not load displaced courses:', e);
             }
+            updateDisplacedTray();
         }
 
         // Save displaced courses to localStorage
         function saveDisplacedCourses() {
-            localStorage.setItem('displacedCourses', JSON.stringify(displacedCourses));
+            try {
+                localStorage.setItem('displacedCourses', JSON.stringify(displacedCourses));
+            } catch (e) {
+                console.warn('Could not save displaced courses:', e);
+            }
         }
 
         // Add a course to the displaced tray
         function addToDisplacedTray(course) {
-            displacedCourses.push(course);
+            displacedCourses.push({
+                code: course.code,
+                name: course.name || '',
+                instructor: course.instructor || 'TBD',
+                credits: course.credits ?? 5,
+                originalDay: course.originalDay || 'unknown',
+                originalTime: course.originalTime || 'unknown',
+                originalRoom: course.originalRoom || 'TBD'
+            });
             saveDisplacedCourses();
             updateDisplacedTray();
             openDisplacedTray();
@@ -7222,7 +7165,12 @@
 
         // Remove a course from displaced tray
         function removeFromDisplacedTray(index) {
-            displacedCourses.splice(index, 1);
+            const normalizedIndex = Number(index);
+            if (!Number.isInteger(normalizedIndex) || normalizedIndex < 0 || normalizedIndex >= displacedCourses.length) {
+                return;
+            }
+
+            displacedCourses.splice(normalizedIndex, 1);
             saveDisplacedCourses();
             updateDisplacedTray();
         }
@@ -7232,7 +7180,6 @@
             displacedCourses = [];
             saveDisplacedCourses();
             updateDisplacedTray();
-            closeDisplacedTray();
         }
 
         // Update the displaced tray display
@@ -7240,19 +7187,14 @@
             const content = document.getElementById('displacedContent');
             const countBadge = document.getElementById('displacedCount');
             const toggleCount = document.getElementById('toggleCount');
-            const toggle = document.getElementById('displacedToggle');
+            const tray = document.getElementById('displacedTray');
+            if (!content || !countBadge || !toggleCount || !tray) return;
 
             countBadge.textContent = displacedCourses.length;
             toggleCount.textContent = displacedCourses.length;
 
-            // Show/hide toggle button
-            if (displacedCourses.length > 0) {
-                toggle.classList.add('visible');
-            } else {
-                toggle.classList.remove('visible');
-            }
-
             if (displacedCourses.length === 0) {
+                tray.classList.remove('open');
                 content.innerHTML = `
                     <div class="displaced-empty">
                         <div class="displaced-empty-icon">📦</div>
@@ -7260,48 +7202,82 @@
                         <p style="font-size: 0.8rem;">Courses bumped from their slots will appear here</p>
                     </div>
                 `;
+                syncDisplacedTrayUI();
                 return;
             }
 
             content.innerHTML = displacedCourses.map((course, index) => `
                 <div class="displaced-course-card" draggable="true"
                      data-displaced-index="${index}"
-                     data-course-code="${course.code}"
-                     ondragstart="handleDisplacedDragStart(event, ${index})"
-                     ondragend="handleDisplacedDragEnd(event)">
+                     data-course-code="${course.code}">
                     <div class="displaced-course-header">
                         <span class="displaced-course-code">${course.code}</span>
-                        <button class="displaced-course-remove" onclick="removeFromDisplacedTray(${index})" title="Remove">&times;</button>
+                        <button type="button" class="displaced-course-remove" draggable="false" data-remove-index="${index}" title="Remove">&times;</button>
                     </div>
                     <div class="displaced-course-name">${course.name || ''}</div>
                     <div class="displaced-course-origin">was at: ${course.originalDay} ${course.originalTime}, Room ${course.originalRoom}</div>
                 </div>
             `).join('');
+
+            syncDisplacedTrayUI();
         }
 
         // Open displaced tray
         function openDisplacedTray() {
-            document.getElementById('displacedTray').classList.add('open');
-            document.getElementById('displacedToggle').classList.remove('visible');
-            document.body.classList.add('tray-open');
+            const tray = document.getElementById('displacedTray');
+            if (!tray) return;
+            tray.classList.add('open');
+            syncDisplacedTrayUI();
         }
 
         // Close displaced tray
         function closeDisplacedTray() {
-            document.getElementById('displacedTray').classList.remove('open');
-            document.body.classList.remove('tray-open');
-            if (displacedCourses.length > 0) {
-                document.getElementById('displacedToggle').classList.add('visible');
+            const tray = document.getElementById('displacedTray');
+            if (!tray) return;
+            tray.classList.remove('open');
+            tray.classList.remove('drag-over');
+            syncDisplacedTrayUI();
+        }
+
+        function handleDisplacedContentClick(e) {
+            const removeButton = e.target.closest('.displaced-course-remove');
+            if (!removeButton) return;
+
+            e.preventDefault();
+            e.stopPropagation();
+            removeFromDisplacedTray(removeButton.dataset.removeIndex);
+        }
+
+        function handleDisplacedContentDragStart(e) {
+            if (e.target.closest('.displaced-course-remove')) {
+                e.preventDefault();
+                return;
             }
+
+            const card = e.target.closest('.displaced-course-card');
+            if (!card) return;
+
+            const index = Number(card.dataset.displacedIndex);
+            if (!Number.isInteger(index)) return;
+            handleDisplacedDragStart(e, index, card);
+        }
+
+        function handleDisplacedContentDragEnd(e) {
+            if (!e.target.closest('.displaced-course-card')) return;
+            handleDisplacedDragEnd(e);
         }
 
         // Handle drag start from displaced tray
-        function handleDisplacedDragStart(e, index) {
+        function handleDisplacedDragStart(e, index, dragElement = null) {
             const course = displacedCourses[index];
-            e.target.classList.add('dragging');
+            if (!course) return;
+
+            const card = dragElement || e.target.closest('.displaced-course-card');
+            if (!card) return;
+            card.classList.add('dragging');
 
             draggedCourse = {
-                element: e.target,
+                element: card,
                 courseCode: course.code,
                 courseName: course.name,
                 instructor: course.instructor,
@@ -7325,11 +7301,19 @@
 
         // Handle drag end from displaced tray
         function handleDisplacedDragEnd(e) {
-            e.target.classList.remove('dragging');
+            const card = e.target?.closest ? e.target.closest('.displaced-course-card') : null;
+            if (card) {
+                card.classList.remove('dragging');
+            }
+            draggedCourse = null;
             document.getElementById('dropIndicator').classList.remove('active');
             document.querySelectorAll('.schedule-cell').forEach(cell => {
                 cell.classList.remove('drag-over');
             });
+            const tray = document.getElementById('displacedTray');
+            if (tray) {
+                tray.classList.remove('drag-over');
+            }
         }
 
         // Handle drag over the displaced tray (to drop courses into it)
@@ -7344,8 +7328,11 @@
         // Handle drag leave from displaced tray
         function handleTrayDragLeave(e) {
             // Only remove if leaving the tray entirely
-            if (!e.currentTarget.contains(e.relatedTarget)) {
+            if (!e.relatedTarget || !e.currentTarget.contains(e.relatedTarget)) {
                 document.getElementById('displacedTray').classList.remove('drag-over');
+                if (displacedCourses.length === 0) {
+                    closeDisplacedTray();
+                }
             }
         }
 
@@ -7356,13 +7343,18 @@
 
             if (!draggedCourse || draggedCourse.isFromDisplacedTray) return;
 
-            const quarter = document.getElementById('quarterSelect').value;
+            const quarter = window.StateManager?.get('currentQuarter') || 'spring';
             const data = scheduleData[quarter];
 
             // Remove course from schedule and add to tray
             if (data[draggedCourse.originalDay] && data[draggedCourse.originalDay][draggedCourse.originalTime]) {
                 const courses = data[draggedCourse.originalDay][draggedCourse.originalTime];
-                const courseIndex = courses.findIndex(c => c.code === draggedCourse.courseCode);
+                let courseIndex = courses.findIndex(c =>
+                    c.code === draggedCourse.courseCode && c.room === draggedCourse.originalRoom
+                );
+                if (courseIndex < 0) {
+                    courseIndex = courses.findIndex(c => c.code === draggedCourse.courseCode);
+                }
 
                 if (courseIndex > -1) {
                     const course = courses.splice(courseIndex, 1)[0];
@@ -7376,6 +7368,8 @@
                         originalRoom: draggedCourse.originalRoom
                     });
 
+                    saveScheduleData();
+                    setScheduleDirty(true);
                     renderSchedule(quarter);
                     renderConflicts(quarter);
                     updateStats(quarter);
@@ -7395,7 +7389,7 @@
         function deleteCourse(courseCode, day, time, room, shiftKey) {
             if (shiftKey) {
                 // Shift+Click: Move to displaced tray
-                const data = scheduleData[document.getElementById('quarterSelect').value];
+                const data = scheduleData[window.StateManager?.get('currentQuarter') || 'spring'];
                 if (data[day] && data[day][time]) {
                     const courseIndex = data[day][time].findIndex(c => c.code === courseCode && c.room === room);
                     if (courseIndex > -1) {
@@ -7411,7 +7405,8 @@
                         });
                         data[day][time].splice(courseIndex, 1);
                         saveScheduleData(); // Persist changes
-                        renderSchedule(document.getElementById('quarterSelect').value);
+                        setScheduleDirty(true);
+                        renderSchedule(window.StateManager?.get('currentQuarter') || 'spring');
                         showToast(courseCode + ' moved to displaced tray');
                     }
                 }
@@ -7428,7 +7423,7 @@
             if (!courseToDelete) return;
 
             const { courseCode, day, time, room } = courseToDelete;
-            const quarter = document.getElementById('quarterSelect').value;
+            const quarter = window.StateManager?.get('currentQuarter') || 'spring';
             const data = scheduleData[quarter];
 
             if (data[day] && data[day][time]) {
@@ -7436,6 +7431,7 @@
                 if (courseIndex > -1) {
                     data[day][time].splice(courseIndex, 1);
                     saveScheduleData(); // Persist changes
+                    setScheduleDirty(true);
                     renderSchedule(quarter);
                     renderConflicts(quarter);
                     updateStats(quarter);
@@ -7468,13 +7464,13 @@
             // Load faculty from Supabase
             await loadFacultyFromSupabase();
         }
-        
+
         function toggleOnlineMode(isOnline) {
             const inPersonFields = document.getElementById('inPersonFields');
             const roomSelect = document.getElementById('addRoom');
             const startTime = document.getElementById('addStartTime');
             const endTime = document.getElementById('addEndTime');
-            
+
             if (isOnline) {
                 inPersonFields.style.display = 'none';
                 roomSelect.value = 'ONLINE';
@@ -7494,10 +7490,11 @@
 
         async function loadCoursesFromSupabase() {
             const select = document.getElementById('addCourseCode');
-            if (!supabase) return; // Keep hardcoded fallback if Supabase not configured
+            const client = getDatabaseClient();
+            if (!client) return; // Keep hardcoded fallback if Supabase not configured
 
             try {
-                const { data: courses, error } = await supabase
+                const { data: courses, error } = await client
                     .from('courses')
                     .select('code, title')
                     .order('code');
@@ -7524,10 +7521,11 @@
 
         async function loadFacultyFromSupabase() {
             const select = document.getElementById('addFaculty');
-            if (!supabase) return; // Keep hardcoded fallback if Supabase not configured
+            const client = getDatabaseClient();
+            if (!client) return; // Keep hardcoded fallback if Supabase not configured
 
             try {
-                const { data: faculty, error } = await supabase
+                const { data: faculty, error } = await client
                     .from('faculty')
                     .select('name')
                     .order('name');
@@ -7580,7 +7578,7 @@
         function handleAddCourseSubmit(e) {
             e.preventDefault();
 
-            const courseCode = document.getElementById('addCourseCode').value;
+            const courseCode = normalizeCourseCode(document.getElementById('addCourseCode').value);
             const courseName = document.getElementById('addCourseCode').options[document.getElementById('addCourseCode').selectedIndex].text.split(' - ')[1] || '';
             const section = document.getElementById('addSection').value;
             const credits = parseInt(document.getElementById('addCredits').value);
@@ -7588,11 +7586,11 @@
             const isOnline = document.getElementById('addOnlineSection').checked;
             const room = document.getElementById('addRoom').value;
 
-            const quarter = document.getElementById('quarterSelect').value;
+            const quarter = window.StateManager?.get('currentQuarter') || 'spring';
             const data = scheduleData[quarter];
 
             let dayPattern, timeSlot;
-            
+
             if (isOnline || room === 'ONLINE') {
                 dayPattern = 'ONLINE';
                 timeSlot = 'async';
@@ -7601,7 +7599,7 @@
                 const startTime = document.getElementById('addStartTime').value;
                 dayPattern = (days.includes('M') || days.includes('W')) ? 'MW' : 'TR';
                 timeSlot = startTime.replace(':', '') === '1000' ? '10:00-12:20' :
-                                startTime.replace(':', '') === '1300' ? '13:00-15:20' : '16:00-18:20';
+                    startTime.replace(':', '') === '1300' ? '13:00-15:20' : '16:00-18:20';
             }
 
             // Ensure structure exists
@@ -7619,6 +7617,7 @@
 
             closeAddCourseModal();
             saveScheduleData(); // Save to localStorage
+            setScheduleDirty(true);
             renderSchedule(quarter);
             renderConflicts(quarter);
             updateStats(quarter);
@@ -7635,11 +7634,29 @@
 
         function saveScheduleData() {
             try {
+                normalizeScheduleCourseCodes(scheduleData);
                 localStorage.setItem(getStorageKey(), JSON.stringify(scheduleData));
                 console.log('Schedule data saved for year:', currentAcademicYear);
             } catch (e) {
                 console.warn('Could not save schedule data:', e);
             }
+        }
+
+        function openWorkloadReviewFromScheduler() {
+            try {
+                saveScheduleData();
+            } catch (error) {
+                console.warn('Could not persist schedule before workload handoff:', error);
+            }
+
+            const navComponent = document.getElementById('mainQuarterNav');
+            const academicYear = navComponent ? navComponent.currentYear : (window.StateManager?.get('currentAcademicYear') || currentAcademicYear || '2025-26');
+            if (!academicYear) {
+                showToast('Could not determine academic year for workload review', 'critical');
+                return;
+            }
+
+            window.location.href = `pages/workload-dashboard.html?year=${encodeURIComponent(academicYear)}`;
         }
 
         function migrateTimeSlots(data) {
@@ -7649,7 +7666,7 @@
                 '16:00-18:00': '16:00-18:20'
             };
             let migrated = false;
-            
+
             for (const quarter of ['fall', 'winter', 'spring']) {
                 if (data[quarter]) {
                     for (const day of ['MW', 'TR']) {
@@ -7670,7 +7687,7 @@
                     }
                 }
             }
-            
+
             if (migrated) {
                 console.log('Migrated time slots to 2h 20min format');
             }
@@ -7684,8 +7701,18 @@
                 if (saved) {
                     let parsed = JSON.parse(saved);
                     parsed = migrateTimeSlots(parsed);
+                    parsed = normalizeScheduleCourseCodes(parsed);
+                    const hasCourses = (qData) => {
+                        if (!qData) return false;
+                        return Object.values(qData).some(dayData =>
+                            Object.values(dayData).some(timeData =>
+                                Array.isArray(timeData) && timeData.length > 0
+                            )
+                        );
+                    };
+
                     for (const quarter of ['fall', 'winter', 'spring']) {
-                        if (parsed[quarter]) {
+                        if (parsed[quarter] && hasCourses(parsed[quarter])) {
                             scheduleData[quarter] = parsed[quarter];
                         }
                     }
@@ -7730,12 +7757,15 @@
 
             // Load the new year's data (if any)
             const hasData = loadScheduleData(newYear);
+            syncDirtyStateForCurrentYear();
 
             // Update quarter tab labels
             updateQuarterTabLabels(newYear);
 
             // Re-render current quarter
-            const quarter = document.getElementById('quarterSelect').value;
+            const navComponent = document.getElementById('mainQuarterNav');
+            const quarter = navComponent ? navComponent.currentQuarter : (window.StateManager?.get('currentQuarter') || 'spring');
+
             renderSchedule(quarter);
             renderConflicts(quarter);
             updateStats(quarter);
@@ -7749,33 +7779,14 @@
 
         function updateQuarterTabLabels(year) {
             const [startYear, endYear] = year.split('-');
-            const fullStartYear = '20' + startYear;
-            const fullEndYear = '20' + endYear;
-
-            document.querySelectorAll('.quarter-tab').forEach(tab => {
-                const quarter = tab.dataset.quarter;
-                const yearSpan = tab.querySelector('.tab-year');
-                if (yearSpan) {
-                    if (quarter === 'fall') {
-                        yearSpan.textContent = fullStartYear;
-                    } else {
-                        yearSpan.textContent = fullEndYear;
-                    }
-                }
-            });
-
-            // Update hidden select options
-            const quarterSelect = document.getElementById('quarterSelect');
-            if (quarterSelect) {
-                quarterSelect.options[0].text = 'Fall ' + fullStartYear;
-                quarterSelect.options[1].text = 'Winter ' + fullEndYear;
-                quarterSelect.options[2].text = 'Spring ' + fullEndYear;
-            }
+            const fullStartYear = startYear.length === 4 ? startYear : '20' + startYear;
+            const fullEndYear = endYear.length === 4 ? endYear : '20' + endYear;
 
             // Update schedule grid title
             const quarterTitle = document.getElementById('quarterTitle');
             if (quarterTitle) {
-                const currentQuarter = document.getElementById('quarterSelect').value;
+                const navComponent = document.getElementById('mainQuarterNav');
+                const currentQuarter = navComponent ? navComponent.currentQuarter : window.StateManager?.get('currentQuarter') || 'spring';
                 const qYear = currentQuarter === 'fall' ? fullStartYear : fullEndYear;
                 quarterTitle.textContent = currentQuarter.charAt(0).toUpperCase() + currentQuarter.slice(1) + ' ' + qYear;
             }
@@ -7893,7 +7904,7 @@
         // Custom faculty storage
         let customFaculty = JSON.parse(localStorage.getItem('customFaculty') || '[]');
         let pendingFacultySelectId = null;
-        
+
         // Default faculty roster
         const defaultFaculty = {
             'Professors': [
@@ -7911,20 +7922,20 @@
                 { name: 'J.Braukmann', rank: 'Adjunct' }
             ]
         };
-        
+
         function rebuildFacultyDropdowns() {
             const selects = [
                 document.getElementById('addFaculty'),
                 document.getElementById('editFaculty')
             ];
-            
+
             selects.forEach(select => {
                 if (!select) return;
                 const currentValue = select.value;
-                
+
                 // Clear and rebuild
                 select.innerHTML = '<option value="">Select Instructor...</option>';
-                
+
                 // Add default faculty by rank
                 Object.entries(defaultFaculty).forEach(([groupLabel, members]) => {
                     const optgroup = document.createElement('optgroup');
@@ -7937,7 +7948,7 @@
                     });
                     select.appendChild(optgroup);
                 });
-                
+
                 // Add custom faculty if any
                 if (customFaculty.length > 0) {
                     const customGroup = document.createElement('optgroup');
@@ -7950,25 +7961,25 @@
                     });
                     select.appendChild(customGroup);
                 }
-                
+
                 // Add TBD and Add New options
                 const tbdOpt = document.createElement('option');
                 tbdOpt.value = 'TBD';
                 tbdOpt.textContent = 'TBD';
                 select.appendChild(tbdOpt);
-                
+
                 const addNewOpt = document.createElement('option');
                 addNewOpt.value = '__add_new__';
                 addNewOpt.textContent = '+ Add New Faculty...';
                 select.appendChild(addNewOpt);
-                
+
                 // Restore selection if possible
                 if (currentValue) {
                     select.value = currentValue;
                 }
             });
         }
-        
+
         function handleFacultySelectChange(selectId) {
             const select = document.getElementById(selectId);
             if (select.value === '__add_new__') {
@@ -7977,42 +7988,42 @@
                 openAddFacultyModal();
             }
         }
-        
+
         function openAddFacultyModal() {
             document.getElementById('addFacultyForm').reset();
             document.getElementById('addFacultyModal').classList.add('active');
         }
-        
+
         function closeAddFacultyModal() {
             document.getElementById('addFacultyModal').classList.remove('active');
             pendingFacultySelectId = null;
         }
-        
+
         function handleAddFacultySubmit(e) {
             e.preventDefault();
-            
+
             const name = document.getElementById('newFacultyName').value.trim();
             const rank = document.getElementById('newFacultyRank').value;
-            
+
             if (!name || !rank) {
                 showToast('Please fill in all fields', 'error');
                 return;
             }
-            
+
             // Check for duplicates
             const allFaculty = [...Object.values(defaultFaculty).flat(), ...customFaculty];
             if (allFaculty.some(f => f.name.toLowerCase() === name.toLowerCase())) {
                 showToast('Faculty member already exists', 'error');
                 return;
             }
-            
+
             // Add to custom faculty
             customFaculty.push({ name, rank });
             localStorage.setItem('customFaculty', JSON.stringify(customFaculty));
-            
+
             // Rebuild dropdowns
             rebuildFacultyDropdowns();
-            
+
             // Select the new faculty in the pending dropdown
             if (pendingFacultySelectId) {
                 const select = document.getElementById(pendingFacultySelectId);
@@ -8020,7 +8031,7 @@
                     select.value = name;
                 }
             }
-            
+
             closeAddFacultyModal();
             showToast('Faculty member added: ' + name);
         }
@@ -8028,13 +8039,13 @@
         async function init() {
             await loadEnrollmentData();
             await loadFacultyData();
-            
+
             // Initialize custom faculty from localStorage
             customFaculty = JSON.parse(localStorage.getItem('customFaculty') || '[]');
-            
+
             // Rebuild faculty dropdowns with current roster
             rebuildFacultyDropdowns();
-            
+
             // Add change handlers to faculty selects
             document.getElementById('addFaculty')?.addEventListener('change', () => handleFacultySelectChange('addFaculty'));
             document.getElementById('editFaculty')?.addEventListener('change', () => handleFacultySelectChange('editFaculty'));
@@ -8054,19 +8065,19 @@
                 console.log('ScheduleManager initialized');
             }
 
-            // Load displaced courses from localStorage
             // Attach tray listeners once; tray cards are rendered dynamically.
             setupDisplacedTrayInteractions();
 
             // Keep swap/displace mode reactive without relying on inline handlers.
             document.getElementById('swapModeToggle')?.addEventListener('change', updateSwapModeLabels);
 
+            // Load displaced courses from localStorage
             loadDisplacedCourses();
 
             // Load swap mode preference
             loadSwapMode();
-
             syncDirtyStateForCurrentYear();
+
             const initialQuarter = (window.StateManager && window.StateManager.get('currentQuarter')) || 'spring';
 
             // Dispatch a quarter-change event to sync UI headers and render the schedule
@@ -8118,6 +8129,7 @@
             updateSaveDbButtonState,
             setScheduleDirty,
             saveScheduleData,
+            openWorkloadReviewFromScheduler,
             saveScheduleToDatabase
         });
 
@@ -8169,7 +8181,8 @@
                     <div class="form-input-group">
                         <div class="form-group">
                             <label class="form-label">Course Code</label>
-                            <input type="text" id="editCourseCode" class="form-input" readonly style="background: #f3f4f6;">
+                            <input type="text" id="editCourseCode" class="form-input" readonly
+                                style="background: #f3f4f6;">
                         </div>
 
                         <div class="form-group">
@@ -8328,7 +8341,8 @@
 
                         <div class="form-group">
                             <label for="addCredits" class="form-label">Credits</label>
-                            <input type="number" id="addCredits" class="form-input" value="5" min="1" max="15" step="1" required>
+                            <input type="number" id="addCredits" class="form-input" value="5" min="1" max="15" step="1"
+                                required>
                         </div>
                     </div>
 
@@ -8356,7 +8370,8 @@
                     </div>
 
                     <div class="form-group">
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; background: #f0fdf4; border-radius: 6px; border: 1px solid #86efac;">
+                        <label
+                            style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; background: #f0fdf4; border-radius: 6px; border: 1px solid #86efac;">
                             <input type="checkbox" id="addOnlineSection" onchange="toggleOnlineMode(this.checked)">
                             <span style="font-weight: 500; color: #166534;">Online/Async Section</span>
                         </label>
@@ -8384,40 +8399,40 @@
                             </div>
                         </div>
 
-                    <div class="form-input-group">
-                        <div class="form-group">
-                            <label for="addStartTime" class="form-label">Start Time</label>
-                            <select id="addStartTime" class="form-select" required>
-                                <option value="10:00">10:00 AM</option>
-                                <option value="13:00">1:00 PM</option>
-                                <option value="16:00">4:00 PM</option>
-                            </select>
+                        <div class="form-input-group">
+                            <div class="form-group">
+                                <label for="addStartTime" class="form-label">Start Time</label>
+                                <select id="addStartTime" class="form-select" required>
+                                    <option value="10:00">10:00 AM</option>
+                                    <option value="13:00">1:00 PM</option>
+                                    <option value="16:00">4:00 PM</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="addEndTime" class="form-label">End Time</label>
+                                <select id="addEndTime" class="form-select" required>
+                                    <option value="12:00">12:00 PM</option>
+                                    <option value="15:00">3:00 PM</option>
+                                    <option value="18:00">6:00 PM</option>
+                                </select>
+                            </div>
                         </div>
 
                         <div class="form-group">
-                            <label for="addEndTime" class="form-label">End Time</label>
-                            <select id="addEndTime" class="form-select" required>
-                                <option value="12:00">12:00 PM</option>
-                                <option value="15:00">3:00 PM</option>
-                                <option value="18:00">6:00 PM</option>
+                            <label for="addRoom" class="form-label">Room</label>
+                            <select id="addRoom" class="form-select" required>
+                                <option value="">Select Room...</option>
+                                <option value="206">206 - UX Lab</option>
+                                <option value="207">207 - Media Lab</option>
+                                <option value="209">209 - Mac Lab</option>
+                                <option value="210">210 - Mac Lab</option>
+                                <option value="212">212 - Project Lab</option>
+                                <option value="CEB 102">CEB 102</option>
+                                <option value="CEB 104">CEB 104</option>
+                                <option value="ONLINE">Online / Async</option>
                             </select>
                         </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="addRoom" class="form-label">Room</label>
-                        <select id="addRoom" class="form-select" required>
-                            <option value="">Select Room...</option>
-                            <option value="206">206 - UX Lab</option>
-                            <option value="207">207 - Media Lab</option>
-                            <option value="209">209 - Mac Lab</option>
-                            <option value="210">210 - Mac Lab</option>
-                            <option value="212">212 - Project Lab</option>
-                            <option value="CEB 102">CEB 102</option>
-                            <option value="CEB 104">CEB 104</option>
-                            <option value="ONLINE">Online / Async</option>
-                        </select>
-                    </div>
                     </div>
                 </div>
 
@@ -8481,7 +8496,8 @@
                     <div class="form-group">
                         <label for="newFacultyName" class="form-label">Name (First Initial.LastName)</label>
                         <input type="text" id="newFacultyName" class="form-input" placeholder="e.g., J.Smith" required>
-                        <small style="color: #6b7280; font-size: 0.85em;">Format: First initial + period + last name</small>
+                        <small style="color: #6b7280; font-size: 0.85em;">Format: First initial + period + last
+                            name</small>
                     </div>
                     <div class="form-group">
                         <label for="newFacultyRank" class="form-label">Rank</label>
@@ -8509,7 +8525,8 @@
                 <button class="modal-close" onclick="closeConstraintsModal()">&times;</button>
             </div>
             <div class="modal-body" id="constraintsContent" style="max-height: 500px; overflow-y: auto;">
-                <p style="color: #6b7280; margin-bottom: 16px;">Toggle rules on/off to customize conflict detection. Changes are saved automatically.</p>
+                <p style="color: #6b7280; margin-bottom: 16px;">Toggle rules on/off to customize conflict detection.
+                    Changes are saved automatically.</p>
                 <div id="constraintsList">
                     <!-- Populated by JavaScript -->
                     <div style="text-align: center; padding: 20px; color: #6b7280;">Loading constraints...</div>
@@ -8517,7 +8534,8 @@
             </div>
             <div class="modal-actions">
                 <button class="btn-secondary" onclick="closeConstraintsModal()">Close</button>
-                <a href="https://supabase.com/dashboard" target="_blank" class="btn-secondary" style="text-decoration: none;">+ Add Rule in Supabase</a>
+                <a href="https://supabase.com/dashboard" target="_blank" class="btn-secondary"
+                    style="text-decoration: none;">+ Add Rule in Supabase</a>
             </div>
         </div>
     </div>
@@ -8540,14 +8558,20 @@
                 <div class="form-group">
                     <label for="apiKeyInput">API Key</label>
                     <div style="display: flex; gap: 8px;">
-                        <input type="password" id="apiKeyInput" placeholder="sk-... or sk-ant-..." style="flex: 1; font-family: monospace;">
+                        <input type="password" id="apiKeyInput" placeholder="sk-... or sk-ant-..."
+                            style="flex: 1; font-family: monospace;">
                         <button class="btn-secondary" onclick="toggleApiKeyVisibility()">👁️</button>
                     </div>
-                    <p style="font-size: 12px; color: #6b7280; margin-top: 8px;">Use either <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI API keys</a> or <a href="https://console.anthropic.com/settings/keys" target="_blank">Anthropic API keys</a>.</p>
+                    <p style="font-size: 12px; color: #6b7280; margin-top: 8px;">Use either <a
+                            href="https://platform.openai.com/api-keys" target="_blank">OpenAI API keys</a> or <a
+                            href="https://console.anthropic.com/settings/keys" target="_blank">Anthropic API keys</a>.
+                    </p>
                 </div>
                 <div class="api-provider-type">
-                    <label><input type="checkbox" id="providerOpenAI" onchange="toggleApiProviderType('openai')">Use OpenAI key</label>
-                    <label><input type="checkbox" id="providerClaude" onchange="toggleApiProviderType('anthropic')">Use Claude (Anthropic) key</label>
+                    <label><input type="checkbox" id="providerOpenAI" onchange="toggleApiProviderType('openai')">Use
+                        OpenAI key</label>
+                    <label><input type="checkbox" id="providerClaude" onchange="toggleApiProviderType('anthropic')">Use
+                        Claude (Anthropic) key</label>
                     <p class="api-provider-note">If neither is checked, the app auto-detects key type from prefix.</p>
                 </div>
                 <div class="api-model-group">
@@ -8562,7 +8586,8 @@
             </div>
             <div class="modal-actions">
                 <button class="btn-secondary" onclick="closeApiSettingsModal()">Close</button>
-                <button class="btn-secondary" style="background: #ef4444; color: white; border: none;" onclick="clearApiKey()">Clear Key</button>
+                <button class="btn-secondary" style="background: #ef4444; color: white; border: none;"
+                    onclick="clearApiKey()">Clear Key</button>
                 <button class="btn-secondary" onclick="testApiConnection()">Test Connection</button>
                 <button class="btn-primary" onclick="saveApiKey()">Save</button>
             </div>
@@ -8581,11 +8606,13 @@
                 <div style="display: flex; flex-direction: column; gap: 12px;">
                     <button class="btn-primary" onclick="printSchedule('current')" style="padding: 12px 16px;">
                         Print Current Quarter Only
-                        <span style="display: block; font-size: 12px; opacity: 0.8; margin-top: 4px;" id="printCurrentLabel"></span>
+                        <span style="display: block; font-size: 12px; opacity: 0.8; margin-top: 4px;"
+                            id="printCurrentLabel"></span>
                     </button>
                     <button class="btn-secondary" onclick="printSchedule('all')" style="padding: 12px 16px;">
                         Print All Three Quarters
-                        <span style="display: block; font-size: 12px; opacity: 0.8; margin-top: 4px;">Fall, Winter, Spring</span>
+                        <span style="display: block; font-size: 12px; opacity: 0.8; margin-top: 4px;">Fall, Winter,
+                            Spring</span>
                     </button>
                 </div>
             </div>
@@ -8634,10 +8661,12 @@
             transform: translateX(100%);
             transition: transform 0.3s ease-in-out;
         }
+
         .results-panel.active {
             transform: translateX(0);
             display: flex;
         }
+
         .results-panel-header {
             display: flex;
             justify-content: space-between;
@@ -8646,22 +8675,27 @@
             background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
             color: white;
         }
+
         .results-panel-header h3 {
             margin: 0;
             font-size: 16px;
         }
+
         .results-panel-header .modal-close {
             color: white;
             font-size: 28px;
         }
+
         .results-panel-header .modal-close:hover {
-            color: rgba(255,255,255,0.8);
+            color: rgba(255, 255, 255, 0.8);
         }
+
         .results-panel-content {
             flex: 1;
             overflow-y: auto;
             padding: 20px;
         }
+
         .results-panel-loading {
             flex: 1;
             display: flex;
@@ -8671,6 +8705,7 @@
             gap: 16px;
             color: #6b7280;
         }
+
         .conflict-item {
             background: #fef2f2;
             border: 1px solid #fecaca;
@@ -8679,42 +8714,50 @@
             padding: 12px;
             margin-bottom: 12px;
         }
+
         .conflict-item.warning {
             background: #fffbeb;
             border-color: #fde68a;
             border-left-color: #f59e0b;
         }
+
         .conflict-item.info {
             background: #eff6ff;
             border-color: #bfdbfe;
             border-left-color: #3b82f6;
         }
+
         .conflict-item h4 {
             margin: 0 0 8px;
             font-size: 14px;
             color: #1f2937;
         }
+
         .conflict-item p {
             margin: 0;
             font-size: 13px;
             color: #4b5563;
         }
+
         .conflict-suggestion {
             margin-top: 8px;
             padding: 8px;
-            background: rgba(255,255,255,0.7);
+            background: rgba(255, 255, 255, 0.7);
             border-radius: 4px;
             font-size: 12px;
         }
+
         .no-conflicts {
             text-align: center;
             padding: 40px 20px;
             color: #10b981;
         }
+
         .no-conflicts .icon {
             font-size: 48px;
             margin-bottom: 12px;
         }
+
         .health-score {
             text-align: center;
             padding: 20px;
@@ -8722,6 +8765,7 @@
             background: #f9fafb;
             border-radius: 12px;
         }
+
         .health-score-circle {
             width: 80px;
             height: 80px;
@@ -8734,9 +8778,21 @@
             font-size: 24px;
             font-weight: 700;
         }
-        .health-score-circle.good { border-color: #10b981; color: #10b981; }
-        .health-score-circle.medium { border-color: #f59e0b; color: #f59e0b; }
-        .health-score-circle.poor { border-color: #ef4444; color: #ef4444; }
+
+        .health-score-circle.good {
+            border-color: #10b981;
+            color: #10b981;
+        }
+
+        .health-score-circle.medium {
+            border-color: #f59e0b;
+            color: #f59e0b;
+        }
+
+        .health-score-circle.poor {
+            border-color: #ef4444;
+            color: #ef4444;
+        }
     </style>
 
     <!-- OpenAI Integration Scripts -->
@@ -8757,14 +8813,14 @@
             }
 
             showToast('Exporting to Google Sheets...');
-            
+
             try {
                 const exportData = {
                     fall: flattenQuarterData(scheduleData.fall || {}),
                     winter: flattenQuarterData(scheduleData.winter || {}),
                     spring: flattenQuarterData(scheduleData.spring || {})
                 };
-                
+
                 const response = await fetch('/api/export-to-sheets', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -8773,9 +8829,9 @@
                         academicYear: currentAcademicYear
                     })
                 });
-                
+
                 const result = await response.json();
-                
+
                 if (result.success) {
                     showToast('Exported! Opening spreadsheet...');
                     window.open(result.spreadsheetUrl, '_blank');
@@ -8787,17 +8843,17 @@
                 showToast('Export failed: ' + error.message, 'error');
             }
         }
-        
+
         function flattenQuarterData(quarterData) {
             const courses = [];
             for (const day of Object.keys(quarterData)) {
                 const dayData = quarterData[day];
                 if (!dayData || typeof dayData !== 'object') continue;
-                
+
                 for (const time of Object.keys(dayData)) {
                     const timeCourses = dayData[time];
                     if (!Array.isArray(timeCourses)) continue;
-                    
+
                     for (const course of timeCourses) {
                         courses.push({
                             ...course,
@@ -9107,6 +9163,13 @@
         }
 
         /**
+         * Legacy save entry point from header action.
+         */
+        function saveScheduleChanges() {
+            saveScheduleToDatabase();
+        }
+
+        /**
          * Get current schedule data from the grid
          */
         function getCurrentScheduleData() {
@@ -9151,13 +9214,6 @@
                 enabled: true,
                 constraint_type: 'ay_setup_alignment',
                 description: 'Academic Year Setup alignment for workload and adjunct targets',
-        /**
-         * Legacy save entry point from header action.
-         */
-        function saveScheduleChanges() {
-            saveScheduleToDatabase();
-        }
-
                 rule_details: {
                     annualOverloadWarning: 3,
                     annualOverloadCritical: 8,
@@ -9242,7 +9298,7 @@
             const content = document.getElementById('conflictResultsContent');
 
             // Get the currently selected quarter
-            const currentQuarter = document.getElementById('quarterSelect')?.value || 'spring';
+            const currentQuarter = window.StateManager?.get('currentQuarter') || 'spring';
             const [startYearPart, endYearPart] = String(currentAcademicYear || '2025-26').split('-');
             const quarterYear = currentQuarter === 'fall'
                 ? Number(startYearPart)
@@ -9419,9 +9475,9 @@
                                             <h5 style="color: #10b981; margin: 0 0 12px 0;">Resolution Options</h5>
                                             <p style="color: #94a3b8; font-size: 0.85em; margin-bottom: 12px;">Move one course to reduce the conflict:</p>
                                             ${c.resolutions.map((r, i) => {
-                                                const timeDisplay = r.time ? r.time.replace('10:00-12:20', '10:00 AM - 12:20 PM').replace('13:00-15:20', '1:00 - 3:20 PM').replace('16:00-18:20', '4:00 - 6:20 PM') : (r.target_slot || 'alternate time');
-                                                const dayDisplay = r.dayName || (r.target_slot ? (r.target_slot.startsWith('MW') ? 'Monday/Wednesday' : 'Tuesday/Thursday') : '');
-                                                return `
+                                const timeDisplay = r.time ? r.time.replace('10:00-12:20', '10:00 AM - 12:20 PM').replace('13:00-15:20', '1:00 - 3:20 PM').replace('16:00-18:20', '4:00 - 6:20 PM') : (r.target_slot || 'alternate time');
+                                const dayDisplay = r.dayName || (r.target_slot ? (r.target_slot.startsWith('MW') ? 'Monday/Wednesday' : 'Tuesday/Thursday') : '');
+                                return `
                                                 <div style="background: #1e293b; padding: 10px 12px; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid ${i < 2 ? '#10b981' : '#3b82f6'};">
                                                     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
                                                         ${i < 2 ? '<span style="color: #10b981;">✅</span>' : '<span style="color: #3b82f6;">📋</span>'}
@@ -9489,7 +9545,7 @@
 
                 // Graduation Pathway Analysis (using already-computed results)
                 if (hasPathwayIssues) {
-                        html += `
+                    html += `
                             <div style="margin-top: 24px; padding-top: 16px; border-top: 2px solid #334155;">
                                 <h4 style="color: #8b5cf6; margin: 0 0 8px; display: flex; align-items: center; gap: 8px;">
                                     🎓 Graduation Pathway Analysis
@@ -9498,10 +9554,10 @@
                                 <p style="color: #94a3b8; font-size: 0.85em; margin-bottom: 12px;">Analyzing course offerings against BDES degree requirements</p>
                         `;
 
-                        // Critical pathway issues
-                        if (pathwayResults.conflicts.length > 0) {
-                            html += `<h5 style="color: #ef4444; margin: 12px 0 8px;">🚨 Critical Pathway Issues</h5>`;
-                            html += pathwayResults.conflicts.map(c => `
+                    // Critical pathway issues
+                    if (pathwayResults.conflicts.length > 0) {
+                        html += `<h5 style="color: #ef4444; margin: 12px 0 8px;">🚨 Critical Pathway Issues</h5>`;
+                        html += pathwayResults.conflicts.map(c => `
                                 <div class="conflict-item" style="border-left-color: #ef4444;">
                                     <h4>🔴 ${c.title}</h4>
                                     <p>${c.description}</p>
@@ -9509,12 +9565,12 @@
                                     <div class="conflict-suggestion">💡 ${c.recommendation}</div>
                                 </div>
                             `).join('');
-                        }
+                    }
 
-                        // Pathway warnings
-                        if (pathwayResults.warnings.length > 0) {
-                            html += `<h5 style="color: #f59e0b; margin: 12px 0 8px;">⚠️ Pathway Warnings</h5>`;
-                            html += pathwayResults.warnings.slice(0, 5).map(w => `
+                    // Pathway warnings
+                    if (pathwayResults.warnings.length > 0) {
+                        html += `<h5 style="color: #f59e0b; margin: 12px 0 8px;">⚠️ Pathway Warnings</h5>`;
+                        html += pathwayResults.warnings.slice(0, 5).map(w => `
                                 <div class="conflict-item warning" style="border-left-color: ${w.type === 'pathway_conflict' ? '#f59e0b' : '#8b5cf6'};">
                                     <h4>${w.type === 'pathway_conflict' ? '🟡' : '📚'} ${w.title}</h4>
                                     <p>${w.description}</p>
@@ -9523,10 +9579,10 @@
                                 </div>
                             `).join('');
 
-                            if (pathwayResults.warnings.length > 5) {
-                                html += `<p style="color: #6b7280; font-size: 0.85em; margin-top: 8px;">+ ${pathwayResults.warnings.length - 5} more warnings</p>`;
-                            }
+                        if (pathwayResults.warnings.length > 5) {
+                            html += `<p style="color: #6b7280; font-size: 0.85em; margin-top: 8px;">+ ${pathwayResults.warnings.length - 5} more warnings</p>`;
                         }
+                    }
 
                     html += `</div>`;
                 }
@@ -10110,7 +10166,7 @@ RESPONSE FORMAT:
             renderMarkdownResponse(responseEl, '_Thinking..._');
 
             try {
-                const quarter = document.getElementById('quarterSelect').value;
+                const quarter = window.StateManager?.get('currentQuarter') || 'spring';
                 const prompt = buildSchedulerQuestionPrompt(question, quarter);
                 const model = aiService.getCurrentDefaultModel?.() || 'gpt-4o-mini';
                 const provider = aiService.getCurrentProvider?.();
@@ -10158,7 +10214,7 @@ RESPONSE FORMAT:
             content.style.display = 'none';
 
             try {
-                const quarter = document.getElementById('quarterSelect').value;
+                const quarter = window.StateManager?.get('currentQuarter') || 'spring';
                 const scheduleSnapshot = buildScheduleSnapshotForAI(quarter);
                 const prompt = ScheduleEvaluator.buildPrompt(scheduleSnapshot, {}, [], { quarter });
                 const model = aiService.getCurrentDefaultModel?.() || 'gpt-4o-mini';
@@ -10193,7 +10249,7 @@ RESPONSE FORMAT:
                             <div style="margin-bottom: 16px;">
                                 <h4 style="margin: 0 0 8px;">${section.icon} ${section.title} (${section.count})</h4>
                                 ${section.items.length === 0 ? '<p style="color: #6b7280; font-size: 13px;">No issues</p>' :
-                                section.items.map(item => `
+                            section.items.map(item => `
                                     <div class="conflict-item ${item.severity === 'critical' ? '' : item.severity === 'high' ? '' : 'warning'}">
                                         <h4>${item.title}</h4>
                                         <p>${item.description}</p>
@@ -10237,11 +10293,13 @@ RESPONSE FORMAT:
 
         function openPrintDialog() {
             const modal = document.getElementById('printModal');
-            const currentQuarter = document.getElementById('quarterSelect').value;
-            const quarterLabel = document.getElementById('quarterSelect').options[document.getElementById('quarterSelect').selectedIndex].text;
+            const currentQuarter = window.StateManager?.get('currentQuarter') || 'spring';
+            const quarterLabel = currentQuarter.charAt(0).toUpperCase() + currentQuarter.slice(1) + ' 2026';
             document.getElementById('printCurrentLabel').textContent = quarterLabel;
             modal.classList.add('active');
-            closeHeaderSettingsMenu();
+            if (typeof closeHeaderSettingsMenu === 'function') {
+                closeHeaderSettingsMenu();
+            }
         }
 
         function closePrintDialog() {
@@ -10250,21 +10308,21 @@ RESPONSE FORMAT:
 
         function printSchedule(mode) {
             closePrintDialog();
-            
-            const quarters = mode === 'all' 
-                ? ['fall', 'winter', 'spring'] 
-                : [document.getElementById('quarterSelect').value];
-            
+
+            const quarters = mode === 'all'
+                ? ['fall', 'winter', 'spring']
+                : [window.StateManager?.get('currentQuarter') || 'spring'];
+
             const quarterNames = {
                 fall: `Fall ${currentAcademicYear.split('-')[0]}`,
                 winter: `Winter ${currentAcademicYear.split('-')[1]}`,
                 spring: `Spring ${currentAcademicYear.split('-')[1]}`
             };
-            
+
             const rooms = ['206', '207', '209', '210', '212', 'CEB 102', 'CEB 104'];
             const timeSlots = ['10:00-12:20', '13:00-15:20', '16:00-18:20'];
             const timeLabels = ['10:00 AM - 12:20 PM', '1:00 PM - 3:20 PM', '4:00 PM - 6:20 PM'];
-            
+
             let content = '';
             quarters.forEach((quarter, qIdx) => {
                 const quarterData = scheduleData[quarter] || {};
@@ -10276,13 +10334,13 @@ RESPONSE FORMAT:
                             <div style="font-size: 12px; color: #666;">Printed: ${new Date().toLocaleDateString()}</div>
                         </div>
                 `;
-                
+
                 // MW Section
                 content += buildPrintSectionHTML('Monday / Wednesday', ['MW'], quarterData, rooms, timeSlots, timeLabels);
-                
+
                 // TR Section  
                 content += buildPrintSectionHTML('Tuesday / Thursday', ['TR'], quarterData, rooms, timeSlots, timeLabels);
-                
+
                 // Online Section
                 const onlineCourses = getOnlineCoursesForQuarter(quarterData);
                 if (onlineCourses.length > 0) {
@@ -10292,10 +10350,10 @@ RESPONSE FORMAT:
                     });
                     content += '</div>';
                 }
-                
+
                 content += '</div>';
             });
-            
+
             // Open print window
             const printWindow = window.open('', '_blank', 'width=1000,height=800');
             printWindow.document.write(`
@@ -10315,13 +10373,13 @@ RESPONSE FORMAT:
             printWindow.focus();
             setTimeout(() => printWindow.print(), 250);
         }
-        
+
         function buildPrintSectionHTML(title, dayPatterns, quarterData, rooms, timeSlots, timeLabels) {
             let html = `<div style="margin-bottom: 25px;"><h3 style="font-size: 14px; background: #e8e8e8; padding: 8px; margin: 0 0 5px 0;">${title}</h3>`;
             html += '<table style="border-collapse: collapse; width: 100%; font-size: 11px;"><thead><tr><th style="border: 1px solid #ccc; padding: 6px; background: #f0f0f0; text-align: left;">Time</th>';
             rooms.forEach(room => html += `<th style="border: 1px solid #ccc; padding: 6px; background: #f0f0f0; text-align: left;">${room}</th>`);
             html += '</tr></thead><tbody>';
-            
+
             timeSlots.forEach((slot, idx) => {
                 html += `<tr><td style="border: 1px solid #ccc; padding: 6px; font-weight: bold; background: #fafafa;">${timeLabels[idx]}</td>`;
                 rooms.forEach(room => {
@@ -10338,7 +10396,7 @@ RESPONSE FORMAT:
                 });
                 html += '</tr>';
             });
-            
+
             html += '</tbody></table></div>';
             return html;
         }
@@ -10367,4 +10425,5 @@ RESPONSE FORMAT:
         }
     </script>
 </body>
+
 </html>

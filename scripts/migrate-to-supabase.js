@@ -9,9 +9,9 @@
  * 3. Run: node scripts/migrate-to-supabase.js
  */
 
-const { createClient } = require('@supabase/supabase-js');
-const fs = require('fs');
-const path = require('path');
+import { createClient } from '@supabase/supabase-js';
+import fs from 'fs';
+import path from 'path';
 
 // ============================================
 // CONFIGURATION
@@ -31,7 +31,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 // ============================================
 
 function readJsonFile(relativePath) {
-    const fullPath = path.join(__dirname, '..', relativePath);
+    const fullPath = path.join(process.cwd(), '..', relativePath);
     try {
         const content = fs.readFileSync(fullPath, 'utf8');
         return JSON.parse(content);
