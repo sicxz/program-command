@@ -7,7 +7,12 @@ const ConflictEngine = (function() {
 
     // Available rooms for resolution calculations
     const ROOMS = ['206', '207', '208', '209', '210', '212'];
-    const TIME_SLOTS = ['10:00-12:00', '13:00-15:00', '16:00-18:00'];
+    const DEFAULT_TIME_SLOTS = ['10:00-12:20', '13:00-15:20', '16:00-18:20'];
+    const LEGACY_TIME_SLOT_ALIASES = {
+        '10:00-12:00': '10:00-12:20',
+        '13:00-15:00': '13:00-15:20',
+        '16:00-18:00': '16:00-18:20'
+    };
     const DAY_PATTERNS = ['MW', 'TR'];
     const AY_QUARTERS = ['fall', 'winter', 'spring'];
     const AY_QUARTER_LABELS = {
@@ -80,6 +85,119 @@ const ConflictEngine = (function() {
     function normalizeConstraintType(type) {
         const normalized = String(type || '').trim().toLowerCase();
         return CONSTRAINT_TYPE_ALIASES[normalized] || normalized;
+    }
+
+    function normalizeTimeSlotLabel(timeSlot) {
+        const raw = String(timeSlot || '').trim();
+        if (!raw) return '';
+        return LEGACY_TIME_SLOT_ALIASES[raw] || raw;
+    }
+
+    function getDayPatternLabel(dayPattern) {
+        return dayPattern === 'MW'
+            ? 'Monday/Wednesday'
+            : dayPattern === 'TR'
+                ? 'Tuesday/Thursday'
+                : dayPattern;
+    }
+
+    function sortTimeSlots(slots) {
+        const order = new Map(DEFAULT_TIME_SLOTS.map((slot, index) => [slot, index]));
+
+        return [...slots].sort((a, b) => {
+            const aOrder = order.has(a) ? order.get(a) : Number.MAX_SAFE_INTEGER;
+            const bOrder = order.has(b) ? order.get(b) : Number.MAX_SAFE_INTEGER;
+            if (aOrder !== bOrder) return aOrder - bOrder;
+            return String(a).localeCompare(String(b));
+        });
+    }
+
+    function resolveTimeSlotToValidLabel(timeSlot, validTimeSlots) {
+        const normalized = normalizeTimeSlotLabel(timeSlot);
+        if (!normalized) return '';
+
+        const slots = Array.isArray(validTimeSlots)
+            ? validTimeSlots.map(normalizeTimeSlotLabel).filter(Boolean)
+            : [];
+
+        if (slots.length === 0) return normalized;
+        if (slots.includes(normalized)) return normalized;
+
+        const startTime = normalized.split('-')[0];
+        const byStartTime = slots.find((slot) => slot.split('-')[0] === startTime);
+        return byStartTime || '';
+    }
+
+    function deriveResolutionTimeSlots(schedule, context = {}) {
+        const discovered = [];
+        const collect = (value) => {
+            const normalized = normalizeTimeSlotLabel(value);
+            if (normalized) discovered.push(normalized);
+        };
+
+        if (Array.isArray(context.timeSlots)) {
+            context.timeSlots.forEach(collect);
+        }
+        if (Array.isArray(context.availableTimeSlots)) {
+            context.availableTimeSlots.forEach(collect);
+        }
+
+        if (context.scheduleByQuarter && typeof context.scheduleByQuarter === 'object') {
+            AY_QUARTERS.forEach((quarter) => {
+                const courses = Array.isArray(context.scheduleByQuarter[quarter]) ? context.scheduleByQuarter[quarter] : [];
+                courses.forEach((course) => collect(course.time));
+            });
+        }
+
+        (Array.isArray(schedule) ? schedule : []).forEach((course) => collect(course.time));
+
+        return sortTimeSlots(new Set([...discovered, ...DEFAULT_TIME_SLOTS]));
+    }
+
+    function normalizePreferredResolutions(preferredResolutions, validTimeSlots) {
+        const normalized = [];
+
+        (Array.isArray(preferredResolutions) ? preferredResolutions : []).forEach((resolution) => {
+            if (!resolution || typeof resolution !== 'object') return;
+            if (!resolution.target_slot) {
+                normalized.push({ ...resolution });
+                return;
+            }
+
+            const rawTargetSlot = String(resolution.target_slot || '').trim();
+            const [dayPattern, ...timeParts] = rawTargetSlot.split(/\s+/);
+            const normalizedTime = resolveTimeSlotToValidLabel(timeParts.join(' '), validTimeSlots);
+            if (!dayPattern || !normalizedTime) return;
+
+            normalized.push({
+                ...resolution,
+                target_slot: `${dayPattern} ${normalizedTime}`,
+                time: normalizeTimeSlotLabel(resolution.time) || normalizedTime,
+                dayName: resolution.dayName || getDayPatternLabel(dayPattern)
+            });
+        });
+
+        return normalized;
+    }
+
+    function dedupeResolutions(resolutions) {
+        const seen = new Set();
+        const deduped = [];
+
+        (Array.isArray(resolutions) ? resolutions : []).forEach((resolution) => {
+            const key = [
+                resolution.action || '',
+                resolution.target_slot || '',
+                resolution.target_room || '',
+                resolution.time || ''
+            ].join('::');
+
+            if (seen.has(key)) return;
+            seen.add(key);
+            deduped.push(resolution);
+        });
+
+        return deduped;
     }
 
     function getIssueSeverityRank(severity) {
@@ -500,9 +618,10 @@ const ConflictEngine = (function() {
          * Student conflict - courses that students commonly take together at same time
          * Uses graduation pathway pairings to detect real conflicts
          */
-        student_conflict: function(schedule, rule, constraint) {
+        student_conflict: function(schedule, rule, constraint, context = {}) {
             const issues = [];
             const foundConflicts = new Set(); // Track reported conflicts to avoid duplicates
+            const validTimeSlots = deriveResolutionTimeSlots(schedule, context);
             
             // Group courses by day+time
             const slots = {};
@@ -535,7 +654,7 @@ const ConflictEngine = (function() {
                 // Report conflicts for this slot
                 if (conflictingPairs.length > 0) {
                     const [day, time] = key.split('-');
-                    const dayName = day === 'MW' ? 'Monday/Wednesday' : day === 'TR' ? 'Tuesday/Thursday' : day;
+                    const dayName = getDayPatternLabel(day);
                     const timeFormatted = formatTime(time);
                     
                     // Get all conflicting courses
@@ -550,9 +669,15 @@ const ConflictEngine = (function() {
                     const severity = has400Level ? 'critical' : (rule.severity || 'warning');
                     
                     // Calculate dynamic resolutions
-                    const dynamicResolutions = calculateSlotResolutions(schedule, conflictingCourses[0], day, time);
-                    const storedResolutions = rule.preferred_resolutions || [];
-                    const allResolutions = [...storedResolutions, ...dynamicResolutions].slice(0, 4);
+                    const dynamicResolutions = calculateSlotResolutions(
+                        schedule,
+                        conflictingCourses[0],
+                        day,
+                        time,
+                        { ...context, timeSlots: validTimeSlots }
+                    );
+                    const storedResolutions = normalizePreferredResolutions(rule.preferred_resolutions, validTimeSlots);
+                    const allResolutions = dedupeResolutions([...storedResolutions, ...dynamicResolutions]).slice(0, 4);
                     
                     // Create descriptive message
                     const pairDescriptions = conflictingPairs.map(([c1, c2]) => `${c1} and ${c2}`).join(', ');
@@ -577,7 +702,7 @@ const ConflictEngine = (function() {
         /**
          * Faculty double-booking - same instructor, same time, different rooms
          */
-        faculty_double_book: function(schedule, rule, constraint) {
+        faculty_double_book: function(schedule, rule, constraint, context = {}) {
             const issues = [];
             const slots = {};
 
@@ -599,7 +724,7 @@ const ConflictEngine = (function() {
                             description: `${courses[0].instructor} is scheduled to teach ${courses.map(c => c.code).join(' and ')} at the same time in different rooms`,
                             courses: courses,
                             suggestion: 'Reassign one course to a different instructor or time',
-                            resolutions: calculateTimeResolutions(schedule, courses[0])
+                            resolutions: calculateTimeResolutions(schedule, courses[0], context)
                         });
                     }
                 }
@@ -611,7 +736,7 @@ const ConflictEngine = (function() {
         /**
          * Room double-booking - multiple courses in same room at same time
          */
-        room_double_book: function(schedule, rule, constraint) {
+        room_double_book: function(schedule, rule, constraint, context = {}) {
             const issues = [];
             const slots = {};
 
@@ -724,20 +849,28 @@ const ConflictEngine = (function() {
     /**
      * Calculate available time slot resolutions for moving a course
      */
-    function calculateSlotResolutions(schedule, course, currentDay, currentTime) {
+    function calculateSlotResolutions(schedule, course, currentDay, currentTime, context = {}) {
         const resolutions = [];
+        const validTimeSlots = deriveResolutionTimeSlots(schedule, context);
+        const normalizedCurrentTime = resolveTimeSlotToValidLabel(currentTime, validTimeSlots)
+            || normalizeTimeSlotLabel(currentTime);
 
         DAY_PATTERNS.forEach(day => {
-            TIME_SLOTS.forEach(time => {
-                if (day === currentDay && time === currentTime) return;
+            validTimeSlots.forEach(time => {
+                if (day === currentDay && time === normalizedCurrentTime) return;
 
                 // Count courses in this slot
-                const coursesInSlot = schedule.filter(c => c.day === day && c.time === time);
+                const coursesInSlot = schedule.filter((c) => {
+                    if (c.day !== day) return false;
+                    const normalizedCourseTime = resolveTimeSlotToValidLabel(c.time, validTimeSlots)
+                        || normalizeTimeSlotLabel(c.time);
+                    return normalizedCourseTime === time;
+                });
                 const usedRooms = coursesInSlot.map(c => c.room);
                 const availableRooms = ROOMS.filter(r => !usedRooms.includes(r));
 
                 if (availableRooms.length >= 1) {
-                    const dayName = day === 'MW' ? 'Monday/Wednesday' : 'Tuesday/Thursday';
+                    const dayName = getDayPatternLabel(day);
                     resolutions.push({
                         action: 'move_course',
                         target_slot: `${day} ${time}`,
@@ -758,8 +891,8 @@ const ConflictEngine = (function() {
     /**
      * Calculate time-based resolutions for a course
      */
-    function calculateTimeResolutions(schedule, course) {
-        return calculateSlotResolutions(schedule, course, course.day, course.time).slice(0, 4);
+    function calculateTimeResolutions(schedule, course, context = {}) {
+        return calculateSlotResolutions(schedule, course, course.day, course.time, context).slice(0, 4);
     }
 
     /**

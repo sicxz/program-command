@@ -208,8 +208,8 @@ const ConstraintsService = (function() {
                     severity: 'critical',
                     message: 'Courses in the same graduation pathway are scheduled at the same time, preventing students from completing requirements',
                     preferred_resolutions: [
-                        { action: 'move_course', target_slot: 'MW 16:00-18:00', reason: 'Evening slot typically has capacity' },
-                        { action: 'move_course', target_slot: 'TR 16:00-18:00', reason: 'Evening slot alternative' }
+                        { action: 'move_course', target_slot: 'MW 16:00-18:20', reason: 'Evening slot typically has capacity' },
+                        { action: 'move_course', target_slot: 'TR 16:00-18:20', reason: 'Evening slot alternative' }
                     ]
                 },
                 enabled: true
