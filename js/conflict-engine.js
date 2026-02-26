@@ -653,7 +653,8 @@ const ConflictEngine = (function() {
                 
                 // Report conflicts for this slot
                 if (conflictingPairs.length > 0) {
-                    const [day, time] = key.split('-');
+                    const [day, ...timeParts] = key.split('-');
+                    const time = timeParts.join('-');
                     const dayName = getDayPatternLabel(day);
                     const timeFormatted = formatTime(time);
                     
