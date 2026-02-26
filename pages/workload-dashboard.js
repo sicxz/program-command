@@ -1757,10 +1757,30 @@ function buildWorkloadPlanningRows(yearData) {
         const target = Number(defaults.annualTargetCredits) || 0;
         const release = Number(defaults.releaseCredits) || 0;
         const netTarget = Math.max(0, target - release);
-        const ayUtilization = netTarget > 0 ? Number(((ayTotal / netTarget) * 100).toFixed(1)) : 0;
+        const ayUtilization = target > 0 ? Number(((ayTotal / target) * 100).toFixed(1)) : 0;
+        const ayUtilizationNet = netTarget > 0 ? Number(((ayTotal / netTarget) * 100).toFixed(1)) : 0;
         const gap = Number((netTarget - ayTotal).toFixed(2));
         const active = planRecord ? (planRecord.active !== false) : true;
         const chair = Boolean(defaults.isChair);
+        const releaseAllocations = Array.isArray(defaults.releaseAllocations) ? defaults.releaseAllocations : [];
+        const releaseSummary = summarizeWorkloadPlanReleaseAllocations(releaseAllocations);
+        const fallQuarterRelease = Number(releaseSummary.perQuarter.Fall || 0);
+        const winterQuarterRelease = Number(releaseSummary.perQuarter.Winter || 0);
+        const springQuarterRelease = Number(releaseSummary.perQuarter.Spring || 0);
+        const hasStructuredQuarterRelease = releaseSummary.rows.length > 0;
+        const hasAnyRelease = release > 0;
+        const fallUtilization = inferQuarterUtilization(fall, target);
+        const winterUtilization = inferQuarterUtilization(winter, target);
+        const springUtilization = inferQuarterUtilization(spring, target);
+        const fallUtilizationAdjusted = hasStructuredQuarterRelease
+            ? inferQuarterUtilizationWithRelease(fall, target, fallQuarterRelease, netTarget)
+            : inferQuarterUtilization(fall, netTarget);
+        const winterUtilizationAdjusted = hasStructuredQuarterRelease
+            ? inferQuarterUtilizationWithRelease(winter, target, winterQuarterRelease, netTarget)
+            : inferQuarterUtilization(winter, netTarget);
+        const springUtilizationAdjusted = hasStructuredQuarterRelease
+            ? inferQuarterUtilizationWithRelease(spring, target, springQuarterRelease, netTarget)
+            : inferQuarterUtilization(spring, netTarget);
 
         const row = {
             facultyName,
@@ -1778,9 +1798,15 @@ function buildWorkloadPlanningRows(yearData) {
             release,
             netTarget,
             ayUtilization,
-            fallUtilization: inferQuarterUtilization(fall, netTarget),
-            winterUtilization: inferQuarterUtilization(winter, netTarget),
-            springUtilization: inferQuarterUtilization(spring, netTarget),
+            ayUtilizationNet,
+            fallUtilization,
+            winterUtilization,
+            springUtilization,
+            fallUtilizationAdjusted,
+            winterUtilizationAdjusted,
+            springUtilizationAdjusted,
+            hasAnyRelease,
+            hasStructuredQuarterRelease,
             gap,
             notes: defaults.notes || '',
             releaseReason: defaults.releaseReason || ''
@@ -1825,6 +1851,16 @@ function renderWorkloadPlanningPanel(yearData) {
             const chairTag = row.chair ? '<span class="workload-plan-sub">Chair</span>' : '';
             const fallbackTag = row.hasAyPlan ? '' : '<span class="workload-plan-sub">Using fallback assumptions</span>';
             const releaseTag = row.releaseReason ? `<span class="workload-plan-sub">${escapeWorkloadPlanHtml(row.releaseReason)}</span>` : '';
+            const ayUtilSubtext = row.hasAnyRelease && Math.abs((Number(row.ayUtilizationNet) || 0) - (Number(row.ayUtilization) || 0)) > 0.05
+                ? `${formatWorkloadPlanNumber(row.ayUtilization)}% AY util · adj ${formatWorkloadPlanNumber(row.ayUtilizationNet)}%`
+                : `${formatWorkloadPlanNumber(row.ayUtilization)}% AY util`;
+            const quarterUtilSubtext = row.hasAnyRelease && (
+                Math.abs((Number(row.winterUtilizationAdjusted) || 0) - (Number(row.winterUtilization) || 0)) > 0.05 ||
+                Math.abs((Number(row.springUtilizationAdjusted) || 0) - (Number(row.springUtilization) || 0)) > 0.05 ||
+                Math.abs((Number(row.fallUtilizationAdjusted) || 0) - (Number(row.fallUtilization) || 0)) > 0.05
+            )
+                ? `Adj F ${formatWorkloadPlanNumber(row.fallUtilizationAdjusted)}% · W ${formatWorkloadPlanNumber(row.winterUtilizationAdjusted)}% · S ${formatWorkloadPlanNumber(row.springUtilizationAdjusted)}%`
+                : `W ${formatWorkloadPlanNumber(row.winterUtilization)}% · S ${formatWorkloadPlanNumber(row.springUtilization)}%`;
             return `${groupRowHtml}
                 <tr data-faculty-name="${escapeWorkloadPlanHtml(row.facultyName)}">
                     <td class="name">
@@ -1839,7 +1875,7 @@ function renderWorkloadPlanningPanel(yearData) {
                     <td class="num">${formatWorkloadPlanNumber(row.spring)}</td>
                     <td class="num">
                         ${formatWorkloadPlanNumber(row.ayTotal)}
-                        <span class="workload-plan-sub">${formatWorkloadPlanNumber(row.ayUtilization)}% AY util</span>
+                        <span class="workload-plan-sub">${ayUtilSubtext}</span>
                     </td>
                     <td class="num">${formatWorkloadPlanNumber(row.target)}</td>
                     <td class="num">
@@ -1849,7 +1885,7 @@ function renderWorkloadPlanningPanel(yearData) {
                     <td class="num">${formatWorkloadPlanNumber(row.netTarget)}</td>
                     <td class="num">
                         F ${formatWorkloadPlanNumber(row.fallUtilization)}%
-                        <span class="workload-plan-sub">W ${formatWorkloadPlanNumber(row.winterUtilization)}% · S ${formatWorkloadPlanNumber(row.springUtilization)}%</span>
+                        <span class="workload-plan-sub">${quarterUtilSubtext}</span>
                     </td>
                     <td class="num">${escapeWorkloadPlanHtml(getPlanningGapLabel(row.gap))}</td>
                     <td>
@@ -1953,7 +1989,7 @@ function renderWorkloadPlanningPanel(yearData) {
                 <tbody>${tableRowsHtml}</tbody>
             </table>
         </div>
-        <p class="workload-plan-note">Quarter utilization uses a provisional denominator of one-third of the AY net target. Update AY plan records (role/chair/release/target) to replace fallback assumptions before final exports.</p>
+        <p class="workload-plan-note">Quarter and AY utilization percentages are shown against the baseline annual target. Release/assigned-time impact is shown in the Release + Net Target columns, and adjusted utilization is shown as a secondary note when it differs.</p>
     `;
 }
 
@@ -2054,32 +2090,43 @@ function updateWorkloadPlanDerivedPreview() {
     const ayTotal = Number(baseRow?.ayTotal) || 0;
     const releaseAllocations = Array.isArray(values.releaseAllocations) ? values.releaseAllocations : [];
     const releaseSummary = summarizeWorkloadPlanReleaseAllocations(releaseAllocations);
-    const net = Math.max(0, (Number(values.annualTargetCredits) || 0) - (Number(values.releaseCredits) || 0));
-    const ayUtil = net > 0 ? (ayTotal / net) * 100 : 0;
     const annualTarget = Number(values.annualTargetCredits) || 0;
+    const net = Math.max(0, (Number(values.annualTargetCredits) || 0) - (Number(values.releaseCredits) || 0));
+    const ayUtil = annualTarget > 0 ? (ayTotal / annualTarget) * 100 : 0;
+    const ayUtilAdjusted = net > 0 ? (ayTotal / net) * 100 : 0;
     const fallRelease = Number(releaseSummary.perQuarter.Fall || 0);
     const winterRelease = Number(releaseSummary.perQuarter.Winter || 0);
     const springRelease = Number(releaseSummary.perQuarter.Spring || 0);
-    const fallUtil = releaseSummary.rows.length > 0
+    const hasRelease = Number(values.releaseCredits) > 0;
+    const fallUtil = inferQuarterUtilization(fall, annualTarget);
+    const winterUtil = inferQuarterUtilization(winter, annualTarget);
+    const springUtil = inferQuarterUtilization(spring, annualTarget);
+    const fallUtilAdjusted = releaseSummary.rows.length > 0
         ? inferQuarterUtilizationWithRelease(fall, annualTarget, fallRelease, net)
         : inferQuarterUtilization(fall, net);
-    const winterUtil = releaseSummary.rows.length > 0
+    const winterUtilAdjusted = releaseSummary.rows.length > 0
         ? inferQuarterUtilizationWithRelease(winter, annualTarget, winterRelease, net)
         : inferQuarterUtilization(winter, net);
-    const springUtil = releaseSummary.rows.length > 0
+    const springUtilAdjusted = releaseSummary.rows.length > 0
         ? inferQuarterUtilizationWithRelease(spring, annualTarget, springRelease, net)
         : inferQuarterUtilization(spring, net);
 
-    const quarterWithReleaseText = (workload, util, quarterRelease) => {
+    const quarterWithReleaseText = (workload, util, utilAdjusted, quarterRelease) => {
         const base = `${formatWorkloadPlanNumber(workload)} (${formatWorkloadPlanNumber(util)}%)`;
-        if (releaseSummary.rows.length <= 0) return base;
-        return `${base} · rel ${formatWorkloadPlanNumber(quarterRelease, 2)}`;
+        if (!hasRelease) return base;
+        const adjustedDiffers = Math.abs((Number(utilAdjusted) || 0) - (Number(util) || 0)) > 0.05;
+        const releasePart = releaseSummary.rows.length > 0 ? ` · rel ${formatWorkloadPlanNumber(quarterRelease, 2)}` : '';
+        const adjustedPart = adjustedDiffers ? ` · adj ${formatWorkloadPlanNumber(utilAdjusted)}%` : '';
+        return `${base}${releasePart}${adjustedPart}`;
     };
 
-    overlay.querySelector('#workloadPlanDerivedFall').textContent = quarterWithReleaseText(fall, fallUtil, fallRelease);
-    overlay.querySelector('#workloadPlanDerivedWinter').textContent = quarterWithReleaseText(winter, winterUtil, winterRelease);
-    overlay.querySelector('#workloadPlanDerivedSpring').textContent = quarterWithReleaseText(spring, springUtil, springRelease);
-    overlay.querySelector('#workloadPlanDerivedAy').textContent = `${formatWorkloadPlanNumber(ayTotal)} (${formatWorkloadPlanNumber(ayUtil)}%)`;
+    overlay.querySelector('#workloadPlanDerivedFall').textContent = quarterWithReleaseText(fall, fallUtil, fallUtilAdjusted, fallRelease);
+    overlay.querySelector('#workloadPlanDerivedWinter').textContent = quarterWithReleaseText(winter, winterUtil, winterUtilAdjusted, winterRelease);
+    overlay.querySelector('#workloadPlanDerivedSpring').textContent = quarterWithReleaseText(spring, springUtil, springUtilAdjusted, springRelease);
+    const ayAdjustedPart = hasRelease && Math.abs((Number(ayUtilAdjusted) || 0) - (Number(ayUtil) || 0)) > 0.05
+        ? ` · adj ${formatWorkloadPlanNumber(ayUtilAdjusted)}%`
+        : '';
+    overlay.querySelector('#workloadPlanDerivedAy').textContent = `${formatWorkloadPlanNumber(ayTotal)} (${formatWorkloadPlanNumber(ayUtil)}%)${ayAdjustedPart}`;
 }
 
 function handleWorkloadPlanChairToggle(event) {
