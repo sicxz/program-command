@@ -43,7 +43,25 @@
         },
         scheduler: {
             storageKeyPrefix: 'designSchedulerData_',
-            allowedRooms: ['206', '207', '209', '210', '212', 'CEB 102', 'CEB 104']
+            allowedRooms: ['206', '207', '209', '210', '212', 'CEB 102', 'CEB 104'],
+            dayPatterns: [
+                { id: 'MW', label: 'Monday / Wednesday', aliases: ['MW', 'WM'] },
+                { id: 'TR', label: 'Tuesday / Thursday', aliases: ['TR', 'RT', 'TH', 'TTH'] }
+            ],
+            timeSlots: [
+                { id: '10:00-12:20', label: '10:00-12:20', aliases: ['10:00-12:00'], startMinutes: 600, endMinutes: 740 },
+                { id: '13:00-15:20', label: '13:00-15:20', aliases: ['13:00-15:00'], startMinutes: 780, endMinutes: 920 },
+                { id: '16:00-18:20', label: '16:00-18:20', aliases: ['16:00-18:00'], startMinutes: 960, endMinutes: 1100 }
+            ],
+            roomLabels: {
+                '206': '206 UX Lab',
+                '207': '207 Media Lab',
+                '209': '209 Mac Lab',
+                '210': '210 Mac Lab',
+                '212': '212 Project Lab',
+                'CEB 102': 'CEB 102',
+                'CEB 104': 'CEB 104'
+            }
         },
         workload: {
             dashboardTitle: 'Faculty Workload Dashboard',
@@ -66,7 +84,9 @@
                     'course+section+instructor+quarter',
                     'course+quarter+instructor',
                     'course+quarter'
-                ]
+                ],
+                facultyAliases: {},
+                courseAliases: {}
             }
         }
     });
@@ -183,8 +203,28 @@
             .map((room) => String(room || '').trim())
             .filter(Boolean);
 
+        if (!Array.isArray(merged.scheduler.dayPatterns) || merged.scheduler.dayPatterns.length === 0) {
+            merged.scheduler.dayPatterns = DEFAULT_PROFILE.scheduler.dayPatterns.slice();
+        }
+
+        if (!Array.isArray(merged.scheduler.timeSlots) || merged.scheduler.timeSlots.length === 0) {
+            merged.scheduler.timeSlots = DEFAULT_PROFILE.scheduler.timeSlots.slice();
+        }
+
+        if (!isObject(merged.scheduler.roomLabels)) {
+            merged.scheduler.roomLabels = { ...DEFAULT_PROFILE.scheduler.roomLabels };
+        }
+
         if (!Array.isArray(merged.import.clss.roomMatchPriority)) {
             merged.import.clss.roomMatchPriority = merged.scheduler.allowedRooms.slice();
+        }
+
+        if (!isObject(merged.import.clss.facultyAliases)) {
+            merged.import.clss.facultyAliases = {};
+        }
+
+        if (!isObject(merged.import.clss.courseAliases)) {
+            merged.import.clss.courseAliases = {};
         }
 
         return merged;

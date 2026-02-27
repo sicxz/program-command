@@ -4589,6 +4589,269 @@
         const AY_SETUP_STORAGE_KEY = 'programCommandAySetup';
         let activeDepartmentProfile = null;
         let scheduleStorageKeyPrefix = 'designSchedulerData_';
+        const DEFAULT_CLSS_IMPORT_MATCHING_ORDER = [
+            'course+section+instructor+quarter',
+            'course+quarter+instructor',
+            'course+quarter'
+        ];
+        const DEFAULT_SCHEDULER_DAY_PATTERNS = [
+            { id: 'MW', label: 'Monday / Wednesday', aliases: ['MW', 'WM'] },
+            { id: 'TR', label: 'Tuesday / Thursday', aliases: ['TR', 'RT', 'TH', 'TTH'] }
+        ];
+        const DEFAULT_SCHEDULER_TIME_SLOTS = [
+            { id: '10:00-12:20', label: '10:00-12:20', aliases: ['10:00-12:00'], startMinutes: 10 * 60, endMinutes: (12 * 60) + 20 },
+            { id: '13:00-15:20', label: '13:00-15:20', aliases: ['13:00-15:00'], startMinutes: 13 * 60, endMinutes: (15 * 60) + 20 },
+            { id: '16:00-18:20', label: '16:00-18:20', aliases: ['16:00-18:00'], startMinutes: 16 * 60, endMinutes: (18 * 60) + 20 }
+        ];
+        const DEFAULT_SCHEDULER_ROOM_LABELS = {
+            '206': '206 UX Lab',
+            '207': '207 Media Lab',
+            '209': '209 Mac Lab',
+            '210': '210 Mac Lab',
+            '212': '212 Project Lab',
+            'CEB 102': 'CEB 102',
+            'CEB 104': 'CEB 104'
+        };
+        let schedulerDayPatterns = DEFAULT_SCHEDULER_DAY_PATTERNS.map((pattern) => ({
+            ...pattern,
+            aliases: Array.isArray(pattern.aliases) ? pattern.aliases.slice() : []
+        }));
+        let schedulerTimeSlots = DEFAULT_SCHEDULER_TIME_SLOTS.map((slot) => ({
+            ...slot,
+            aliases: Array.isArray(slot.aliases) ? slot.aliases.slice() : []
+        }));
+        let schedulerRoomLabels = { ...DEFAULT_SCHEDULER_ROOM_LABELS };
+        let CLSS_IMPORT_PROFILE_FACULTY_ALIASES = {};
+        let CLSS_IMPORT_PROFILE_COURSE_ALIASES = {};
+        let CLSS_IMPORT_PROFILE_COURSE_ALIAS_LOOKUP = {};
+        let CLSS_IMPORT_MATCHING_ORDER = DEFAULT_CLSS_IMPORT_MATCHING_ORDER.slice();
+
+        function normalizeSchedulerLookupKey(value) {
+            return String(value || '')
+                .toUpperCase()
+                .replace(/\s+/g, '')
+                .replace(/[^A-Z0-9:-]/g, '');
+        }
+
+        function escapeRegex(text) {
+            return String(text || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        function parseSchedulerRangeToMinutes(rangeValue) {
+            const match = String(rangeValue || '').trim().match(/^(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})$/);
+            if (!match) return { startMinutes: null, endMinutes: null };
+
+            const startHours = Number(match[1]);
+            const startMinutes = Number(match[2]);
+            const endHours = Number(match[3]);
+            const endMinutes = Number(match[4]);
+            if ([startHours, startMinutes, endHours, endMinutes].some((value) => !Number.isFinite(value))) {
+                return { startMinutes: null, endMinutes: null };
+            }
+            return {
+                startMinutes: (startHours * 60) + startMinutes,
+                endMinutes: (endHours * 60) + endMinutes
+            };
+        }
+
+        function parseSchedulerDayPatterns(rawDayPatterns) {
+            const list = Array.isArray(rawDayPatterns) ? rawDayPatterns : [];
+            const parsed = list
+                .map((entry, index) => {
+                    if (typeof entry === 'string') {
+                        const id = entry.trim().toUpperCase();
+                        if (!id) return null;
+                        return { id, label: id, aliases: [id] };
+                    }
+                    if (!entry || typeof entry !== 'object') return null;
+                    const id = String(entry.id || entry.key || entry.value || '').trim().toUpperCase();
+                    if (!id) return null;
+                    const label = String(entry.label || entry.name || id).trim() || id;
+                    const aliases = Array.isArray(entry.aliases) ? entry.aliases : [];
+                    return {
+                        id,
+                        label,
+                        aliases: [...new Set([id, ...aliases.map((alias) => String(alias || '').trim().toUpperCase()).filter(Boolean)])]
+                    };
+                })
+                .filter(Boolean);
+            return parsed.length ? parsed : DEFAULT_SCHEDULER_DAY_PATTERNS.map((pattern) => ({
+                ...pattern,
+                aliases: Array.isArray(pattern.aliases) ? pattern.aliases.slice() : []
+            }));
+        }
+
+        function parseSchedulerTimeSlots(rawTimeSlots) {
+            const list = Array.isArray(rawTimeSlots) ? rawTimeSlots : [];
+            const parsed = list
+                .map((entry, index) => {
+                    if (typeof entry === 'string') {
+                        const id = entry.trim();
+                        if (!id) return null;
+                        const range = parseSchedulerRangeToMinutes(id);
+                        return {
+                            id,
+                            label: id,
+                            aliases: [id],
+                            startMinutes: range.startMinutes,
+                            endMinutes: range.endMinutes
+                        };
+                    }
+                    if (!entry || typeof entry !== 'object') return null;
+                    const id = String(entry.id || entry.value || entry.slot || '').trim();
+                    if (!id) return null;
+                    const label = String(entry.label || entry.name || id).trim() || id;
+                    const aliases = Array.isArray(entry.aliases) ? entry.aliases : [];
+                    const rangeFromId = parseSchedulerRangeToMinutes(id);
+                    const startMinutes = Number.isFinite(Number(entry.startMinutes))
+                        ? Number(entry.startMinutes)
+                        : rangeFromId.startMinutes;
+                    const endMinutes = Number.isFinite(Number(entry.endMinutes))
+                        ? Number(entry.endMinutes)
+                        : rangeFromId.endMinutes;
+                    return {
+                        id,
+                        label,
+                        aliases: [...new Set([id, ...aliases.map((alias) => String(alias || '').trim()).filter(Boolean)])],
+                        startMinutes: Number.isFinite(startMinutes) ? startMinutes : null,
+                        endMinutes: Number.isFinite(endMinutes) ? endMinutes : null
+                    };
+                })
+                .filter(Boolean);
+            return parsed.length ? parsed : DEFAULT_SCHEDULER_TIME_SLOTS.map((slot) => ({
+                ...slot,
+                aliases: Array.isArray(slot.aliases) ? slot.aliases.slice() : []
+            }));
+        }
+
+        function getSchedulerDayPatterns() {
+            return Array.isArray(schedulerDayPatterns) && schedulerDayPatterns.length
+                ? schedulerDayPatterns
+                : DEFAULT_SCHEDULER_DAY_PATTERNS;
+        }
+
+        function getSchedulerDayIds() {
+            return getSchedulerDayPatterns().map((pattern) => pattern.id);
+        }
+
+        function getSchedulerDayLabel(dayId) {
+            const normalized = String(dayId || '').trim().toUpperCase();
+            const match = getSchedulerDayPatterns().find((pattern) => pattern.id === normalized);
+            return match?.label || normalized;
+        }
+
+        function getSchedulerDayRegexTokens() {
+            const tokens = new Set(['M', 'T', 'W', 'R', 'F', 'TH', 'TTH']);
+            getSchedulerDayPatterns().forEach((pattern) => {
+                [pattern.id, ...(Array.isArray(pattern.aliases) ? pattern.aliases : [])]
+                    .map((value) => String(value || '').trim().toUpperCase())
+                    .filter(Boolean)
+                    .forEach((alias) => tokens.add(alias));
+            });
+            return [...tokens].sort((a, b) => b.length - a.length);
+        }
+
+        function getSchedulerTimeSlots() {
+            return Array.isArray(schedulerTimeSlots) && schedulerTimeSlots.length
+                ? schedulerTimeSlots
+                : DEFAULT_SCHEDULER_TIME_SLOTS;
+        }
+
+        function getSchedulerTimeSlotIds() {
+            return getSchedulerTimeSlots().map((slot) => slot.id);
+        }
+
+        function getSchedulerTimeSlotByAlias(value) {
+            const lookup = normalizeSchedulerLookupKey(value);
+            if (!lookup) return null;
+            return getSchedulerTimeSlots().find((slot) => {
+                const aliases = [slot.id, ...(Array.isArray(slot.aliases) ? slot.aliases : [])];
+                return aliases.some((alias) => normalizeSchedulerLookupKey(alias) === lookup);
+            }) || null;
+        }
+
+        function getSchedulerTimeSlotIdForClockRange(startMinutes, endMinutes) {
+            const exact = getSchedulerTimeSlots().find((slot) =>
+                Number.isFinite(slot.startMinutes)
+                && Number.isFinite(slot.endMinutes)
+                && slot.startMinutes === startMinutes
+                && slot.endMinutes === endMinutes
+            );
+            if (exact) return exact.id;
+
+            const startMatch = getSchedulerTimeSlots().find((slot) =>
+                Number.isFinite(slot.startMinutes)
+                && slot.startMinutes === startMinutes
+            );
+            return startMatch ? startMatch.id : '';
+        }
+
+        function getSchedulerRoomOptionList() {
+            const ordered = Array.isArray(CLSS_IMPORT_ROOM_PRIORITY) ? CLSS_IMPORT_ROOM_PRIORITY.slice() : [];
+            const allowed = Array.from(CLSS_IMPORT_ALLOWED_ROOMS || []);
+            const merged = [...new Set([...ordered, ...allowed])].filter(Boolean);
+            return merged.length ? merged : Object.keys(DEFAULT_SCHEDULER_ROOM_LABELS);
+        }
+
+        function normalizeRoomLookupKey(room) {
+            return String(room || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+        }
+
+        function findConfiguredRoomInText(text) {
+            const candidateText = String(text || '');
+            const compactCandidate = normalizeRoomLookupKey(candidateText);
+            const rooms = getSchedulerRoomOptionList().slice().sort((a, b) => b.length - a.length);
+
+            for (const room of rooms) {
+                const roomValue = String(room || '').trim();
+                if (!roomValue) continue;
+
+                const roomRegex = new RegExp(`\\b${escapeRegex(roomValue).replace(/\s+/g, '\\s*')}\\b`, 'i');
+                if (roomRegex.test(candidateText)) {
+                    return roomValue;
+                }
+
+                const compactRoom = normalizeRoomLookupKey(roomValue);
+                if (compactRoom && compactCandidate.includes(compactRoom)) {
+                    return roomValue;
+                }
+            }
+
+            return '';
+        }
+
+        function getSchedulerRoomHeaderLabel(roomCode) {
+            const code = String(roomCode || '').trim();
+            return schedulerRoomLabels[code] || code;
+        }
+
+        function normalizeCourseAliasLookupKey(code) {
+            return normalizeSchedulerLookupKey(normalizeCourseCode(code));
+        }
+
+        function buildClssImportCourseAliasLookup(aliasMap) {
+            const lookup = {};
+            Object.entries(aliasMap || {}).forEach(([alias, canonical]) => {
+                const aliasKey = normalizeCourseAliasLookupKey(alias);
+                const canonicalCode = normalizeCourseCode(canonical);
+                if (!aliasKey || !canonicalCode) return;
+                lookup[aliasKey] = canonicalCode;
+            });
+            return lookup;
+        }
+
+        function resolveClssImportCourseCode(code) {
+            const normalized = normalizeCourseCode(code);
+            const key = normalizeCourseAliasLookupKey(normalized);
+            return CLSS_IMPORT_PROFILE_COURSE_ALIAS_LOOKUP[key] || normalized;
+        }
+
+        function getClssImportMatchingOrder() {
+            const configured = Array.isArray(CLSS_IMPORT_MATCHING_ORDER)
+                ? CLSS_IMPORT_MATCHING_ORDER.map((value) => String(value || '').trim()).filter(Boolean)
+                : [];
+            return configured.length ? configured : DEFAULT_CLSS_IMPORT_MATCHING_ORDER.slice();
+        }
 
         function getActiveDepartmentIdentity() {
             const identity = activeDepartmentProfile?.identity || {};
@@ -4622,6 +4885,27 @@
         function applyDepartmentProfileSchedulerOverrides(profile) {
             if (!profile || typeof profile !== 'object') return;
             const scheduler = profile.scheduler || {};
+            const clssImport = profile.import && profile.import.clss && typeof profile.import.clss === 'object'
+                ? profile.import.clss
+                : {};
+
+            schedulerDayPatterns = parseSchedulerDayPatterns(scheduler.dayPatterns);
+            schedulerTimeSlots = parseSchedulerTimeSlots(scheduler.timeSlots);
+
+            const configuredRoomLabels = scheduler.roomLabels && typeof scheduler.roomLabels === 'object'
+                ? scheduler.roomLabels
+                : {};
+            const normalizedRoomLabels = {};
+            Object.entries(configuredRoomLabels).forEach(([code, label]) => {
+                const normalizedCode = String(code || '').trim();
+                const normalizedLabel = String(label || '').trim();
+                if (!normalizedCode || !normalizedLabel) return;
+                normalizedRoomLabels[normalizedCode] = normalizedLabel;
+            });
+            schedulerRoomLabels = {
+                ...DEFAULT_SCHEDULER_ROOM_LABELS,
+                ...normalizedRoomLabels
+            };
 
             if (typeof scheduler.storageKeyPrefix === 'string' && scheduler.storageKeyPrefix.trim()) {
                 scheduleStorageKeyPrefix = scheduler.storageKeyPrefix.trim();
@@ -4630,10 +4914,29 @@
             const allowedRooms = Array.isArray(scheduler.allowedRooms)
                 ? scheduler.allowedRooms.map((room) => String(room || '').trim()).filter(Boolean)
                 : [];
-            if (allowedRooms.length > 0) {
-                CLSS_IMPORT_ROOM_PRIORITY = allowedRooms.slice();
-                CLSS_IMPORT_ALLOWED_ROOMS = new Set(allowedRooms);
+            const roomPriority = Array.isArray(clssImport.roomMatchPriority)
+                ? clssImport.roomMatchPriority.map((room) => String(room || '').trim()).filter(Boolean)
+                : [];
+            const mergedRooms = [...new Set([
+                ...roomPriority,
+                ...allowedRooms
+            ])];
+
+            if (mergedRooms.length > 0) {
+                CLSS_IMPORT_ROOM_PRIORITY = roomPriority.length ? roomPriority.slice() : mergedRooms.slice();
+                CLSS_IMPORT_ALLOWED_ROOMS = new Set(mergedRooms);
             }
+
+            CLSS_IMPORT_PROFILE_FACULTY_ALIASES = clssImport.facultyAliases && typeof clssImport.facultyAliases === 'object'
+                ? { ...clssImport.facultyAliases }
+                : {};
+            CLSS_IMPORT_PROFILE_COURSE_ALIASES = clssImport.courseAliases && typeof clssImport.courseAliases === 'object'
+                ? { ...clssImport.courseAliases }
+                : {};
+            CLSS_IMPORT_PROFILE_COURSE_ALIAS_LOOKUP = buildClssImportCourseAliasLookup(CLSS_IMPORT_PROFILE_COURSE_ALIASES);
+            CLSS_IMPORT_MATCHING_ORDER = Array.isArray(clssImport.preferredMatchingOrder)
+                ? clssImport.preferredMatchingOrder.map((value) => String(value || '').trim()).filter(Boolean)
+                : DEFAULT_CLSS_IMPORT_MATCHING_ORDER.slice();
         }
 
         async function initializeDepartmentProfileContext() {
@@ -4659,6 +4962,7 @@
 
                 applyDepartmentProfileToHeader(activeDepartmentProfile);
                 applyDepartmentProfileSchedulerOverrides(activeDepartmentProfile);
+                refreshFacultyAliasMap();
 
                 if (Array.isArray(snapshot?.warnings) && snapshot.warnings.length) {
                     console.warn('Department profile warnings:', snapshot.warnings);
@@ -4671,24 +4975,135 @@
             }
         }
 
-        function buildFacultyAliasMap() {
-            const aliasMap = {};
-            for (const [alias, info] of Object.entries(facultyColors)) {
-                const canonical = info?.name || alias;
-                aliasMap[alias] = canonical;
-                aliasMap[canonical] = canonical;
-            }
-            aliasMap.Online = 'Barton/Pettigrew';
-            return aliasMap;
+        function normalizeFacultyAliasArtifacts(name) {
+            return String(name || '')
+                .replace(/\u00a0/g, ' ')
+                .trim()
+                .replace(/^([A-Za-z])\.\s*(PAS|IND)([A-Za-z]{2,})$/i, '$1.$3')
+                .replace(/^([A-Za-z])\s+(PAS|IND)\s+([A-Za-z]{2,})$/i, '$1.$3')
+                .replace(/^([A-Za-z])\s+(PAS|IND)([A-Za-z]{2,})$/i, '$1.$3')
+                .replace(/^([A-Za-z]+)\s+(PAS|IND)([A-Za-z]{2,})$/i, '$1 $3')
+                .split(/\s+/)
+                .map((token) => token.replace(/^(PAS|IND)([A-Za-z]{3,})$/i, '$2'))
+                .join(' ')
+                .trim();
         }
 
-        const facultyAliasMap = buildFacultyAliasMap();
+        function normalizeFacultyAliasLookupKey(name) {
+            const compact = normalizeFacultyAliasArtifacts(name)
+                .toLowerCase()
+                .replace(/[^a-z0-9]/g, '');
+            if (!compact) return '';
+            return compact
+                .replace(/^([a-z])(pas|ind)([a-z]{3,})$/, '$1$3')
+                .replace(/^(pas|ind)([a-z]{3,})$/, '$2');
+        }
+
+        function buildFacultyAliasVariants(name) {
+            const cleaned = normalizeFacultyAliasArtifacts(name);
+            if (!cleaned) return [];
+
+            const variants = new Set([cleaned]);
+            const commaMatch = cleaned.match(/^([^,]+),\s*(.+)$/);
+            if (commaMatch) {
+                const last = commaMatch[1].trim();
+                const first = commaMatch[2].trim();
+                if (first && last) {
+                    variants.add(`${first} ${last}`);
+                    variants.add(`${first.charAt(0).toUpperCase()}.${last.replace(/\s+/g, '')}`);
+                }
+            } else {
+                const parts = cleaned.split(/\s+/).filter(Boolean);
+                if (parts.length >= 2) {
+                    const first = parts[0];
+                    const last = parts[parts.length - 1];
+                    variants.add(`${first.charAt(0).toUpperCase()}.${last.replace(/\s+/g, '')}`);
+                    variants.add(`${last}, ${first}`);
+                }
+            }
+
+            return [...variants];
+        }
+
+        function readAllAySetupFacultyNames() {
+            try {
+                const raw = localStorage.getItem(AY_SETUP_STORAGE_KEY);
+                if (!raw) return [];
+                const parsed = JSON.parse(raw);
+                if (!parsed || typeof parsed !== 'object') return [];
+                const names = [];
+                Object.values(parsed).forEach((yearData) => {
+                    const faculty = Array.isArray(yearData?.faculty) ? yearData.faculty : [];
+                    faculty.forEach((entry) => {
+                        const name = String(entry?.name || '').trim();
+                        if (name) names.push(name);
+                    });
+                });
+                return names;
+            } catch (error) {
+                return [];
+            }
+        }
+
+        function buildFacultyAliasMap() {
+            const exactMap = {};
+            const lookupMap = {};
+
+            const addAlias = (alias, canonical) => {
+                const aliasText = String(alias || '').trim();
+                const canonicalText = normalizeFacultyAliasArtifacts(canonical) || String(canonical || '').trim();
+                if (!aliasText || !canonicalText) return;
+
+                exactMap[aliasText] = canonicalText;
+                exactMap[aliasText.toLowerCase()] = canonicalText;
+
+                const aliasKey = normalizeFacultyAliasLookupKey(aliasText);
+                if (aliasKey && !lookupMap[aliasKey]) {
+                    lookupMap[aliasKey] = canonicalText;
+                }
+            };
+
+            Object.entries(facultyColors).forEach(([alias, info]) => {
+                const canonical = info?.name || alias;
+                buildFacultyAliasVariants(alias).forEach((variant) => addAlias(variant, canonical));
+                buildFacultyAliasVariants(canonical).forEach((variant) => addAlias(variant, canonical));
+            });
+
+            readAllAySetupFacultyNames().forEach((name) => {
+                const canonical = normalizeFacultyAliasArtifacts(name);
+                buildFacultyAliasVariants(canonical).forEach((variant) => addAlias(variant, canonical));
+            });
+
+            const profileAliases = CLSS_IMPORT_PROFILE_FACULTY_ALIASES && typeof CLSS_IMPORT_PROFILE_FACULTY_ALIASES === 'object'
+                ? CLSS_IMPORT_PROFILE_FACULTY_ALIASES
+                : {};
+            Object.entries(profileAliases).forEach(([alias, canonical]) => {
+                const canonicalText = normalizeFacultyAliasArtifacts(canonical);
+                addAlias(alias, canonicalText);
+                buildFacultyAliasVariants(alias).forEach((variant) => addAlias(variant, canonicalText));
+                buildFacultyAliasVariants(canonicalText).forEach((variant) => addAlias(variant, canonicalText));
+            });
+
+            addAlias('Online', 'Barton/Pettigrew');
+            return { exactMap, lookupMap };
+        }
+
+        let facultyAliasMap = {};
+        let facultyAliasLookupMap = {};
+
+        function refreshFacultyAliasMap() {
+            const maps = buildFacultyAliasMap();
+            facultyAliasMap = maps.exactMap;
+            facultyAliasLookupMap = maps.lookupMap;
+        }
+
+        refreshFacultyAliasMap();
 
         function getCanonicalFacultyName(name) {
             const raw = typeof name === 'string' ? name.trim() : '';
             if (!raw) return 'TBD';
 
-            const directMatch = facultyAliasMap[raw];
+            const directMatch = facultyAliasMap[raw] || facultyAliasMap[raw.toLowerCase()];
             if (directMatch) return directMatch;
 
             const lower = raw.toLowerCase();
@@ -4697,22 +5112,18 @@
             if (lower.includes('tbd')) return 'TBD';
 
             // Alias fallback that ignores punctuation/spacing.
-            const compactRaw = lower.replace(/[^a-z0-9]/g, '');
+            const compactRaw = normalizeFacultyAliasLookupKey(raw);
             const compactVariants = new Set([compactRaw]);
             compactVariants.add(compactRaw.replace(/^([a-z])(pas|ind)([a-z]{3,})$/, '$1$3'));
             compactVariants.add(compactRaw.replace(/^(pas|ind)([a-z]{3,})$/, '$2'));
-            for (const [alias, canonical] of Object.entries(facultyAliasMap)) {
-                const compactAlias = alias.toLowerCase().replace(/[^a-z0-9]/g, '');
-                if (compactVariants.has(compactAlias)) return canonical;
+            for (const compactAlias of compactVariants) {
+                if (!compactAlias) continue;
+                const canonical = facultyAliasLookupMap[compactAlias];
+                if (canonical) return canonical;
             }
 
-            const cleanedRaw = raw
-                .replace(/^([A-Za-z])\.\s*(PAS|IND)([A-Za-z]{2,})$/i, '$1.$3')
-                .replace(/^([A-Za-z])\s+(PAS|IND)\s+([A-Za-z]{2,})$/i, '$1.$3')
-                .replace(/^([A-Za-z])\s+(PAS|IND)([A-Za-z]{2,})$/i, '$1.$3')
-                .replace(/^([A-Za-z]+)\s+(PAS|IND)([A-Za-z]{2,})$/i, '$1 $3')
-                .trim();
-            const cleanedMatch = facultyAliasMap[cleanedRaw];
+            const cleanedRaw = normalizeFacultyAliasArtifacts(raw);
+            const cleanedMatch = facultyAliasMap[cleanedRaw] || facultyAliasMap[cleanedRaw.toLowerCase()];
             if (cleanedMatch) return cleanedMatch;
 
             return cleanedRaw || raw;
@@ -5354,6 +5765,10 @@
         function renderSchedule(quarter) {
             const grid = document.getElementById('scheduleGrid');
             const data = scheduleData[quarter];
+            const days = getSchedulerDayIds();
+            const times = getSchedulerTimeSlotIds();
+            const rooms = getSchedulerRoomOptionList();
+            grid.style.gridTemplateColumns = `100px repeat(${rooms.length}, 1fr)`;
 
             // Clear grid safely
             while (grid.firstChild) {
@@ -5361,17 +5776,13 @@
             }
 
             // Header row - create elements safely
-            const headers = ['Time', '206 UX Lab', '207 Media Lab', '209 Mac Lab', '210 Mac Lab', '212 Project Lab', 'CEB 102', 'CEB 104'];
+            const headers = ['Time', ...rooms.map((room) => getSchedulerRoomHeaderLabel(room))];
             headers.forEach(text => {
                 const header = document.createElement('div');
                 header.className = 'grid-header';
                 header.textContent = text;
                 grid.appendChild(header);
             });
-
-            const times = ['10:00-12:20', '13:00-15:20', '16:00-18:20'];
-            const days = ['MW', 'TR'];
-            const rooms = ['206', '207', '209', '210', '212', 'CEB 102', 'CEB 104'];
 
             days.forEach((day, dayIndex) => {
                 // Add divider for each day section
@@ -5993,9 +6404,9 @@
 
             // Collect all courses from the quarter
             let allCourses = [];
-            ['MW', 'TR'].forEach(day => {
+            getSchedulerDayIds().forEach((day) => {
                 if (data[day]) {
-                    ['10:00-12:20', '13:00-15:20', '16:00-18:20'].forEach(time => {
+                    getSchedulerTimeSlotIds().forEach((time) => {
                         if (data[day][time]) {
                             allCourses = allCourses.concat(data[day][time]);
                         }
@@ -6259,7 +6670,8 @@
         }
 
         function isSchedulableDay(day) {
-            return day === 'MW' || day === 'TR';
+            const normalized = String(day || '').trim().toUpperCase();
+            return getSchedulerDayIds().includes(normalized);
         }
 
         function getQuarterCourses(quarter) {
@@ -6271,11 +6683,7 @@
         }
 
         function formatConflictSlot(day, time) {
-            const dayLabel = day === 'MW'
-                ? 'Monday & Wednesday'
-                : day === 'TR'
-                    ? 'Tuesday & Thursday'
-                    : day;
+            const dayLabel = getSchedulerDayLabel(day) || day;
             return `${dayLabel}, ${formatTime(time)}`;
         }
 
@@ -6789,9 +7197,9 @@
         function renderConflictSolver(quarter) {
             const solverList = document.getElementById('conflictSolverList');
             const data = scheduleData[quarter] || {};
-            const days = ['MW', 'TR'];
-            const times = ['10:00-12:20', '13:00-15:20', '16:00-18:20'];
-            const rooms = ['206', '209', '210', '212', 'CEB 102', 'CEB 104'];
+            const days = getSchedulerDayIds();
+            const times = getSchedulerTimeSlotIds();
+            const rooms = getSchedulerRoomOptionList().filter((room) => room !== '207');
 
             refreshConflictData();
 
@@ -7054,8 +7462,6 @@
         }
 
         const UTILIZATION_ROOMS = ['206', '209', '210', '212', 'CEB 102', 'CEB 104'];
-        const UTILIZATION_DAYS = ['MW', 'TR'];
-        const UTILIZATION_TIMES = ['10:00-12:20', '13:00-15:20', '16:00-18:20'];
         const CHENEY_ONLY_COURSES = new Set(['DESN 100', 'DESN 200', 'DESN 216']);
         const ROOM_212_ONLY_COURSES = new Set(['DESN 301', 'DESN 359', 'DESN 401']);
         const ROOM_212_OVERFLOW_COURSES = new Set(['DESN 100', 'DESN 200']);
@@ -7064,7 +7470,7 @@
             return flattenQuarterData(data || {})
                 .filter((course) =>
                     isSchedulableDay(course.day)
-                    && UTILIZATION_TIMES.includes(course.time)
+                    && getSchedulerTimeSlotIds().includes(course.time)
                     && UTILIZATION_ROOMS.includes(String(course.room || '').trim())
                 )
                 .map((course) => ({
@@ -7169,7 +7575,7 @@
             const usedRoomSlots = new Set(
                 schedulableCourses.map((course) => `${course.day}|${course.time}|${course.room}`)
             ).size;
-            const totalRoomSlots = UTILIZATION_ROOMS.length * UTILIZATION_DAYS.length * UTILIZATION_TIMES.length;
+            const totalRoomSlots = UTILIZATION_ROOMS.length * getSchedulerDayIds().length * getSchedulerTimeSlotIds().length;
             const roomUtilizationRate = totalRoomSlots > 0 ? usedRoomSlots / totalRoomSlots : 0;
 
             const adjunctCapacityCredits = Math.max(adjunctTarget, adjunctRosterCapacityCredits, assignedAdjunctCredits);
@@ -8137,7 +8543,7 @@
         // CLSS IMPORT (REVIEW-FIRST)
         // ============================================
 
-        let CLSS_IMPORT_ROOM_PRIORITY = ['206', '207', '209', '210', '212', 'CEB 102', 'CEB 104'];
+        let CLSS_IMPORT_ROOM_PRIORITY = Object.keys(DEFAULT_SCHEDULER_ROOM_LABELS);
         let CLSS_IMPORT_ALLOWED_ROOMS = new Set(CLSS_IMPORT_ROOM_PRIORITY);
         const CLSS_IMPORT_QUARTERS = ['fall', 'winter', 'spring'];
         const CLSS_IMPORT_QUARTER_LABELS = {
@@ -8160,6 +8566,10 @@
         let clssImportOcrLibraryPromise = null;
         let clssImportPriorYearPlacementIndexCache = new Map();
         let clssImportLastApplyReport = null;
+
+        function getClssImportRoomOptionList() {
+            return getSchedulerRoomOptionList();
+        }
 
         function openClssImportModal() {
             const modal = document.getElementById('clssImportModal');
@@ -8417,6 +8827,7 @@
                 showToast('OCR is already running for uploaded screenshots. Please wait...', 'error');
                 return;
             }
+            refreshFacultyAliasMap();
 
             const pngCount = (document.getElementById('clssImportPngInput')?.files || []).length;
             let parseSources = getClssImportParseSources();
@@ -8757,7 +9168,7 @@
             const quarter = row?.reviewQuarter || row?.targetQuarter;
             if (!CLSS_IMPORT_QUARTERS.includes(quarter)) return null;
 
-            const code = normalizeCourseCode(row?.code);
+            const code = resolveClssImportCourseCode(row?.code);
             if (!code) return null;
 
             const index = buildClssImportPriorYearPlacementIndexForTargetYear(targetYear);
@@ -8765,7 +9176,7 @@
             if (!candidates.length) return null;
 
             const canonicalInstructor = getCanonicalFacultyName(row?.instructor || 'TBD');
-            const section = String(row?.section || '').trim();
+            const section = String(row?.section || '').trim().toUpperCase();
             const desiredDay = String(row?.reviewDay || row?.schedulerDay || '').trim();
             const desiredTime = String(row?.reviewTime || row?.schedulerTime || '').trim();
 
@@ -8774,22 +9185,58 @@
                 .map((candidate) => {
                     let score = 0;
                     if (canonicalInstructor && canonicalInstructor !== 'TBD' && candidate.instructor === canonicalInstructor) score += 100;
-                    if (section && candidate.section && candidate.section === section) score += 60;
+                    if (section && candidate.section && String(candidate.section || '').trim().toUpperCase() === section) score += 60;
                     if (desiredDay && candidate.day === desiredDay) score += 30;
                     if (desiredTime && candidate.time === desiredTime) score += 30;
                     if (desiredDay && desiredTime && candidate.day === desiredDay && candidate.time === desiredTime) score += 25;
                     if (candidate.room && CLSS_IMPORT_ALLOWED_ROOMS.has(candidate.room)) score += 5;
                     return { candidate, score };
-                })
-                .sort((a, b) => b.score - a.score);
+                });
 
             if (!scored.length) return null;
 
-            const bestMatch = scored[0];
+            const strategyMatchers = {
+                'course+section+instructor+quarter': ({ candidate }) =>
+                    Boolean(
+                        section
+                        && candidate?.section
+                        && String(candidate.section || '').trim().toUpperCase() === section
+                        && canonicalInstructor
+                        && canonicalInstructor !== 'TBD'
+                        && candidate.instructor === canonicalInstructor
+                    ),
+                'course+quarter+instructor': ({ candidate }) =>
+                    Boolean(
+                        canonicalInstructor
+                        && canonicalInstructor !== 'TBD'
+                        && candidate.instructor === canonicalInstructor
+                    ),
+                'course+quarter': () => true
+            };
+
+            let strategyUsed = 'score-fallback';
+            let ranked = [];
+            const preferredOrder = getClssImportMatchingOrder();
+            preferredOrder.some((strategy) => {
+                const matcher = strategyMatchers[strategy];
+                if (typeof matcher !== 'function') return false;
+                const filtered = scored.filter((entry) => matcher(entry));
+                if (!filtered.length) return false;
+                ranked = filtered;
+                strategyUsed = strategy;
+                return true;
+            });
+
+            if (!ranked.length) {
+                ranked = scored.slice();
+            }
+
+            ranked.sort((a, b) => b.score - a.score);
+            const bestMatch = ranked[0];
             const best = bestMatch.candidate;
             const uniqueCodeMatch = scored.length === 1;
             const matchedInstructor = best.instructor === canonicalInstructor && canonicalInstructor !== 'TBD';
-            const matchedSection = Boolean(section && best.section && best.section === section);
+            const matchedSection = Boolean(section && best.section && String(best.section || '').trim().toUpperCase() === section);
             const strongMatch = matchedInstructor || matchedSection || uniqueCodeMatch;
             return {
                 sourceYear: index?.previousYear || '',
@@ -8800,7 +9247,8 @@
                 matchedInstructor,
                 matchedSection,
                 strongMatch,
-                score: bestMatch.score
+                score: bestMatch.score,
+                matchStrategy: strategyUsed
             };
         }
 
@@ -8843,7 +9291,8 @@
                     suggestion.sourceYear ? `from ${suggestion.sourceYear}` : 'from prior year',
                     suggestion.day && suggestion.time ? `${suggestion.day} ${suggestion.time}` : '',
                     suggestion.room ? suggestion.room : 'auto room',
-                    suggestion.strongMatch ? 'matched by prior-year roster' : ''
+                    suggestion.strongMatch ? 'matched by prior-year roster' : '',
+                    suggestion.matchStrategy ? `strategy ${suggestion.matchStrategy}` : ''
                 ].filter(Boolean).join(' • ');
 
                 row.notes = [...new Set([...(row.notes || []), `Auto-matched prior-year placement (${suggestionDetails})`])];
@@ -8929,8 +9378,9 @@
                 const autoRoom = reviewRoomValue === 'AUTO' || (!reviewRoomValue && reviewInPerson);
                 const effectiveRoom = autoRoom ? '' : reviewRoomValue;
                 const manualNotes = [];
+                const dayHint = getSchedulerDayPatterns().map((pattern) => pattern.id).join('/');
 
-                if (!effectiveDay) manualNotes.push('Select day pattern (MW/TR)');
+                if (!effectiveDay) manualNotes.push(`Select day pattern (${dayHint || 'scheduler'})`);
                 if (!effectiveTime) manualNotes.push('Select scheduler time slot');
                 if (autoRoom) manualNotes.push('Room will auto-assign at import');
 
@@ -9086,9 +9536,11 @@
             const daySelect = document.createElement('select');
             daySelect.title = 'Day pattern';
             [
-                { value: '', label: 'Day (MW/TR)' },
-                { value: 'MW', label: 'MW' },
-                { value: 'TR', label: 'TR' }
+                { value: '', label: 'Day pattern' },
+                ...getSchedulerDayPatterns().map((pattern) => ({
+                    value: pattern.id,
+                    label: `${pattern.id} · ${pattern.label || pattern.id}`
+                }))
             ].forEach(({ value, label: optionLabel }) => {
                 const option = document.createElement('option');
                 option.value = value;
@@ -9104,9 +9556,10 @@
             timeSelect.title = 'Scheduler time slot';
             [
                 { value: '', label: 'Time slot' },
-                { value: '10:00-12:20', label: '10:00-12:20' },
-                { value: '13:00-15:20', label: '13:00-15:20' },
-                { value: '16:00-18:20', label: '16:00-18:20' }
+                ...getSchedulerTimeSlots().map((slot) => ({
+                    value: slot.id,
+                    label: String(slot.label || slot.id)
+                }))
             ].forEach(({ value, label: optionLabel }) => {
                 const option = document.createElement('option');
                 option.value = value;
@@ -9124,17 +9577,12 @@
             roomRow.className = 'row';
             const roomSelect = document.createElement('select');
             roomSelect.title = 'Room';
-            [
+            const roomOptions = [
                 { value: '', label: 'Room (parser/none)' },
                 { value: 'AUTO', label: 'Auto-assign open room' },
-                { value: '206', label: '206' },
-                { value: '207', label: '207' },
-                { value: '209', label: '209' },
-                { value: '210', label: '210' },
-                { value: '212', label: '212' },
-                { value: 'CEB 102', label: 'CEB 102' },
-                { value: 'CEB 104', label: 'CEB 104' }
-            ].forEach(({ value, label: optionLabel }) => {
+                ...getClssImportRoomOptionList().map((room) => ({ value: room, label: room }))
+            ];
+            roomOptions.forEach(({ value, label: optionLabel }) => {
                 const option = document.createElement('option');
                 option.value = value;
                 option.textContent = optionLabel;
@@ -9175,7 +9623,8 @@
             } else if (effectiveRow.effectiveStatus === 'needs-review' && !disableSlotFields) {
                 const hintRow = document.createElement('div');
                 hintRow.className = 'clss-import-resolve-label';
-                hintRow.textContent = 'Tip: set placement to In-person, then choose MW/TR + time (room can be Auto).';
+                const dayHint = getSchedulerDayPatterns().map((pattern) => pattern.id).join('/');
+                hintRow.textContent = `Tip: set placement to In-person, then choose ${dayHint || 'a day pattern'} + time (room can be Auto).`;
                 wrapper.appendChild(hintRow);
             }
 
@@ -9409,7 +9858,7 @@
                 return null;
             }
 
-            const code = normalizeCourseCode(match[1]);
+            const code = resolveClssImportCourseCode(match[1]);
             let titleAndMaybeRow = match[2].replace(/\s+/g, ' ').trim();
             let inlineRowText = '';
 
@@ -9437,7 +9886,7 @@
         function parseClssDetailRow(course, rawRowText) {
             const rawText = String(rawRowText || '').replace(/\s+/g, ' ').trim();
             const notes = [];
-            const code = normalizeCourseCode(course?.code || '');
+            const code = resolveClssImportCourseCode(course?.code || '');
             const title = String(course?.title || '').trim();
 
             const sectionMatch = rawText.match(/\b(\d{3}[A-Z]?)(?:\s*\(([^)]+)\))?/i);
@@ -9590,7 +10039,14 @@
                 return { raw: '', classification: 'none', dayPattern: '', timeSlot: '', matchEndIndex: -1, singleDay: false };
             }
 
-            if (/\b(online|web|async|asynch|asynchronous)\b/i.test(text) && !/\b(MW|TR|WM|RT|M|T|W|R|F)\b\s*\d/i.test(text)) {
+            const dayTokenPattern = getSchedulerDayRegexTokens()
+                .map((token) => escapeRegex(token))
+                .join('|');
+            const hasDayTokenWithTime = dayTokenPattern
+                ? new RegExp(`\\b(${dayTokenPattern})\\b\\s*\\d`, 'i').test(text)
+                : false;
+
+            if (/\b(online|web|async|asynch|asynchronous)\b/i.test(text) && !hasDayTokenWithTime) {
                 return {
                     raw: 'Online / Async',
                     classification: 'online',
@@ -9612,7 +10068,11 @@
                 };
             }
 
-            const meetingMatch = text.match(/\b(MW|WM|TR|RT|TH|TTH|M|T|W|R|F)\b\s*([0-9]{1,2}(?::[0-9]{2})?\s*[APap]\.?\s*M?\.?)\s*[-–]\s*([0-9]{1,2}(?::[0-9]{2})?\s*[APap]\.?\s*M?\.?)/);
+            const clockPattern = '[0-9]{1,2}(?::[0-9]{2})?\\s*[APap]\\.?\\s*M?\\.?';
+            const meetingRegex = dayTokenPattern
+                ? new RegExp(`\\b(${dayTokenPattern})\\b\\s*(${clockPattern})\\s*[-–]\\s*(${clockPattern})`, 'i')
+                : null;
+            const meetingMatch = meetingRegex ? text.match(meetingRegex) : null;
             if (!meetingMatch) {
                 return { raw: '', classification: 'none', dayPattern: '', timeSlot: '', matchEndIndex: -1, singleDay: false };
             }
@@ -9642,12 +10102,15 @@
                 .replace(/\s+/g, '')
                 .replace(/TH/g, 'R');
 
-            if (normalized === 'MW' || normalized === 'WM') {
-                return { dayPattern: 'MW', singleDay: false, note: '' };
-            }
+            const matchedPattern = getSchedulerDayPatterns().find((pattern) => {
+                const aliases = [pattern.id, ...(Array.isArray(pattern.aliases) ? pattern.aliases : [])];
+                return aliases
+                    .map((alias) => String(alias || '').toUpperCase().replace(/\s+/g, '').replace(/TH/g, 'R'))
+                    .includes(normalized);
+            });
 
-            if (normalized === 'TR' || normalized === 'RT') {
-                return { dayPattern: 'TR', singleDay: false, note: '' };
+            if (matchedPattern) {
+                return { dayPattern: matchedPattern.id, singleDay: false, note: '' };
             }
 
             if (['M', 'T', 'W', 'R', 'F'].includes(normalized)) {
@@ -9665,11 +10128,8 @@
             }
 
             const timeKey = `${formatClssMinutes(startMinutes)}-${formatClssMinutes(endMinutes)}`;
-            const mapped = ({
-                '10:00-12:20': '10:00-12:20',
-                '13:00-15:20': '13:00-15:20',
-                '16:00-18:20': '16:00-18:20'
-            })[timeKey];
+            const aliasMatch = getSchedulerTimeSlotByAlias(timeKey);
+            const mapped = aliasMatch?.id || getSchedulerTimeSlotIdForClockRange(startMinutes, endMinutes);
 
             if (!mapped) {
                 return { timeSlot: '', note: `Unsupported time (${timeKey})` };
@@ -9730,21 +10190,9 @@
             searchCandidates.push(text);
 
             for (const candidate of searchCandidates) {
-                const roomMatch = candidate.match(/\bCEB\s*(102|104)\b|\b(?:CEB\s*)?(206|207|209|210|212)\b/i);
-                if (!roomMatch) {
-                    continue;
-                }
-
-                let mappedRoom = '';
-                if (roomMatch[1]) {
-                    mappedRoom = `CEB ${roomMatch[1]}`;
-                } else if (roomMatch[2]) {
-                    mappedRoom = roomMatch[2];
-                }
-
-                const rawRoom = roomMatch[0].replace(/\s+/g, ' ').trim().toUpperCase();
+                const mappedRoom = findConfiguredRoomInText(candidate);
                 if (mappedRoom && CLSS_IMPORT_ALLOWED_ROOMS.has(mappedRoom)) {
-                    return { raw: rawRoom, mappedRoom, isOnline: false, note: '' };
+                    return { raw: mappedRoom, mappedRoom, isOnline: false, note: '' };
                 }
             }
 
@@ -10644,12 +11092,14 @@
         }
 
         function createEmptyQuarterScheduleBucket() {
-            return {
-                MW: {},
-                TR: {},
+            const bucket = {
                 ONLINE: { async: [] },
                 ARRANGED: { arranged: [] }
             };
+            getSchedulerDayIds().forEach((dayPattern) => {
+                bucket[dayPattern] = {};
+            });
+            return bucket;
         }
 
         function createEmptyAcademicYearScheduleData() {
@@ -10701,8 +11151,11 @@
             }
 
             const bucket = scheduleStore[quarter];
-            if (!bucket.MW || typeof bucket.MW !== 'object') bucket.MW = {};
-            if (!bucket.TR || typeof bucket.TR !== 'object') bucket.TR = {};
+            getSchedulerDayIds().forEach((dayPattern) => {
+                if (!bucket[dayPattern] || typeof bucket[dayPattern] !== 'object') {
+                    bucket[dayPattern] = {};
+                }
+            });
             if (!bucket.ONLINE || typeof bucket.ONLINE !== 'object') bucket.ONLINE = {};
             if (!Array.isArray(bucket.ONLINE.async)) bucket.ONLINE.async = [];
             if (!bucket.ARRANGED || typeof bucket.ARRANGED !== 'object') bucket.ARRANGED = {};
@@ -10774,7 +11227,7 @@
             const preferred = String(preferredRoom || '').trim();
             const roomOrder = Array.isArray(CLSS_IMPORT_ROOM_PRIORITY) && CLSS_IMPORT_ROOM_PRIORITY.length
                 ? CLSS_IMPORT_ROOM_PRIORITY
-                : ['206', '207', '209', '210', '212', 'CEB 102', 'CEB 104'];
+                : getSchedulerRoomOptionList();
             const candidates = [];
             if (preferred && CLSS_IMPORT_ALLOWED_ROOMS.has(preferred)) {
                 candidates.push(preferred);
@@ -11038,30 +11491,33 @@
         }
 
         function migrateTimeSlots(data) {
-            const timeMapping = {
-                '10:00-12:00': '10:00-12:20',
-                '13:00-15:00': '13:00-15:20',
-                '16:00-18:00': '16:00-18:20'
-            };
             let migrated = false;
 
             for (const quarter of ['fall', 'winter', 'spring']) {
-                if (data[quarter]) {
-                    for (const day of ['MW', 'TR']) {
-                        if (data[quarter][day]) {
-                            for (const oldTime of Object.keys(timeMapping)) {
-                                if (data[quarter][day][oldTime]) {
-                                    const newTime = timeMapping[oldTime];
-                                    data[quarter][day][newTime] = data[quarter][day][oldTime];
-                                    delete data[quarter][day][oldTime];
-                                    migrated = true;
-                                }
+                const quarterData = data[quarter];
+                if (quarterData && typeof quarterData === 'object') {
+                    Object.entries(quarterData).forEach(([dayPattern, dayBucket]) => {
+                        if (!isSchedulableDay(dayPattern) || !dayBucket || typeof dayBucket !== 'object') return;
+
+                        Object.keys(dayBucket).forEach((timeKey) => {
+                            const slot = getSchedulerTimeSlotByAlias(timeKey);
+                            const canonicalTime = slot?.id || '';
+                            if (!canonicalTime || canonicalTime === timeKey) return;
+
+                            if (!Array.isArray(dayBucket[canonicalTime])) {
+                                dayBucket[canonicalTime] = [];
                             }
-                        }
-                    }
+                            if (Array.isArray(dayBucket[timeKey])) {
+                                dayBucket[canonicalTime].push(...dayBucket[timeKey]);
+                            }
+                            delete dayBucket[timeKey];
+                            migrated = true;
+                        });
+                    });
+
                     // Ensure ONLINE structure exists if not present
-                    if (!data[quarter]['ONLINE']) {
-                        data[quarter]['ONLINE'] = { 'async': [] };
+                    if (!quarterData['ONLINE']) {
+                        quarterData['ONLINE'] = { 'async': [] };
                     }
                 }
             }
@@ -11111,12 +11567,37 @@
 
         // Migrate old storage format to year-aware format
         function migrateOldScheduleData() {
-            const oldKey = 'designSchedulerData';
-            const oldData = localStorage.getItem(oldKey);
-            if (oldData && !localStorage.getItem(getStorageKey('2025-26'))) {
-                localStorage.setItem(getStorageKey('2025-26'), oldData);
-                localStorage.removeItem(oldKey);
-                console.log('Migrated schedule data to year-aware format');
+            const activePrefix = String(scheduleStorageKeyPrefix || 'designSchedulerData_').trim() || 'designSchedulerData_';
+            const legacyPrefixes = ['designSchedulerData_', activePrefix]
+                .filter(Boolean)
+                .filter((value, index, arr) => arr.indexOf(value) === index);
+
+            const oldUnscopedData = localStorage.getItem('designSchedulerData');
+            if (oldUnscopedData && !localStorage.getItem(`${activePrefix}2025-26`)) {
+                localStorage.setItem(`${activePrefix}2025-26`, oldUnscopedData);
+                localStorage.removeItem('designSchedulerData');
+                console.log('Migrated legacy unscoped schedule data to year-aware format');
+            }
+
+            legacyPrefixes.forEach((prefix) => {
+                if (prefix === activePrefix) return;
+
+                for (let i = 0; i < localStorage.length; i += 1) {
+                    const key = localStorage.key(i);
+                    if (!key || !key.startsWith(prefix)) continue;
+                    const year = key.slice(prefix.length);
+                    if (!/^\d{4}-\d{2}$/.test(year)) continue;
+
+                    const sourceValue = localStorage.getItem(key);
+                    const targetKey = `${activePrefix}${year}`;
+                    if (sourceValue && !localStorage.getItem(targetKey)) {
+                        localStorage.setItem(targetKey, sourceValue);
+                    }
+                }
+            });
+
+            if (legacyPrefixes.length > 1) {
+                console.log(`Checked legacy schedule storage prefixes for migration: ${legacyPrefixes.join(', ')}`);
             }
         }
 
@@ -11246,6 +11727,7 @@
                     if (data.facultyWorkload) {
                         facultyList = Object.keys(data.facultyWorkload).sort();
                         populateFacultyDropdowns();
+                        refreshFacultyAliasMap();
                     }
                 }
             } catch (error) {
@@ -13904,6 +14386,8 @@ RESPONSE FORMAT:
             const quarters = mode === 'all'
                 ? ['fall', 'winter', 'spring']
                 : [window.StateManager?.get('currentQuarter') || 'spring'];
+            const departmentIdentity = getActiveDepartmentIdentity();
+            const departmentLabel = departmentIdentity.displayName || departmentIdentity.name || 'Department';
 
             const quarterNames = {
                 fall: `Fall ${currentAcademicYear.split('-')[0]}`,
@@ -13911,9 +14395,10 @@ RESPONSE FORMAT:
                 spring: `Spring ${currentAcademicYear.split('-')[1]}`
             };
 
-            const rooms = ['206', '207', '209', '210', '212', 'CEB 102', 'CEB 104'];
-            const timeSlots = ['10:00-12:20', '13:00-15:20', '16:00-18:20'];
-            const timeLabels = ['10:00 AM - 12:20 PM', '1:00 PM - 3:20 PM', '4:00 PM - 6:20 PM'];
+            const rooms = getSchedulerRoomOptionList();
+            const timeSlots = getSchedulerTimeSlotIds();
+            const timeLabels = getSchedulerTimeSlots().map((slot) => String(slot.label || slot.id));
+            const dayPatterns = getSchedulerDayPatterns();
 
             let content = '';
             quarters.forEach((quarter, qIdx) => {
@@ -13921,17 +14406,22 @@ RESPONSE FORMAT:
                 content += `
                     <div style="page-break-after: ${qIdx < quarters.length - 1 ? 'always' : 'auto'}; padding: 20px;">
                         <div style="text-align: center; margin-bottom: 20px; border-bottom: 3px solid #a10022; padding-bottom: 15px;">
-                            <h1 style="font-size: 28px; color: #a10022; margin: 0;">EWU Design Department</h1>
+                            <h1 style="font-size: 28px; color: #a10022; margin: 0;">${escapeHtml(departmentLabel)}</h1>
                             <h2 style="font-size: 22px; color: #333; margin: 5px 0;">${quarterNames[quarter]}</h2>
                             <div style="font-size: 12px; color: #666;">Printed: ${new Date().toLocaleDateString()}</div>
                         </div>
                 `;
 
-                // MW Section
-                content += buildPrintSectionHTML('Monday / Wednesday', ['MW'], quarterData, rooms, timeSlots, timeLabels);
-
-                // TR Section  
-                content += buildPrintSectionHTML('Tuesday / Thursday', ['TR'], quarterData, rooms, timeSlots, timeLabels);
+                dayPatterns.forEach((pattern) => {
+                    content += buildPrintSectionHTML(
+                        String(pattern.label || pattern.id),
+                        [pattern.id],
+                        quarterData,
+                        rooms,
+                        timeSlots,
+                        timeLabels
+                    );
+                });
 
                 // Online Section
                 const onlineCourses = getOnlineCoursesForQuarter(quarterData);
@@ -13952,7 +14442,7 @@ RESPONSE FORMAT:
                 <!DOCTYPE html>
                 <html>
                 <head>
-                    <title>EWU Schedule - ${mode === 'all' ? 'All Quarters' : quarterNames[quarters[0]]}</title>
+                    <title>${escapeHtml(departmentLabel)} Schedule - ${mode === 'all' ? 'All Quarters' : quarterNames[quarters[0]]}</title>
                     <style>
                         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; }
                         @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
