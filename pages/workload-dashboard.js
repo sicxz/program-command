@@ -38,7 +38,7 @@ const WORKLOAD_PLAN_ROLE_OPTIONS = [
     'Adjunct',
     'Staff/Other'
 ];
-const WORKLOAD_PLAN_ROLE_TARGET_DEFAULTS = {
+let WORKLOAD_PLAN_ROLE_TARGET_DEFAULTS = {
     'Full Professor': 36,
     'Associate Professor': 36,
     'Assistant Professor': 36,
@@ -207,6 +207,15 @@ async function initializeDepartmentProfileContext() {
         } else {
             const identity = getDepartmentIdentity();
             WORKLOAD_DASHBOARD_SUBTITLE_BASE = `${identity.displayName} Department - Academic Workload Analysis`;
+        }
+        if (profileWorkload.defaultAnnualTargets
+            && typeof profileWorkload.defaultAnnualTargets === 'object'
+            && !Array.isArray(profileWorkload.defaultAnnualTargets)
+        ) {
+            WORKLOAD_PLAN_ROLE_TARGET_DEFAULTS = {
+                ...WORKLOAD_PLAN_ROLE_TARGET_DEFAULTS,
+                ...profileWorkload.defaultAnnualTargets
+            };
         }
         if (profileWorkload.dashboardTitle) {
             WORKLOAD_DASHBOARD_TITLE = String(profileWorkload.dashboardTitle);

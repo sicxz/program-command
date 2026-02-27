@@ -4588,6 +4588,7 @@
 
         const AY_SETUP_STORAGE_KEY = 'programCommandAySetup';
         let activeDepartmentProfile = null;
+        let scheduleStorageKeyPrefix = 'designSchedulerData_';
 
         function getActiveDepartmentIdentity() {
             const identity = activeDepartmentProfile?.identity || {};
@@ -4618,6 +4619,23 @@
             }
         }
 
+        function applyDepartmentProfileSchedulerOverrides(profile) {
+            if (!profile || typeof profile !== 'object') return;
+            const scheduler = profile.scheduler || {};
+
+            if (typeof scheduler.storageKeyPrefix === 'string' && scheduler.storageKeyPrefix.trim()) {
+                scheduleStorageKeyPrefix = scheduler.storageKeyPrefix.trim();
+            }
+
+            const allowedRooms = Array.isArray(scheduler.allowedRooms)
+                ? scheduler.allowedRooms.map((room) => String(room || '').trim()).filter(Boolean)
+                : [];
+            if (allowedRooms.length > 0) {
+                CLSS_IMPORT_ROOM_PRIORITY = allowedRooms.slice();
+                CLSS_IMPORT_ALLOWED_ROOMS = new Set(allowedRooms);
+            }
+        }
+
         async function initializeDepartmentProfileContext() {
             const manager = window.DepartmentProfileManager;
             if (!manager || typeof manager.initialize !== 'function') {
@@ -4640,6 +4658,7 @@
                 }
 
                 applyDepartmentProfileToHeader(activeDepartmentProfile);
+                applyDepartmentProfileSchedulerOverrides(activeDepartmentProfile);
 
                 if (Array.isArray(snapshot?.warnings) && snapshot.warnings.length) {
                     console.warn('Department profile warnings:', snapshot.warnings);
@@ -8118,7 +8137,8 @@
         // CLSS IMPORT (REVIEW-FIRST)
         // ============================================
 
-        const CLSS_IMPORT_ALLOWED_ROOMS = new Set(['206', '207', '209', '210', '212', 'CEB 102', 'CEB 104']);
+        let CLSS_IMPORT_ROOM_PRIORITY = ['206', '207', '209', '210', '212', 'CEB 102', 'CEB 104'];
+        let CLSS_IMPORT_ALLOWED_ROOMS = new Set(CLSS_IMPORT_ROOM_PRIORITY);
         const CLSS_IMPORT_QUARTERS = ['fall', 'winter', 'spring'];
         const CLSS_IMPORT_QUARTER_LABELS = {
             fall: 'Fall',
@@ -10752,7 +10772,9 @@
 
         function resolveBestImportRoomForSlot(slotCourses, preferredRoom = '') {
             const preferred = String(preferredRoom || '').trim();
-            const roomOrder = ['206', '207', '209', '210', '212', 'CEB 102', 'CEB 104'];
+            const roomOrder = Array.isArray(CLSS_IMPORT_ROOM_PRIORITY) && CLSS_IMPORT_ROOM_PRIORITY.length
+                ? CLSS_IMPORT_ROOM_PRIORITY
+                : ['206', '207', '209', '210', '212', 'CEB 102', 'CEB 104'];
             const candidates = [];
             if (preferred && CLSS_IMPORT_ALLOWED_ROOMS.has(preferred)) {
                 candidates.push(preferred);
@@ -10972,7 +10994,7 @@
 
         // Schedule data persistence (year-aware)
         function getStorageKey(year) {
-            return 'designSchedulerData_' + (year || currentAcademicYear);
+            return scheduleStorageKeyPrefix + (year || currentAcademicYear);
         }
 
         function saveScheduleData() {
