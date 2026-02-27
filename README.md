@@ -1,5 +1,5 @@
 # EWU Design Schedule Analyzer
-https://sicxz.github.io/program-com
+https://sicxz.github.io/program-command/
 
 Interactive analytics dashboards for analyzing enrollment trends, faculty workload, and capacity planning for the EWU Design program.
 
