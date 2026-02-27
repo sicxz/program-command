@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Department Onboarding Shell</title>
+    <link rel="stylesheet" href="../css/design-system.css">
+    <link rel="stylesheet" href="../css/shared.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <style>
+        body {
+            margin: 0;
+            background: #f6f8fb;
+            color: #0f172a;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .onboarding-shell {
+            max-width: 1080px;
+            margin: 0 auto;
+            padding: 24px;
+            display: grid;
+            gap: 16px;
+        }
+
+        .shell-card {
+            background: #ffffff;
+            border: 1px solid #d9e2ec;
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+        }
+
+        .shell-card h2 {
+            margin: 0 0 10px;
+            font-size: 1.1rem;
+        }
+
+        .shell-card p {
+            margin: 0 0 12px;
+            color: #475569;
+        }
+
+        .field-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 10px;
+        }
+
+        label {
+            display: grid;
+            gap: 6px;
+            font-size: 0.9rem;
+            color: #1e293b;
+        }
+
+        input,
+        textarea,
+        select,
+        button {
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 0.92rem;
+            font-family: inherit;
+        }
+
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .shell-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .shell-actions button {
+            cursor: pointer;
+            background: #0f172a;
+            color: #ffffff;
+            border-color: #0f172a;
+        }
+
+        .shell-actions button.secondary {
+            background: #ffffff;
+            color: #0f172a;
+        }
+
+        .onboarding-status {
+            border-radius: 8px;
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            background: #f8fafc;
+            color: #0f172a;
+            min-height: 20px;
+        }
+
+        .onboarding-status.ok {
+            border-color: #16a34a;
+            background: #f0fdf4;
+            color: #14532d;
+        }
+
+        .onboarding-status.warn {
+            border-color: #d97706;
+            background: #fffbeb;
+            color: #92400e;
+        }
+
+        .onboarding-status.error {
+            border-color: #dc2626;
+            background: #fef2f2;
+            color: #991b1b;
+        }
+
+        .onboarding-status.info {
+            border-color: #2563eb;
+            background: #eff6ff;
+            color: #1e3a8a;
+        }
+
+        #healthCheckOutput {
+            display: grid;
+            gap: 10px;
+        }
+
+        .check-group {
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 10px;
+            background: #ffffff;
+        }
+
+        .check-group h4 {
+            margin: 0 0 8px;
+            font-size: 0.95rem;
+        }
+
+        .check-group ul {
+            margin: 0;
+            padding-left: 18px;
+            display: grid;
+            gap: 4px;
+        }
+
+        .check-group.error {
+            border-color: #dc2626;
+            background: #fef2f2;
+        }
+
+        .check-group.warning {
+            border-color: #d97706;
+            background: #fffbeb;
+        }
+
+        .check-group.pass {
+            border-color: #16a34a;
+            background: #f0fdf4;
+        }
+    </style>
+</head>
+<body>
+    <app-header
+        eyebrow="PROGRAM COMMAND"
+        title-text="Department Onboarding Shell"
+        subtitle="Create and activate a versioned department profile without code edits for standard setup"
+    ></app-header>
+
+    <main class="onboarding-shell">
+        <section class="shell-card">
+            <h2>Step 1: Entry + Base Profile</h2>
+            <p>Select an existing profile as your base, then define department identity.</p>
+            <div class="field-grid">
+                <label>
+                    Base Profile
+                    <select id="baseProfileSelect"></select>
+                </label>
+                <label>
+                    Department Name
+                    <input id="departmentName" type="text" placeholder="Design">
+                </label>
+                <label>
+                    Department Code
+                    <input id="departmentCode" type="text" placeholder="DESN">
+                </label>
+                <label>
+                    Display Name
+                    <input id="departmentDisplayName" type="text" placeholder="EWU Design">
+                </label>
+                <label>
+                    Short Name
+                    <input id="departmentShortName" type="text" placeholder="Design">
+                </label>
+            </div>
+            <p id="baseProfileState"></p>
+        </section>
+
+        <section class="shell-card">
+            <h2>Step 2: Seed Mapping Wizard</h2>
+            <p>Enter room map and CLSS alias mappings. Use one item per line. Alias format: <code>alias=canonical</code>.</p>
+            <div class="field-grid">
+                <label>
+                    Rooms (one per line)
+                    <textarea id="roomListInput" placeholder="206\n207\nCEB 102"></textarea>
+                </label>
+                <label>
+                    Faculty Aliases
+                    <textarea id="facultyAliasInput" placeholder="T Masingale=T.Masingale\nMindy Breen=M.Breen"></textarea>
+                </label>
+                <label>
+                    Course Aliases
+                    <textarea id="courseAliasInput" placeholder="DES 101=DESN 101\nDESN101=DESN 101"></textarea>
+                </label>
+            </div>
+        </section>
+
+        <section class="shell-card">
+            <h2>Step 3: Health Checks + Activation</h2>
+            <p>Run checks before activation. Errors block activation. Warnings are advisory.</p>
+            <div class="shell-actions">
+                <button id="runHealthChecksButton" class="secondary" type="button">Run Health Checks</button>
+                <button id="saveActivateButton" type="button">Save Versioned Profile + Activate</button>
+                <span id="activationResult"></span>
+            </div>
+            <div id="healthCheckOutput"></div>
+        </section>
+
+        <section class="shell-card">
+            <h2>Current Status</h2>
+            <div id="onboardingStatus" class="onboarding-status">Initializing onboarding shell...</div>
+        </section>
+    </main>
+
+    <script type="module" src="../js/components/app-header.js"></script>
+    <script src="../js/department-profile.js"></script>
+    <script src="department-onboarding.js"></script>
+</body>
+</html>
