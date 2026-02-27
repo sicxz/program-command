@@ -122,9 +122,29 @@ const WorkloadIntegration = (function() {
         return value ? JSON.parse(JSON.stringify(value)) : value;
     }
 
+    function normalizeFacultyNameArtifacts(name) {
+        let value = String(name || '')
+            .replace(/\u00a0/g, ' ')
+            .trim();
+        if (!value) return '';
+
+        value = value
+            .replace(/^([A-Za-z])\.\s*(PAS|IND)([A-Za-z]{2,})$/i, '$1.$3')
+            .replace(/^([A-Za-z])\s+(PAS|IND)\s+([A-Za-z]{2,})$/i, '$1.$3')
+            .replace(/^([A-Za-z])\s+(PAS|IND)([A-Za-z]{2,})$/i, '$1.$3')
+            .replace(/^([A-Za-z]+)\s+(PAS|IND)([A-Za-z]{2,})$/i, '$1 $3');
+
+        value = value
+            .split(/\s+/)
+            .map((token) => token.replace(/^(PAS|IND)([A-Za-z]{3,})$/i, '$2'))
+            .join(' ')
+            .trim();
+
+        return value;
+    }
+
     function normalizeNameKey(name) {
-        return String(name || '')
-            .trim()
+        return normalizeFacultyNameArtifacts(name)
             .toLowerCase()
             .replace(/[^a-z0-9]/g, '');
     }
@@ -209,7 +229,8 @@ const WorkloadIntegration = (function() {
     }
 
     function parseNameParts(name) {
-        const parts = String(name || '')
+        const normalized = normalizeFacultyNameArtifacts(name);
+        const parts = String(normalized || '')
             .replace(/[^a-zA-Z0-9\s]/g, ' ')
             .split(/\s+/)
             .filter(Boolean);
@@ -545,7 +566,8 @@ const WorkloadIntegration = (function() {
         const byLastName = new Map();
 
         (knownNames || []).forEach((name) => {
-            const cleaned = String(name || '').trim();
+            const rawValue = String(name || '').trim();
+            const cleaned = normalizeFacultyNameArtifacts(rawValue) || rawValue;
             if (!cleaned) return;
 
             const key = normalizeNameKey(cleaned);
@@ -556,7 +578,10 @@ const WorkloadIntegration = (function() {
             const parts = parseNameParts(cleaned);
             if (!parts.last) return;
             if (!byLastName.has(parts.last)) byLastName.set(parts.last, []);
-            byLastName.get(parts.last).push(cleaned);
+            const list = byLastName.get(parts.last);
+            if (!list.includes(cleaned)) {
+                list.push(cleaned);
+            }
         });
 
         return function resolveName(rawName) {

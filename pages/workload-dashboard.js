@@ -179,6 +179,13 @@ function clearAllProductionWorkloads() {
         WORKLOAD_DETAIL_STORAGE_KEY,
         CLSS_WORKLOAD_IMPORT_STORAGE_KEY
     ];
+    const scheduleKeysToRemove = [];
+    for (let i = 0; i < localStorage.length; i += 1) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith(SCHEDULE_STORAGE_PREFIX)) {
+            scheduleKeysToRemove.push(key);
+        }
+    }
 
     const summary = [
         'Clear ALL locally stored workload data for production cleanup?',
@@ -188,8 +195,9 @@ function clearAllProductionWorkloads() {
         '• workload planning UI preferences',
         '• faculty workload detail entries',
         '• staged CLSS workload import payload',
+        `• all scheduler draft years (${scheduleKeysToRemove.length} key${scheduleKeysToRemove.length === 1 ? '' : 's'})`,
         '',
-        'This does NOT clear release time allocations.',
+        'This DOES NOT clear release time allocations.',
         '',
         'Type OK in the next confirmation only if you want to continue.'
     ].join('\n');
@@ -205,6 +213,7 @@ function clearAllProductionWorkloads() {
     }
 
     keysToRemove.forEach((key) => localStorage.removeItem(key));
+    scheduleKeysToRemove.forEach((key) => localStorage.removeItem(key));
 
     // Reset in-memory planning UI state so the page reflects storage deletion without a reload.
     workloadPlanningUiState.lockStateByYear = {};
@@ -213,7 +222,7 @@ function clearAllProductionWorkloads() {
     workloadPlanningUiState.statusLevel = 'info';
 
     refreshWorkloadDashboardAfterProductionReset();
-    alert('Production reset complete: local workload planning/detail data cleared.');
+    alert(`Production reset complete: workload data and ${scheduleKeysToRemove.length} scheduler year key${scheduleKeysToRemove.length === 1 ? '' : 's'} cleared.`);
 }
 
 function clearProductionScheduleYear(year = PRODUCTION_RESET_DEFAULT_SCHEDULE_YEAR) {
@@ -778,7 +787,12 @@ function formatWorkloadPlanNumber(value, decimals = 1) {
 
 function normalizeWorkloadPlanNameKey(name) {
     return String(name || '')
+        .replace(/\u00a0/g, ' ')
         .trim()
+        .replace(/^([A-Za-z])\.\s*(PAS|IND)([A-Za-z]{2,})$/i, '$1.$3')
+        .replace(/^([A-Za-z])\s+(PAS|IND)\s+([A-Za-z]{2,})$/i, '$1.$3')
+        .replace(/^([A-Za-z])\s+(PAS|IND)([A-Za-z]{2,})$/i, '$1.$3')
+        .replace(/^([A-Za-z]+)\s+(PAS|IND)([A-Za-z]{2,})$/i, '$1 $3')
         .toLowerCase()
         .replace(/[^a-z0-9]/g, '');
 }
