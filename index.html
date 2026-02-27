@@ -9299,6 +9299,113 @@
             });
         }
 
+        function getClssImportDiagnostics(row, effectiveRow) {
+            const sourceRow = row || {};
+            const effective = effectiveRow || getClssImportRowEffectiveState(sourceRow);
+            const notes = [...new Set([...(sourceRow.notes || []), ...(effective.effectiveNotes || [])]
+                .map((note) => String(note || '').trim())
+                .filter(Boolean))];
+            const reviewPlacement = String(sourceRow.reviewPlacement || '').toLowerCase();
+            const hasManualOverrides = Boolean(
+                reviewPlacement
+                || sourceRow.reviewDay
+                || sourceRow.reviewTime
+                || sourceRow.reviewRoom
+            );
+
+            let placementSource = 'parser';
+            if (reviewPlacement === 'skip') {
+                placementSource = 'manual-skip';
+            } else if (reviewPlacement === 'online') {
+                placementSource = 'manual-online';
+            } else if (reviewPlacement === 'arranged') {
+                placementSource = 'manual-arranged';
+            } else if (reviewPlacement === 'inperson' || hasManualOverrides) {
+                placementSource = 'manual-inperson';
+            } else if (notes.some((note) => /Auto-matched prior-year placement/i.test(note))) {
+                placementSource = 'prior-year-auto';
+            } else if (effective.effectiveDisposition === 'online') {
+                placementSource = 'parser-online';
+            } else if (effective.effectiveDisposition === 'arranged') {
+                placementSource = 'parser-arranged';
+            } else if (effective.effectiveDisposition === 'ready') {
+                placementSource = effective.effectiveRoom
+                    ? 'parser-slot-room'
+                    : 'parser-slot-auto-room';
+            } else if (effective.effectiveDisposition === 'error') {
+                placementSource = 'parser-error';
+            } else {
+                placementSource = 'parser-needs-review';
+            }
+
+            let score = 0.5;
+            if (placementSource === 'manual-inperson') score = 0.93;
+            else if (placementSource === 'manual-online' || placementSource === 'manual-arranged') score = 0.9;
+            else if (placementSource === 'manual-skip') score = 0.75;
+            else if (placementSource === 'prior-year-auto') score = 0.78;
+            else if (placementSource === 'parser-slot-room') score = 0.86;
+            else if (placementSource === 'parser-slot-auto-room') score = 0.72;
+            else if (placementSource === 'parser-online' || placementSource === 'parser-arranged') score = 0.8;
+            else if (placementSource === 'parser-error') score = 0.1;
+            else if (placementSource === 'parser-needs-review') score = 0.35;
+
+            const diagnostics = [];
+            if (effective.effectiveStatus === 'error') {
+                score = Math.min(score, 0.1);
+                diagnostics.push('Parser could not resolve required course identity');
+            } else if (effective.effectiveStatus === 'needs-review') {
+                score = Math.min(score, 0.45);
+                diagnostics.push('Row still requires manual review before apply');
+            }
+
+            if (String(effective.instructor || sourceRow.instructor || '').trim().toUpperCase() === 'TBD') {
+                score -= 0.18;
+                diagnostics.push('Instructor is unresolved (TBD/Staff)');
+            }
+
+            if (!String(effective.section || sourceRow.section || '').trim()) {
+                score -= 0.05;
+                diagnostics.push('Section missing');
+            }
+
+            if (placementSource === 'prior-year-auto') {
+                if (notes.some((note) => /matched by prior-year roster/i.test(note))) {
+                    score += 0.1;
+                    diagnostics.push('Matched prior-year instructor/section pattern');
+                } else {
+                    diagnostics.push('Prior-year placement used as heuristic');
+                }
+            }
+
+            const parserUncertaintyCount = notes.filter((note) =>
+                /(not recognized|not detected|not found|unsupported|manual placement|auto-assign|requires manual)/i.test(note)
+            ).length;
+            if (parserUncertaintyCount > 0) {
+                score -= Math.min(0.25, parserUncertaintyCount * 0.08);
+                diagnostics.push('Parser emitted uncertainty notes');
+            }
+
+            if (effective.effectiveDay && effective.effectiveTime && effective.effectiveDisposition === 'ready') {
+                score += 0.03;
+            }
+
+            score = Math.max(0.05, Math.min(0.99, score));
+            const roundedScore = Math.round(score * 100) / 100;
+            const confidenceLevel = roundedScore >= 0.8
+                ? 'high'
+                : roundedScore >= 0.6
+                    ? 'medium'
+                    : 'low';
+
+            return {
+                placementSource,
+                confidenceScore: roundedScore,
+                confidenceLevel,
+                lowConfidence: confidenceLevel === 'low',
+                diagnostics
+            };
+        }
+
         function getClssImportRowEffectiveState(row) {
             const parsedQuarter = row?.targetQuarter || (document.getElementById('clssImportQuarter')?.value || 'spring');
             const reviewQuarter = CLSS_IMPORT_QUARTERS.includes(row?.reviewQuarter) ? row.reviewQuarter : parsedQuarter;
@@ -9654,11 +9761,13 @@
             }
 
             const effectiveRows = rows.map((row) => getClssImportRowEffectiveState(row));
+            const rowDiagnostics = rows.map((row, index) => getClssImportDiagnostics(row, effectiveRows[index]));
 
             const statusCounts = effectiveRows.reduce((acc, row) => {
                 acc[row.effectiveStatus] = (acc[row.effectiveStatus] || 0) + 1;
                 return acc;
             }, {});
+            const lowConfidenceCount = rowDiagnostics.filter((diagnostics) => diagnostics.lowConfidence).length;
 
             const scope = getClssImportScope();
             const buildMode = getClssImportBuildMode();
@@ -9694,6 +9803,9 @@
                     summaryPills.push(`${label}: ${statusCounts[status]}`);
                 }
             });
+            if (lowConfidenceCount > 0) {
+                summaryPills.push(`Low confidence: ${lowConfidenceCount}`);
+            }
 
             if (Array.isArray(meta.warnings)) {
                 meta.warnings.forEach((warning) => summaryPills.push(warning));
@@ -9708,6 +9820,7 @@
 
             rows.forEach((row, rowIndex) => {
                 const effectiveRow = effectiveRows[rowIndex];
+                const diagnostics = rowDiagnostics[rowIndex];
                 const tr = document.createElement('tr');
 
                 const quarterTd = document.createElement('td');
@@ -9719,6 +9832,13 @@
                 statusBadge.className = `clss-import-status ${effectiveRow.effectiveStatus}`;
                 statusBadge.textContent = CLSS_IMPORT_STATUS_LABELS[effectiveRow.effectiveStatus] || effectiveRow.effectiveStatus;
                 statusTd.appendChild(statusBadge);
+                if (diagnostics?.lowConfidence) {
+                    const confidenceBadge = document.createElement('span');
+                    confidenceBadge.className = 'clss-import-status needs-review';
+                    confidenceBadge.style.marginLeft = '6px';
+                    confidenceBadge.textContent = `Low confidence (${Math.round((diagnostics.confidenceScore || 0) * 100)}%)`;
+                    statusTd.appendChild(confidenceBadge);
+                }
                 tr.appendChild(statusTd);
 
                 const courseTd = document.createElement('td');
@@ -9752,6 +9872,16 @@
                 const notesTd = document.createElement('td');
                 const notesWrap = document.createElement('div');
                 notesWrap.className = 'clss-import-notes';
+                const diagnosticsLabel = document.createElement('div');
+                diagnosticsLabel.className = 'clss-import-note-item';
+                diagnosticsLabel.textContent = `• Placement source: ${diagnostics?.placementSource || 'unknown'} • Confidence: ${diagnostics?.confidenceLevel || 'unknown'} (${Math.round((diagnostics?.confidenceScore || 0) * 100)}%)`;
+                notesWrap.appendChild(diagnosticsLabel);
+                (diagnostics?.diagnostics || []).forEach((message) => {
+                    const noteDiv = document.createElement('div');
+                    noteDiv.className = 'clss-import-note-item';
+                    noteDiv.textContent = `• ${message}`;
+                    notesWrap.appendChild(noteDiv);
+                });
                 (effectiveRow.effectiveNotes || []).forEach((note) => {
                     const noteDiv = document.createElement('div');
                     noteDiv.className = 'clss-import-note-item';
@@ -10329,6 +10459,9 @@
                     ? `No in-grid rows were placed. Outcome: ${reasons.join(', ')}.`
                     : 'No in-grid rows were placed for this import.');
             }
+            if ((Number(totals.lowConfidence) || 0) > 0) {
+                lines.push(`${totals.lowConfidence} row${totals.lowConfidence === 1 ? '' : 's'} flagged low-confidence; review notes/diagnostics before finalizing.`);
+            }
 
             if (report.targetYear !== currentYearLabel || targetQuarter !== currentQuarterLabel) {
                 lines.push(`Current view is ${currentYearLabel} ${CLSS_IMPORT_QUARTER_LABELS[currentQuarterLabel] || currentQuarterLabel}. Use "Show Imported Rows Now" to jump to ${report.targetYear} ${CLSS_IMPORT_QUARTER_LABELS[targetQuarter] || targetQuarter}.`);
@@ -10407,8 +10540,14 @@
             if ((Number(totals.roomFallbackPlacements) || 0) > 0) {
                 summaryPills.push(`Room fallback: ${Number(totals.roomFallbackPlacements) || 0}`);
             }
+            if ((Number(totals.lowConfidence) || 0) > 0) {
+                summaryPills.push(`Low confidence: ${Number(totals.lowConfidence) || 0}`);
+            }
 
             const contextLine = buildClssImportResultContextMessage(report);
+            const diagnosticRows = (Array.isArray(report.sampleRows) ? report.sampleRows : [])
+                .filter((row) => row && (row.confidence != null || row.placementSource))
+                .slice(0, 8);
             const quarterTableHtml = quarterRows.length
                 ? `
                     <table class="clss-import-results-table" aria-label="CLSS import outcomes by quarter">
@@ -10439,12 +10578,40 @@
                     </table>
                 `
                 : '<div class="clss-import-results-message">No quarter-level outcomes were recorded for this import.</div>';
+            const diagnosticsTableHtml = diagnosticRows.length
+                ? `
+                    <details class="clss-import-results-details">
+                        <summary>Placement diagnostics sample</summary>
+                        <table class="clss-import-results-table" aria-label="CLSS placement diagnostics sample">
+                            <thead>
+                                <tr>
+                                    <th>Course</th>
+                                    <th>Destination</th>
+                                    <th>Source</th>
+                                    <th>Confidence</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${diagnosticRows.map((row) => `
+                                    <tr>
+                                        <td>${escapeHtml(String(row.code || ''))}${row.section ? `-${escapeHtml(String(row.section))}` : ''}</td>
+                                        <td>${escapeHtml(String(row.destination || ''))}</td>
+                                        <td>${escapeHtml(String(row.placementSource || ''))}</td>
+                                        <td>${row.confidence != null ? `${Math.round(Number(row.confidence) * 100)}% (${escapeHtml(String(row.confidenceLevel || 'unknown'))})` : '—'}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </details>
+                `
+                : '';
 
             bodyEl.innerHTML = `
                 <div class="clss-import-results-summary">
                     ${summaryPills.map((text) => `<span class="clss-import-summary-pill">${escapeHtml(text)}</span>`).join('')}
                 </div>
                 ${quarterTableHtml}
+                ${diagnosticsTableHtml}
                 <div class="clss-import-results-message">${escapeHtml(contextLine)}</div>
             `;
 
@@ -10526,6 +10693,7 @@
             return clssImportPreviewRows
                 .map((sourceRow) => {
                     const effective = getClssImportRowEffectiveState(sourceRow);
+                    const diagnostics = getClssImportDiagnostics(sourceRow, effective);
                     if (!effective || effective.effectiveDisposition === 'skip' || effective.effectiveStatus === 'error') {
                         return null;
                     }
@@ -10556,7 +10724,10 @@
                         time: String(effective.effectiveTime || '').trim(),
                         room: String(effective.effectiveRoom || '').trim(),
                         rawMeeting: String(effective.meetingLabel || '').trim(),
-                        rawRoom: String(effective.roomLabel || '').trim()
+                        rawRoom: String(effective.roomLabel || '').trim(),
+                        placementSource: diagnostics.placementSource,
+                        confidence: diagnostics.confidenceScore,
+                        confidenceLevel: diagnostics.confidenceLevel
                     };
                 })
                 .filter(Boolean);
@@ -10568,7 +10739,8 @@
                 byQuarter: { fall: 0, winter: 0, spring: 0 },
                 byModality: { 'in-person': 0, online: 0, arranged: 0 },
                 assignedFaculty: 0,
-                unassignedFaculty: 0
+                unassignedFaculty: 0,
+                lowConfidence: 0
             };
 
             (Array.isArray(rows) ? rows : []).forEach((row) => {
@@ -10579,6 +10751,9 @@
                     stats.unassignedFaculty += 1;
                 } else {
                     stats.assignedFaculty += 1;
+                }
+                if (String(row.confidenceLevel || '').toLowerCase() === 'low') {
+                    stats.lowConfidence += 1;
                 }
             });
 
@@ -10602,6 +10777,7 @@
                 `In-person/Online/Arranged: ${stats.byModality['in-person']}/${stats.byModality.online}/${stats.byModality.arranged}`,
                 `Assigned faculty rows: ${stats.assignedFaculty}`,
                 `TBD/Staff rows: ${stats.unassignedFaculty}`,
+                `Low-confidence rows: ${stats.lowConfidence}`,
                 '',
                 'This mode creates a workload handoff dataset and opens the workload dashboard. It does not place courses into the scheduler grid.'
             ].join('\n');
@@ -10645,10 +10821,14 @@
             const quarter = document.getElementById('clssImportQuarter')?.value || 'spring';
             const replaceQuarter = Boolean(document.getElementById('clssImportReplaceQuarter')?.checked);
             const targetYear = getClssImportTargetAcademicYear();
-            const reviewRows = clssImportPreviewRows.map((sourceRow) => ({
-                sourceRow,
-                effectiveRow: getClssImportRowEffectiveState(sourceRow)
-            }));
+            const reviewRows = clssImportPreviewRows.map((sourceRow) => {
+                const effectiveRow = getClssImportRowEffectiveState(sourceRow);
+                return {
+                    sourceRow,
+                    effectiveRow,
+                    diagnostics: getClssImportDiagnostics(sourceRow, effectiveRow)
+                };
+            });
             const currentYearLabel = currentAcademicYear || (window.StateManager?.get('currentAcademicYear')) || '2025-26';
             const importingToCurrentYear = targetYear === currentYearLabel;
             const impactedQuarters = [...new Set(reviewRows
@@ -10678,7 +10858,8 @@
                 skippedInvalidQuarter: 0,
                 unresolved: 0,
                 leftoverToTray: 0,
-                roomFallbackPlacements: 0
+                roomFallbackPlacements: 0,
+                lowConfidence: 0
             };
             const byQuarter = {};
             const rowOutcomes = [];
@@ -10696,9 +10877,23 @@
             const remainingRows = [];
             const applyableRows = [];
 
-            reviewRows.forEach(({ sourceRow, effectiveRow }) => {
+            reviewRows.forEach(({ sourceRow, effectiveRow, diagnostics }) => {
                 const effectiveQuarter = effectiveRow?.effectiveQuarter || sourceRow?.targetQuarter || quarter;
                 const quarterOutcome = ensureOutcome(effectiveQuarter);
+                const outcomeBase = {
+                    quarter: effectiveQuarter,
+                    code: normalizeCourseCode(effectiveRow?.code),
+                    section: String(effectiveRow?.section || '').trim(),
+                    instructor: getCanonicalFacultyName(effectiveRow?.instructor || 'TBD'),
+                    placementSource: diagnostics?.placementSource || 'unknown',
+                    confidence: diagnostics?.confidenceScore ?? null,
+                    confidenceLevel: diagnostics?.confidenceLevel || 'unknown',
+                    lowConfidence: Boolean(diagnostics?.lowConfidence),
+                    diagnostics: Array.isArray(diagnostics?.diagnostics) ? diagnostics.diagnostics.slice(0, 4) : []
+                };
+                if (diagnostics?.lowConfidence) {
+                    counts.lowConfidence += 1;
+                }
 
                 if (!sourceRow || !effectiveRow) {
                     counts.skipped += 1;
@@ -10714,10 +10909,7 @@
                         quarterOutcome.skippedMarkedSkip += 1;
                     }
                     rowOutcomes.push({
-                        quarter: effectiveQuarter,
-                        code: normalizeCourseCode(effectiveRow.code),
-                        section: String(effectiveRow.section || '').trim(),
-                        instructor: getCanonicalFacultyName(effectiveRow.instructor || 'TBD'),
+                        ...outcomeBase,
                         destination: 'skipped-marked-skip'
                     });
                     return;
@@ -10728,16 +10920,13 @@
                     counts.unresolved += 1;
                     if (quarterOutcome) quarterOutcome.unresolved += 1;
                     rowOutcomes.push({
-                        quarter: effectiveQuarter,
-                        code: normalizeCourseCode(effectiveRow.code),
-                        section: String(effectiveRow.section || '').trim(),
-                        instructor: getCanonicalFacultyName(effectiveRow.instructor || 'TBD'),
+                        ...outcomeBase,
                         destination: effectiveRow.effectiveStatus === 'error' ? 'skipped-error' : 'needs-review'
                     });
                     return;
                 }
 
-                applyableRows.push({ sourceRow, effectiveRow });
+                applyableRows.push({ sourceRow, effectiveRow, diagnostics });
             });
 
             if (!applyableRows.length && remainingRows.length) {
@@ -10766,9 +10955,20 @@
                 }
             }
 
-            applyableRows.forEach(({ sourceRow, effectiveRow }) => {
+            applyableRows.forEach(({ sourceRow, effectiveRow, diagnostics }) => {
                 const rowQuarter = effectiveRow.effectiveQuarter || quarter;
                 const quarterOutcome = ensureOutcome(rowQuarter);
+                const outcomeBase = {
+                    quarter: rowQuarter,
+                    code: normalizeCourseCode(effectiveRow.code),
+                    section: String(effectiveRow.section || '').trim(),
+                    instructor: getCanonicalFacultyName(effectiveRow.instructor || 'TBD'),
+                    placementSource: diagnostics?.placementSource || 'unknown',
+                    confidence: diagnostics?.confidenceScore ?? null,
+                    confidenceLevel: diagnostics?.confidenceLevel || 'unknown',
+                    lowConfidence: Boolean(diagnostics?.lowConfidence),
+                    diagnostics: Array.isArray(diagnostics?.diagnostics) ? diagnostics.diagnostics.slice(0, 4) : []
+                };
 
                 if (!CLSS_IMPORT_QUARTERS.includes(rowQuarter)) {
                     counts.skipped += 1;
@@ -10779,10 +10979,8 @@
                     }
                     remainingRows.push(sourceRow);
                     rowOutcomes.push({
+                        ...outcomeBase,
                         quarter: sourceRow?.targetQuarter || quarter,
-                        code: normalizeCourseCode(effectiveRow.code),
-                        section: String(effectiveRow.section || '').trim(),
-                        instructor: getCanonicalFacultyName(effectiveRow.instructor || 'TBD'),
                         destination: 'skipped-invalid-quarter'
                     });
                     return;
@@ -10812,10 +11010,7 @@
                             if (quarterOutcome) quarterOutcome.roomFallbackPlacements += 1;
                         }
                         rowOutcomes.push({
-                            quarter: rowQuarter,
-                            code: normalizeCourseCode(effectiveRow.code),
-                            section: String(effectiveRow.section || '').trim(),
-                            instructor: getCanonicalFacultyName(effectiveRow.instructor || 'TBD'),
+                            ...outcomeBase,
                             destination: 'grid',
                             day: rowForApply.schedulerDay || '',
                             time: rowForApply.schedulerTime || '',
@@ -10832,10 +11027,7 @@
                             quarterOutcome.skippedDuplicate += 1;
                         }
                         rowOutcomes.push({
-                            quarter: rowQuarter,
-                            code: normalizeCourseCode(effectiveRow.code),
-                            section: String(effectiveRow.section || '').trim(),
-                            instructor: getCanonicalFacultyName(effectiveRow.instructor || 'TBD'),
+                            ...outcomeBase,
                             destination: 'skipped-duplicate',
                             day: rowForApply.schedulerDay || '',
                             time: rowForApply.schedulerTime || ''
@@ -10850,10 +11042,7 @@
                     counts.leftoverToTray += 1;
                     if (quarterOutcome) quarterOutcome.displaced += 1;
                     rowOutcomes.push({
-                        quarter: rowQuarter,
-                        code: normalizeCourseCode(effectiveRow.code),
-                        section: String(effectiveRow.section || '').trim(),
-                        instructor: getCanonicalFacultyName(effectiveRow.instructor || 'TBD'),
+                        ...outcomeBase,
                         destination: 'displaced',
                         day: rowForApply.schedulerDay || '',
                         time: rowForApply.schedulerTime || '',
@@ -10868,10 +11057,7 @@
                     counts.onlinePlaced += 1;
                     if (quarterOutcome) quarterOutcome.onlinePlaced += 1;
                     rowOutcomes.push({
-                        quarter: rowQuarter,
-                        code: normalizeCourseCode(effectiveRow.code),
-                        section: String(effectiveRow.section || '').trim(),
-                        instructor: getCanonicalFacultyName(effectiveRow.instructor || 'TBD'),
+                        ...outcomeBase,
                         destination: 'online'
                     });
                     return;
@@ -10882,10 +11068,7 @@
                     counts.arrangedPlaced += 1;
                     if (quarterOutcome) quarterOutcome.arrangedPlaced += 1;
                     rowOutcomes.push({
-                        quarter: rowQuarter,
-                        code: normalizeCourseCode(effectiveRow.code),
-                        section: String(effectiveRow.section || '').trim(),
-                        instructor: getCanonicalFacultyName(effectiveRow.instructor || 'TBD'),
+                        ...outcomeBase,
                         destination: 'arranged'
                     });
                     return;
@@ -10895,10 +11078,7 @@
                 counts.unresolved += 1;
                 if (quarterOutcome) quarterOutcome.unresolved += 1;
                 rowOutcomes.push({
-                    quarter: rowQuarter,
-                    code: normalizeCourseCode(effectiveRow.code),
-                    section: String(effectiveRow.section || '').trim(),
-                    instructor: getCanonicalFacultyName(effectiveRow.instructor || 'TBD'),
+                    ...outcomeBase,
                     destination: 'needs-review'
                 });
             });
@@ -10991,7 +11171,8 @@
                     skippedDuplicate: Number(counts?.skippedDuplicate) || 0,
                     skippedMarkedSkip: Number(counts?.skippedMarkedSkip) || 0,
                     skippedInvalidQuarter: Number(counts?.skippedInvalidQuarter) || 0,
-                    roomFallbackPlacements: Number(counts?.roomFallbackPlacements) || 0
+                    roomFallbackPlacements: Number(counts?.roomFallbackPlacements) || 0,
+                    lowConfidence: Number(counts?.lowConfidence) || 0
                 },
                 byQuarter: normalizedByQuarter,
                 sampleRows: (Array.isArray(rowOutcomes) ? rowOutcomes : []).slice(0, 20)
@@ -11005,6 +11186,12 @@
                 acc[key] = (acc[key] || 0) + 1;
                 return acc;
             }, {});
+            const lowConfidenceCount = rows.reduce((acc, row) => {
+                const diagnostics = row?.diagnostics
+                    ? row.diagnostics
+                    : getClssImportDiagnostics(row?.sourceRow || row, row?.effectiveRow);
+                return acc + (diagnostics?.lowConfidence ? 1 : 0);
+            }, 0);
 
             const quartersLabel = (impactedQuarters.length
                 ? impactedQuarters
@@ -11023,7 +11210,8 @@
                 `Online: ${counts.online || 0}`,
                 `Arranged: ${counts.arranged || 0}`,
                 `Needs review (stays in review table): ${counts['needs-review'] || 0}`,
-                `Errors (skipped): ${counts.error || 0}`
+                `Errors (skipped): ${counts.error || 0}`,
+                `Low confidence (review recommended): ${lowConfidenceCount}`
             ];
 
             if (replaceQuarter) {
