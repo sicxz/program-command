@@ -98,6 +98,40 @@
         }
     }
 
+    function applyOnboardingTextSlots(profile) {
+        const textSlots = profile && profile.branding && profile.branding.textSlots && typeof profile.branding.textSlots === 'object'
+            ? profile.branding.textSlots
+            : {};
+        const appHeader = document.querySelector('app-header');
+        if (appHeader) {
+            const eyebrow = String(textSlots.onboardingEyebrow || profile?.branding?.headerEyebrow || '').trim();
+            const title = String(textSlots.onboardingTitle || '').trim();
+            const subtitle = String(textSlots.onboardingSubtitle || '').trim();
+            if (eyebrow) appHeader.setAttribute('eyebrow', eyebrow);
+            if (title) appHeader.setAttribute('title-text', title);
+            if (subtitle) appHeader.setAttribute('subtitle', subtitle);
+        }
+
+        const bindings = {
+            step1Title: textSlots.onboardingStep1Title,
+            step1Help: textSlots.onboardingStep1Help,
+            step2Title: textSlots.onboardingStep2Title,
+            step2Help: textSlots.onboardingStep2Help,
+            step3Title: textSlots.onboardingStep3Title,
+            step3Help: textSlots.onboardingStep3Help,
+            statusTitle: textSlots.onboardingStatusTitle
+        };
+
+        Object.entries(bindings).forEach(([elementId, value]) => {
+            const text = String(value || '').trim();
+            if (!text) return;
+            const element = qs(elementId);
+            if (element) {
+                element.textContent = text;
+            }
+        });
+    }
+
     function readIdentityInputs() {
         const name = String(qs('departmentName')?.value || '').trim();
         const code = sanitizeCode(qs('departmentCode')?.value || '');
@@ -243,6 +277,7 @@
         const loaded = await state.manager.loadProfile(profileId);
         state.baseProfile = loaded.profile;
         state.baseProfileSource = loaded.source;
+        applyOnboardingTextSlots(loaded.profile);
 
         const identity = loaded.profile.identity || {};
         qs('departmentName').value = identity.name || '';
