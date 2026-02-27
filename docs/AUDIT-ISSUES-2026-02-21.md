@@ -38,6 +38,8 @@ Scope: scheduler UI, persistence/Supabase, scripts/data pipeline, conflict engin
 - **Files:** `scripts/supabase-schema.sql:136`, `scripts/supabase-schema.sql:174`, `scripts/supabase-schema.sql:176`
 - **Impact:** anonymous clients can write/delete all scheduling data.
 - **DoD:** role-scoped policies; only authenticated/authorized writes.
+- **Smoke Check:** `npm run check:rls` (`scripts/supabase-policy-smoke-check.js`)
+- **Runbook:** `docs/supabase-policy-smoke-check.md`
 
 ---
 
