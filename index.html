@@ -4315,6 +4315,7 @@
 
     <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/department-profile.js"></script>
     <script type="module" src="js/supabase-config.js"></script>
 
     <!-- Schedule Manager Scripts -->
@@ -4586,6 +4587,70 @@
         };
 
         const AY_SETUP_STORAGE_KEY = 'programCommandAySetup';
+        let activeDepartmentProfile = null;
+
+        function getActiveDepartmentIdentity() {
+            const identity = activeDepartmentProfile?.identity || {};
+            return {
+                name: String(identity.name || 'Design').trim() || 'Design',
+                code: String(identity.code || 'DESN').trim().toUpperCase() || 'DESN',
+                displayName: String(identity.displayName || identity.name || 'EWU Design').trim() || 'EWU Design'
+            };
+        }
+
+        function applyDepartmentProfileToHeader(profile) {
+            const appHeader = document.querySelector('app-header');
+            if (!appHeader || !profile) return;
+
+            const branding = profile.branding || {};
+            if (branding.headerEyebrow) appHeader.setAttribute('eyebrow', String(branding.headerEyebrow));
+            if (branding.headerSubtitle) appHeader.setAttribute('subtitle', String(branding.headerSubtitle));
+            if (branding.headerTitle) appHeader.setAttribute('title-text', String(branding.headerTitle));
+
+            const root = appHeader.shadowRoot;
+            if (root) {
+                const eyebrowEl = root.querySelector('.header-eyebrow');
+                const subtitleEl = root.querySelector('.subtitle');
+                const titleEl = root.querySelector('h1');
+                if (eyebrowEl && branding.headerEyebrow) eyebrowEl.textContent = String(branding.headerEyebrow);
+                if (subtitleEl && branding.headerSubtitle) subtitleEl.textContent = String(branding.headerSubtitle);
+                if (titleEl && branding.headerTitle) titleEl.textContent = String(branding.headerTitle);
+            }
+        }
+
+        async function initializeDepartmentProfileContext() {
+            const manager = window.DepartmentProfileManager;
+            if (!manager || typeof manager.initialize !== 'function') {
+                return null;
+            }
+
+            try {
+                const snapshot = await manager.initialize();
+                activeDepartmentProfile = snapshot?.profile || manager.getDefaultProfile?.() || null;
+                window.activeDepartmentProfile = activeDepartmentProfile;
+                if (window.StateManager?.set) {
+                    window.StateManager.set('departmentProfile', activeDepartmentProfile);
+                }
+
+                if (activeDepartmentProfile?.branding?.appTitle) {
+                    document.title = String(activeDepartmentProfile.branding.appTitle);
+                } else {
+                    const identity = getActiveDepartmentIdentity();
+                    document.title = `Program Command - ${identity.displayName}`;
+                }
+
+                applyDepartmentProfileToHeader(activeDepartmentProfile);
+
+                if (Array.isArray(snapshot?.warnings) && snapshot.warnings.length) {
+                    console.warn('Department profile warnings:', snapshot.warnings);
+                }
+
+                return activeDepartmentProfile;
+            } catch (error) {
+                console.warn('Could not initialize department profile context:', error);
+                return null;
+            }
+        }
 
         function buildFacultyAliasMap() {
             const aliasMap = {};
@@ -11328,6 +11393,7 @@
         }
 
         async function init() {
+            await initializeDepartmentProfileContext();
             await loadEnrollmentData();
             await loadFacultyData();
 
@@ -12523,11 +12589,12 @@
             try {
                 // Always keep local backup in sync with current in-memory state.
                 saveScheduleData();
+                const departmentIdentity = getActiveDepartmentIdentity();
 
                 let { data: department, error: departmentError } = await client
                     .from('departments')
                     .select('id')
-                    .eq('code', 'DESN')
+                    .eq('code', departmentIdentity.code)
                     .maybeSingle();
 
                 if (departmentError) throw departmentError;
@@ -12535,7 +12602,7 @@
                 if (!department) {
                     const created = await client
                         .from('departments')
-                        .insert({ name: 'Design', code: 'DESN' })
+                        .insert({ name: departmentIdentity.name, code: departmentIdentity.code })
                         .select('id')
                         .single();
                     if (created.error) throw created.error;

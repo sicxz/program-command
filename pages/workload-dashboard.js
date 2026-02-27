@@ -1,6 +1,6 @@
 /**
- * EWU Design Faculty Workload Dashboard
- * Handles data loading, filtering, and visualization
+ * Faculty workload dashboard
+ * Handles data loading, filtering, and visualization.
  */
 
 // Global state
@@ -23,8 +23,11 @@ const WORKLOAD_PLAN_STORAGE_KEY = 'programCommandAySetup';
 const WORKLOAD_PLAN_UI_STORAGE_KEY = 'programCommandAyPlanningUi';
 const WORKLOAD_DETAIL_STORAGE_KEY = 'programCommandFacultyWorkloadDetails';
 const CLSS_WORKLOAD_IMPORT_STORAGE_KEY = 'programCommandClssWorkloadImport';
-const SCHEDULE_STORAGE_PREFIX = 'designSchedulerData_';
-const PRODUCTION_RESET_DEFAULT_SCHEDULE_YEAR = '2026-27';
+let activeDepartmentProfile = null;
+let SCHEDULE_STORAGE_PREFIX = 'designSchedulerData_';
+let PRODUCTION_RESET_DEFAULT_SCHEDULE_YEAR = '2026-27';
+let WORKLOAD_DASHBOARD_SUBTITLE_BASE = 'EWU Design Department - Academic Workload Analysis';
+let WORKLOAD_DASHBOARD_TITLE = '👥 Faculty Workload Dashboard';
 const WORKLOAD_PLAN_ROLE_OPTIONS = [
     'Full Professor',
     'Associate Professor',
@@ -154,6 +157,76 @@ const workloadPlanningUiState = {
 // Chart instances
 let charts = {};
 
+function getDepartmentIdentity() {
+    const identity = activeDepartmentProfile && activeDepartmentProfile.identity
+        ? activeDepartmentProfile.identity
+        : {};
+    return {
+        name: String(identity.name || 'Design').trim() || 'Design',
+        code: String(identity.code || 'DESN').trim().toUpperCase() || 'DESN',
+        displayName: String(identity.displayName || identity.name || 'EWU Design').trim() || 'EWU Design'
+    };
+}
+
+function applyDepartmentProfileToDashboardHeader() {
+    const titleEl = document.getElementById('workloadDashboardTitle');
+    const subtitleEl = document.getElementById('workloadDashboardSubtitle');
+    if (titleEl) {
+        titleEl.textContent = WORKLOAD_DASHBOARD_TITLE;
+    }
+    if (subtitleEl) {
+        subtitleEl.textContent = WORKLOAD_DASHBOARD_SUBTITLE_BASE;
+    }
+}
+
+async function initializeDepartmentProfileContext() {
+    const manager = window.DepartmentProfileManager;
+    if (!manager || typeof manager.initialize !== 'function') {
+        applyDepartmentProfileToDashboardHeader();
+        return null;
+    }
+
+    try {
+        const snapshot = await manager.initialize();
+        activeDepartmentProfile = snapshot && snapshot.profile ? snapshot.profile : null;
+        const profileScheduler = activeDepartmentProfile && activeDepartmentProfile.scheduler
+            ? activeDepartmentProfile.scheduler
+            : {};
+        const profileWorkload = activeDepartmentProfile && activeDepartmentProfile.workload
+            ? activeDepartmentProfile.workload
+            : {};
+
+        if (profileScheduler.storageKeyPrefix) {
+            SCHEDULE_STORAGE_PREFIX = String(profileScheduler.storageKeyPrefix);
+        }
+        if (profileWorkload.productionResetDefaultScheduleYear) {
+            PRODUCTION_RESET_DEFAULT_SCHEDULE_YEAR = String(profileWorkload.productionResetDefaultScheduleYear);
+        }
+        if (profileWorkload.dashboardSubtitleBase) {
+            WORKLOAD_DASHBOARD_SUBTITLE_BASE = String(profileWorkload.dashboardSubtitleBase);
+        } else {
+            const identity = getDepartmentIdentity();
+            WORKLOAD_DASHBOARD_SUBTITLE_BASE = `${identity.displayName} Department - Academic Workload Analysis`;
+        }
+        if (profileWorkload.dashboardTitle) {
+            WORKLOAD_DASHBOARD_TITLE = String(profileWorkload.dashboardTitle);
+        }
+
+        const identity = getDepartmentIdentity();
+        document.title = `${WORKLOAD_DASHBOARD_TITLE.replace(/^👥\s*/, '')} - ${identity.displayName}`;
+        applyDepartmentProfileToDashboardHeader();
+
+        if (Array.isArray(snapshot && snapshot.warnings) && snapshot.warnings.length) {
+            console.warn('Department profile warnings:', snapshot.warnings);
+        }
+        return activeDepartmentProfile;
+    } catch (error) {
+        console.warn('Could not initialize department profile on workload dashboard:', error);
+        applyDepartmentProfileToDashboardHeader();
+        return null;
+    }
+}
+
 function refreshWorkloadDashboardAfterProductionReset() {
     try {
         augmentYearFilterOptions();
@@ -166,7 +239,7 @@ function refreshWorkloadDashboardAfterProductionReset() {
     const year = currentFilters.year || 'all';
     currentYearData = loadIntegratedYearData(year);
     if (currentYearData) {
-        updateYearSubtitle(year, 'EWU Design Department - Academic Workload Analysis');
+        updateYearSubtitle(year, WORKLOAD_DASHBOARD_SUBTITLE_BASE);
         updateWorkloadSubtitleForYear(currentYearData);
         refreshDashboard();
     }
@@ -612,7 +685,7 @@ function updateWorkloadSubtitleForYear(yearData) {
         return;
     }
 
-    const base = `EWU Design Department - Academic Workload Analysis · AY ${currentFilters.year}`;
+    const base = `${WORKLOAD_DASHBOARD_SUBTITLE_BASE} · AY ${currentFilters.year}`;
     if (meta.source === 'integrated' && meta.hasLiveSchedule) {
         subtitle.textContent = `${base} (Preliminary from Scheduler Draft)`;
     } else {
@@ -3601,6 +3674,7 @@ function handleWorkloadPlanningPanelChange(event) {
  */
 async function initDashboard() {
     console.log('🚀 Initializing Faculty Workload Dashboard');
+    await initializeDepartmentProfileContext();
     loadWorkloadPlanUiPreferences();
 
     // Load workload data
@@ -3662,7 +3736,7 @@ function onYearChange(year) {
     currentYearData = loadIntegratedYearData(year);
 
     // Update subtitle
-    updateYearSubtitle(year, 'EWU Design Department - Academic Workload Analysis');
+    updateYearSubtitle(year, WORKLOAD_DASHBOARD_SUBTITLE_BASE);
     updateWorkloadSubtitleForYear(currentYearData);
 
     // Refresh all visualizations

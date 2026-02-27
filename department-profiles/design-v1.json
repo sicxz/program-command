@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "id": "design-v1",
+  "identity": {
+    "name": "Design",
+    "code": "DESN",
+    "displayName": "EWU Design",
+    "shortName": "Design"
+  },
+  "branding": {
+    "appTitle": "Program Command - EWU Design",
+    "headerEyebrow": "EWU DESIGN · PROGRAM COMMAND",
+    "headerSubtitle": "Design Program Planning, Scheduling, and Scenario Control"
+  },
+  "academic": {
+    "system": "quarter",
+    "quarters": ["fall", "winter", "spring"],
+    "defaultTargetYearMode": "current",
+    "defaultWorkloadImportYearMode": "next",
+    "defaultSchedulerYear": "2025-26"
+  },
+  "scheduler": {
+    "storageKeyPrefix": "designSchedulerData_",
+    "allowedRooms": ["206", "207", "209", "210", "212", "CEB 102", "CEB 104"]
+  },
+  "workload": {
+    "dashboardTitle": "Faculty Workload Dashboard",
+    "dashboardSubtitleBase": "EWU Design Department - Academic Workload Analysis",
+    "productionResetDefaultScheduleYear": "2026-27",
+    "defaultAnnualTargets": {
+      "Full Professor": 36,
+      "Associate Professor": 36,
+      "Assistant Professor": 36,
+      "Tenure/Tenure-track": 36,
+      "Senior Lecturer": 45,
+      "Lecturer": 45,
+      "Adjunct": 15
+    }
+  },
+  "import": {
+    "clss": {
+      "roomMatchPriority": ["206", "207", "209", "210", "212", "CEB 102", "CEB 104"],
+      "preferredMatchingOrder": [
+        "course+section+instructor+quarter",
+        "course+quarter+instructor",
+        "course+quarter"
+      ]
+    }
+  }
+}

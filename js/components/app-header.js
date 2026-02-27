@@ -74,6 +74,16 @@ class AppHeader extends HTMLElement {
     }
 
     render() {
+        const escapeHtml = (value) => String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+        const eyebrow = escapeHtml(this.getAttribute('eyebrow') || 'EWU DESIGN · PROGRAM COMMAND');
+        const titleText = escapeHtml(this.getAttribute('title-text') || 'Program Command');
+        const subtitleText = escapeHtml(this.getAttribute('subtitle') || 'Design Program Planning, Scheduling, and Scenario Control');
+
         this.shadowRoot.innerHTML = `
             <style>
                 :host {
@@ -219,9 +229,9 @@ class AppHeader extends HTMLElement {
             <header>
                 <div class="header-shell">
                     <div class="header-copy">
-                        <div class="header-eyebrow">EWU DESIGN · PROGRAM COMMAND</div>
-                        <h1>Program Command</h1>
-                        <p class="subtitle">Design Program Planning, Scheduling, and Scenario Control</p>
+                        <div class="header-eyebrow">${eyebrow}</div>
+                        <h1>${titleText}</h1>
+                        <p class="subtitle">${subtitleText}</p>
                     </div>
                     <div class="header-actions">
                         <button class="header-settings-button" id="headerSettingsButton" type="button" aria-haspopup="true" aria-expanded="false" title="Open settings and actions">

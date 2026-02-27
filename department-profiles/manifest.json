@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "defaultProfileId": "design-v1",
+  "profiles": [
+    {
+      "id": "design-v1",
+      "label": "EWU Design",
+      "file": "design-v1.json"
+    }
+  ]
+}
