@@ -2179,6 +2179,95 @@
             line-height: 1.35;
         }
 
+        .clss-import-results-panel {
+            display: grid;
+            gap: 10px;
+            border-color: #c9d8ff;
+            background: #f8fbff;
+        }
+
+        .clss-import-results-title {
+            margin: 0;
+            font-size: 14px;
+            color: #24292f;
+        }
+
+        .clss-import-results-body {
+            display: grid;
+            gap: 10px;
+        }
+
+        .clss-import-results-summary {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .clss-import-results-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            background: #fff;
+            border: 1px solid #d0d7de;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .clss-import-results-table th,
+        .clss-import-results-table td {
+            border-bottom: 1px solid #eaeef2;
+            padding: 7px 8px;
+            text-align: left;
+        }
+
+        .clss-import-results-table thead th {
+            background: #f6f8fa;
+            color: #57606a;
+            font-weight: 600;
+        }
+
+        .clss-import-results-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .clss-import-results-message {
+            font-size: 12px;
+            line-height: 1.4;
+            color: #3d4b63;
+            background: #fff;
+            border: 1px solid #d8dee4;
+            border-radius: 8px;
+            padding: 8px 10px;
+        }
+
+        .clss-import-results-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .clss-import-results-actions button {
+            border: 1px solid #d0d7de;
+            border-radius: 8px;
+            background: #fff;
+            color: #24292f;
+            font: inherit;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 7px 10px;
+            cursor: pointer;
+        }
+
+        .clss-import-results-actions button:hover {
+            background: #f3f4f6;
+        }
+
+        .clss-import-results-actions button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background: #f6f8fa;
+        }
+
         @media (max-width: 900px) {
             .clss-import-steps {
                 grid-template-columns: 1fr 1fr;
@@ -7972,6 +8061,7 @@
             spring: 'Spring'
         };
         const CLSS_WORKLOAD_IMPORT_STORAGE_KEY = 'programCommandClssWorkloadImport';
+        const CLSS_IMPORT_LAST_REPORT_STORAGE_KEY = 'programCommandClssLastImportReport';
         const CLSS_IMPORT_STATUS_LABELS = {
             ready: 'Ready',
             online: 'Online',
@@ -7984,6 +8074,7 @@
         let clssImportOcrInProgress = false;
         let clssImportOcrLibraryPromise = null;
         let clssImportPriorYearPlacementIndexCache = new Map();
+        let clssImportLastApplyReport = null;
 
         function openClssImportModal() {
             const modal = document.getElementById('clssImportModal');
@@ -7995,6 +8086,7 @@
             refreshClssImportModeUi();
             toggleClssImportInputMode();
             handleClssImportPngSelection();
+            renderClssImportResultsPanel(readClssImportLastReport());
             modal?.classList.add('active');
         }
 
@@ -9603,6 +9695,300 @@
             localStorage.removeItem(CLSS_WORKLOAD_IMPORT_STORAGE_KEY);
         }
 
+        function createEmptyClssImportQuarterOutcome() {
+            return {
+                gridPlaced: 0,
+                onlinePlaced: 0,
+                arrangedPlaced: 0,
+                displaced: 0,
+                unresolved: 0,
+                skipped: 0,
+                skippedDuplicate: 0,
+                skippedMarkedSkip: 0,
+                skippedInvalidQuarter: 0,
+                roomFallbackPlacements: 0
+            };
+        }
+
+        function ensureClssImportQuarterOutcome(store, quarter) {
+            const normalizedQuarter = CLSS_IMPORT_QUARTERS.includes(quarter) ? quarter : null;
+            if (!normalizedQuarter) return null;
+            if (!store[normalizedQuarter]) {
+                store[normalizedQuarter] = createEmptyClssImportQuarterOutcome();
+            }
+            return store[normalizedQuarter];
+        }
+
+        function writeClssImportLastReport(report) {
+            if (!report || typeof report !== 'object') return;
+            try {
+                localStorage.setItem(CLSS_IMPORT_LAST_REPORT_STORAGE_KEY, JSON.stringify(report));
+            } catch (error) {
+                console.warn('Could not persist CLSS import report:', error);
+            }
+        }
+
+        function readClssImportLastReport() {
+            try {
+                const raw = localStorage.getItem(CLSS_IMPORT_LAST_REPORT_STORAGE_KEY);
+                if (!raw) return null;
+                const parsed = JSON.parse(raw);
+                if (!parsed || typeof parsed !== 'object' || parsed.mode !== 'schedule') {
+                    return null;
+                }
+                return parsed;
+            } catch (error) {
+                console.warn('Could not parse CLSS import report:', error);
+                return null;
+            }
+        }
+
+        function clearClssImportLastReport() {
+            try {
+                localStorage.removeItem(CLSS_IMPORT_LAST_REPORT_STORAGE_KEY);
+            } catch (error) {
+                console.warn('Could not clear CLSS import report:', error);
+            }
+        }
+
+        function getPreferredClssImportQuarterFromReport(report) {
+            const byQuarter = report?.byQuarter || {};
+            const impacted = Array.isArray(report?.impactedQuarters) ? report.impactedQuarters : [];
+            const quarterRankings = CLSS_IMPORT_QUARTERS.map((quarter) => {
+                const row = byQuarter[quarter] || {};
+                const score =
+                    (Number(row.gridPlaced) || 0) * 100 +
+                    (Number(row.onlinePlaced) || 0) * 40 +
+                    (Number(row.arrangedPlaced) || 0) * 30 +
+                    (Number(row.displaced) || 0) * 15;
+                return { quarter, score };
+            }).sort((a, b) => b.score - a.score);
+
+            if (quarterRankings[0] && quarterRankings[0].score > 0) {
+                return quarterRankings[0].quarter;
+            }
+
+            return impacted.find((quarter) => CLSS_IMPORT_QUARTERS.includes(quarter))
+                || (CLSS_IMPORT_QUARTERS.includes(report?.requestedQuarter) ? report.requestedQuarter : null)
+                || 'spring';
+        }
+
+        function buildClssImportResultContextMessage(report) {
+            if (!report || typeof report !== 'object') return '';
+
+            const totals = report.totals || {};
+            const currentYearLabel = currentAcademicYear || (window.StateManager?.get('currentAcademicYear')) || '2025-26';
+            const currentQuarterLabel = (window.StateManager?.get('currentQuarter')) || 'spring';
+            const targetQuarter = getPreferredClssImportQuarterFromReport(report);
+            const reasons = [];
+
+            if ((Number(totals.gridPlaced) || 0) === 0) {
+                if ((Number(totals.onlinePlaced) || 0) > 0) reasons.push(`${totals.onlinePlaced} online`);
+                if ((Number(totals.arrangedPlaced) || 0) > 0) reasons.push(`${totals.arrangedPlaced} arranged`);
+                if ((Number(totals.displaced) || 0) > 0) reasons.push(`${totals.displaced} displaced`);
+                if ((Number(totals.unresolved) || 0) > 0) reasons.push(`${totals.unresolved} still need review`);
+                if ((Number(totals.skippedDuplicate) || 0) > 0) reasons.push(`${totals.skippedDuplicate} duplicate`);
+            }
+
+            const lines = [];
+            if ((Number(totals.gridPlaced) || 0) === 0) {
+                lines.push(reasons.length
+                    ? `No in-grid rows were placed. Outcome: ${reasons.join(', ')}.`
+                    : 'No in-grid rows were placed for this import.');
+            }
+
+            if (report.targetYear !== currentYearLabel || targetQuarter !== currentQuarterLabel) {
+                lines.push(`Current view is ${currentYearLabel} ${CLSS_IMPORT_QUARTER_LABELS[currentQuarterLabel] || currentQuarterLabel}. Use "Show Imported Rows Now" to jump to ${report.targetYear} ${CLSS_IMPORT_QUARTER_LABELS[targetQuarter] || targetQuarter}.`);
+            } else {
+                lines.push(`You are already viewing ${report.targetYear} ${CLSS_IMPORT_QUARTER_LABELS[currentQuarterLabel] || currentQuarterLabel}.`);
+            }
+
+            return lines.join(' ');
+        }
+
+        function renderClssImportResultsPanel(report, { persist = false } = {}) {
+            const panel = document.getElementById('clssImportResultsPanel');
+            const titleEl = document.getElementById('clssImportResultsTitle');
+            const bodyEl = document.getElementById('clssImportResultsBody');
+            const showRowsBtn = document.getElementById('clssImportShowRowsButton');
+            const copyReportBtn = document.getElementById('clssImportCopyReportButton');
+
+            if (!panel || !titleEl || !bodyEl || !showRowsBtn || !copyReportBtn) {
+                return;
+            }
+
+            if (!report || typeof report !== 'object') {
+                clssImportLastApplyReport = null;
+                titleEl.textContent = 'Import results';
+                bodyEl.innerHTML = '';
+                panel.classList.add('clss-import-hidden');
+                showRowsBtn.disabled = true;
+                copyReportBtn.disabled = true;
+                return;
+            }
+
+            clssImportLastApplyReport = report;
+            if (persist) {
+                writeClssImportLastReport(report);
+            }
+
+            const totals = report.totals || {};
+            const generatedAt = report.generatedAt ? new Date(report.generatedAt) : new Date();
+            const impactedQuarters = Array.isArray(report.impactedQuarters)
+                ? report.impactedQuarters.filter((quarter) => CLSS_IMPORT_QUARTERS.includes(quarter))
+                : [];
+            const quarterRows = CLSS_IMPORT_QUARTERS
+                .filter((quarter) => impactedQuarters.includes(quarter) || report?.byQuarter?.[quarter])
+                .map((quarter) => {
+                    const row = report.byQuarter?.[quarter] || createEmptyClssImportQuarterOutcome();
+                    return {
+                        quarter,
+                        gridPlaced: Number(row.gridPlaced) || 0,
+                        onlinePlaced: Number(row.onlinePlaced) || 0,
+                        arrangedPlaced: Number(row.arrangedPlaced) || 0,
+                        displaced: Number(row.displaced) || 0,
+                        unresolved: Number(row.unresolved) || 0,
+                        skipped: Number(row.skipped) || 0
+                    };
+                });
+
+            titleEl.textContent = `Import results • ${generatedAt.toLocaleString()}`;
+
+            const summaryPills = [
+                `Rows reviewed: ${Number(totals.inputRows) || 0}`,
+                `Grid placed: ${Number(totals.gridPlaced) || 0}`,
+                `Online: ${Number(totals.onlinePlaced) || 0}`,
+                `Arranged: ${Number(totals.arrangedPlaced) || 0}`,
+                `Displaced: ${Number(totals.displaced) || 0}`,
+                `Needs review: ${Number(totals.unresolved) || 0}`,
+                `Skipped: ${Number(totals.skipped) || 0}`,
+                `Target year: ${String(report.targetYear || '—')}`
+            ];
+
+            if ((Number(totals.skippedDuplicate) || 0) > 0) {
+                summaryPills.push(`Skipped duplicate: ${Number(totals.skippedDuplicate) || 0}`);
+            }
+            if ((Number(totals.skippedMarkedSkip) || 0) > 0) {
+                summaryPills.push(`Skipped by choice: ${Number(totals.skippedMarkedSkip) || 0}`);
+            }
+            if ((Number(totals.roomFallbackPlacements) || 0) > 0) {
+                summaryPills.push(`Room fallback: ${Number(totals.roomFallbackPlacements) || 0}`);
+            }
+
+            const contextLine = buildClssImportResultContextMessage(report);
+            const quarterTableHtml = quarterRows.length
+                ? `
+                    <table class="clss-import-results-table" aria-label="CLSS import outcomes by quarter">
+                        <thead>
+                            <tr>
+                                <th>Quarter</th>
+                                <th>Grid</th>
+                                <th>Online</th>
+                                <th>Arranged</th>
+                                <th>Displaced</th>
+                                <th>Needs Review</th>
+                                <th>Skipped</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${quarterRows.map((row) => `
+                                <tr>
+                                    <td>${CLSS_IMPORT_QUARTER_LABELS[row.quarter] || row.quarter}</td>
+                                    <td>${row.gridPlaced}</td>
+                                    <td>${row.onlinePlaced}</td>
+                                    <td>${row.arrangedPlaced}</td>
+                                    <td>${row.displaced}</td>
+                                    <td>${row.unresolved}</td>
+                                    <td>${row.skipped}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `
+                : '<div class="clss-import-results-message">No quarter-level outcomes were recorded for this import.</div>';
+
+            bodyEl.innerHTML = `
+                <div class="clss-import-results-summary">
+                    ${summaryPills.map((text) => `<span class="clss-import-summary-pill">${escapeHtml(text)}</span>`).join('')}
+                </div>
+                ${quarterTableHtml}
+                <div class="clss-import-results-message">${escapeHtml(contextLine)}</div>
+            `;
+
+            const hasPlacedOrMovedRows = (Number(totals.gridPlaced) || 0)
+                + (Number(totals.onlinePlaced) || 0)
+                + (Number(totals.arrangedPlaced) || 0)
+                + (Number(totals.displaced) || 0) > 0;
+
+            showRowsBtn.disabled = !hasPlacedOrMovedRows;
+            copyReportBtn.disabled = false;
+            panel.classList.remove('clss-import-hidden');
+        }
+
+        function showClssImportReportRowsNow() {
+            const report = clssImportLastApplyReport || readClssImportLastReport();
+            if (!report || typeof report !== 'object') {
+                showToast('No CLSS import report is available yet.', 'error');
+                return;
+            }
+
+            const targetYear = String(report.targetYear || '').trim();
+            if (!targetYear) {
+                showToast('Import report is missing a target academic year.', 'error');
+                return;
+            }
+
+            const targetQuarter = getPreferredClssImportQuarterFromReport(report);
+            const currentYearLabel = currentAcademicYear || (window.StateManager?.get('currentAcademicYear')) || '2025-26';
+            const requiresYearSwitch = targetYear !== currentYearLabel;
+
+            if (requiresYearSwitch) {
+                switchSchedulerYearFromImport(targetYear);
+            }
+
+            const switchQuarter = () => {
+                if (targetQuarter) {
+                    switchSchedulerQuarterFromImport(targetQuarter);
+                }
+            };
+
+            if (requiresYearSwitch) {
+                setTimeout(switchQuarter, 40);
+            } else {
+                switchQuarter();
+            }
+
+            closeClssImportModal();
+            showToast(`Showing ${targetYear} ${CLSS_IMPORT_QUARTER_LABELS[targetQuarter] || targetQuarter} import results`);
+        }
+
+        async function copyClssImportReportDebugJson() {
+            const report = clssImportLastApplyReport || readClssImportLastReport();
+            if (!report) {
+                showToast('No CLSS import report to copy yet.', 'error');
+                return;
+            }
+
+            const reportJson = JSON.stringify(report, null, 2);
+            try {
+                if (navigator?.clipboard?.writeText) {
+                    await navigator.clipboard.writeText(reportJson);
+                    showToast('CLSS import debug report copied to clipboard');
+                    return;
+                }
+            } catch (error) {
+                console.warn('Could not copy CLSS import report via clipboard API:', error);
+            }
+
+            window.prompt('Copy CLSS import debug report JSON:', reportJson);
+        }
+
+        function clearClssImportResultsPanel() {
+            clearClssImportLastReport();
+            renderClssImportResultsPanel(null);
+            showToast('CLSS import report cleared');
+        }
+
         function buildClssWorkloadImportRowsFromPreview(targetYear) {
             return clssImportPreviewRows
                 .map((sourceRow) => {
@@ -9754,11 +10140,19 @@
                 onlinePlaced: 0,
                 arrangedPlaced: 0,
                 skipped: 0,
-                collisionsDisplaced: 0,
+                skippedDuplicate: 0,
+                skippedMarkedSkip: 0,
+                skippedInvalidQuarter: 0,
                 unresolved: 0,
                 leftoverToTray: 0,
                 roomFallbackPlacements: 0
             };
+            const byQuarter = {};
+            const rowOutcomes = [];
+            const ensureOutcome = (quarterCandidate) => ensureClssImportQuarterOutcome(
+                byQuarter,
+                CLSS_IMPORT_QUARTERS.includes(quarterCandidate) ? quarterCandidate : quarter
+            );
 
             if (replaceQuarter) {
                 impactedQuarters.forEach((targetQuarterKey) => {
@@ -9770,19 +10164,43 @@
             const applyableRows = [];
 
             reviewRows.forEach(({ sourceRow, effectiveRow }) => {
+                const effectiveQuarter = effectiveRow?.effectiveQuarter || sourceRow?.targetQuarter || quarter;
+                const quarterOutcome = ensureOutcome(effectiveQuarter);
+
                 if (!sourceRow || !effectiveRow) {
                     counts.skipped += 1;
+                    if (quarterOutcome) quarterOutcome.skipped += 1;
                     return;
                 }
 
                 if (effectiveRow.effectiveDisposition === 'skip') {
                     counts.skipped += 1;
+                    counts.skippedMarkedSkip += 1;
+                    if (quarterOutcome) {
+                        quarterOutcome.skipped += 1;
+                        quarterOutcome.skippedMarkedSkip += 1;
+                    }
+                    rowOutcomes.push({
+                        quarter: effectiveQuarter,
+                        code: normalizeCourseCode(effectiveRow.code),
+                        section: String(effectiveRow.section || '').trim(),
+                        instructor: getCanonicalFacultyName(effectiveRow.instructor || 'TBD'),
+                        destination: 'skipped-marked-skip'
+                    });
                     return;
                 }
 
                 if (effectiveRow.effectiveDisposition === 'needs-review' || effectiveRow.effectiveStatus === 'error') {
                     remainingRows.push(sourceRow);
                     counts.unresolved += 1;
+                    if (quarterOutcome) quarterOutcome.unresolved += 1;
+                    rowOutcomes.push({
+                        quarter: effectiveQuarter,
+                        code: normalizeCourseCode(effectiveRow.code),
+                        section: String(effectiveRow.section || '').trim(),
+                        instructor: getCanonicalFacultyName(effectiveRow.instructor || 'TBD'),
+                        destination: effectiveRow.effectiveStatus === 'error' ? 'skipped-error' : 'needs-review'
+                    });
                     return;
                 }
 
@@ -9791,6 +10209,17 @@
 
             if (!applyableRows.length && remainingRows.length) {
                 showToast(`No rows were ready to import. ${remainingRows.length} row${remainingRows.length === 1 ? '' : 's'} still need review.`, 'error');
+                const noApplyReport = buildClssScheduleImportReport({
+                    targetYear,
+                    quarter,
+                    replaceQuarter,
+                    impactedQuarters,
+                    totalInputRows: reviewRows.length,
+                    counts,
+                    byQuarter,
+                    rowOutcomes
+                });
+                renderClssImportResultsPanel(noApplyReport, { persist: true });
                 renderClssImportReview(clssImportPreviewRows);
                 return;
             }
@@ -9806,10 +10235,23 @@
 
             applyableRows.forEach(({ sourceRow, effectiveRow }) => {
                 const rowQuarter = effectiveRow.effectiveQuarter || quarter;
+                const quarterOutcome = ensureOutcome(rowQuarter);
 
                 if (!CLSS_IMPORT_QUARTERS.includes(rowQuarter)) {
                     counts.skipped += 1;
+                    counts.skippedInvalidQuarter += 1;
+                    if (quarterOutcome) {
+                        quarterOutcome.skipped += 1;
+                        quarterOutcome.skippedInvalidQuarter += 1;
+                    }
                     remainingRows.push(sourceRow);
+                    rowOutcomes.push({
+                        quarter: sourceRow?.targetQuarter || quarter,
+                        code: normalizeCourseCode(effectiveRow.code),
+                        section: String(effectiveRow.section || '').trim(),
+                        instructor: getCanonicalFacultyName(effectiveRow.instructor || 'TBD'),
+                        destination: 'skipped-invalid-quarter'
+                    });
                     return;
                 }
 
@@ -9827,28 +10269,116 @@
                 };
 
                 if (effectiveRow.effectiveDisposition === 'ready') {
-                    const placed = placeClssImportedCourseInGrid(targetQuarterBucket, rowForApply, counts);
-                    if (!placed) {
-                        addImportedRowToDisplacedTray(rowForApply, targetYear, rowQuarter, 'No open room in slot');
-                        counts.leftoverToTray += 1;
+                    const placement = placeClssImportedCourseInGrid(targetQuarterBucket, rowForApply);
+
+                    if (placement.ok && placement.reason === 'placed') {
+                        counts.readyPlaced += 1;
+                        if (quarterOutcome) quarterOutcome.gridPlaced += 1;
+                        if (placement.roomFallback) {
+                            counts.roomFallbackPlacements += 1;
+                            if (quarterOutcome) quarterOutcome.roomFallbackPlacements += 1;
+                        }
+                        rowOutcomes.push({
+                            quarter: rowQuarter,
+                            code: normalizeCourseCode(effectiveRow.code),
+                            section: String(effectiveRow.section || '').trim(),
+                            instructor: getCanonicalFacultyName(effectiveRow.instructor || 'TBD'),
+                            destination: 'grid',
+                            day: rowForApply.schedulerDay || '',
+                            time: rowForApply.schedulerTime || '',
+                            room: placement.room || rowForApply.schedulerRoom || ''
+                        });
+                        return;
                     }
+
+                    if (placement.ok && placement.reason === 'duplicate') {
+                        counts.skipped += 1;
+                        counts.skippedDuplicate += 1;
+                        if (quarterOutcome) {
+                            quarterOutcome.skipped += 1;
+                            quarterOutcome.skippedDuplicate += 1;
+                        }
+                        rowOutcomes.push({
+                            quarter: rowQuarter,
+                            code: normalizeCourseCode(effectiveRow.code),
+                            section: String(effectiveRow.section || '').trim(),
+                            instructor: getCanonicalFacultyName(effectiveRow.instructor || 'TBD'),
+                            destination: 'skipped-duplicate',
+                            day: rowForApply.schedulerDay || '',
+                            time: rowForApply.schedulerTime || ''
+                        });
+                        return;
+                    }
+
+                    const fallbackReason = placement.reason === 'no-open-room'
+                        ? 'No open room in slot'
+                        : (placement.reason === 'invalid-day' ? 'Invalid day pattern' : 'Missing scheduler slot');
+                    addImportedRowToDisplacedTray(rowForApply, targetYear, rowQuarter, fallbackReason);
+                    counts.leftoverToTray += 1;
+                    if (quarterOutcome) quarterOutcome.displaced += 1;
+                    rowOutcomes.push({
+                        quarter: rowQuarter,
+                        code: normalizeCourseCode(effectiveRow.code),
+                        section: String(effectiveRow.section || '').trim(),
+                        instructor: getCanonicalFacultyName(effectiveRow.instructor || 'TBD'),
+                        destination: 'displaced',
+                        day: rowForApply.schedulerDay || '',
+                        time: rowForApply.schedulerTime || '',
+                        room: rowForApply.schedulerRoom || '',
+                        reason: fallbackReason
+                    });
                     return;
                 }
 
                 if (effectiveRow.effectiveDisposition === 'online') {
                     targetQuarterBucket.ONLINE.async.push(buildImportedScheduleCourse(rowForApply, 'ONLINE'));
                     counts.onlinePlaced += 1;
+                    if (quarterOutcome) quarterOutcome.onlinePlaced += 1;
+                    rowOutcomes.push({
+                        quarter: rowQuarter,
+                        code: normalizeCourseCode(effectiveRow.code),
+                        section: String(effectiveRow.section || '').trim(),
+                        instructor: getCanonicalFacultyName(effectiveRow.instructor || 'TBD'),
+                        destination: 'online'
+                    });
                     return;
                 }
 
                 if (effectiveRow.effectiveDisposition === 'arranged') {
                     targetQuarterBucket.ARRANGED.arranged.push(buildImportedScheduleCourse(rowForApply, 'ARRANGED'));
                     counts.arrangedPlaced += 1;
+                    if (quarterOutcome) quarterOutcome.arrangedPlaced += 1;
+                    rowOutcomes.push({
+                        quarter: rowQuarter,
+                        code: normalizeCourseCode(effectiveRow.code),
+                        section: String(effectiveRow.section || '').trim(),
+                        instructor: getCanonicalFacultyName(effectiveRow.instructor || 'TBD'),
+                        destination: 'arranged'
+                    });
                     return;
                 }
 
                 remainingRows.push(sourceRow);
                 counts.unresolved += 1;
+                if (quarterOutcome) quarterOutcome.unresolved += 1;
+                rowOutcomes.push({
+                    quarter: rowQuarter,
+                    code: normalizeCourseCode(effectiveRow.code),
+                    section: String(effectiveRow.section || '').trim(),
+                    instructor: getCanonicalFacultyName(effectiveRow.instructor || 'TBD'),
+                    destination: 'needs-review'
+                });
+            });
+
+            const report = buildClssScheduleImportReport({
+                targetYear,
+                quarter,
+                replaceQuarter,
+                impactedQuarters,
+                totalInputRows: reviewRows.length,
+                counts,
+                byQuarter,
+                rowOutcomes
             });
 
             const currentQuarter = (window.StateManager?.get('currentQuarter')) || 'spring';
@@ -9867,36 +10397,72 @@
             }
 
             const totalApplied = counts.readyPlaced + counts.onlinePlaced + counts.arrangedPlaced;
-            const impactedQuarterLabel = impactedQuarters.length > 1
-                ? impactedQuarters.map((q) => CLSS_IMPORT_QUARTER_LABELS[q]).join(', ')
-                : (CLSS_IMPORT_QUARTER_LABELS[impactedQuarters[0]] || CLSS_IMPORT_QUARTER_LABELS[quarter] || quarter);
+            const impactedQuarterLabel = report.impactedQuarters.length > 1
+                ? report.impactedQuarters.map((q) => CLSS_IMPORT_QUARTER_LABELS[q]).join(', ')
+                : (CLSS_IMPORT_QUARTER_LABELS[report.impactedQuarters[0]] || CLSS_IMPORT_QUARTER_LABELS[quarter] || quarter);
+            renderClssImportResultsPanel(report, { persist: true });
             showToast(`CLSS import applied to ${targetYear} (${impactedQuarterLabel}): ${totalApplied} imported${counts.roomFallbackPlacements ? `, ${counts.roomFallbackPlacements} room fallback` : ''}${counts.leftoverToTray ? `, ${counts.leftoverToTray} to displaced tray` : ''}${counts.unresolved ? `, ${counts.unresolved} still need review` : ''}${counts.skipped ? `, ${counts.skipped} skipped` : ''}`);
 
             clssImportPreviewRows = remainingRows;
             renderClssImportReview(clssImportPreviewRows);
 
-            if (!remainingRows.length) {
-                closeClssImportModal();
-            }
-
             if (!importingToCurrentYear) {
-                if (remainingRows.length) {
-                    return;
-                }
-                if (window.confirm(`CLSS import applied to ${targetYear}. Switch to that academic year now?`)) {
-                    switchSchedulerYearFromImport(targetYear);
-                    if (impactedQuarters.length === 1 && impactedQuarters[0] !== ((window.StateManager?.get('currentQuarter')) || quarter)) {
-                        if (window.confirm(`Switch to ${CLSS_IMPORT_QUARTER_LABELS[impactedQuarters[0]]} now?`)) {
-                            switchSchedulerQuarterFromImport(impactedQuarters[0]);
-                        }
-                    }
-                }
-                return;
+                showToast(`Saved import into ${targetYear}. Use "Show Imported Rows Now" to jump there.`);
             }
+        }
 
-            if (!remainingRows.length && impactedQuarters.length === 1 && impactedQuarters[0] !== currentQuarter && window.confirm(`CLSS import applied to ${CLSS_IMPORT_QUARTER_LABELS[impactedQuarters[0]]}. Switch to that quarter now?`)) {
-                switchSchedulerQuarterFromImport(impactedQuarters[0]);
-            }
+        function buildClssScheduleImportReport({
+            targetYear,
+            quarter,
+            replaceQuarter,
+            impactedQuarters,
+            totalInputRows,
+            counts,
+            byQuarter,
+            rowOutcomes
+        } = {}) {
+            const normalizedByQuarter = {};
+            const baseByQuarter = byQuarter && typeof byQuarter === 'object' ? byQuarter : {};
+
+            CLSS_IMPORT_QUARTERS.forEach((quarterKey) => {
+                if (baseByQuarter[quarterKey]) {
+                    normalizedByQuarter[quarterKey] = {
+                        ...createEmptyClssImportQuarterOutcome(),
+                        ...baseByQuarter[quarterKey]
+                    };
+                }
+            });
+
+            const allImpacted = [
+                ...(Array.isArray(impactedQuarters) ? impactedQuarters : []),
+                ...Object.keys(normalizedByQuarter)
+            ].filter((value) => CLSS_IMPORT_QUARTERS.includes(value));
+            const uniqueImpacted = [...new Set(allImpacted)];
+
+            return {
+                mode: 'schedule',
+                generatedAt: new Date().toISOString(),
+                targetYear,
+                requestedQuarter: quarter,
+                replaceQuarter: Boolean(replaceQuarter),
+                impactedQuarters: uniqueImpacted,
+                totals: {
+                    inputRows: Number(totalInputRows) || 0,
+                    applyableRows: (Number(counts?.readyPlaced) || 0) + (Number(counts?.onlinePlaced) || 0) + (Number(counts?.arrangedPlaced) || 0),
+                    gridPlaced: Number(counts?.readyPlaced) || 0,
+                    onlinePlaced: Number(counts?.onlinePlaced) || 0,
+                    arrangedPlaced: Number(counts?.arrangedPlaced) || 0,
+                    displaced: Number(counts?.leftoverToTray) || 0,
+                    unresolved: Number(counts?.unresolved) || 0,
+                    skipped: Number(counts?.skipped) || 0,
+                    skippedDuplicate: Number(counts?.skippedDuplicate) || 0,
+                    skippedMarkedSkip: Number(counts?.skippedMarkedSkip) || 0,
+                    skippedInvalidQuarter: Number(counts?.skippedInvalidQuarter) || 0,
+                    roomFallbackPlacements: Number(counts?.roomFallbackPlacements) || 0
+                },
+                byQuarter: normalizedByQuarter,
+                sampleRows: (Array.isArray(rowOutcomes) ? rowOutcomes : []).slice(0, 20)
+            };
         }
 
         function buildClssApplySummary(rows, { quarter, replaceQuarter, targetYear, impactedQuarters = [] } = {}) {
@@ -10074,13 +10640,13 @@
             };
         }
 
-        function placeClssImportedCourseInGrid(quarterBucket, row, counts) {
+        function placeClssImportedCourseInGrid(quarterBucket, row) {
             if (!row.schedulerDay || !row.schedulerTime) {
-                return false;
+                return { ok: false, reason: 'missing-slot' };
             }
 
             if (!isSchedulableDay(row.schedulerDay)) {
-                return false;
+                return { ok: false, reason: 'invalid-day' };
             }
 
             if (!quarterBucket[row.schedulerDay]) {
@@ -10093,7 +10659,7 @@
             const slotCourses = quarterBucket[row.schedulerDay][row.schedulerTime];
             const resolvedRoom = resolveBestImportRoomForSlot(slotCourses, row.schedulerRoom || '');
             if (!resolvedRoom) {
-                return false;
+                return { ok: false, reason: 'no-open-room' };
             }
 
             const duplicateExisting = slotCourses.find((course) =>
@@ -10107,16 +10673,16 @@
             );
 
             if (duplicateExisting) {
-                counts.skipped += 1;
-                return true;
+                return { ok: true, reason: 'duplicate', room: resolvedRoom };
             }
 
             slotCourses.push(buildImportedScheduleCourse(row, resolvedRoom));
-            if (row.schedulerRoom && resolvedRoom !== row.schedulerRoom) {
-                counts.roomFallbackPlacements = (counts.roomFallbackPlacements || 0) + 1;
-            }
-            counts.readyPlaced += 1;
-            return true;
+            return {
+                ok: true,
+                reason: 'placed',
+                room: resolvedRoom,
+                roomFallback: Boolean(row.schedulerRoom && resolvedRoom !== row.schedulerRoom)
+            };
         }
 
         function resolveBestImportRoomForSlot(slotCourses, preferredRoom = '') {
@@ -10854,6 +11420,9 @@
             applyClssRolloutPreset,
             parseClssImportPreview,
             applyClssImport,
+            showClssImportReportRowsNow,
+            copyClssImportReportDebugJson,
+            clearClssImportResultsPanel,
             openAddCourseModal,
             closeAddCourseModal,
             closeAddFacultyModal,
@@ -11205,6 +11774,15 @@
                                 </thead>
                                 <tbody id="clssImportReviewBody"></tbody>
                             </table>
+                        </div>
+                    </div>
+                    <div class="clss-import-panel clss-import-results-panel clss-import-hidden" id="clssImportResultsPanel">
+                        <h4 class="clss-import-results-title" id="clssImportResultsTitle">Import results</h4>
+                        <div class="clss-import-results-body" id="clssImportResultsBody"></div>
+                        <div class="clss-import-results-actions">
+                            <button type="button" id="clssImportShowRowsButton" onclick="showClssImportReportRowsNow()" disabled>Show Imported Rows Now</button>
+                            <button type="button" id="clssImportCopyReportButton" onclick="copyClssImportReportDebugJson()" disabled>Copy Debug JSON</button>
+                            <button type="button" id="clssImportClearReportButton" onclick="clearClssImportResultsPanel()">Clear Report</button>
                         </div>
                     </div>
                     <div class="clss-import-action-help" id="clssImportActionHelp">
