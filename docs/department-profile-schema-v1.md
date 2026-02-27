@@ -15,6 +15,7 @@ This schema defines the runtime configuration contract for department onboarding
   - `appTitle` (string)
   - `headerEyebrow` (string)
   - `headerSubtitle` (string)
+  - `themeTokens` (object): key/value map applied to CSS vars using `--pc-<token-name>`
 - `academic` (object, required):
   - `system` (string, currently `quarter`)
   - `quarters` (array of strings, required)

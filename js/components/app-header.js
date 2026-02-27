@@ -93,8 +93,12 @@ class AppHeader extends HTMLElement {
                 * { box-sizing: border-box; }
 
                 header {
-                    background: linear-gradient(180deg, #3d444d 0%, #24292f 100%);
-                    color: #ffffff;
+                    background: linear-gradient(
+                        180deg,
+                        var(--pc-header-top, #3d444d) 0%,
+                        var(--pc-header-bottom, #24292f) 100%
+                    );
+                    color: var(--pc-header-foreground, #ffffff);
                     padding: 1rem 1.25rem;
                 }
 
@@ -110,7 +114,7 @@ class AppHeader extends HTMLElement {
                     font-size: 11px;
                     letter-spacing: 0.5px;
                     font-weight: 600;
-                    color: #d0d7de;
+                    color: var(--pc-header-muted, #d0d7de);
                     text-transform: uppercase;
                     margin-bottom: 4px;
                 }
@@ -124,7 +128,7 @@ class AppHeader extends HTMLElement {
 
                 .subtitle {
                     font-size: 14px;
-                    color: #d0d7de;
+                    color: var(--pc-header-muted, #d0d7de);
                     font-weight: 400;
                     margin: 4px 0 0 0;
                 }
@@ -134,9 +138,9 @@ class AppHeader extends HTMLElement {
                 }
 
                 .header-settings-button {
-                    background: #24292f;
-                    color: #c9d1d9;
-                    border: 1px solid #57606a;
+                    background: var(--pc-header-action-bg, #24292f);
+                    color: var(--pc-header-muted, #c9d1d9);
+                    border: 1px solid var(--pc-header-action-border, #57606a);
                     border-radius: 6px;
                     padding: 6px 12px;
                     font-size: 14px;
@@ -149,8 +153,8 @@ class AppHeader extends HTMLElement {
                 }
 
                 .header-settings-button:hover {
-                    background: #30363d;
-                    border-color: #8b949e;
+                    background: var(--pc-header-action-hover-bg, #30363d);
+                    border-color: var(--pc-header-action-hover-border, #8b949e);
                 }
 
                 .header-settings-menu {

@@ -22,7 +22,17 @@
         branding: {
             appTitle: 'Program Command - EWU Design',
             headerEyebrow: 'EWU DESIGN · PROGRAM COMMAND',
-            headerSubtitle: 'Design Program Planning, Scheduling, and Scenario Control'
+            headerSubtitle: 'Design Program Planning, Scheduling, and Scenario Control',
+            themeTokens: {
+                headerTop: '#3d444d',
+                headerBottom: '#24292f',
+                headerForeground: '#ffffff',
+                headerMuted: '#d0d7de',
+                headerActionBg: '#24292f',
+                headerActionBorder: '#57606a',
+                headerActionHoverBg: '#30363d',
+                headerActionHoverBorder: '#8b949e'
+            }
         },
         academic: {
             system: 'quarter',
@@ -289,8 +299,33 @@
         };
     }
 
+    function toCssTokenName(key) {
+        return String(key || '')
+            .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+            .replace(/[^a-zA-Z0-9-]+/g, '-')
+            .toLowerCase()
+            .replace(/^-+/, '')
+            .replace(/-+$/, '');
+    }
+
+    function applyThemeTokens(profile) {
+        const root = global.document && global.document.documentElement ? global.document.documentElement : null;
+        if (!root) return;
+        const tokens = profile && profile.branding && profile.branding.themeTokens;
+        if (!isObject(tokens)) return;
+
+        Object.entries(tokens).forEach(([token, rawValue]) => {
+            const value = String(rawValue || '').trim();
+            if (!value) return;
+            const tokenName = toCssTokenName(token);
+            if (!tokenName) return;
+            root.style.setProperty(`--pc-${tokenName}`, value);
+        });
+    }
+
     function publishActiveProfile(snapshot) {
         global.__PROGRAM_COMMAND_ACTIVE_PROFILE__ = deepClone(snapshot.profile);
+        applyThemeTokens(snapshot.profile);
         global.dispatchEvent(new CustomEvent('department-profile-change', { detail: snapshot }));
     }
 
