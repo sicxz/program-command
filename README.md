@@ -26,6 +26,16 @@ npm run check:data-freshness -- --department DESN --year 2026-27 --output output
 If drift is detected, the command exits with code `2` and lists tables that need carry-over review.
 See `/docs/dev-data-freshness.md` for full usage.
 
+## ✅ Onboarding QA Gate
+
+Run the onboarding QA suite before rollout:
+
+```bash
+npm run qa:onboarding
+```
+
+Rollout checklist and SOP: `/docs/department-onboarding-qa-pack.md`.
+
 ## 🌐 GitHub Pages Deployment
 
 This repo now includes `/.github/workflows/deploy-pages.yml` to publish static dashboards to GitHub Pages on every push to `main`.

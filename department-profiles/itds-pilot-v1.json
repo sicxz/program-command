@@ -1,0 +1,88 @@
+{
+  "version": 1,
+  "id": "itds-pilot-v1",
+  "identity": {
+    "name": "Interactive Technology + Design",
+    "code": "ITDS",
+    "displayName": "EWU ITDS",
+    "shortName": "ITDS"
+  },
+  "branding": {
+    "appTitle": "Program Command - EWU ITDS",
+    "headerEyebrow": "EWU ITDS · PROGRAM COMMAND",
+    "headerSubtitle": "ITDS Program Planning and Schedule Operations",
+    "themeTokens": {
+      "headerTop": "#1f3b4d",
+      "headerBottom": "#10212b",
+      "headerForeground": "#f8fafc",
+      "headerMuted": "#cbd5e1",
+      "headerActionBg": "#10212b",
+      "headerActionBorder": "#3b5568",
+      "headerActionHoverBg": "#1f3b4d",
+      "headerActionHoverBorder": "#5f7485"
+    }
+  },
+  "academic": {
+    "system": "quarter",
+    "quarters": ["fall", "winter", "spring"],
+    "defaultTargetYearMode": "current",
+    "defaultWorkloadImportYearMode": "next",
+    "defaultSchedulerYear": "2026-27"
+  },
+  "scheduler": {
+    "storageKeyPrefix": "itdsSchedulerData_",
+    "allowedRooms": ["IT 101", "IT 102", "LAB 201", "LAB 203", "ONLINE"],
+    "dayPatterns": [
+      { "id": "MW", "label": "Monday / Wednesday", "aliases": ["MW", "WM"] },
+      { "id": "TR", "label": "Tuesday / Thursday", "aliases": ["TR", "RT", "TH", "TTH"] }
+    ],
+    "timeSlots": [
+      { "id": "09:00-11:20", "label": "09:00-11:20", "aliases": ["09:00-11:00"], "startMinutes": 540, "endMinutes": 680 },
+      { "id": "12:00-14:20", "label": "12:00-14:20", "aliases": ["12:00-14:00"], "startMinutes": 720, "endMinutes": 860 },
+      { "id": "15:00-17:20", "label": "15:00-17:20", "aliases": ["15:00-17:00"], "startMinutes": 900, "endMinutes": 1040 }
+    ],
+    "roomLabels": {
+      "IT 101": "IT 101 Studio",
+      "IT 102": "IT 102 Studio",
+      "LAB 201": "LAB 201 Compute Lab",
+      "LAB 203": "LAB 203 XR Lab",
+      "ONLINE": "ONLINE"
+    }
+  },
+  "workload": {
+    "dashboardTitle": "Faculty Workload Dashboard",
+    "dashboardSubtitleBase": "EWU ITDS Department - Academic Workload Analysis",
+    "productionResetDefaultScheduleYear": "2027-28",
+    "defaultAnnualTargets": {
+      "Full Professor": 36,
+      "Associate Professor": 36,
+      "Assistant Professor": 36,
+      "Tenure/Tenure-track": 36,
+      "Senior Lecturer": 45,
+      "Lecturer": 45,
+      "Adjunct": 15
+    },
+    "appliedLearningCourses": {
+      "ITDS 495": { "title": "Internship", "rate": 0.1 },
+      "ITDS 499": { "title": "Independent Study", "rate": 0.2 }
+    }
+  },
+  "import": {
+    "clss": {
+      "roomMatchPriority": ["IT 101", "IT 102", "LAB 201", "LAB 203"],
+      "preferredMatchingOrder": [
+        "course+section+instructor+quarter",
+        "course+quarter+instructor",
+        "course+quarter"
+      ],
+      "facultyAliases": {
+        "J Smith": "J.Smith",
+        "L Perez": "L.Perez"
+      },
+      "courseAliases": {
+        "ITD 101": "ITDS 101",
+        "ITD 220": "ITDS 220"
+      }
+    }
+  }
+}
