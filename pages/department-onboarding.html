@@ -171,8 +171,8 @@
 
     <main class="onboarding-shell">
         <section class="shell-card">
-            <h2>Step 1: Entry + Base Profile</h2>
-            <p>Select an existing profile as your base, then define department identity.</p>
+            <h2 id="step1Title">Step 1: Entry + Base Profile</h2>
+            <p id="step1Help">Select an existing profile as your base, then define department identity.</p>
             <div class="field-grid">
                 <label>
                     Base Profile
@@ -199,8 +199,8 @@
         </section>
 
         <section class="shell-card">
-            <h2>Step 2: Seed Mapping Wizard</h2>
-            <p>Enter room map and CLSS alias mappings. Use one item per line. Alias format: <code>alias=canonical</code>.</p>
+            <h2 id="step2Title">Step 2: Seed Mapping Wizard</h2>
+            <p id="step2Help">Enter room map and CLSS alias mappings. Use one item per line. Alias format: <code>alias=canonical</code>.</p>
             <div class="field-grid">
                 <label>
                     Rooms (one per line)
@@ -218,8 +218,8 @@
         </section>
 
         <section class="shell-card">
-            <h2>Step 3: Health Checks + Activation</h2>
-            <p>Run checks before activation. Errors block activation. Warnings are advisory.</p>
+            <h2 id="step3Title">Step 3: Health Checks + Activation</h2>
+            <p id="step3Help">Run checks before activation. Errors block activation. Warnings are advisory.</p>
             <div class="shell-actions">
                 <button id="runHealthChecksButton" class="secondary" type="button">Run Health Checks</button>
                 <button id="saveActivateButton" type="button">Save Versioned Profile + Activate</button>
@@ -229,7 +229,7 @@
         </section>
 
         <section class="shell-card">
-            <h2>Current Status</h2>
+            <h2 id="statusTitle">Current Status</h2>
             <div id="onboardingStatus" class="onboarding-status">Initializing onboarding shell...</div>
         </section>
     </main>

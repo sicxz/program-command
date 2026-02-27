@@ -15,6 +15,7 @@ This schema defines the runtime configuration contract for department onboarding
   - `appTitle` (string)
   - `headerEyebrow` (string)
   - `headerSubtitle` (string)
+  - `textSlots` (object map, optional): profile-driven UI labels/help copy
   - `themeTokens` (object): key/value map applied to CSS vars using `--pc-<token-name>`
 - `academic` (object, required):
   - `system` (string, currently `quarter`)
@@ -65,4 +66,5 @@ If manifest/profile loading fails or validation fails, runtime falls back to the
 - Unsupported profile versions fail validation.
 - Missing required fields fail validation.
 - Runtime applies v1 defaults for optional fields.
+- Runtime emits contrast warnings when branding foreground/background header tokens fail a 4.5:1 ratio check.
 - Migration hook entry point exists in `js/department-profile.js` (`migrateProfile`) for future version upgrades.

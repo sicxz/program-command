@@ -4397,7 +4397,7 @@
             <div class="nav-accordion-content collapsed" id="navAccordionContent">
                 <!-- Analytics Row -->
                 <div class="nav-row">
-                    <span class="nav-row-header">Analytics</span>
+                    <span class="nav-row-header" id="navHeaderAnalytics">Analytics</span>
                     <div class="nav-row-items">
                         <a href="enrollment-dashboard.html" class="nav-link"><span class="icon">📊</span>Enrollment</a>
                         <a href="pages/workload-dashboard.html" class="nav-link"><span
@@ -4410,7 +4410,7 @@
                 </div>
                 <!-- Planning Row -->
                 <div class="nav-row">
-                    <span class="nav-row-header">Planning</span>
+                    <span class="nav-row-header" id="navHeaderPlanning">Planning</span>
                     <div class="nav-row-items">
                         <a href="pages/schedule-builder.html" class="nav-link"><span class="icon">📅</span>Builder</a>
                         <a href="pages/academic-year-setup.html" class="nav-link"><span class="icon">🗂️</span>AY
@@ -4428,7 +4428,7 @@
                 </div>
                 <!-- Tools Row -->
                 <div class="nav-row">
-                    <span class="nav-row-header">Tools</span>
+                    <span class="nav-row-header" id="navHeaderTools">Tools</span>
                     <div class="nav-row-items">
                         <button onclick="highlightConflicts()" class="nav-link"><span
                                 class="icon">🔍</span>Conflicts</button>
@@ -4884,6 +4884,28 @@
             }
         }
 
+        function applyDepartmentProfileTextSlots(profile) {
+            if (!profile || typeof profile !== 'object') return;
+            const textSlots = profile.branding && profile.branding.textSlots && typeof profile.branding.textSlots === 'object'
+                ? profile.branding.textSlots
+                : {};
+
+            const slotBindings = {
+                navHeaderAnalytics: textSlots.navAnalyticsLabel,
+                navHeaderPlanning: textSlots.navPlanningLabel,
+                navHeaderTools: textSlots.navToolsLabel
+            };
+
+            Object.entries(slotBindings).forEach(([elementId, value]) => {
+                const text = String(value || '').trim();
+                if (!text) return;
+                const element = document.getElementById(elementId);
+                if (element) {
+                    element.textContent = text;
+                }
+            });
+        }
+
         function applyDepartmentProfileSchedulerOverrides(profile) {
             if (!profile || typeof profile !== 'object') return;
             const scheduler = profile.scheduler || {};
@@ -4963,6 +4985,7 @@
                 }
 
                 applyDepartmentProfileToHeader(activeDepartmentProfile);
+                applyDepartmentProfileTextSlots(activeDepartmentProfile);
                 applyDepartmentProfileSchedulerOverrides(activeDepartmentProfile);
                 refreshFacultyAliasMap();
 

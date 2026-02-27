@@ -11,6 +11,20 @@
     "appTitle": "Program Command - EWU ITDS",
     "headerEyebrow": "EWU ITDS · PROGRAM COMMAND",
     "headerSubtitle": "ITDS Program Planning and Schedule Operations",
+    "textSlots": {
+      "navAnalyticsLabel": "Insights",
+      "navPlanningLabel": "Planning Studio",
+      "navToolsLabel": "Operations",
+      "onboardingTitle": "ITDS Onboarding Shell",
+      "onboardingSubtitle": "Configure and activate an ITDS-ready profile with guided checks",
+      "onboardingStep1Title": "Step 1: Profile Base + ITDS Identity",
+      "onboardingStep1Help": "Select a baseline profile, then confirm ITDS naming/codes.",
+      "onboardingStep2Title": "Step 2: Room + Alias Mapping",
+      "onboardingStep2Help": "Map scheduler rooms and CLSS alias pairs using alias=canonical format.",
+      "onboardingStep3Title": "Step 3: Health Gate + Activation",
+      "onboardingStep3Help": "Run checks, resolve errors, then save a versioned profile and activate.",
+      "onboardingStatusTitle": "Onboarding Status"
+    },
     "themeTokens": {
       "headerTop": "#1f3b4d",
       "headerBottom": "#10212b",

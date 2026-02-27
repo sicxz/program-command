@@ -24,6 +24,20 @@
             appTitle: 'Program Command - EWU Design',
             headerEyebrow: 'EWU DESIGN · PROGRAM COMMAND',
             headerSubtitle: 'Design Program Planning, Scheduling, and Scenario Control',
+            textSlots: {
+                navAnalyticsLabel: 'Analytics',
+                navPlanningLabel: 'Planning',
+                navToolsLabel: 'Tools',
+                onboardingTitle: 'Department Onboarding Shell',
+                onboardingSubtitle: 'Create and activate a versioned department profile without code edits for standard setup',
+                onboardingStep1Title: 'Step 1: Entry + Base Profile',
+                onboardingStep1Help: 'Select an existing profile as your base, then define department identity.',
+                onboardingStep2Title: 'Step 2: Seed Mapping Wizard',
+                onboardingStep2Help: 'Enter room map and CLSS alias mappings. Use one item per line. Alias format: alias=canonical.',
+                onboardingStep3Title: 'Step 3: Health Checks + Activation',
+                onboardingStep3Help: 'Run checks before activation. Errors block activation. Warnings are advisory.',
+                onboardingStatusTitle: 'Current Status'
+            },
             themeTokens: {
                 headerTop: '#3d444d',
                 headerBottom: '#24292f',
@@ -276,6 +290,10 @@
             .map((quarter) => String(quarter || '').toLowerCase())
             .filter(Boolean);
 
+        if (!isObject(merged.branding.textSlots)) {
+            merged.branding.textSlots = { ...DEFAULT_PROFILE.branding.textSlots };
+        }
+
         if (!Array.isArray(merged.scheduler.allowedRooms)) {
             merged.scheduler.allowedRooms = DEFAULT_PROFILE.scheduler.allowedRooms.slice();
         }
@@ -443,6 +461,74 @@
         });
     }
 
+    function parseHexColorToRgb(value) {
+        const input = String(value || '').trim();
+        if (!input.startsWith('#')) return null;
+        const hex = input.slice(1);
+        if (hex.length === 3 && /^[0-9a-fA-F]{3}$/.test(hex)) {
+            return {
+                r: parseInt(hex[0] + hex[0], 16),
+                g: parseInt(hex[1] + hex[1], 16),
+                b: parseInt(hex[2] + hex[2], 16)
+            };
+        }
+        if (hex.length === 6 && /^[0-9a-fA-F]{6}$/.test(hex)) {
+            return {
+                r: parseInt(hex.slice(0, 2), 16),
+                g: parseInt(hex.slice(2, 4), 16),
+                b: parseInt(hex.slice(4, 6), 16)
+            };
+        }
+        return null;
+    }
+
+    function toRelativeLuminance(rgb) {
+        const convert = (channel) => {
+            const normalized = channel / 255;
+            return normalized <= 0.03928
+                ? normalized / 12.92
+                : Math.pow((normalized + 0.055) / 1.055, 2.4);
+        };
+        const r = convert(rgb.r);
+        const g = convert(rgb.g);
+        const b = convert(rgb.b);
+        return (0.2126 * r) + (0.7152 * g) + (0.0722 * b);
+    }
+
+    function contrastRatio(foregroundHex, backgroundHex) {
+        const fg = parseHexColorToRgb(foregroundHex);
+        const bg = parseHexColorToRgb(backgroundHex);
+        if (!fg || !bg) return null;
+        const fgL = toRelativeLuminance(fg);
+        const bgL = toRelativeLuminance(bg);
+        const lighter = Math.max(fgL, bgL);
+        const darker = Math.min(fgL, bgL);
+        return (lighter + 0.05) / (darker + 0.05);
+    }
+
+    function evaluateBrandingAccessibility(profile) {
+        const warnings = [];
+        const tokens = profile && profile.branding && profile.branding.themeTokens;
+        if (!isObject(tokens)) return warnings;
+
+        const foreground = tokens.headerForeground;
+        const top = tokens.headerTop;
+        const bottom = tokens.headerBottom;
+        const minContrast = 4.5;
+
+        const topContrast = contrastRatio(foreground, top);
+        if (Number.isFinite(topContrast) && topContrast < minContrast) {
+            warnings.push(`branding.themeTokens contrast warning: headerForeground vs headerTop is ${topContrast.toFixed(2)} (< ${minContrast}).`);
+        }
+
+        const bottomContrast = contrastRatio(foreground, bottom);
+        if (Number.isFinite(bottomContrast) && bottomContrast < minContrast) {
+            warnings.push(`branding.themeTokens contrast warning: headerForeground vs headerBottom is ${bottomContrast.toFixed(2)} (< ${minContrast}).`);
+        }
+
+        return warnings;
+    }
+
     function publishActiveProfile(snapshot) {
         global.__PROGRAM_COMMAND_ACTIVE_PROFILE__ = deepClone(snapshot.profile);
         applyThemeTokens(snapshot.profile);
@@ -525,12 +611,14 @@
                 const fallback = normalizeProfile(deepClone(DEFAULT_PROFILE));
                 const fallbackValidation = validateProfile(fallback);
                 warnings.push(...fallbackValidation.warnings);
+                warnings.push(...evaluateBrandingAccessibility(fallback));
                 state.profile = fallback;
                 state.activeProfileId = fallback.id;
                 state.source = 'embedded-default';
                 state.errors = errors;
                 state.warnings = warnings;
             } else {
+                warnings.push(...evaluateBrandingAccessibility(normalizedProfile));
                 state.profile = normalizedProfile;
                 state.activeProfileId = normalizedProfile.id;
                 state.source = source || 'json-file';
@@ -602,6 +690,7 @@
         const normalizedProfile = normalizeProfile(migratedProfile);
         const validation = validateProfile(normalizedProfile);
         warnings.push(...validation.warnings);
+        warnings.push(...evaluateBrandingAccessibility(normalizedProfile));
         errors.push(...validation.errors);
 
         return {
