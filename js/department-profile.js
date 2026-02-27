@@ -6,6 +6,7 @@
     'use strict';
 
     const ACTIVE_PROFILE_STORAGE_KEY = 'programCommandActiveDepartmentProfileId';
+    const CUSTOM_PROFILES_STORAGE_KEY = 'programCommandCustomDepartmentProfilesV1';
     const PROFILE_MANIFEST_FILE = 'manifest.json';
     const DEFAULT_PROFILE_ID = 'design-v1';
     const CURRENT_SCHEMA_VERSION = 1;
@@ -152,6 +153,85 @@
         } catch (error) {
             console.warn('Could not persist active department profile id:', error);
         }
+    }
+
+    function readCustomProfilesStore() {
+        try {
+            const raw = global.localStorage.getItem(CUSTOM_PROFILES_STORAGE_KEY);
+            if (!raw) return {};
+            const parsed = JSON.parse(raw);
+            return isObject(parsed) ? parsed : {};
+        } catch (error) {
+            console.warn('Could not read custom profile store:', error);
+            return {};
+        }
+    }
+
+    function writeCustomProfilesStore(store) {
+        try {
+            const safeStore = isObject(store) ? store : {};
+            global.localStorage.setItem(CUSTOM_PROFILES_STORAGE_KEY, JSON.stringify(safeStore));
+        } catch (error) {
+            console.warn('Could not persist custom profile store:', error);
+        }
+    }
+
+    function sanitizeProfileBaseId(rawValue) {
+        const normalized = String(rawValue || '')
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+/, '')
+            .replace(/-+$/, '');
+        return normalized || 'department';
+    }
+
+    function escapeRegExp(text) {
+        return String(text || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function getNextVersionedProfileId(baseId, existingIds) {
+        const prefix = sanitizeProfileBaseId(baseId);
+        const pattern = new RegExp(`^${escapeRegExp(prefix)}-v(\\d+)$`, 'i');
+        let maxVersion = 0;
+        (Array.isArray(existingIds) ? existingIds : []).forEach((candidateId) => {
+            const match = String(candidateId || '').match(pattern);
+            if (!match) return;
+            const version = Number(match[1]);
+            if (Number.isFinite(version) && version > maxVersion) {
+                maxVersion = version;
+            }
+        });
+        return `${prefix}-v${String(maxVersion + 1).padStart(2, '0')}`;
+    }
+
+    function readCustomProfile(profileId) {
+        const normalizedId = String(profileId || '').trim();
+        if (!normalizedId) return null;
+        const store = readCustomProfilesStore();
+        const entry = store[normalizedId];
+        if (!entry) return null;
+        if (isObject(entry.profile)) return deepClone(entry.profile);
+        if (isObject(entry)) return deepClone(entry);
+        return null;
+    }
+
+    function listCustomProfileEntries() {
+        const store = readCustomProfilesStore();
+        return Object.entries(store)
+            .map(([id, entry]) => {
+                const profile = isObject(entry?.profile) ? entry.profile : (isObject(entry) ? entry : null);
+                if (!profile) return null;
+                return {
+                    id,
+                    source: 'custom-local',
+                    savedAt: String(entry?.savedAt || entry?.updatedAt || '').trim() || null,
+                    baseId: String(entry?.baseId || '').trim() || null,
+                    profile: deepClone(profile)
+                };
+            })
+            .filter(Boolean)
+            .sort((a, b) => String(a.id).localeCompare(String(b.id)));
     }
 
     async function fetchJson(url) {
@@ -394,7 +474,18 @@
             const storedId = readStoredProfileId();
             const nextProfileId = requestedId || storedId || manifestDefaultId || DEFAULT_PROFILE_ID;
 
-            let loadedResult = await loadProfileDocument(nextProfileId, manifest);
+            const customProfile = readCustomProfile(nextProfileId);
+            let loadedResult = null;
+            if (customProfile && isObject(customProfile)) {
+                loadedResult = {
+                    ok: true,
+                    profile: customProfile,
+                    warnings: [`Loaded custom local profile ${nextProfileId}.`],
+                    source: 'custom-local'
+                };
+            } else {
+                loadedResult = await loadProfileDocument(nextProfileId, manifest);
+            }
             warnings.push(...loadedResult.warnings);
 
             let rawProfile = loadedResult.profile;
@@ -468,6 +559,137 @@
         return initialize({ profileId: normalized, forceReload: true });
     }
 
+    async function loadProfile(profileId) {
+        const normalizedId = String(profileId || '').trim();
+        if (!normalizedId) {
+            throw new Error('Profile id is required.');
+        }
+
+        const warnings = [];
+        const errors = [];
+        const manifestResult = await loadManifest();
+        warnings.push(...(manifestResult.warnings || []));
+        const manifest = manifestResult.manifest;
+
+        const customProfile = readCustomProfile(normalizedId);
+        let source = 'json-file';
+        let rawProfile = null;
+        if (customProfile) {
+            rawProfile = customProfile;
+            source = 'custom-local';
+        } else {
+            const loaded = await loadProfileDocument(normalizedId, manifest);
+            warnings.push(...(loaded.warnings || []));
+            rawProfile = loaded.profile;
+            source = loaded.source;
+        }
+
+        if (!isObject(rawProfile)) {
+            rawProfile = deepClone(DEFAULT_PROFILE);
+            source = 'embedded-default';
+            warnings.push(`Could not resolve ${normalizedId}; using default profile.`);
+        }
+
+        let migratedProfile = null;
+        try {
+            migratedProfile = migrateProfile(rawProfile, warnings);
+        } catch (error) {
+            errors.push(error && error.message ? error.message : 'Profile migration failed.');
+            migratedProfile = deepClone(DEFAULT_PROFILE);
+            source = 'embedded-default';
+        }
+
+        const normalizedProfile = normalizeProfile(migratedProfile);
+        const validation = validateProfile(normalizedProfile);
+        warnings.push(...validation.warnings);
+        errors.push(...validation.errors);
+
+        return {
+            profile: normalizedProfile,
+            source,
+            warnings,
+            errors,
+            valid: validation.valid
+        };
+    }
+
+    async function listProfiles() {
+        const manifestResult = await loadManifest();
+        const manifest = manifestResult.manifest || {};
+        const manifestProfiles = Array.isArray(manifest.profiles) ? manifest.profiles : [];
+        const discovered = [];
+
+        manifestProfiles.forEach((entry) => {
+            const id = String(entry?.id || '').trim();
+            if (!id) return;
+            discovered.push({
+                id,
+                file: entry.file ? String(entry.file) : `${id}.json`,
+                source: 'manifest'
+            });
+        });
+
+        const custom = listCustomProfileEntries().map((entry) => ({
+            id: entry.id,
+            file: null,
+            source: entry.source,
+            savedAt: entry.savedAt,
+            baseId: entry.baseId
+        }));
+
+        const mergedMap = new Map();
+        [...discovered, ...custom].forEach((entry) => {
+            if (!entry || !entry.id) return;
+            mergedMap.set(entry.id, entry);
+        });
+
+        return {
+            profiles: [...mergedMap.values()].sort((a, b) => String(a.id).localeCompare(String(b.id))),
+            warnings: manifestResult.warnings || []
+        };
+    }
+
+    async function saveCustomProfile(rawProfile, options) {
+        const config = isObject(options) ? options : {};
+        if (!isObject(rawProfile)) {
+            throw new Error('Profile payload must be an object.');
+        }
+
+        const store = readCustomProfilesStore();
+        const baseId = sanitizeProfileBaseId(config.baseId || rawProfile.id || rawProfile.identity?.code || 'department');
+        const nextProfileId = getNextVersionedProfileId(baseId, Object.keys(store));
+
+        const normalizedCandidate = normalizeProfile(rawProfile);
+        normalizedCandidate.id = nextProfileId;
+        normalizedCandidate.version = CURRENT_SCHEMA_VERSION;
+
+        const validation = validateProfile(normalizedCandidate);
+        if (!validation.valid) {
+            throw new Error(`Profile validation failed: ${validation.errors.join(' | ')}`);
+        }
+
+        const entry = {
+            profile: normalizedCandidate,
+            baseId,
+            savedAt: new Date().toISOString()
+        };
+        store[nextProfileId] = entry;
+        writeCustomProfilesStore(store);
+
+        let snapshot = null;
+        if (config.activate !== false) {
+            snapshot = await setActiveProfile(nextProfileId);
+        }
+
+        return {
+            profileId: nextProfileId,
+            profile: deepClone(normalizedCandidate),
+            validation,
+            entry: deepClone(entry),
+            snapshot
+        };
+    }
+
     function getValidationReport(profile) {
         const candidate = profile ? normalizeProfile(profile) : deepClone(state.profile);
         const validation = validateProfile(candidate);
@@ -482,6 +704,7 @@
     global.DepartmentProfileManager = {
         CURRENT_SCHEMA_VERSION,
         ACTIVE_PROFILE_STORAGE_KEY,
+        CUSTOM_PROFILES_STORAGE_KEY,
         DEFAULT_PROFILE_ID,
         getProfileBasePath,
         getDefaultProfile: function getDefaultProfile() {
@@ -495,7 +718,10 @@
             return state.activeProfileId;
         },
         getStoredProfileId: readStoredProfileId,
+        listProfiles,
+        loadProfile,
         setActiveProfile,
+        saveCustomProfile,
         initialize,
         validateProfile: getValidationReport,
         resetCache: function resetCache() {
