@@ -2584,6 +2584,34 @@ async function buildYearScopedScheduleSyncRecords(quarterSchedules) {
     return records;
 }
 
+function __setSaveStateForTests(nextState = {}) {
+    if (Object.prototype.hasOwnProperty.call(nextState, 'currentSchedule')) {
+        currentSchedule = nextState.currentSchedule;
+    }
+    if (Object.prototype.hasOwnProperty.call(nextState, 'assignedCourses')) {
+        assignedCourses = nextState.assignedCourses;
+    }
+    if (Object.prototype.hasOwnProperty.call(nextState, 'caseByeCaseCourses')) {
+        caseByeCaseCourses = nextState.caseByeCaseCourses;
+    }
+    if (Object.prototype.hasOwnProperty.call(nextState, 'allQuartersSchedule')) {
+        allQuartersSchedule = nextState.allQuartersSchedule;
+    }
+    if (Object.prototype.hasOwnProperty.call(nextState, 'activeQuarter')) {
+        activeQuarter = nextState.activeQuarter;
+    }
+}
+
+function __getSaveStateForTests() {
+    return {
+        currentSchedule,
+        assignedCourses,
+        caseByeCaseCourses,
+        allQuartersSchedule,
+        activeQuarter
+    };
+}
+
 /**
  * Save schedule to Supabase database
  */
@@ -3724,4 +3752,17 @@ function exportAiReport() {
     URL.revokeObjectURL(url);
 
     showToast('Report exported');
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        saveToDatabase,
+        getAllQuarterSchedulesForSave,
+        parseScheduleSlotKey,
+        shouldPersistFacultyName,
+        buildDatabaseSaveErrorMessage,
+        buildYearScopedScheduleSyncRecords,
+        __setSaveStateForTests,
+        __getSaveStateForTests
+    };
 }
