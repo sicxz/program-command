@@ -12,6 +12,21 @@ Interactive analytics dashboards for analyzing enrollment trends, faculty worklo
    ```
 3. Open your browser to `http://localhost:8080`
 
+## 🔎 Dev Data Freshness Check
+
+Before merging or deploying, compare production vs dev Supabase data drift:
+
+```bash
+PROD_SUPABASE_URL="https://<prod-ref>.supabase.co" \
+PROD_SUPABASE_KEY="<prod-key>" \
+DEV_SUPABASE_URL="https://<dev-ref>.supabase.co" \
+DEV_SUPABASE_KEY="<dev-key>" \
+npm run check:data-freshness -- --department DESN --year 2026-27 --output output/data-freshness-report.json
+```
+
+If drift is detected, the command exits with code `2` and lists tables that need carry-over review.
+See `/docs/dev-data-freshness.md` for full usage.
+
 ## 🌐 GitHub Pages Deployment
 
 This repo now includes `/.github/workflows/deploy-pages.yml` to publish static dashboards to GitHub Pages on every push to `main`.
