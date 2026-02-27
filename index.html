@@ -8608,15 +8608,22 @@
 
             if (!scored.length) return null;
 
-            const best = scored[0].candidate;
+            const bestMatch = scored[0];
+            const best = bestMatch.candidate;
+            const uniqueCodeMatch = scored.length === 1;
+            const matchedInstructor = best.instructor === canonicalInstructor && canonicalInstructor !== 'TBD';
+            const matchedSection = Boolean(section && best.section && best.section === section);
+            const strongMatch = matchedInstructor || matchedSection || uniqueCodeMatch;
             return {
                 sourceYear: index?.previousYear || '',
                 quarter: best.quarter,
                 day: best.day,
                 time: best.time,
                 room: CLSS_IMPORT_ALLOWED_ROOMS.has(best.room) ? best.room : '',
-                matchedInstructor: best.instructor === canonicalInstructor && canonicalInstructor !== 'TBD',
-                matchedSection: Boolean(section && best.section && best.section === section)
+                matchedInstructor,
+                matchedSection,
+                strongMatch,
+                score: bestMatch.score
             };
         }
 
@@ -8636,8 +8643,9 @@
                 if (!suggestion) return;
 
                 const rowHasParsedSlot = Boolean(row.schedulerDay && row.schedulerTime);
-                const shouldFillSlotFromHistory = !rowHasParsedSlot;
-                const shouldFillRoomFromHistory = !row.schedulerRoom;
+                const shouldPreferHistorySlot = Boolean(suggestion.strongMatch);
+                const shouldFillSlotFromHistory = shouldPreferHistorySlot || !rowHasParsedSlot;
+                const shouldFillRoomFromHistory = shouldPreferHistorySlot || !row.schedulerRoom;
 
                 if (!shouldFillSlotFromHistory && !shouldFillRoomFromHistory) {
                     return;
@@ -8657,7 +8665,8 @@
                 const suggestionDetails = [
                     suggestion.sourceYear ? `from ${suggestion.sourceYear}` : 'from prior year',
                     suggestion.day && suggestion.time ? `${suggestion.day} ${suggestion.time}` : '',
-                    suggestion.room ? suggestion.room : 'auto room'
+                    suggestion.room ? suggestion.room : 'auto room',
+                    suggestion.strongMatch ? 'matched by prior-year roster' : ''
                 ].filter(Boolean).join(' • ');
 
                 row.notes = [...new Set([...(row.notes || []), `Auto-matched prior-year placement (${suggestionDetails})`])];
