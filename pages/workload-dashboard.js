@@ -28,7 +28,8 @@ let SCHEDULE_STORAGE_PREFIX = 'designSchedulerData_';
 let PRODUCTION_RESET_DEFAULT_SCHEDULE_YEAR = '2026-27';
 let WORKLOAD_DASHBOARD_SUBTITLE_BASE = 'EWU Design Department - Academic Workload Analysis';
 let WORKLOAD_DASHBOARD_TITLE = '👥 Faculty Workload Dashboard';
-const WORKLOAD_PLAN_ROLE_OPTIONS = [
+let WORKLOAD_PLAN_DEPARTMENT_LABEL = 'Design';
+let WORKLOAD_PLAN_ROLE_OPTIONS = [
     'Full Professor',
     'Associate Professor',
     'Assistant Professor',
@@ -69,7 +70,7 @@ const WORKLOAD_EXPORT_FACULTY_NAME_OVERRIDES = {
     'a.sopu': 'Sopu Ariel'
 };
 const WORKLOAD_PLAN_RELEASE_ALLOCATION_QUARTERS = ['Fall', 'Winter', 'Spring', 'Summer'];
-const WORKLOAD_PLAN_RELEASE_ALLOCATION_PRESETS = [
+let WORKLOAD_PLAN_RELEASE_ALLOCATION_PRESETS = [
     {
         id: 'chair',
         label: 'Chair',
@@ -113,7 +114,7 @@ const WORKLOAD_PLAN_RELEASE_ALLOCATION_PRESETS = [
         defaultQuarters: ['Fall']
     }
 ];
-const WORKLOAD_PLAN_RELEASE_CATEGORY_OPTIONS = [
+let WORKLOAD_PLAN_RELEASE_CATEGORY_OPTIONS = [
     { id: 'chair', label: 'Chair Duties' },
     { id: 'independent_study', label: 'DESN 499 / Independent Study' },
     { id: 'applied_learning', label: 'DESN 495 / Applied Learning' },
@@ -140,6 +141,14 @@ const WORKLOAD_PLAN_GROUP_OPTIONS = [
     { id: 'status', label: 'Group by Status' },
     { id: 'chair', label: 'Group Chairs First' }
 ];
+
+function getAppliedLearningCoursesForDashboard() {
+    if (window.WorkloadIntegration?.getAppliedLearningCourses) {
+        const rows = window.WorkloadIntegration.getAppliedLearningCourses();
+        return Array.isArray(rows) ? rows : [];
+    }
+    return [];
+}
 const workloadPlanningUiState = {
     modalOpen: false,
     editingRecordId: null,
@@ -169,6 +178,8 @@ function getDepartmentIdentity() {
 }
 
 function applyDepartmentProfileToDashboardHeader() {
+    const identity = getDepartmentIdentity();
+    WORKLOAD_PLAN_DEPARTMENT_LABEL = identity.name;
     const titleEl = document.getElementById('workloadDashboardTitle');
     const subtitleEl = document.getElementById('workloadDashboardSubtitle');
     if (titleEl) {
@@ -217,11 +228,48 @@ async function initializeDepartmentProfileContext() {
                 ...profileWorkload.defaultAnnualTargets
             };
         }
+        if (Array.isArray(profileWorkload.roleOptions) && profileWorkload.roleOptions.length > 0) {
+            WORKLOAD_PLAN_ROLE_OPTIONS = profileWorkload.roleOptions
+                .map((value) => String(value || '').trim())
+                .filter(Boolean);
+        }
+        if (Array.isArray(profileWorkload.releaseAllocationPresets) && profileWorkload.releaseAllocationPresets.length > 0) {
+            WORKLOAD_PLAN_RELEASE_ALLOCATION_PRESETS = profileWorkload.releaseAllocationPresets
+                .map((preset, index) => {
+                    if (!preset || typeof preset !== 'object') return null;
+                    const id = String(preset.id || `preset_${index}`).trim();
+                    const label = String(preset.label || preset.defaultLabel || '').trim();
+                    if (!id || !label) return null;
+                    const defaultQuarters = Array.isArray(preset.defaultQuarters)
+                        ? preset.defaultQuarters.map((value) => String(value || '').trim()).filter(Boolean)
+                        : ['Fall'];
+                    return {
+                        id,
+                        label,
+                        category: String(preset.category || 'other').trim() || 'other',
+                        defaultLabel: String(preset.defaultLabel || label).trim() || label,
+                        defaultQuarters
+                    };
+                })
+                .filter(Boolean);
+        }
+        if (Array.isArray(profileWorkload.releaseCategoryOptions) && profileWorkload.releaseCategoryOptions.length > 0) {
+            WORKLOAD_PLAN_RELEASE_CATEGORY_OPTIONS = profileWorkload.releaseCategoryOptions
+                .map((option) => {
+                    if (!option || typeof option !== 'object') return null;
+                    const id = String(option.id || '').trim();
+                    const label = String(option.label || '').trim();
+                    if (!id || !label) return null;
+                    return { id, label };
+                })
+                .filter(Boolean);
+        }
         if (profileWorkload.dashboardTitle) {
             WORKLOAD_DASHBOARD_TITLE = String(profileWorkload.dashboardTitle);
         }
 
         const identity = getDepartmentIdentity();
+        WORKLOAD_PLAN_DEPARTMENT_LABEL = identity.name;
         document.title = `${WORKLOAD_DASHBOARD_TITLE.replace(/^👥\s*/, '')} - ${identity.displayName}`;
         applyDepartmentProfileToDashboardHeader();
 
@@ -795,10 +843,16 @@ function renderPreliminaryPlanningNotice(yearData) {
                 </div>
             </details>`
         : '';
-    const hasAppliedLearningRateAssumption = assumptionItems.some((item) => /DESN 399\/491\/499/i.test(String(item || '')));
-    const appliedLearningRateNoteHtml = hasAppliedLearningRateAssumption
+    const hasAppliedLearningRateAssumption = assumptionItems.some((item) => /workload multiplier|applied-learning/i.test(String(item || '')));
+    const appliedLearningCourses = getAppliedLearningCoursesForDashboard();
+    const appliedLearningRateText = appliedLearningCourses.length
+        ? appliedLearningCourses
+            .map((entry) => `${entry.code} (${formatWorkloadPlanNumber(entry.rate, 3)})`)
+            .join(', ')
+        : '';
+    const appliedLearningRateNoteHtml = hasAppliedLearningRateAssumption || !appliedLearningRateText
         ? ''
-        : '<p class="prelim-workload-note">DESN 399/491/499 use a 0.2 workload rate and DESN 495 uses a 0.1 workload rate in the preliminary scheduler-derived calculations.</p>';
+        : `<p class="prelim-workload-note">Applied-learning workload multipliers: ${escapeWorkloadPlanHtml(appliedLearningRateText)}.</p>`;
 
     notice.innerHTML = `
         <div class="prelim-workload-header">
@@ -868,15 +922,26 @@ function formatWorkloadPlanNumber(value, decimals = 1) {
 }
 
 function normalizeWorkloadPlanNameKey(name) {
-    return String(name || '')
+    if (window.WorkloadIntegration?.normalizeNameKey) {
+        return window.WorkloadIntegration.normalizeNameKey(name);
+    }
+
+    const cleaned = String(name || '')
         .replace(/\u00a0/g, ' ')
         .trim()
         .replace(/^([A-Za-z])\.\s*(PAS|IND)([A-Za-z]{2,})$/i, '$1.$3')
         .replace(/^([A-Za-z])\s+(PAS|IND)\s+([A-Za-z]{2,})$/i, '$1.$3')
         .replace(/^([A-Za-z])\s+(PAS|IND)([A-Za-z]{2,})$/i, '$1.$3')
         .replace(/^([A-Za-z]+)\s+(PAS|IND)([A-Za-z]{2,})$/i, '$1 $3')
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, '');
+        .split(/\s+/)
+        .map((token) => token.replace(/^(PAS|IND)([A-Za-z]{3,})$/i, '$2'))
+        .join(' ')
+        .trim();
+
+    const compact = cleaned.toLowerCase().replace(/[^a-z0-9]/g, '');
+    return compact
+        .replace(/^([a-z])(pas|ind)([a-z]{3,})$/, '$1$3')
+        .replace(/^(pas|ind)([a-z]{3,})$/, '$2');
 }
 
 function cloneWorkloadPlanValue(value) {
@@ -3261,7 +3326,7 @@ function renderWorkloadPlanWorksheetSnapshot(overlay, baseRow, values) {
         { label: 'AY', value: currentFilters.year || '—' },
         { label: 'Name', value: facultyName },
         { label: 'Classification', value: role },
-        { label: 'Department', value: 'Design' },
+        { label: 'Department', value: WORKLOAD_PLAN_DEPARTMENT_LABEL || getDepartmentIdentity().name || 'Design' },
         { label: 'FTE', value: `${Number.isFinite(fte) ? formatWorkloadPlanNumber(fte, 1) : '100'}%` },
         { label: 'Expected Workload', value: `${formatWorkloadPlanNumber(annualTarget)} credits` },
         { label: 'Assigned / Release', value: `${formatWorkloadPlanNumber(releaseCredits)} credits (${formatWorkloadPlanNumber(releasePercent)}%)` },
@@ -4871,10 +4936,13 @@ function roundToTenths(value) {
 
 function isAppliedLearningCode(code) {
     const normalized = String(code || '').replace(/\s+/g, ' ').trim().toUpperCase();
-    return normalized === 'DESN 399'
-        || normalized === 'DESN 491'
-        || normalized === 'DESN 495'
-        || normalized === 'DESN 499';
+    if (!normalized) return false;
+    const appliedLearningCodes = new Set(
+        getAppliedLearningCoursesForDashboard()
+            .map((entry) => String(entry?.code || '').replace(/\s+/g, ' ').trim().toUpperCase())
+            .filter(Boolean)
+    );
+    return appliedLearningCodes.has(normalized);
 }
 
 function sortQuarterRows(rows) {
@@ -4912,7 +4980,7 @@ function buildQuarterExportRows(facultyRecord) {
         }
 
         quarters[quarter].push({
-            label: code || 'DESN',
+            label: code || (getDepartmentIdentity().code || 'COURSE'),
             note: course?.section ? `Sec ${course.section}` : '',
             credits: roundToTenths(workloadCredits || course?.credits || 0),
             sortOrder: index
@@ -4924,7 +4992,7 @@ function buildQuarterExportRows(facultyRecord) {
         if (applied.credits > 0) {
             const codeList = Array.from(applied.codes).sort().join('/');
             quarters[quarter].push({
-                label: 'DESN X95/99',
+                label: `${getDepartmentIdentity().code || 'DEPT'} X95/99`,
                 note: codeList || 'Applied learning',
                 credits: roundToTenths(applied.credits),
                 sortOrder: 10_000

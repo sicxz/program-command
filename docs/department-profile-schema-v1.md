@@ -25,6 +25,17 @@ This schema defines the runtime configuration contract for department onboarding
 - `scheduler` (object, required):
   - `storageKeyPrefix` (string, required)
   - `allowedRooms` (array of strings, optional)
+  - `dayPatterns` (array, optional): each entry can define:
+    - `id` (string, required)
+    - `label` (string, optional)
+    - `aliases` (array of strings, optional)
+  - `timeSlots` (array, optional): each entry can define:
+    - `id` (string, required)
+    - `label` (string, optional)
+    - `aliases` (array of strings, optional)
+    - `startMinutes` (number, optional)
+    - `endMinutes` (number, optional)
+  - `roomLabels` (object map, optional): room code to display label
 - `workload` (object, required):
   - `dashboardTitle` (string, optional)
   - `dashboardSubtitleBase` (string, optional)
@@ -33,6 +44,8 @@ This schema defines the runtime configuration contract for department onboarding
 - `import` (object, optional):
   - `clss.roomMatchPriority` (array of strings, optional)
   - `clss.preferredMatchingOrder` (array of strings, optional)
+  - `clss.facultyAliases` (object map, optional): alias to canonical faculty name
+  - `clss.courseAliases` (object map, optional): alias code to canonical course code
 
 ## Runtime Loader
 

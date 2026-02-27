@@ -7,18 +7,18 @@ const WorkloadIntegration = (function() {
     'use strict';
 
     const AY_SETUP_STORAGE_KEY = 'programCommandAySetup';
-    const SCHEDULE_STORAGE_PREFIX = 'designSchedulerData_';
+    const DEFAULT_SCHEDULE_STORAGE_PREFIX = 'designSchedulerData_';
     const DETAIL_STORAGE_KEY = 'programCommandFacultyWorkloadDetails';
     const CLSS_WORKLOAD_IMPORT_STORAGE_KEY = 'programCommandClssWorkloadImport';
 
-    const APPLIED_LEARNING_COURSES = {
+    const DEFAULT_APPLIED_LEARNING_COURSES = {
         'DESN 399': { title: 'Independent Study', rate: 0.2 },
         'DESN 491': { title: 'Senior Project', rate: 0.2 },
         'DESN 495': { title: 'Internship', rate: 0.1 },
         'DESN 499': { title: 'Independent Study', rate: 0.2 }
     };
 
-    const ROLE_TARGET_DEFAULTS = {
+    const DEFAULT_ROLE_TARGET_DEFAULTS = {
         'Tenure/Tenure-track': 36,
         'Full Professor': 36,
         'Associate Professor': 36,
@@ -29,7 +29,7 @@ const WorkloadIntegration = (function() {
 
     // Chair-provided preliminary planning defaults used when AY Setup is missing.
     // These are name/alias matched and only applied as fallbacks.
-    const PRELIMINARY_ROSTER_TARGET_RULES = [
+    const DEFAULT_PRELIMINARY_ROSTER_TARGET_RULES = [
         {
             id: 'travis-tenure',
             aliases: ['travis', 'travis masingale', 'tmasingale', 'masingale', 't masingale'],
@@ -102,6 +102,117 @@ const WorkloadIntegration = (function() {
         Spring: 'spring',
         Summer: 'summer'
     };
+
+    function getActiveDepartmentProfile() {
+        const profileFromGlobal = (typeof globalThis !== 'undefined' && globalThis.__PROGRAM_COMMAND_ACTIVE_PROFILE__)
+            ? globalThis.__PROGRAM_COMMAND_ACTIVE_PROFILE__
+            : null;
+        if (profileFromGlobal && typeof profileFromGlobal === 'object') {
+            return profileFromGlobal;
+        }
+        const profileFromWindow = (typeof window !== 'undefined' && window.activeDepartmentProfile)
+            ? window.activeDepartmentProfile
+            : null;
+        if (profileFromWindow && typeof profileFromWindow === 'object') {
+            return profileFromWindow;
+        }
+        return null;
+    }
+
+    function getScheduleStoragePrefixes() {
+        const profile = getActiveDepartmentProfile();
+        const profileScheduler = profile && profile.scheduler && typeof profile.scheduler === 'object'
+            ? profile.scheduler
+            : {};
+        const activePrefix = String(profileScheduler.storageKeyPrefix || DEFAULT_SCHEDULE_STORAGE_PREFIX).trim()
+            || DEFAULT_SCHEDULE_STORAGE_PREFIX;
+        const legacy = Array.isArray(profileScheduler.legacyStoragePrefixes)
+            ? profileScheduler.legacyStoragePrefixes
+            : [];
+        const normalizedLegacy = legacy
+            .map((value) => String(value || '').trim())
+            .filter(Boolean);
+        const all = [activePrefix, ...normalizedLegacy, DEFAULT_SCHEDULE_STORAGE_PREFIX];
+        return [...new Set(all)];
+    }
+
+    function normalizeAppliedLearningCourseMap(rawMap) {
+        if (!rawMap || typeof rawMap !== 'object' || Array.isArray(rawMap)) {
+            return { ...DEFAULT_APPLIED_LEARNING_COURSES };
+        }
+
+        const merged = {};
+        const sourceEntries = Object.entries(rawMap);
+        sourceEntries.forEach(([code, details]) => {
+            const normalizedCode = normalizeCourseCode(code);
+            if (!normalizedCode) return;
+
+            if (Number.isFinite(Number(details))) {
+                const numericRate = Number(details);
+                if (numericRate > 0) {
+                    merged[normalizedCode] = { title: normalizedCode, rate: numericRate };
+                }
+                return;
+            }
+
+            if (!details || typeof details !== 'object' || Array.isArray(details)) {
+                return;
+            }
+
+            const rate = Number(details.rate);
+            if (!Number.isFinite(rate) || rate <= 0) return;
+            const title = String(details.title || normalizedCode).trim() || normalizedCode;
+            merged[normalizedCode] = { title, rate };
+        });
+
+        return Object.keys(merged).length
+            ? merged
+            : { ...DEFAULT_APPLIED_LEARNING_COURSES };
+    }
+
+    function getAppliedLearningCourseConfig() {
+        const profile = getActiveDepartmentProfile();
+        const profileWorkload = profile && profile.workload && typeof profile.workload === 'object'
+            ? profile.workload
+            : {};
+        return normalizeAppliedLearningCourseMap(profileWorkload.appliedLearningCourses);
+    }
+
+    function getRoleTargetDefaults() {
+        const profile = getActiveDepartmentProfile();
+        const profileWorkload = profile && profile.workload && typeof profile.workload === 'object'
+            ? profile.workload
+            : {};
+        const fromProfile = profileWorkload.defaultAnnualTargets
+            && typeof profileWorkload.defaultAnnualTargets === 'object'
+            && !Array.isArray(profileWorkload.defaultAnnualTargets)
+            ? profileWorkload.defaultAnnualTargets
+            : {};
+        return {
+            ...DEFAULT_ROLE_TARGET_DEFAULTS,
+            ...fromProfile
+        };
+    }
+
+    function getPreliminaryRosterTargetRules() {
+        const profile = getActiveDepartmentProfile();
+        const profileWorkload = profile && profile.workload && typeof profile.workload === 'object'
+            ? profile.workload
+            : {};
+        const customRules = Array.isArray(profileWorkload.preliminaryRosterTargetRules)
+            ? profileWorkload.preliminaryRosterTargetRules
+            : [];
+        return customRules.length ? customRules : DEFAULT_PRELIMINARY_ROSTER_TARGET_RULES;
+    }
+
+    function createAppliedLearningSummaryBuckets(appliedLearningMap = null) {
+        const map = appliedLearningMap || getAppliedLearningCourseConfig();
+        const buckets = {};
+        Object.keys(map).forEach((code) => {
+            buckets[code] = { credits: 0, workload: 0, students: 0, sections: 0 };
+        });
+        return buckets;
+    }
 
     function parseStorageJSON(key, fallback) {
         try {
@@ -176,7 +287,7 @@ const WorkloadIntegration = (function() {
         const normalized = normalizeNameKey(name);
         if (!normalized) return null;
 
-        return PRELIMINARY_ROSTER_TARGET_RULES.find((rule) => {
+        return getPreliminaryRosterTargetRules().find((rule) => {
             return (rule.aliases || []).some((alias) => {
                 const aliasKey = normalizeNameKey(alias);
                 if (!aliasKey) return false;
@@ -248,11 +359,11 @@ const WorkloadIntegration = (function() {
 
     function getAppliedLearningRate(courseCode) {
         const code = normalizeCourseCode(courseCode);
-        return APPLIED_LEARNING_COURSES[code]?.rate || 1;
+        return getAppliedLearningCourseConfig()[code]?.rate || 1;
     }
 
     function getAppliedLearningCourses() {
-        return Object.entries(APPLIED_LEARNING_COURSES).map(([code, details]) => ({
+        return Object.entries(getAppliedLearningCourseConfig()).map(([code, details]) => ({
             code,
             title: details.title,
             rate: details.rate
@@ -269,12 +380,21 @@ const WorkloadIntegration = (function() {
     }
 
     function getScheduleStorageKey(year) {
-        return `${SCHEDULE_STORAGE_PREFIX}${year}`;
+        const prefixes = getScheduleStoragePrefixes();
+        const activePrefix = prefixes[0] || DEFAULT_SCHEDULE_STORAGE_PREFIX;
+        return `${activePrefix}${year}`;
     }
 
     function readProgramCommandSchedule(year) {
         if (!year) return null;
-        return parseStorageJSON(getScheduleStorageKey(year), null);
+        const prefixes = getScheduleStoragePrefixes();
+        for (const prefix of prefixes) {
+            const parsed = parseStorageJSON(`${prefix}${year}`, null);
+            if (parsed && typeof parsed === 'object') {
+                return parsed;
+            }
+        }
+        return null;
     }
 
     function readClssWorkloadImportPayload() {
@@ -458,11 +578,22 @@ const WorkloadIntegration = (function() {
 
     function collectScheduleYearsFromLocalStorage() {
         const years = [];
+        const prefixes = getScheduleStoragePrefixes();
         try {
             for (let i = 0; i < localStorage.length; i += 1) {
                 const key = localStorage.key(i);
-                if (!key || !key.startsWith(SCHEDULE_STORAGE_PREFIX)) continue;
-                const year = key.slice(SCHEDULE_STORAGE_PREFIX.length);
+                if (!key) continue;
+
+                let matchedPrefix = '';
+                for (const prefix of prefixes) {
+                    if (key.startsWith(prefix)) {
+                        matchedPrefix = prefix;
+                        break;
+                    }
+                }
+                if (!matchedPrefix) continue;
+
+                const year = key.slice(matchedPrefix.length);
                 if (/^\d{4}-\d{2}$/.test(year)) {
                     years.push(year);
                 }
@@ -512,6 +643,7 @@ const WorkloadIntegration = (function() {
     }
 
     function createEmptyFacultyRecord(name) {
+        const appliedLearningBuckets = createAppliedLearningSummaryBuckets();
         return {
             facultyName: String(name || '').trim(),
             originalName: String(name || '').trim(),
@@ -523,12 +655,7 @@ const WorkloadIntegration = (function() {
             totalStudents: 0,
             sections: 0,
             courses: [],
-            appliedLearning: {
-                'DESN 399': { credits: 0, workload: 0, students: 0, sections: 0 },
-                'DESN 491': { credits: 0, workload: 0, students: 0, sections: 0 },
-                'DESN 495': { credits: 0, workload: 0, students: 0, sections: 0 },
-                'DESN 499': { credits: 0, workload: 0, students: 0, sections: 0 }
-            },
+            appliedLearning: appliedLearningBuckets,
             category: 'fullTime',
             status: 'underutilized',
             rank: 'Lecturer',
@@ -610,6 +737,7 @@ const WorkloadIntegration = (function() {
     }
 
     function recalcFacultyRecord(record) {
+        const appliedLearningConfig = getAppliedLearningCourseConfig();
         const summary = {
             totalCredits: 0,
             totalWorkloadCredits: 0,
@@ -619,12 +747,7 @@ const WorkloadIntegration = (function() {
             totalStudents: 0,
             sections: 0,
             byQuarter: createQuarterSummary(),
-            appliedLearning: {
-                'DESN 399': { credits: 0, workload: 0, students: 0, sections: 0 },
-                'DESN 491': { credits: 0, workload: 0, students: 0, sections: 0 },
-                'DESN 495': { credits: 0, workload: 0, students: 0, sections: 0 },
-                'DESN 499': { credits: 0, workload: 0, students: 0, sections: 0 }
-            }
+            appliedLearning: createAppliedLearningSummaryBuckets(appliedLearningConfig)
         };
 
         const normalizedCourses = (Array.isArray(record.courses) ? record.courses : []).map((course, index) => {
@@ -732,6 +855,8 @@ const WorkloadIntegration = (function() {
         const ayFaculty = Array.isArray(ayYearData.faculty) ? ayYearData.faculty : [];
         const scheduleCourses = getProgramCommandScheduleCourses(year);
         const detailFacultyMap = getDetailEntriesForYear(year);
+        const appliedLearningConfig = getAppliedLearningCourseConfig();
+        const roleTargetDefaults = getRoleTargetDefaults();
 
         const baseAll = baseYearData.all || {};
         const baseNames = Object.keys(baseAll);
@@ -825,7 +950,7 @@ const WorkloadIntegration = (function() {
 
             entries.forEach((entry, index) => {
                 const code = normalizeCourseCode(entry.courseCode);
-                if (!APPLIED_LEARNING_COURSES[code]) return;
+                if (!appliedLearningConfig[code]) return;
 
                 const studentCredits = Number(entry.studentCredits);
                 if (!Number.isFinite(studentCredits) || studentCredits <= 0) return;
@@ -869,7 +994,7 @@ const WorkloadIntegration = (function() {
 
             if (ayRecord) {
                 const role = String(ayRecord.role || record.rank || '').trim();
-                const targetFromRole = ROLE_TARGET_DEFAULTS[role] || null;
+                const targetFromRole = roleTargetDefaults[role] || null;
                 const annualTargetCredits = Number(ayRecord.annualTargetCredits);
                 const target = Number.isFinite(annualTargetCredits) && annualTargetCredits > 0
                     ? annualTargetCredits
@@ -989,15 +1114,20 @@ const WorkloadIntegration = (function() {
         });
 
         const unresolvedSummary = summarizeUnassignedScheduleCourses(unassignedScheduleCourses);
+        const appliedLearningAssumptionText = Object.entries(appliedLearningConfig)
+            .map(([code, details]) => `${code} (${Number(details.rate)})`)
+            .join(', ');
         const preliminaryAssumptions = [
             'Teaching workload is derived from the Program Command scheduler draft for the selected academic year.',
-            'DESN 399/491/499 use 0.2 workload rate and DESN 495 uses 0.1 workload rate.',
+            appliedLearningAssumptionText
+                ? `Applied-learning workload multipliers: ${appliedLearningAssumptionText}.`
+                : 'Applied-learning workload multipliers are profile-driven.',
             'TBD/Staff/blank instructor assignments are excluded from faculty totals and listed as unresolved sections.',
             'Non-teaching workload (service/research/PTOL/other assigned time) is not derived from the schedule and should be reviewed manually unless AY setup release credits are entered.'
         ];
 
         if (fallbackRulesApplied.length > 0) {
-            preliminaryAssumptions.push('Fallback chair planning targets were applied for matched faculty (tenure/tenure-track 36, lecturers 45, Mindy chair teaching target 18 via 18-credit release).');
+            preliminaryAssumptions.push('Fallback planning targets were applied for matched faculty based on the active department profile roster rules.');
         }
         if (adjunctAssignedDefaultsApplied.length > 0) {
             preliminaryAssumptions.push('Unlisted instructors are treated as adjuncts by default; adjunct target credits default to their currently assigned AY workload unless edited in AY Setup / workload planning.');
@@ -1025,7 +1155,7 @@ const WorkloadIntegration = (function() {
     }
 
     return {
-        APPLIED_LEARNING_COURSES,
+        APPLIED_LEARNING_COURSES: DEFAULT_APPLIED_LEARNING_COURSES,
         QUARTER_KEY_TO_NAME,
         QUARTER_NAME_TO_KEY,
         normalizeNameKey,
@@ -1033,6 +1163,7 @@ const WorkloadIntegration = (function() {
         normalizeQuarterName,
         getAppliedLearningRate,
         getAppliedLearningCourses,
+        getAppliedLearningCourseConfig,
         readAySetupDataForYear,
         readProgramCommandSchedule,
         getProgramCommandScheduleCourses,
