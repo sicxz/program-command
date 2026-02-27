@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EagleNet Comparison</title>
+    <link rel="stylesheet" href="../css/design-system.css">
+    <link rel="stylesheet" href="../css/shared.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <style>
+        body {
+            margin: 0;
+            background: #f8fafc;
+            color: #0f172a;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .compare-shell {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px;
+            display: grid;
+            gap: 16px;
+        }
+
+        .panel {
+            background: #fff;
+            border: 1px solid #dbe3eb;
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+        }
+
+        .panel h2 {
+            margin: 0 0 10px;
+            font-size: 1.05rem;
+        }
+
+        .panel p {
+            margin: 0 0 12px;
+            color: #475569;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 10px;
+            align-items: end;
+        }
+
+        label {
+            display: grid;
+            gap: 6px;
+            font-size: 0.9rem;
+        }
+
+        input,
+        select,
+        textarea,
+        button {
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 10px;
+            font: inherit;
+        }
+
+        textarea {
+            min-height: 180px;
+            resize: vertical;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 0.85rem;
+        }
+
+        .button-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        button {
+            cursor: pointer;
+            background: #0f172a;
+            color: #fff;
+            border-color: #0f172a;
+        }
+
+        button.secondary {
+            background: #fff;
+            color: #0f172a;
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            background: #f8fafc;
+            color: #0f172a;
+        }
+
+        .status.error {
+            border-color: #dc2626;
+            background: #fef2f2;
+            color: #991b1b;
+        }
+
+        .status.ok {
+            border-color: #16a34a;
+            background: #f0fdf4;
+            color: #14532d;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+        }
+
+        .metric {
+            border: 1px solid #dbe3eb;
+            border-radius: 8px;
+            padding: 10px;
+            background: #f8fafc;
+        }
+
+        .metric strong {
+            display: block;
+            font-size: 1.2rem;
+            color: #0f172a;
+        }
+
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+
+        .report-table th,
+        .report-table td {
+            border: 1px solid #dbe3eb;
+            padding: 8px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .report-table thead th {
+            background: #f1f5f9;
+        }
+
+        details {
+            border: 1px solid #dbe3eb;
+            border-radius: 8px;
+            padding: 8px;
+            background: #fff;
+        }
+
+        details + details {
+            margin-top: 10px;
+        }
+
+        summary {
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .empty {
+            color: #64748b;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <app-header
+        eyebrow="PROGRAM COMMAND"
+        title-text="EagleNet Comparison"
+        subtitle="Compare scheduler draft vs EagleNet schedule data by year and export discrepancies"
+    ></app-header>
+
+    <main class="compare-shell">
+        <section class="panel">
+            <h2>Inputs</h2>
+            <p>Select a year, then provide EagleNet rows as JSON array or CSV.</p>
+            <div class="controls">
+                <label>
+                    Academic Year
+                    <select id="compareYear"></select>
+                </label>
+                <label>
+                    EagleNet Data File (optional)
+                    <input id="eaglenetFile" type="file" accept=".json,.csv,text/csv,application/json">
+                </label>
+            </div>
+            <label style="margin-top:10px; display:grid; gap:6px;">
+                EagleNet Data (paste JSON array or CSV with header row)
+                <textarea id="eaglenetDataInput" placeholder='[{"academicYear":"2026-27","quarter":"Fall","courseCode":"DESN 100",...}]'></textarea>
+            </label>
+            <div class="button-row" style="margin-top:10px;">
+                <button id="runCompareButton" type="button">Run Comparison</button>
+                <button id="exportDiscrepanciesButton" type="button" class="secondary">Export Discrepancy CSV</button>
+                <button id="loadSampleButton" type="button" class="secondary">Load Sample</button>
+            </div>
+            <div id="compareStatus" class="status" style="margin-top:10px;">Ready.</div>
+        </section>
+
+        <section class="panel">
+            <h2>Summary</h2>
+            <div id="summaryGrid" class="summary-grid"></div>
+        </section>
+
+        <section class="panel">
+            <h2>Discrepancy Report</h2>
+            <div id="reportOutput" class="empty">Run comparison to view categorized differences.</div>
+        </section>
+    </main>
+
+    <script type="module" src="../js/components/app-header.js"></script>
+    <script src="../js/department-profile.js"></script>
+    <script src="../js/workload-integration.js"></script>
+    <script src="../js/eaglenet-compare.js"></script>
+    <script src="eaglenet-compare.js"></script>
+</body>
+</html>
