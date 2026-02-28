@@ -5476,6 +5476,9 @@
         }
 
         attachDirtyTrackerToStateManager();
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeSessionResilience();
+        });
 
         // Listen for quarter-nav component events
         document.addEventListener('quarter-change', (e) => {
@@ -8325,6 +8328,17 @@
         let scheduleDirty = false;
         let scheduleSaveInProgress = false;
         const dirtyYears = new Set();
+        const SESSION_RECOVERY_DRAFT_KEY = 'pc_session_recovery_draft_v1';
+        const SESSION_IDLE_TIMEOUT_MS = 30 * 60 * 1000;
+        const SESSION_IDLE_WARNING_MS = 5 * 60 * 1000;
+        const AUTO_SAVE_INTERVAL_MS = 2 * 60 * 1000;
+
+        let sessionIdleTimerId = null;
+        let sessionWarningTimerId = null;
+        let autoSaveTimerId = null;
+        let lastActivityResetAt = 0;
+        let autoSaveRunning = false;
+        let lastAutoSaveAt = 0;
 
         // Update swap mode labels when toggle changes
         function updateSwapModeLabels() {
@@ -8406,6 +8420,121 @@
                 window.DirtyStateTracker?.markClean();
             }
             updateSaveDbButtonState();
+        }
+
+        function captureRecoveryDraft(reason = 'autosave-fallback') {
+            try {
+                const payload = {
+                    reason,
+                    savedAt: new Date().toISOString(),
+                    academicYear: currentAcademicYear,
+                    scheduleData
+                };
+                localStorage.setItem(SESSION_RECOVERY_DRAFT_KEY, JSON.stringify(payload));
+            } catch (error) {
+                console.warn('Could not persist session recovery draft:', error);
+            }
+        }
+
+        function clearRecoveryDraft() {
+            try {
+                localStorage.removeItem(SESSION_RECOVERY_DRAFT_KEY);
+            } catch (error) {
+                // ignore cleanup errors
+            }
+        }
+
+        async function attemptResilientAutoSave(trigger = 'interval') {
+            const hasDirtyState = Boolean(window.DirtyStateTracker?.isDirty?.() || scheduleDirty);
+            if (!hasDirtyState || scheduleSaveInProgress || autoSaveRunning) {
+                return false;
+            }
+
+            const now = Date.now();
+            if (now - lastAutoSaveAt < 60 * 1000) {
+                return false;
+            }
+            lastAutoSaveAt = now;
+            autoSaveRunning = true;
+
+            try {
+                const success = await saveScheduleToDatabase({
+                    silent: trigger !== 'timeout',
+                    trigger
+                });
+                if (!success) {
+                    captureRecoveryDraft(`autosave-${trigger}`);
+                }
+                return success;
+            } catch (error) {
+                captureRecoveryDraft(`autosave-${trigger}`);
+                return false;
+            } finally {
+                autoSaveRunning = false;
+            }
+        }
+
+        async function handleSessionTimeout() {
+            showToast('Session timed out. Saving pending changes and signing out...', 'error');
+            const saved = await attemptResilientAutoSave('timeout');
+            if (!saved && (window.DirtyStateTracker?.isDirty?.() || scheduleDirty)) {
+                captureRecoveryDraft('timeout');
+            }
+
+            try {
+                await window.AuthService?.signOut?.();
+            } catch (error) {
+                console.warn('Sign-out during timeout failed:', error);
+            } finally {
+                window.location.replace('login.html?timeout=1');
+            }
+        }
+
+        function resetSessionIdleTimers() {
+            if (sessionWarningTimerId) clearTimeout(sessionWarningTimerId);
+            if (sessionIdleTimerId) clearTimeout(sessionIdleTimerId);
+
+            sessionWarningTimerId = setTimeout(() => {
+                showToast('Your session will expire in 5 minutes due to inactivity.');
+            }, SESSION_IDLE_TIMEOUT_MS - SESSION_IDLE_WARNING_MS);
+
+            sessionIdleTimerId = setTimeout(() => {
+                handleSessionTimeout();
+            }, SESSION_IDLE_TIMEOUT_MS);
+        }
+
+        function registerSessionActivityListeners() {
+            const activityHandler = () => {
+                const now = Date.now();
+                if (now - lastActivityResetAt < 15000) return;
+                lastActivityResetAt = now;
+                resetSessionIdleTimers();
+            };
+
+            ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'].forEach((eventName) => {
+                window.addEventListener(eventName, activityHandler, { passive: true });
+            });
+
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    if (window.DirtyStateTracker?.isDirty?.() || scheduleDirty) {
+                        captureRecoveryDraft('visibility-hidden');
+                        attemptResilientAutoSave('visibility-hidden');
+                    }
+                    return;
+                }
+                resetSessionIdleTimers();
+            });
+        }
+
+        function initializeSessionResilience() {
+            if (autoSaveTimerId) clearInterval(autoSaveTimerId);
+            autoSaveTimerId = setInterval(() => {
+                attemptResilientAutoSave('interval');
+            }, AUTO_SAVE_INTERVAL_MS);
+
+            registerSessionActivityListeners();
+            resetSessionIdleTimers();
         }
 
         function syncDisplacedTrayUI() {
@@ -13499,13 +13628,17 @@
         /**
          * Save all schedule changes to Supabase in one explicit action.
          */
-        async function saveScheduleToDatabase() {
-            if (scheduleSaveInProgress) return;
+        async function saveScheduleToDatabase(options = {}) {
+            const { silent = false, trigger = 'manual' } = options || {};
+            if (scheduleSaveInProgress) return false;
 
             const client = getDatabaseClient();
             if (!client) {
-                showToast('Supabase is not connected. Changes are still saved locally.', 'error');
-                return;
+                if (!silent) {
+                    showToast('Supabase is not connected. Changes are still saved locally.', 'error');
+                }
+                captureRecoveryDraft(`save-no-client-${trigger}`);
+                return false;
             }
 
             const rows = collectScheduleCoursesForDatabase();
@@ -13648,10 +13781,18 @@
                 }
 
                 setScheduleDirty(false);
-                showToast(`Saved ${records.length} schedule entries to Supabase (${saveCounts.updated} updated, ${saveCounts.inserted} new${saveCounts.deleted ? `, ${saveCounts.deleted} removed` : ''}).`);
+                clearRecoveryDraft();
+                if (!silent) {
+                    showToast(`Saved ${records.length} schedule entries to Supabase (${saveCounts.updated} updated, ${saveCounts.inserted} new${saveCounts.deleted ? `, ${saveCounts.deleted} removed` : ''}).`);
+                }
+                return true;
             } catch (error) {
                 console.error('Error saving schedule to Supabase:', error);
-                showToast('Database save failed: ' + (error.message || 'Unknown error'), 'error');
+                captureRecoveryDraft(`save-failed-${trigger}`);
+                if (!silent) {
+                    showToast('Database save failed: ' + (error.message || 'Unknown error'), 'error');
+                }
+                return false;
             } finally {
                 scheduleSaveInProgress = false;
                 updateSaveDbButtonState();
