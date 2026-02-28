@@ -6,6 +6,105 @@ const AuthService = (function() {
     'use strict';
 
     let cachedClient = null;
+    let cachedNormalizedUser = null;
+
+    const ROLE_ADMIN = 'admin';
+    const ROLE_CHAIR = 'chair';
+
+    const ACTION_ALIASES = {
+        read: 'read',
+        view: 'read',
+        list: 'read',
+        get: 'read',
+        write: 'write',
+        create: 'write',
+        insert: 'write',
+        update: 'write',
+        edit: 'write',
+        delete: 'write',
+        save: 'write',
+        manage: 'manage',
+        admin: 'manage',
+        configure: 'manage',
+        invite: 'manage'
+    };
+
+    const RESOURCE_ALIASES = {
+        schedule: 'schedule',
+        schedules: 'schedule',
+        scheduler: 'schedule',
+        workload: 'workload',
+        workloads: 'workload',
+        department: 'departments',
+        departments: 'departments',
+        academic_year: 'academic_years',
+        academic_years: 'academic_years',
+        'academic-year': 'academic_years',
+        'academic-years': 'academic_years',
+        room: 'rooms',
+        rooms: 'rooms',
+        course: 'courses',
+        courses: 'courses',
+        faculty: 'faculty',
+        scheduled_course: 'scheduled_courses',
+        scheduled_courses: 'scheduled_courses',
+        'scheduled-course': 'scheduled_courses',
+        'scheduled-courses': 'scheduled_courses',
+        faculty_preference: 'faculty_preferences',
+        faculty_preferences: 'faculty_preferences',
+        'faculty-preference': 'faculty_preferences',
+        'faculty-preferences': 'faculty_preferences',
+        scheduling_constraint: 'scheduling_constraints',
+        scheduling_constraints: 'scheduling_constraints',
+        'scheduling-constraint': 'scheduling_constraints',
+        'scheduling-constraints': 'scheduling_constraints',
+        release_time: 'release_time',
+        'release-time': 'release_time',
+        pathways: 'pathways',
+        pathway_courses: 'pathway_courses',
+        'pathway-courses': 'pathway_courses',
+        system_config: 'system_config',
+        'system-config': 'system_config',
+        config: 'system_config',
+        configuration: 'system_config',
+        accounts: 'accounts',
+        users: 'accounts',
+        auth: 'accounts'
+    };
+
+    const CHAIR_PERMISSIONS = {
+        read: new Set([
+            'schedule',
+            'workload',
+            'system_config',
+            'departments',
+            'academic_years',
+            'rooms',
+            'courses',
+            'faculty',
+            'scheduled_courses',
+            'faculty_preferences',
+            'scheduling_constraints',
+            'release_time',
+            'pathways',
+            'pathway_courses'
+        ]),
+        write: new Set([
+            'schedule',
+            'workload',
+            'academic_years',
+            'rooms',
+            'courses',
+            'faculty',
+            'scheduled_courses',
+            'faculty_preferences',
+            'scheduling_constraints',
+            'release_time',
+            'pathways',
+            'pathway_courses'
+        ]),
+        manage: new Set([])
+    };
 
     function isConfigured() {
         if (typeof isSupabaseConfigured === 'function') {
@@ -57,6 +156,58 @@ const AuthService = (function() {
         };
     }
 
+    function normalizeRole(rawRole) {
+        const role = String(rawRole || '').trim().toLowerCase();
+        if (role === ROLE_ADMIN) return ROLE_ADMIN;
+        return ROLE_CHAIR;
+    }
+
+    function normalizeAction(rawAction) {
+        const action = String(rawAction || '').trim().toLowerCase();
+        return ACTION_ALIASES[action] || null;
+    }
+
+    function normalizeResource(rawResource) {
+        const canonical = String(rawResource || '')
+            .trim()
+            .toLowerCase()
+            .replace(/[.\s]+/g, '_');
+        return RESOURCE_ALIASES[canonical] || canonical || null;
+    }
+
+    function resolveRoleFromContext(context) {
+        if (typeof context === 'string') {
+            return normalizeRole(context);
+        }
+
+        if (context && typeof context === 'object') {
+            if (typeof context.role === 'string') {
+                return normalizeRole(context.role);
+            }
+            if (context.user && typeof context.user === 'object') {
+                const userRole = extractRole(context.user) || context.user.role;
+                if (userRole) {
+                    return normalizeRole(userRole);
+                }
+            }
+        }
+
+        if (cachedNormalizedUser?.role) {
+            return normalizeRole(cachedNormalizedUser.role);
+        }
+
+        return ROLE_CHAIR;
+    }
+
+    function hasPermission(role, action, resource) {
+        if (role === ROLE_ADMIN) return true;
+        if (role !== ROLE_CHAIR) return false;
+
+        const permittedResources = CHAIR_PERMISSIONS[action];
+        if (!permittedResources) return false;
+        return permittedResources.has(resource);
+    }
+
     function init() {
         if (!isConfigured()) {
             return null;
@@ -81,6 +232,7 @@ const AuthService = (function() {
         if (error) throw error;
 
         const user = normalizeUser(data?.user || null, role);
+        cachedNormalizedUser = user;
         return {
             user,
             session: data?.session || null,
@@ -99,6 +251,7 @@ const AuthService = (function() {
         if (error) throw error;
 
         const user = normalizeUser(data?.user || data?.session?.user || null);
+        cachedNormalizedUser = user;
         return {
             user,
             session: data?.session || null
@@ -113,6 +266,7 @@ const AuthService = (function() {
         const client = getClientOrThrow();
         const { error } = await client.auth.signOut();
         if (error) throw error;
+        cachedNormalizedUser = null;
         return true;
     }
 
@@ -124,7 +278,11 @@ const AuthService = (function() {
         const client = getClientOrThrow();
         const { data, error } = await client.auth.getSession();
         if (error) throw error;
-        return data?.session || null;
+        const session = data?.session || null;
+        if (session?.user) {
+            cachedNormalizedUser = normalizeUser(session.user);
+        }
+        return session;
     }
 
     async function getUser() {
@@ -135,7 +293,9 @@ const AuthService = (function() {
         const client = getClientOrThrow();
         const { data, error } = await client.auth.getUser();
         if (error) throw error;
-        return normalizeUser(data?.user || null);
+        const user = normalizeUser(data?.user || null);
+        cachedNormalizedUser = user;
+        return user;
     }
 
     function onAuthStateChange(callback) {
@@ -146,6 +306,7 @@ const AuthService = (function() {
         const client = getClientOrThrow();
         const { data, error } = client.auth.onAuthStateChange((event, session) => {
             const normalizedUser = normalizeUser(session?.user || null);
+            cachedNormalizedUser = normalizedUser;
             const normalizedSession = session
                 ? { ...session, user: normalizedUser }
                 : null;
@@ -156,8 +317,21 @@ const AuthService = (function() {
         return data?.subscription || data || null;
     }
 
+    function can(action, resource, context = null) {
+        const normalizedAction = normalizeAction(action);
+        const normalizedResource = normalizeResource(resource);
+
+        if (!normalizedAction || !normalizedResource) {
+            return false;
+        }
+
+        const role = resolveRoleFromContext(context);
+        return hasPermission(role, normalizedAction, normalizedResource);
+    }
+
     function resetForTests() {
         cachedClient = null;
+        cachedNormalizedUser = null;
     }
 
     return {
@@ -167,6 +341,7 @@ const AuthService = (function() {
         signOut,
         getSession,
         getUser,
+        can,
         onAuthStateChange,
         _resetForTests: resetForTests
     };

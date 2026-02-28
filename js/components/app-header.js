@@ -3,15 +3,81 @@ class AppHeader extends HTMLElement {
         super();
         this.attachShadow({ mode: 'open' });
         this.isOpen = false;
+        this.authSubscription = null;
+        this.permissionSyncTimer = null;
+        this.permissionSyncAttempts = 0;
     }
 
     connectedCallback() {
         this.render();
         this.setupEventListeners();
+        this.startPermissionSync();
     }
 
     disconnectedCallback() {
+        this.stopPermissionSync();
+        if (this.authSubscription && typeof this.authSubscription.unsubscribe === 'function') {
+            this.authSubscription.unsubscribe();
+            this.authSubscription = null;
+        }
         this.removeEventListeners();
+    }
+
+    startPermissionSync() {
+        this.stopPermissionSync();
+        this.permissionSyncAttempts = 0;
+        this.permissionSyncTimer = window.setInterval(async () => {
+            this.permissionSyncAttempts += 1;
+            const synced = await this.applyRolePermissions();
+            if (synced || this.permissionSyncAttempts >= 20) {
+                this.stopPermissionSync();
+            }
+        }, 250);
+    }
+
+    stopPermissionSync() {
+        if (this.permissionSyncTimer) {
+            window.clearInterval(this.permissionSyncTimer);
+            this.permissionSyncTimer = null;
+        }
+    }
+
+    async applyRolePermissions() {
+        if (!window.AuthService || typeof window.AuthService.can !== 'function') {
+            return false;
+        }
+
+        let user = null;
+        if (typeof window.AuthService.getUser === 'function') {
+            try {
+                user = await window.AuthService.getUser();
+            } catch (error) {
+                user = null;
+            }
+        }
+
+        const guardedItems = this.shadowRoot.querySelectorAll('[data-rbac-action][data-rbac-resource]');
+        guardedItems.forEach((item) => {
+            const action = item.dataset.rbacAction;
+            const resource = item.dataset.rbacResource;
+            const allowed = window.AuthService.can(action, resource, user || null);
+            item.dataset.disabled = allowed ? 'false' : 'true';
+            item.classList.toggle('header-settings-item-disabled', !allowed);
+            item.setAttribute('aria-disabled', allowed ? 'false' : 'true');
+            item.tabIndex = allowed ? 0 : -1;
+        });
+
+        if (!this.authSubscription && typeof window.AuthService.onAuthStateChange === 'function') {
+            try {
+                this.authSubscription = window.AuthService.onAuthStateChange(() => {
+                    this.applyRolePermissions();
+                });
+            } catch (error) {
+                this.authSubscription = null;
+            }
+        }
+
+        return true;
     }
 
     setupEventListeners() {
@@ -32,6 +98,18 @@ class AppHeader extends HTMLElement {
         };
 
         this.handleActionClick = (e) => {
+            if (e.currentTarget?.dataset?.disabled === 'true') {
+                this.dispatchEvent(new CustomEvent('header-permission-denied', {
+                    detail: {
+                        action: e.currentTarget.dataset.action,
+                        message: e.currentTarget.dataset.deniedMessage || 'You do not have permission to perform this action.'
+                    },
+                    bubbles: true,
+                    composed: true
+                }));
+                return;
+            }
+
             const action = e.currentTarget.dataset.action;
             if (action) {
                 // Dispatch a custom event that index.html can listen for
@@ -207,6 +285,13 @@ class AppHeader extends HTMLElement {
                     background: #f6f8fa;
                 }
 
+                .header-settings-item-disabled,
+                .header-settings-item-disabled:hover {
+                    opacity: 0.55;
+                    background: #f6f8fa;
+                    cursor: not-allowed;
+                }
+
                 .header-settings-item-icon {
                     width: 16px;
                     text-align: center;
@@ -276,15 +361,15 @@ class AppHeader extends HTMLElement {
                             </button>
                             <div class="header-settings-divider"></div>
                             <div class="header-settings-section-label">Configuration</div>
-                            <button class="header-settings-item" type="button" data-action="rules">
+                            <button class="header-settings-item" type="button" data-action="rules" data-rbac-action="write" data-rbac-resource="system-config" data-denied-message="Insufficient permissions: only admins can change constraint rules.">
                                 <span class="header-settings-item-icon">📋</span>
                                 <span>Constraint Rules</span>
                             </button>
-                            <button class="header-settings-item" type="button" data-action="api">
+                            <button class="header-settings-item" type="button" data-action="api" data-rbac-action="manage" data-rbac-resource="system-config" data-denied-message="Insufficient permissions: only admins can access API connections.">
                                 <span class="header-settings-item-icon">🔐</span>
                                 <span>API Connections</span>
                             </button>
-                            <button class="header-settings-item" type="button" data-action="accounts">
+                            <button class="header-settings-item" type="button" data-action="accounts" data-rbac-action="manage" data-rbac-resource="accounts" data-denied-message="Insufficient permissions: only admins can manage users and accounts.">
                                 <span class="header-settings-item-icon">👤</span>
                                 <span>Users & Accounts</span>
                             </button>
