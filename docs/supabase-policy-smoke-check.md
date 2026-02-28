@@ -59,3 +59,4 @@ The script attempts cleanup even if a later check fails.
 
 - Run this against a non-production environment first.
 - C-08 captures and stores live verification evidence after this check passes.
+- Example completed evidence artifact: `docs/supabase-live-verification-c08-2026-02-28.md`.

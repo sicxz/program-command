@@ -1,0 +1,14 @@
+> ewu-design-schedule-analyzer@2.0.0 check:rls
+> node scripts/supabase-policy-smoke-check.js
+
+Supabase RLS Smoke Check Results
+--------------------------------
+PASS resolve target department - DESN -> 67b1449f-1338-419c-8e89-351d9fb7c370
+PASS anon insert denied
+PASS authorized insert allowed - created id=c2132cf3-1aaf-4438-ab92-bc1503f5be79
+PASS anon update denied
+PASS authorized update allowed
+PASS anon delete denied
+PASS authorized delete allowed
+
+Result: PASS
