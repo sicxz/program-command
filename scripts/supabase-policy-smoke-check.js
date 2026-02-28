@@ -64,6 +64,12 @@ function hasPermissionError(error) {
     );
 }
 
+function makeSmokeYear() {
+    // academic_years.year is VARCHAR(10) in schema
+    const suffix = Date.now().toString().slice(-7);
+    return `RLS${suffix}`;
+}
+
 async function main() {
     try {
         requireEnv('SUPABASE_URL', SUPABASE_URL);
@@ -99,7 +105,7 @@ async function main() {
         departmentId = deptRow.id;
         logPass('resolve target department', `${TARGET_DEPARTMENT_CODE} -> ${departmentId}`);
 
-        const smokeYear = `RLS-SMOKE-${Date.now()}`;
+        const smokeYear = makeSmokeYear();
 
         // Anonymous insert should fail.
         {
