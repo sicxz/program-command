@@ -40,7 +40,9 @@ Scope: scheduler UI, persistence/Supabase, scripts/data pipeline, conflict engin
 - **Impact:** anonymous clients can write/delete all scheduling data.
 - **DoD:** role-scoped policies; only authenticated/authorized writes.
 - **Migration:** `scripts/supabase-rls-hardening.sql` (Tree/C-06 idempotent hardening migration)
-- **Runbook:** `docs/supabase-rls-hardening-migration.md`
+- **Migration Runbook:** `docs/supabase-rls-hardening-migration.md`
+- **Smoke Check:** `npm run check:rls` (`scripts/supabase-policy-smoke-check.js`)
+- **Smoke Check Runbook:** `docs/supabase-policy-smoke-check.md`
 - **Policy Matrix:** `docs/supabase-rls-write-policy-matrix.md` (Tree/C-05 canonical role-by-table policy contract)
 
 ---
