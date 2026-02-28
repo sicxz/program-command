@@ -64,10 +64,10 @@ function hasPermissionError(error) {
     );
 }
 
-function makeSmokeYear() {
+function makeSmokeYear(marker = '0') {
     // academic_years.year is VARCHAR(10) in schema
-    const suffix = Date.now().toString().slice(-7);
-    return `RLS${suffix}`;
+    const suffix = Date.now().toString().slice(-6);
+    return `RL${marker}${suffix}`;
 }
 
 function tryDecodeJwtPayload(key) {
@@ -134,8 +134,8 @@ async function main() {
         departmentId = deptRow.id;
         logPass('resolve target department', `${TARGET_DEPARTMENT_CODE} -> ${departmentId}`);
 
-        const anonSmokeYear = makeSmokeYear();
-        const authSmokeYear = makeSmokeYear();
+        const anonSmokeYear = makeSmokeYear('A');
+        const authSmokeYear = makeSmokeYear('B');
 
         // Anonymous insert should fail.
         {
