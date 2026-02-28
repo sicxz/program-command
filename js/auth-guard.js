@@ -7,7 +7,10 @@
 
     let activePresencePageId = null;
     let unsubscribePresenceChange = null;
+    let unsubscribeSaveNotice = null;
     let presenceScriptPromise = null;
+    let hasConcurrentEditors = false;
+    let conflictChoice = 'unset';
 
     function getCurrentPathWithQuery() {
         return `${window.location.pathname}${window.location.search}${window.location.hash}`;
@@ -92,20 +95,172 @@
         node.title = titleText || text;
     }
 
-    function leavePresencePage() {
-        if (!window.PresenceService || !activePresencePageId) return;
+    function formatSince(isoString) {
+        if (!isoString) return 'just now';
+        const date = new Date(isoString);
+        if (Number.isNaN(date.getTime())) return 'just now';
+        return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    }
 
-        try {
-            window.PresenceService.leavePage(activePresencePageId);
-        } catch (error) {
-            // ignore cleanup failures during unload/logout
+    function showConflictNotice(message) {
+        let node = document.getElementById('editConflictNotice');
+        if (!node) {
+            node = document.createElement('div');
+            node.id = 'editConflictNotice';
+            node.className = 'edit-conflict-notice';
+            document.body.appendChild(node);
+        }
+
+        node.textContent = message;
+        node.classList.add('visible');
+
+        if (node._hideTimer) {
+            clearTimeout(node._hideTimer);
+        }
+        node._hideTimer = setTimeout(() => {
+            node.classList.remove('visible');
+        }, 4500);
+    }
+
+    function setPageReadOnlyMode(enabled) {
+        const controls = document.querySelectorAll('button, input, select, textarea, [contenteditable=\"true\"]');
+        controls.forEach((control) => {
+            if (control.closest('#authSessionIndicator') || control.closest('#editLockWarningBanner')) {
+                return;
+            }
+
+            if (enabled) {
+                if (control.dataset.editLockApplied === '1') return;
+
+                control.dataset.editLockApplied = '1';
+                if ('disabled' in control) {
+                    control.dataset.editLockWasDisabled = control.disabled ? '1' : '0';
+                    control.disabled = true;
+                }
+
+                if (control.hasAttribute('contenteditable')) {
+                    control.dataset.editLockContenteditable = control.getAttribute('contenteditable') || 'true';
+                    control.setAttribute('contenteditable', 'false');
+                }
+
+                control.classList.add('edit-lock-readonly');
+                return;
+            }
+
+            if (control.dataset.editLockApplied !== '1') return;
+
+            if ('disabled' in control) {
+                control.disabled = control.dataset.editLockWasDisabled === '1';
+            }
+
+            if (control.dataset.editLockContenteditable) {
+                control.setAttribute('contenteditable', control.dataset.editLockContenteditable);
+                delete control.dataset.editLockContenteditable;
+            }
+
+            delete control.dataset.editLockApplied;
+            delete control.dataset.editLockWasDisabled;
+            control.classList.remove('edit-lock-readonly');
+        });
+    }
+
+    function hideEditLockBanner() {
+        const banner = document.getElementById('editLockWarningBanner');
+        if (!banner) return;
+        banner.style.display = 'none';
+    }
+
+    function renderEditLockBanner(editors) {
+        let banner = document.getElementById('editLockWarningBanner');
+        if (!banner) {
+            banner = document.createElement('div');
+            banner.id = 'editLockWarningBanner';
+            banner.className = 'edit-lock-warning-banner';
+            banner.innerHTML = `
+                <div class=\"edit-lock-warning-message\" id=\"editLockWarningMessage\"></div>
+                <div class=\"edit-lock-warning-actions\">
+                    <button type=\"button\" class=\"edit-lock-btn\" id=\"editLockViewOnlyBtn\">View only</button>
+                    <button type=\"button\" class=\"edit-lock-btn danger\" id=\"editLockEditAnywayBtn\">Edit anyway</button>
+                </div>
+            `;
+            document.body.appendChild(banner);
+
+            const viewOnlyButton = document.getElementById('editLockViewOnlyBtn');
+            const editAnywayButton = document.getElementById('editLockEditAnywayBtn');
+
+            viewOnlyButton.addEventListener('click', () => {
+                conflictChoice = 'view';
+                setPageReadOnlyMode(true);
+                showConflictNotice('View-only mode enabled while another editor is active.');
+            });
+
+            editAnywayButton.addEventListener('click', () => {
+                conflictChoice = 'edit';
+                setPageReadOnlyMode(false);
+                showConflictNotice('Editing while another user is active. Last write wins if both save.');
+            });
+        }
+
+        const primaryEditor = editors[0] || {};
+        const editorLabel = primaryEditor.user || 'Another editor';
+        const editorSince = formatSince(primaryEditor.since);
+        const extraEditors = editors.length > 1 ? ` (+${editors.length - 1} more)` : '';
+
+        const message = document.getElementById('editLockWarningMessage');
+        message.textContent = `${editorLabel} is currently editing this page (since ${editorSince})${extraEditors}.`;
+
+        banner.style.display = 'flex';
+    }
+
+    function installSaveConflictHooks(presenceService, pageId, user) {
+        const saveHandlers = ['saveScheduleToDatabase', 'saveToDatabase'];
+        saveHandlers.forEach((handlerName) => {
+            const original = window[handlerName];
+            if (typeof original !== 'function' || original.__editLockWrapped) {
+                return;
+            }
+
+            const wrapped = async function(...args) {
+                const result = await original.apply(this, args);
+                if (hasConcurrentEditors && conflictChoice === 'edit') {
+                    showConflictNotice('Saved while another editor is active. Last write wins.');
+                    if (presenceService && typeof presenceService.announceSave === 'function') {
+                        presenceService.announceSave(pageId, {
+                            user_id: user?.id || null,
+                            user_label: user?.email || 'Authenticated user'
+                        }).catch(() => {});
+                    }
+                }
+                return result;
+            };
+
+            wrapped.__editLockWrapped = true;
+            window[handlerName] = wrapped;
+        });
+    }
+
+    function leavePresencePage() {
+        if (window.PresenceService && activePresencePageId) {
+            try {
+                window.PresenceService.leavePage(activePresencePageId);
+            } catch (error) {
+                // ignore cleanup failures during unload/logout
+            }
         }
 
         if (typeof unsubscribePresenceChange === 'function') {
             unsubscribePresenceChange();
             unsubscribePresenceChange = null;
         }
+        if (typeof unsubscribeSaveNotice === 'function') {
+            unsubscribeSaveNotice();
+            unsubscribeSaveNotice = null;
+        }
         activePresencePageId = null;
+        hasConcurrentEditors = false;
+        conflictChoice = 'unset';
+        setPageReadOnlyMode(false);
+        hideEditLockBanner();
     }
 
     async function bindPresenceIndicator(user) {
@@ -126,15 +281,40 @@
 
         unsubscribePresenceChange = presenceService.onPresenceChange(pageId, (editors) => {
             const others = (editors || []).filter((editor) => editor.userId !== user?.id);
+            hasConcurrentEditors = others.length > 0;
             if (!others.length) {
                 updatePresenceIndicator('Only you editing');
+                hideEditLockBanner();
+                setPageReadOnlyMode(false);
+                conflictChoice = 'unset';
                 return;
             }
 
             const names = others.map((editor) => editor.user || 'Authenticated user');
             const label = `${others.length} active editor${others.length === 1 ? '' : 's'}`;
             updatePresenceIndicator(label, names.join(', '));
+
+            renderEditLockBanner(others);
+            if (conflictChoice !== 'edit') {
+                conflictChoice = 'view';
+                setPageReadOnlyMode(true);
+            }
         });
+
+        if (typeof unsubscribeSaveNotice === 'function') {
+            unsubscribeSaveNotice();
+        }
+
+        if (typeof presenceService.onSaveNotice === 'function') {
+            unsubscribeSaveNotice = presenceService.onSaveNotice(pageId, (notice) => {
+                if (!notice || notice.user_id === user?.id) return;
+                const editorLabel = notice.user_label || 'Another editor';
+                showConflictNotice(`${editorLabel} just saved changes. Reload if your draft is stale.`);
+            });
+        }
+
+        installSaveConflictHooks(presenceService, pageId, user);
+        setTimeout(() => installSaveConflictHooks(presenceService, pageId, user), 1000);
     }
 
     function ensureSessionStyles() {
@@ -202,6 +382,71 @@
             }
             .auth-session-logout:hover {
                 background: #eef2f6;
+            }
+            .edit-lock-warning-banner {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                z-index: 9998;
+                display: none;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+                padding: 10px 14px;
+                background: #fff7d6;
+                border-bottom: 1px solid #e5c95c;
+                color: #7a4b00;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+                box-shadow: 0 4px 12px rgba(31, 35, 40, 0.12);
+            }
+            .edit-lock-warning-message {
+                font-size: 13px;
+                font-weight: 600;
+            }
+            .edit-lock-warning-actions {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .edit-lock-btn {
+                border: 1px solid #d5b03f;
+                border-radius: 999px;
+                background: #fff;
+                color: #7a4b00;
+                font-size: 12px;
+                font-weight: 700;
+                padding: 4px 10px;
+                cursor: pointer;
+            }
+            .edit-lock-btn.danger {
+                border-color: #b45309;
+                background: #fff8e1;
+            }
+            .edit-lock-readonly {
+                opacity: 0.62;
+                cursor: not-allowed !important;
+            }
+            .edit-conflict-notice {
+                position: fixed;
+                top: 52px;
+                right: 14px;
+                z-index: 9999;
+                background: #7a4b00;
+                color: #fff;
+                border-radius: 8px;
+                padding: 8px 12px;
+                font-size: 12px;
+                font-weight: 600;
+                box-shadow: 0 8px 20px rgba(31, 35, 40, 0.2);
+                opacity: 0;
+                transform: translateY(-8px);
+                transition: opacity 0.2s ease, transform 0.2s ease;
+                pointer-events: none;
+            }
+            .edit-conflict-notice.visible {
+                opacity: 1;
+                transform: translateY(0);
             }
         `;
         document.head.appendChild(style);
