@@ -3,7 +3,9 @@ const path = require('path');
 const vm = require('vm');
 
 function createHarness({
-    user = { id: 'user-self', email: 'self@example.edu', role: 'chair' }
+    user = { id: 'user-self', email: 'self@example.edu', role: 'chair' },
+    fallbackAuthUser = null,
+    subscribeStatus = 'SUBSCRIBED'
 } = {}) {
     const source = fs.readFileSync(path.resolve(__dirname, '..', 'js/presence-service.js'), 'utf8');
 
@@ -16,7 +18,7 @@ function createHarness({
             return channel;
         }),
         subscribe: jest.fn((callback) => {
-            callback('SUBSCRIBED');
+            callback(subscribeStatus);
             return channel;
         }),
         track: jest.fn().mockResolvedValue({}),
@@ -30,7 +32,20 @@ function createHarness({
         channel: jest.fn(() => channel),
         removeChannel: jest.fn(),
         auth: {
-            getUser: jest.fn().mockResolvedValue({ data: { user }, error: null })
+            getUser: jest.fn().mockResolvedValue({
+                data: {
+                    user: fallbackAuthUser
+                        || (user
+                            ? {
+                                id: user.id,
+                                email: user.email,
+                                user_metadata: { role: user.role },
+                                app_metadata: { role: user.role }
+                            }
+                            : null)
+                },
+                error: null
+            })
         }
     };
 
@@ -194,5 +209,36 @@ describe('PresenceService', () => {
         }));
 
         unsubscribe();
+    });
+
+    test('joinPage returns false when no authenticated user is available', async () => {
+        const { PresenceService, channel, client } = createHarness({
+            user: null,
+            fallbackAuthUser: null
+        });
+
+        await expect(PresenceService.joinPage('/index.html')).resolves.toBe(false);
+        expect(channel.subscribe).not.toHaveBeenCalled();
+        expect(client.auth.getUser).toHaveBeenCalledTimes(1);
+    });
+
+    test('joinPage rejects when realtime channel returns CHANNEL_ERROR', async () => {
+        const { PresenceService } = createHarness({
+            subscribeStatus: 'CHANNEL_ERROR'
+        });
+
+        await expect(PresenceService.joinPage('/index.html')).rejects.toThrow(
+            'Presence subscribe failed for /index.html: CHANNEL_ERROR'
+        );
+    });
+
+    test('announceSave returns false when presence join cannot complete', async () => {
+        const { PresenceService, channel } = createHarness({
+            user: null,
+            fallbackAuthUser: null
+        });
+
+        await expect(PresenceService.announceSave('/index.html', { user_id: 'x' })).resolves.toBe(false);
+        expect(channel.send).not.toHaveBeenCalled();
     });
 });
