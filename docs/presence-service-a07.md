@@ -10,6 +10,8 @@ Primary API:
 - `leavePage(pageId)`
 - `getActiveEditors(pageId)`
 - `onPresenceChange(pageId, callback)`
+- `announceSave(pageId, payload)`
+- `onSaveNotice(pageId, callback)`
 
 ## Runtime Integration
 `js/auth-guard.js` now:
