@@ -3697,6 +3697,66 @@
             background: #14532d !important;
         }
 
+        .save-dirty-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: #f59e0b;
+            box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+            display: none;
+        }
+
+        .save-dirty-dot.visible {
+            display: inline-block;
+        }
+
+        .unsaved-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.5);
+            z-index: 1600;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .unsaved-modal-overlay.visible {
+            display: flex;
+        }
+
+        .unsaved-modal {
+            width: min(480px, 100%);
+            background: #ffffff;
+            border: 1px solid #d0d7de;
+            border-radius: 12px;
+            padding: 18px;
+            box-shadow: 0 24px 40px rgba(15, 23, 42, 0.2);
+        }
+
+        .unsaved-modal h3 {
+            margin: 0 0 8px;
+            font-size: 18px;
+            color: #1f2328;
+        }
+
+        .unsaved-modal p {
+            margin: 0 0 14px;
+            color: #4b5563;
+            line-height: 1.45;
+        }
+
+        .unsaved-modal-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .unsaved-modal-actions button {
+            min-width: 108px;
+        }
+
         .btn-add-icon {
             font-family: var(--ewu-mono);
             font-size: 16px;
@@ -4319,6 +4379,7 @@
     <script type="module" src="js/supabase-config.js"></script>
     <script src="js/auth-service.js"></script>
     <script src="js/auth-guard.js"></script>
+    <script src="js/dirty-state-tracker.js"></script>
 
     <!-- Schedule Manager Scripts -->
     <script type="module" src="js/config/constants.js"></script>
@@ -4484,6 +4545,7 @@
                         <span class="swap-toggle-label" id="swapLabel">Swap</span>
                     </div>
                     <button type="button" id="saveDbButton" class="btn-ewu-accent btn-add-course-main btn-save-db" onclick="saveScheduleToDatabase()">
+                        <span class="save-dirty-dot" id="saveDirtyDot" aria-hidden="true"></span>
                         <span id="saveDbButtonText">Save Schedule</span>
                     </button>
                     <button class="btn-ewu-accent btn-add-course-main" onclick="openAddCourseModal()">
@@ -5269,6 +5331,89 @@
             content.classList.toggle('collapsed');
         }
 
+        let unsavedModalResolver = null;
+
+        function closeUnsavedChangesModal(choice = 'cancel') {
+            const modal = document.getElementById('unsavedChangesModal');
+            if (modal) {
+                modal.classList.remove('visible');
+            }
+
+            if (typeof unsavedModalResolver === 'function') {
+                unsavedModalResolver(choice);
+            }
+            unsavedModalResolver = null;
+        }
+
+        function openUnsavedChangesModal() {
+            const modal = document.getElementById('unsavedChangesModal');
+            if (!modal) return Promise.resolve('cancel');
+
+            const saveButton = document.getElementById('unsavedSaveBtn');
+            const discardButton = document.getElementById('unsavedDiscardBtn');
+            const cancelButton = document.getElementById('unsavedCancelBtn');
+
+            if (saveButton && !saveButton.dataset.boundUnsavedAction) {
+                saveButton.dataset.boundUnsavedAction = '1';
+                saveButton.addEventListener('click', () => closeUnsavedChangesModal('save'));
+            }
+            if (discardButton && !discardButton.dataset.boundUnsavedAction) {
+                discardButton.dataset.boundUnsavedAction = '1';
+                discardButton.addEventListener('click', () => closeUnsavedChangesModal('discard'));
+            }
+            if (cancelButton && !cancelButton.dataset.boundUnsavedAction) {
+                cancelButton.dataset.boundUnsavedAction = '1';
+                cancelButton.addEventListener('click', () => closeUnsavedChangesModal('cancel'));
+            }
+            if (!modal.dataset.boundUnsavedBackdrop) {
+                modal.dataset.boundUnsavedBackdrop = '1';
+                modal.addEventListener('click', (event) => {
+                    if (event.target === modal) {
+                        closeUnsavedChangesModal('cancel');
+                    }
+                });
+            }
+
+            modal.classList.add('visible');
+            return new Promise((resolve) => {
+                unsavedModalResolver = resolve;
+            });
+        }
+
+        async function navigateWithDirtyGuard(targetUrl) {
+            const hasUnsavedChanges = Boolean(window.DirtyStateTracker?.isDirty?.() || scheduleDirty);
+            if (!hasUnsavedChanges) {
+                window.location.href = targetUrl;
+                return true;
+            }
+
+            window.DirtyStateTracker?.setPendingNavigation(targetUrl);
+            const choice = await openUnsavedChangesModal();
+            if (choice === 'cancel') {
+                window.DirtyStateTracker?.setPendingNavigation(null);
+            }
+
+            if (choice === 'save') {
+                await saveScheduleToDatabase();
+                if (window.DirtyStateTracker?.isDirty?.() || scheduleDirty) {
+                    showToast('Save failed or still pending. Navigation canceled.', 'error');
+                    return false;
+                }
+                window.DirtyStateTracker?.setPendingNavigation(null);
+                window.location.href = targetUrl;
+                return true;
+            }
+
+            if (choice === 'discard') {
+                setScheduleDirty(false);
+                window.DirtyStateTracker?.markClean();
+                window.location.href = targetUrl;
+                return true;
+            }
+
+            return false;
+        }
+
 
 
         // Listen for the custom event from the AppHeader component
@@ -5291,11 +5436,46 @@
             } else if (action === 'accounts') {
                 showToast('Users & accounts is the next build step: add Supabase Auth + role-based permissions.', 'success');
             } else if (action === 'nav-enrollment') {
-                window.location.href = 'enrollment-dashboard.html';
+                navigateWithDirtyGuard('enrollment-dashboard.html');
             } else if (action === 'nav-workload') {
-                window.location.href = 'pages/workload-dashboard.html';
+                navigateWithDirtyGuard('pages/workload-dashboard.html');
             }
         });
+
+        window.addEventListener('beforeunload', (event) => {
+            if (!window.DirtyStateTracker?.isDirty?.()) return;
+            event.preventDefault();
+            event.returnValue = '';
+        });
+
+        document.addEventListener('click', (event) => {
+            const anchor = event.target.closest('a[href]');
+            if (!anchor || anchor.target === '_blank' || anchor.hasAttribute('download')) return;
+
+            const url = new URL(anchor.href, window.location.href);
+            if (url.origin !== window.location.origin) return;
+            if (url.pathname === window.location.pathname && !url.search) return;
+
+            if (!window.DirtyStateTracker?.isDirty?.()) return;
+
+            event.preventDefault();
+            navigateWithDirtyGuard(url.pathname + url.search + url.hash);
+        });
+
+        function attachDirtyTrackerToStateManager(attempt = 0) {
+            if (!window.DirtyStateTracker) return;
+            if (window.StateManager && typeof window.StateManager.subscribe === 'function') {
+                window.DirtyStateTracker.attachToStateManager(window.StateManager, {
+                    ignoreKeys: ['currentQuarter', 'currentAcademicYear', 'currentTrack', 'currentMinor']
+                });
+                return;
+            }
+
+            if (attempt >= 10) return;
+            setTimeout(() => attachDirtyTrackerToStateManager(attempt + 1), 250);
+        }
+
+        attachDirtyTrackerToStateManager();
 
         // Listen for quarter-nav component events
         document.addEventListener('quarter-change', (e) => {
@@ -8184,11 +8364,15 @@
         function updateSaveDbButtonState() {
             const button = document.getElementById('saveDbButton');
             const label = document.getElementById('saveDbButtonText');
+            const dirtyDot = document.getElementById('saveDirtyDot');
             if (!button || !label) return;
 
             const shouldShow = scheduleDirty || scheduleSaveInProgress;
             button.classList.toggle('visible', shouldShow);
             button.disabled = scheduleSaveInProgress;
+            if (dirtyDot) {
+                dirtyDot.classList.toggle('visible', scheduleDirty);
+            }
 
             if (scheduleSaveInProgress) {
                 label.textContent = 'Saving...';
@@ -8204,14 +8388,23 @@
             scheduleDirty = dirty;
             if (dirty) {
                 dirtyYears.add(currentAcademicYear);
+                window.DirtyStateTracker?.markDirty(`schedule:${currentAcademicYear}`);
             } else {
                 dirtyYears.delete(currentAcademicYear);
+                if (dirtyYears.size === 0) {
+                    window.DirtyStateTracker?.markClean();
+                }
             }
             updateSaveDbButtonState();
         }
 
         function syncDirtyStateForCurrentYear() {
             scheduleDirty = dirtyYears.has(currentAcademicYear);
+            if (scheduleDirty) {
+                window.DirtyStateTracker?.markDirty(`schedule:${currentAcademicYear}`);
+            } else if (dirtyYears.size === 0) {
+                window.DirtyStateTracker?.markClean();
+            }
             updateSaveDbButtonState();
         }
 
@@ -12772,6 +12965,18 @@
     <!-- Toast Notification -->
     <div class="toast" id="toast">
         <span id="toastMessage">Changes saved</span>
+    </div>
+
+    <div class="unsaved-modal-overlay" id="unsavedChangesModal" role="dialog" aria-modal="true" aria-labelledby="unsavedModalTitle">
+        <div class="unsaved-modal">
+            <h3 id="unsavedModalTitle">You Have Unsaved Changes</h3>
+            <p>Your schedule has unsaved edits. Save now, discard changes, or cancel navigation.</p>
+            <div class="unsaved-modal-actions">
+                <button type="button" class="btn-secondary" id="unsavedCancelBtn">Cancel</button>
+                <button type="button" class="btn-secondary" id="unsavedDiscardBtn">Discard</button>
+                <button type="button" class="btn-ewu-accent" id="unsavedSaveBtn">Save now</button>
+            </div>
+        </div>
     </div>
 
     <!-- Add Faculty Modal -->
