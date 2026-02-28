@@ -1,0 +1,96 @@
+name: Codex Issue Writer
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 15 * * *" # daily 3pm UTC, adjust if you want
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  propose_issues:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install GitHub CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gh
+
+      - name: Generate issue proposals with Codex
+        uses: openai/codex-action@v1
+        with:
+          openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+          # This runs codex-cli under the hood.
+          # Keep it simple: output JSON that we can parse.
+          command: >
+            codex exec "
+            You are the repo triage and planning agent.
+
+            Read the repository. Use AGENTS.md as constraints.
+            Look for:
+            - TODO/FIXME comments
+            - failing or flaky tests
+            - security footguns
+            - missing docs that block onboarding
+            - obvious tech debt that will slow features
+
+            Produce up to 5 GitHub issues as JSON array:
+            [
+              {\"title\":\"...\",\"body\":\"...\",\"labels\":[\"agent-created\",\"p2\"],\"priority\":2}
+            ]
+
+            Rules:
+            - Do not propose vague issues.
+            - Each issue must have acceptance criteria bullets.
+            - Prefer small, atomic issues (1 to 3 hours).
+            - If the issue already exists, do not propose it.
+            Output ONLY valid JSON.
+            " > /tmp/codex_issues.json
+
+      - name: Create issues in GitHub
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          python3 - << 'PY'
+          import json, os, subprocess, sys
+
+          path = "/tmp/codex_issues.json"
+          data = json.load(open(path, "r"))
+
+          # Hard safety limits
+          MAX_ISSUES = 5
+          created = 0
+
+          # Get existing issue titles to avoid dupes
+          existing = subprocess.check_output(
+              ["gh","issue","list","--limit","200","--json","title"],
+              text=True
+          )
+          existing_titles = {i["title"].strip().lower() for i in json.loads(existing)}
+
+          for item in data[:MAX_ISSUES]:
+              title = item["title"].strip()
+              if title.lower() in existing_titles:
+                  continue
+
+              body = item["body"].strip()
+              labels = item.get("labels", [])
+              # Ensure a consistent label is present
+              if "agent-created" not in labels:
+                  labels.append("agent-created")
+
+              cmd = ["gh","issue","create","--title",title,"--body",body]
+              for lab in labels:
+                  cmd += ["--label", lab]
+
+              subprocess.check_call(cmd)
+              created += 1
+
+          print(f"Created {created} issues.")
+          PY
