@@ -30,6 +30,7 @@ Scope: scheduler UI, persistence/Supabase, scripts/data pipeline, conflict engin
 - **Files:** `index.html:8908`
 - **Impact:** partial failure can wipe a full schedule.
 - **DoD:** Replace with idempotent upsert strategy (or RPC transaction) with rollback safety.
+- **Contract:** `docs/scheduler-save-contract.md` (Tree/C-01 canonical save contract and failure matrix)
 
 ### 3) Lock down Supabase RLS write policies
 - **Severity:** blocker
@@ -40,6 +41,7 @@ Scope: scheduler UI, persistence/Supabase, scripts/data pipeline, conflict engin
 - **DoD:** role-scoped policies; only authenticated/authorized writes.
 - **Smoke Check:** `npm run check:rls` (`scripts/supabase-policy-smoke-check.js`)
 - **Runbook:** `docs/supabase-policy-smoke-check.md`
+- **Policy Matrix:** `docs/supabase-rls-write-policy-matrix.md` (Tree/C-05 canonical role-by-table policy contract)
 
 ---
 
