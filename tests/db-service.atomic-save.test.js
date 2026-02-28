@@ -61,6 +61,7 @@ describe('dbService.syncScheduledCoursesForAcademicYear', () => {
                     time_slot: '10:00-12:20',
                     section: '001',
                     projected_enrollment: 24,
+                    updated_by: null,
                     updated_at: null
                 }
             ]
