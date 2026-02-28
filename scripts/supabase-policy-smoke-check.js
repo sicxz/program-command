@@ -70,6 +70,23 @@ function makeSmokeYear() {
     return `RLS${suffix}`;
 }
 
+function tryDecodeJwtPayload(key) {
+    if (!key || typeof key !== 'string') return null;
+    const parts = key.split('.');
+    if (parts.length < 2) return null;
+    try {
+        return JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+    } catch {
+        return null;
+    }
+}
+
+function getKeyRole(key) {
+    const payload = tryDecodeJwtPayload(key);
+    if (!payload || typeof payload.role !== 'string') return null;
+    return payload.role;
+}
+
 async function main() {
     try {
         requireEnv('SUPABASE_URL', SUPABASE_URL);
@@ -80,6 +97,17 @@ async function main() {
         process.exit(1);
     }
 
+    // Guardrail for common env mistakes that invalidate the smoke test.
+    if (SUPABASE_ANON_KEY === SUPABASE_AUTH_KEY) {
+        console.error('SUPABASE_ANON_KEY and SUPABASE_AUTH_KEY/SUPABASE_SERVICE_ROLE_KEY are identical. Use distinct anon and auth keys.');
+        process.exit(1);
+    }
+    const anonRole = getKeyRole(SUPABASE_ANON_KEY);
+    if (anonRole === 'service_role') {
+        console.error('SUPABASE_ANON_KEY decodes to role=service_role. Use the project anon/publishable key for SUPABASE_ANON_KEY.');
+        process.exit(1);
+    }
+
     const anonClient = createSupabaseClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const authorizedClient = createSupabaseClient(SUPABASE_URL, SUPABASE_AUTH_KEY);
     const cleanupClient = SUPABASE_CLEANUP_KEY
@@ -87,7 +115,8 @@ async function main() {
         : authorizedClient;
 
     let departmentId = null;
-    let insertedYearId = null;
+    let insertedAnonYearId = null;
+    let insertedAuthYearId = null;
 
     try {
         const { data: deptRow, error: deptError } = await anonClient
@@ -105,19 +134,21 @@ async function main() {
         departmentId = deptRow.id;
         logPass('resolve target department', `${TARGET_DEPARTMENT_CODE} -> ${departmentId}`);
 
-        const smokeYear = makeSmokeYear();
+        const anonSmokeYear = makeSmokeYear();
+        const authSmokeYear = makeSmokeYear();
 
         // Anonymous insert should fail.
         {
-            const { error } = await anonClient
+            const { data, error } = await anonClient
                 .from('academic_years')
-                .insert({ department_id: departmentId, year: smokeYear, is_active: false })
+                .insert({ department_id: departmentId, year: anonSmokeYear, is_active: false })
                 .select('id')
                 .maybeSingle();
 
             if (hasPermissionError(error)) {
                 logPass('anon insert denied');
             } else {
+                if (data?.id) insertedAnonYearId = data.id;
                 logFail('anon insert denied', error?.message || 'insert succeeded unexpectedly');
             }
         }
@@ -126,19 +157,19 @@ async function main() {
         {
             const { data, error } = await authorizedClient
                 .from('academic_years')
-                .insert({ department_id: departmentId, year: smokeYear, is_active: false })
+                .insert({ department_id: departmentId, year: authSmokeYear, is_active: false })
                 .select('id')
                 .single();
 
             if (error || !data?.id) {
                 logFail('authorized insert allowed', error?.message || 'no id returned');
             } else {
-                insertedYearId = data.id;
-                logPass('authorized insert allowed', `created id=${insertedYearId}`);
+                insertedAuthYearId = data.id;
+                logPass('authorized insert allowed', `created id=${insertedAuthYearId}`);
             }
         }
 
-        if (!insertedYearId) {
+        if (!insertedAuthYearId) {
             const failures = printSummary();
             process.exit(failures > 0 ? 1 : 0);
         }
@@ -148,7 +179,7 @@ async function main() {
             const { data, error } = await anonClient
                 .from('academic_years')
                 .update({ is_active: true })
-                .eq('id', insertedYearId)
+                .eq('id', insertedAuthYearId)
                 .select('id');
 
             const updatedRows = Array.isArray(data) ? data.length : 0;
@@ -164,7 +195,7 @@ async function main() {
             const { data, error } = await authorizedClient
                 .from('academic_years')
                 .update({ is_active: true })
-                .eq('id', insertedYearId)
+                .eq('id', insertedAuthYearId)
                 .select('id')
                 .single();
 
@@ -180,7 +211,7 @@ async function main() {
             const { data, error } = await anonClient
                 .from('academic_years')
                 .delete()
-                .eq('id', insertedYearId)
+                .eq('id', insertedAuthYearId)
                 .select('id');
 
             const deletedRows = Array.isArray(data) ? data.length : 0;
@@ -196,7 +227,7 @@ async function main() {
             const { data, error } = await authorizedClient
                 .from('academic_years')
                 .delete()
-                .eq('id', insertedYearId)
+                .eq('id', insertedAuthYearId)
                 .select('id')
                 .single();
 
@@ -204,18 +235,24 @@ async function main() {
                 logFail('authorized delete allowed', error?.message || 'row not deleted');
             } else {
                 logPass('authorized delete allowed');
-                insertedYearId = null;
+                insertedAuthYearId = null;
             }
         }
 
         const failures = printSummary();
         process.exit(failures > 0 ? 1 : 0);
     } finally {
-        if (insertedYearId) {
+        if (insertedAuthYearId) {
             await cleanupClient
                 .from('academic_years')
                 .delete()
-                .eq('id', insertedYearId);
+                .eq('id', insertedAuthYearId);
+        }
+        if (insertedAnonYearId) {
+            await cleanupClient
+                .from('academic_years')
+                .delete()
+                .eq('id', insertedAnonYearId);
         }
     }
 }
