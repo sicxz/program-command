@@ -5,6 +5,10 @@
 (function() {
     'use strict';
 
+    let activePresencePageId = null;
+    let unsubscribePresenceChange = null;
+    let presenceScriptPromise = null;
+
     function getCurrentPathWithQuery() {
         return `${window.location.pathname}${window.location.search}${window.location.hash}`;
     }
@@ -42,6 +46,95 @@
         const normalized = String(role).toLowerCase();
         if (normalized === 'admin') return 'Admin';
         return 'Chair';
+    }
+
+    function presenceScriptUrl() {
+        return window.location.pathname.includes('/pages/')
+            ? '../js/presence-service.js'
+            : 'js/presence-service.js';
+    }
+
+    async function ensurePresenceService() {
+        if (window.PresenceService) {
+            return window.PresenceService;
+        }
+
+        if (presenceScriptPromise) {
+            return presenceScriptPromise;
+        }
+
+        presenceScriptPromise = new Promise((resolve) => {
+            const existing = document.querySelector(`script[src=\"${presenceScriptUrl()}\"]`);
+            if (existing) {
+                existing.addEventListener('load', () => resolve(window.PresenceService || null), { once: true });
+                existing.addEventListener('error', () => resolve(null), { once: true });
+                return;
+            }
+
+            const script = document.createElement('script');
+            script.src = presenceScriptUrl();
+            script.onload = () => resolve(window.PresenceService || null);
+            script.onerror = () => resolve(null);
+            document.head.appendChild(script);
+        });
+
+        return presenceScriptPromise;
+    }
+
+    function getPresencePageId() {
+        return window.location.pathname || '/';
+    }
+
+    function updatePresenceIndicator(text, titleText = '') {
+        const node = document.getElementById('authSessionPresence');
+        if (!node) return;
+        node.textContent = text;
+        node.title = titleText || text;
+    }
+
+    function leavePresencePage() {
+        if (!window.PresenceService || !activePresencePageId) return;
+
+        try {
+            window.PresenceService.leavePage(activePresencePageId);
+        } catch (error) {
+            // ignore cleanup failures during unload/logout
+        }
+
+        if (typeof unsubscribePresenceChange === 'function') {
+            unsubscribePresenceChange();
+            unsubscribePresenceChange = null;
+        }
+        activePresencePageId = null;
+    }
+
+    async function bindPresenceIndicator(user) {
+        const presenceService = await ensurePresenceService();
+        if (!presenceService) {
+            updatePresenceIndicator('Presence offline');
+            return;
+        }
+
+        const pageId = getPresencePageId();
+        activePresencePageId = pageId;
+
+        await presenceService.joinPage(pageId);
+
+        if (typeof unsubscribePresenceChange === 'function') {
+            unsubscribePresenceChange();
+        }
+
+        unsubscribePresenceChange = presenceService.onPresenceChange(pageId, (editors) => {
+            const others = (editors || []).filter((editor) => editor.userId !== user?.id);
+            if (!others.length) {
+                updatePresenceIndicator('Only you editing');
+                return;
+            }
+
+            const names = others.map((editor) => editor.user || 'Authenticated user');
+            const label = `${others.length} active editor${others.length === 1 ? '' : 's'}`;
+            updatePresenceIndicator(label, names.join(', '));
+        });
     }
 
     function ensureSessionStyles() {
@@ -84,6 +177,19 @@
                 border-radius: 999px;
                 padding: 2px 8px;
             }
+            .auth-session-presence {
+                font-size: 11px;
+                font-weight: 600;
+                color: #1f6feb;
+                background: #eef6ff;
+                border: 1px solid #b6d3ff;
+                border-radius: 999px;
+                padding: 2px 8px;
+                max-width: 170px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
             .auth-session-logout {
                 border: 1px solid #d0d7de;
                 border-radius: 999px;
@@ -119,11 +225,13 @@
         indicator.innerHTML = `
             <span class="auth-session-email" title="${email}">${email}</span>
             <span class="auth-session-role">${role}</span>
+            <span class="auth-session-presence" id="authSessionPresence">Presence offline</span>
             <button type="button" class="auth-session-logout" id="authSessionLogout">Logout</button>
         `;
 
         const logoutButton = document.getElementById('authSessionLogout');
         logoutButton.addEventListener('click', async () => {
+            leavePresencePage();
             try {
                 await window.AuthService.signOut();
             } catch (error) {
@@ -150,6 +258,7 @@
 
         const user = (await window.AuthService.getUser()) || session.user || null;
         renderSessionIndicator(user);
+        await bindPresenceIndicator(user);
     }
 
     async function initGuard() {
@@ -174,4 +283,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', initGuard);
+    window.addEventListener('beforeunload', () => {
+        leavePresencePage();
+    });
 })();
