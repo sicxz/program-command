@@ -9,6 +9,66 @@ const ScheduleManager = (function() {
 
     // Get constants if available
     const getConstants = () => {
+        const profileLoader =
+            (typeof ProfileLoader !== 'undefined' && ProfileLoader && typeof ProfileLoader.get === 'function')
+                ? ProfileLoader
+                : ((typeof window !== 'undefined' && window.ProfileLoader && typeof window.ProfileLoader.get === 'function')
+                    ? window.ProfileLoader
+                    : null);
+
+        if (profileLoader) {
+            const profileTargets = profileLoader.get('workload.defaultAnnualTargets', null);
+            const profileAppliedLearning = profileLoader.get('workload.appliedLearningCourses', null);
+            const hasProfileTargets = profileTargets && typeof profileTargets === 'object' && !Array.isArray(profileTargets);
+            const hasAppliedLearning = profileAppliedLearning && typeof profileAppliedLearning === 'object' && !Array.isArray(profileAppliedLearning);
+
+            if (hasProfileTargets || hasAppliedLearning) {
+                const defaultMultipliers = {
+                    'DESN 399': 0.2,
+                    'DESN 491': 0.2,
+                    'DESN 499': 0.2,
+                    'DESN 495': 0.1,
+                    DEFAULT: 1.0
+                };
+
+                const mergedMultipliers = { ...defaultMultipliers };
+                if (hasAppliedLearning) {
+                    Object.entries(profileAppliedLearning).forEach(([courseCode, details]) => {
+                        const normalizedCode = String(courseCode || '').trim().toUpperCase();
+                        if (!normalizedCode) return;
+                        if (Number.isFinite(Number(details))) {
+                            mergedMultipliers[normalizedCode] = Number(details);
+                            return;
+                        }
+                        if (details && typeof details === 'object' && Number.isFinite(Number(details.rate))) {
+                            mergedMultipliers[normalizedCode] = Number(details.rate);
+                        }
+                    });
+                }
+
+                const defaultLimits = {
+                    'Full Professor': 36,
+                    'Associate Professor': 36,
+                    'Assistant Professor': 36,
+                    'Senior Lecturer': 45,
+                    Lecturer: 45,
+                    Adjunct: 15
+                };
+
+                return {
+                    WORKLOAD: {
+                        LIMITS: hasProfileTargets
+                            ? { ...defaultLimits, ...profileTargets }
+                            : defaultLimits,
+                        MULTIPLIERS: mergedMultipliers
+                    },
+                    BACKUP: {
+                        STORAGE_KEY_PREFIX: 'ewu_schedule_'
+                    }
+                };
+            }
+        }
+
         if (typeof CONSTANTS !== 'undefined') {
             return CONSTANTS;
         }
