@@ -402,6 +402,19 @@
             .auth-session-logout:hover {
                 background: #eef2f6;
             }
+            .auth-session-link {
+                border: 1px solid #b6d3ff;
+                border-radius: 999px;
+                background: #eef6ff;
+                color: #0b5394;
+                font-size: 12px;
+                font-weight: 700;
+                padding: 4px 10px;
+                cursor: pointer;
+            }
+            .auth-session-link:hover {
+                background: #e5f1ff;
+            }
             .edit-lock-warning-banner {
                 position: fixed;
                 top: 0;
@@ -490,8 +503,15 @@
             <span class="auth-session-email" title="${email}">${email}</span>
             <span class="auth-session-role">${role}</span>
             <span class="auth-session-presence" id="authSessionPresence">Presence offline</span>
+            <button type="button" class="auth-session-link" id="authSessionLinkLogin">Link login</button>
             <button type="button" class="auth-session-logout" id="authSessionLogout">Logout</button>
         `;
+
+        const linkLoginButton = document.getElementById('authSessionLinkLogin');
+        linkLoginButton.addEventListener('click', () => {
+            const next = encodeURIComponent(getCurrentPathWithQuery());
+            window.location.assign(`${loginUrl()}?mode=link&next=${next}`);
+        });
 
         const logoutButton = document.getElementById('authSessionLogout');
         logoutButton.addEventListener('click', async () => {

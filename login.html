@@ -90,6 +90,92 @@
             background: #8a001d;
         }
 
+        .oauth-divider {
+            margin: 4px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #57606a;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .oauth-divider::before,
+        .oauth-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #d8dee4;
+        }
+
+        .oauth-buttons {
+            display: grid;
+            gap: 8px;
+        }
+
+        .oauth-button {
+            border: 1px solid #d0d7de;
+            background: #fff;
+            color: #1f2328;
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 14px;
+            font-weight: 600;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .oauth-button:hover {
+            background: #f6f8fa;
+        }
+
+        .linking-panel {
+            margin-top: 14px;
+            border: 1px solid #d0d7de;
+            border-radius: 8px;
+            background: #f6f8fa;
+            padding: 12px;
+            display: none;
+        }
+
+        .linking-panel.visible {
+            display: block;
+        }
+
+        .linking-title {
+            margin: 0 0 6px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #1f2328;
+        }
+
+        .linking-copy {
+            margin: 0 0 8px;
+            font-size: 12px;
+            color: #57606a;
+            line-height: 1.4;
+        }
+
+        .linked-providers {
+            margin: 8px 0 0;
+            padding: 0;
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .linked-providers li {
+            border: 1px solid #b6d3ff;
+            background: #eef6ff;
+            color: #0b5394;
+            border-radius: 999px;
+            padding: 2px 8px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
         .login-error {
             display: none;
             margin-top: 12px;
@@ -130,6 +216,21 @@
 
             <button type="submit" class="login-button" id="loginButton">Sign in</button>
         </form>
+
+        <div class="oauth-divider">or continue with</div>
+        <div class="oauth-buttons">
+            <button type="button" class="oauth-button" id="oauthGoogleButton" data-provider="google">Continue with Google</button>
+            <button type="button" class="oauth-button" id="oauthGithubButton" data-provider="github">Continue with GitHub</button>
+            <button type="button" class="oauth-button" id="oauthAppleButton" data-provider="apple">Continue with Apple</button>
+        </div>
+
+        <section class="linking-panel" id="linkingPanel" aria-live="polite">
+            <h2 class="linking-title">Link Additional Login Methods</h2>
+            <p class="linking-copy">
+                Link providers only after signing into your existing account first. Accounts are not auto-merged by email.
+            </p>
+            <ul class="linked-providers" id="linkedProvidersList"></ul>
+        </section>
 
         <div class="login-error" id="loginError" role="alert"></div>
         <p class="login-help">If you need access, ask an admin for an invite.</p>
