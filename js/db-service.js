@@ -7,6 +7,7 @@
 const dbService = {
     departmentId: null,
     initialized: false,
+    lastSaveAttribution: null,
 
     /**
      * Initialize the database service
@@ -88,6 +89,7 @@ const dbService = {
         }
 
         await this.initialize();
+        const currentUserId = await this._resolveCurrentAuthUserId();
         const { data, error } = await getSupabaseClient()
             .from('courses')
             .insert({
@@ -106,7 +108,8 @@ const dbService = {
                 // Constraint flags
                 room_constraint_hard: course.roomConstraintHard || false,
                 time_constraint_hard: course.timeConstraintHard || false,
-                is_case_by_case: course.isCaseByCase || false
+                is_case_by_case: course.isCaseByCase || false,
+                updated_by: currentUserId
             })
             .select()
             .single();
@@ -125,12 +128,14 @@ const dbService = {
         }
 
         await this.initialize();
+        const currentUserId = await this._resolveCurrentAuthUserId();
         const updateData = {
             code: course.code,
             title: course.title,
             default_credits: course.defaultCredits || 5,
             typical_cap: course.typicalCap || 24,
             level: course.level,
+            updated_by: currentUserId,
             updated_at: new Date().toISOString()
         };
 
@@ -231,6 +236,7 @@ const dbService = {
         }
 
         await this.initialize();
+        const currentUserId = await this._resolveCurrentAuthUserId();
         const { data, error } = await getSupabaseClient()
             .from('faculty')
             .insert({
@@ -238,7 +244,8 @@ const dbService = {
                 name: faculty.name,
                 email: faculty.email,
                 category: faculty.category || 'fullTime',
-                max_workload: faculty.maxWorkload || 45
+                max_workload: faculty.maxWorkload || 45,
+                updated_by: currentUserId
             })
             .select()
             .single();
@@ -355,6 +362,7 @@ const dbService = {
         if (!isSupabaseConfigured()) return null;
 
         await this.initialize();
+        const currentUserId = await this._resolveCurrentAuthUserId();
 
         // Try to get existing
         const { data: existing } = await getSupabaseClient()
@@ -372,7 +380,8 @@ const dbService = {
             .insert({
                 department_id: this.departmentId,
                 year: yearString,
-                is_active: false
+                is_active: false,
+                updated_by: currentUserId
             })
             .select()
             .single();
@@ -422,6 +431,7 @@ const dbService = {
             return null;
         }
 
+        const currentUserId = await this._resolveCurrentAuthUserId();
         const record = {
             academic_year_id: courseData.academicYearId,
             course_id: courseData.courseId,
@@ -432,6 +442,7 @@ const dbService = {
             time_slot: courseData.timeSlot,
             section: courseData.section,
             projected_enrollment: courseData.projectedEnrollment || null,
+            updated_by: currentUserId,
             updated_at: new Date().toISOString()
         };
 
@@ -486,6 +497,7 @@ const dbService = {
             return [];
         }
 
+        const currentUserId = await this._resolveCurrentAuthUserId();
         const records = courses.map(c => ({
             academic_year_id: yearId,
             course_id: c.courseId,
@@ -495,7 +507,8 @@ const dbService = {
             day_pattern: c.dayPattern,
             time_slot: c.timeSlot,
             section: c.section,
-            projected_enrollment: c.projectedEnrollment || null
+            projected_enrollment: c.projectedEnrollment || null,
+            updated_by: currentUserId
         }));
 
         const { data, error } = await getSupabaseClient()
@@ -527,6 +540,7 @@ const dbService = {
         }
 
         await this.initialize();
+        const currentUserId = await this._resolveCurrentAuthUserId();
 
         const normalizedRecords = records.map((record, index) => {
             if (!record || typeof record !== 'object') {
@@ -557,6 +571,7 @@ const dbService = {
                 time_slot: this._normalizeNullableString(record.time_slot ?? record.timeSlot),
                 section: this._normalizeNullableString(record.section) || '001',
                 projected_enrollment: projectedEnrollment,
+                updated_by: this._normalizeNullableString(record.updated_by ?? record.updatedBy ?? currentUserId),
                 updated_at: this._normalizeNullableString(record.updated_at ?? record.updatedAt)
             };
         });
@@ -607,6 +622,7 @@ const dbService = {
             return null;
         }
 
+        const currentUserId = await this._resolveCurrentAuthUserId();
         const record = {
             faculty_id: facultyId,
             time_preferred: prefs.timePreferred || [],
@@ -616,6 +632,7 @@ const dbService = {
             campus_assignment: prefs.campusAssignment || 'any',
             qualified_courses: prefs.qualifiedCourses || [],
             notes: prefs.notes || '',
+            updated_by: currentUserId,
             updated_at: new Date().toISOString()
         };
 
@@ -662,12 +679,14 @@ const dbService = {
         }
 
         await this.initialize();
+        const currentUserId = await this._resolveCurrentAuthUserId();
         const record = {
             department_id: this.departmentId,
             constraint_type: constraint.type,
             description: constraint.description,
             rule_details: constraint.ruleDetails,
-            enabled: constraint.enabled !== false
+            enabled: constraint.enabled !== false,
+            updated_by: currentUserId
         };
 
         if (constraint.id) {
@@ -728,13 +747,15 @@ const dbService = {
             return null;
         }
 
+        const currentUserId = await this._resolveCurrentAuthUserId();
         const record = {
             faculty_id: allocation.facultyId,
             academic_year_id: allocation.academicYearId,
             category: allocation.category,
             credits: allocation.credits,
             quarters: allocation.quarters || ['Fall', 'Winter', 'Spring'],
-            notes: allocation.notes || ''
+            notes: allocation.notes || '',
+            updated_by: currentUserId
         };
 
         if (allocation.id) {
@@ -901,10 +922,56 @@ const dbService = {
         return data?.id;
     },
 
+    async getLatestScheduleSaveMetadata(academicYearId) {
+        if (!isSupabaseConfigured()) return null;
+        if (!academicYearId) return null;
+
+        const { data, error } = await getSupabaseClient()
+            .from('scheduled_courses')
+            .select('updated_by, updated_at')
+            .eq('academic_year_id', academicYearId)
+            .not('updated_at', 'is', null)
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        if (error) throw error;
+        return data || null;
+    },
+
     _normalizeNullableString(value) {
         if (value === null || value === undefined) return null;
         const normalized = String(value).trim();
         return normalized ? normalized : null;
+    },
+
+    async _resolveCurrentAuthUserId() {
+        if (!isSupabaseConfigured()) return null;
+
+        try {
+            if (typeof window !== 'undefined' && window.AuthService && typeof window.AuthService.getUser === 'function') {
+                const user = await window.AuthService.getUser();
+                if (user?.id) {
+                    return user.id;
+                }
+            }
+        } catch (error) {
+            // fall through to direct Supabase lookup
+        }
+
+        try {
+            const client = getSupabaseClient();
+            if (client?.auth && typeof client.auth.getUser === 'function') {
+                const { data, error } = await client.auth.getUser();
+                if (!error && data?.user?.id) {
+                    return data.user.id;
+                }
+            }
+        } catch (error) {
+            return null;
+        }
+
+        return null;
     }
 };
 

@@ -34,6 +34,7 @@ BEGIN
         time_slot VARCHAR(20) NULL,
         section VARCHAR(10) NULL,
         projected_enrollment INTEGER NULL,
+        updated_by UUID NULL,
         updated_at TIMESTAMPTZ NULL,
         sync_key TEXT NOT NULL,
         row_rank INTEGER NOT NULL
@@ -49,6 +50,7 @@ BEGIN
         time_slot,
         section,
         projected_enrollment,
+        updated_by,
         updated_at,
         sync_key,
         row_rank
@@ -65,6 +67,7 @@ BEGIN
             NULLIF(rec->>'time_slot', '')::VARCHAR(20) AS time_slot,
             NULLIF(rec->>'section', '')::VARCHAR(10) AS section,
             NULLIF(rec->>'projected_enrollment', '')::INTEGER AS projected_enrollment,
+            COALESCE(NULLIF(rec->>'updated_by', '')::UUID, auth.uid()) AS updated_by,
             COALESCE(NULLIF(rec->>'updated_at', '')::TIMESTAMPTZ, NOW()) AS updated_at
         FROM jsonb_array_elements(COALESCE(p_records, '[]'::JSONB)) WITH ORDINALITY AS t(rec, ord)
     ),
@@ -79,6 +82,7 @@ BEGIN
             time_slot,
             section,
             projected_enrollment,
+            updated_by,
             updated_at,
             CONCAT_WS(
                 '|',
@@ -103,6 +107,7 @@ BEGIN
         time_slot,
         section,
         projected_enrollment,
+        updated_by,
         updated_at,
         sync_key,
         ROW_NUMBER() OVER (PARTITION BY sync_key ORDER BY ordinal) AS row_rank
@@ -156,6 +161,7 @@ BEGIN
         time_slot = src.time_slot,
         section = src.section,
         projected_enrollment = src.projected_enrollment,
+        updated_by = src.updated_by,
         updated_at = src.updated_at
     FROM _existing_schedule_sync existing
     JOIN _incoming_schedule_sync src
@@ -174,6 +180,7 @@ BEGIN
         time_slot,
         section,
         projected_enrollment,
+        updated_by,
         updated_at
     )
     SELECT
@@ -186,6 +193,7 @@ BEGIN
         src.time_slot,
         src.section,
         src.projected_enrollment,
+        src.updated_by,
         src.updated_at
     FROM _incoming_schedule_sync src
     LEFT JOIN _existing_schedule_sync existing

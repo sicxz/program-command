@@ -51,6 +51,7 @@ let dbCourses = [];
 const SCHEDULE_PLACEMENTS_KEY = 'schedule_placements';
 const FACULTY_BUILD_STORAGE_KEY = 'faculty_build_scenario_v1';
 const FACULTY_PREFERENCES_LOCAL_KEY = 'faculty_preferences_local_v1';
+const SAVE_ATTRIBUTION_STORAGE_KEY = 'schedule_builder_last_save_attribution_v1';
 
 const DEFAULT_FACULTY_BUILD_SCENARIO = {
     faculty: [
@@ -106,6 +107,60 @@ function saveFacultyPreferencesCache() {
     } catch (error) {
         console.warn('Could not save faculty preferences cache:', error);
     }
+}
+
+function formatSaveAttributionDate(isoString) {
+    if (!isoString) return '--';
+    const date = new Date(isoString);
+    if (Number.isNaN(date.getTime())) return '--';
+    return date.toLocaleString();
+}
+
+function setSaveAttributionLabel(userLabel, savedAt) {
+    const label = document.getElementById('saveAttributionLabel');
+    if (!label) return;
+    label.textContent = `Last saved by ${userLabel || '--'} at ${formatSaveAttributionDate(savedAt)}`;
+}
+
+function readSaveAttributionState() {
+    try {
+        const raw = localStorage.getItem(SAVE_ATTRIBUTION_STORAGE_KEY);
+        return raw ? JSON.parse(raw) : null;
+    } catch (error) {
+        return null;
+    }
+}
+
+function writeSaveAttributionState(state) {
+    try {
+        localStorage.setItem(SAVE_ATTRIBUTION_STORAGE_KEY, JSON.stringify(state));
+    } catch (error) {
+        console.warn('Could not persist save attribution state:', error);
+    }
+}
+
+function refreshSaveAttributionLabelForYear(targetYear) {
+    const state = readSaveAttributionState();
+    if (!state || state.year !== targetYear) {
+        setSaveAttributionLabel('--', null);
+        return;
+    }
+    setSaveAttributionLabel(state.userLabel, state.savedAt);
+}
+
+async function resolveCurrentUserAttribution() {
+    if (typeof window !== 'undefined' && window.AuthService && typeof window.AuthService.getUser === 'function') {
+        try {
+            const user = await window.AuthService.getUser();
+            if (user?.id) {
+                const preferredName = user.user_metadata?.full_name || user.user_metadata?.name || user.email || user.id;
+                return { id: user.id, label: preferredName };
+            }
+        } catch (error) {
+            // fallback below
+        }
+    }
+    return { id: null, label: 'Authenticated user' };
 }
 
 function setFacultyPreference(name, preference) {
@@ -553,6 +608,15 @@ document.addEventListener('DOMContentLoaded', async function() {
         loadFacultyPreferencesCache();
         initializeFacultyBuildScenario();
         loadDraft();
+
+        const activeYear = document.getElementById('academicYear')?.value || '2026-27';
+        refreshSaveAttributionLabelForYear(activeYear);
+        const academicYearSelect = document.getElementById('academicYear');
+        if (academicYearSelect) {
+            academicYearSelect.addEventListener('change', (event) => {
+                refreshSaveAttributionLabelForYear(event.target.value);
+            });
+        }
 
     } catch (error) {
         console.error('Initialization error:', error);
@@ -2628,6 +2692,7 @@ async function saveToDatabase() {
 
     try {
         showToast('Saving to database...');
+        const userAttribution = await resolveCurrentUserAttribution();
 
         // Initialize database service
         await dbService.initialize();
@@ -2643,7 +2708,11 @@ async function saveToDatabase() {
 
         const quarterSchedules = getAllQuarterSchedulesForSave();
         const records = await buildYearScopedScheduleSyncRecords(quarterSchedules);
-        const syncResult = await dbService.syncScheduledCoursesForAcademicYear(yearRecord.id, records);
+        const recordsWithUserContext = records.map((record) => ({
+            ...record,
+            updated_by: userAttribution.id
+        }));
+        const syncResult = await dbService.syncScheduledCoursesForAcademicYear(yearRecord.id, recordsWithUserContext);
 
         if (!syncResult) {
             showToast('Error saving to database', 'error');
@@ -2653,6 +2722,14 @@ async function saveToDatabase() {
         const updatedCount = Number(syncResult.updated_count || 0);
         const insertedCount = Number(syncResult.inserted_count || 0);
         const deletedCount = Number(syncResult.deleted_count || 0);
+        const savedAt = new Date().toISOString();
+        writeSaveAttributionState({
+            year: targetYear,
+            userId: userAttribution.id,
+            userLabel: userAttribution.label,
+            savedAt
+        });
+        setSaveAttributionLabel(userAttribution.label, savedAt);
         showToast(`Saved ${targetYear}: ${updatedCount} updated, ${insertedCount} inserted, ${deletedCount} removed`);
 
     } catch (error) {
