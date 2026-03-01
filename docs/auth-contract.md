@@ -72,26 +72,33 @@ Reasoning:
 ## 6) Permission Matrix (Phase 1)
 Legend:
 - `R` = read
-- `W` = insert/update/delete
+- `I/U` = insert + update
+- `D` = delete
 - `-` = no direct access
 
 | Table | chair | admin |
 |---|---|---|
-| `departments` | R | R/W |
-| `academic_years` | R/W (scoped) | R/W |
-| `rooms` | R/W (scoped) | R/W |
-| `courses` | R/W (scoped) | R/W |
-| `faculty` | R/W (scoped) | R/W |
-| `scheduled_courses` | R/W (scoped) | R/W |
-| `faculty_preferences` | R/W (scoped) | R/W |
-| `scheduling_constraints` | R/W (scoped) | R/W |
-| `release_time` | R/W (scoped) | R/W |
-| `pathways` | R/W (scoped) | R/W |
-| `pathway_courses` | R/W (scoped) | R/W |
+| `departments` | R | R/I/U/D |
+| `academic_years` | R/I/U (scoped) | R/I/U/D |
+| `rooms` | R/I/U (scoped) | R/I/U/D |
+| `courses` | R/I/U (scoped) | R/I/U/D |
+| `faculty` | R/I/U (scoped) | R/I/U/D |
+| `scheduled_courses` | R/I/U (scoped) | R/I/U/D |
+| `faculty_preferences` | R/I/U (scoped) | R/I/U/D |
+| `scheduling_constraints` | R/I/U (scoped) | R/I/U/D |
+| `release_time` | R/I/U (scoped) | R/I/U/D |
+| `pathways` | R/I/U (scoped) | R/I/U/D |
+| `pathway_courses` | R/I/U (scoped) | R/I/U/D |
 
 Scoping contract:
 - all chair writes must be constrained to the current program/department context
 - all chair reads should be program-scoped once T-series multi-tenant schema lands
+
+A-05 RLS enforcement contract:
+- all write policies require `auth.uid() IS NOT NULL`
+- `admin` role can INSERT/UPDATE/DELETE on scheduling tables and system config tables
+- `chair` role can INSERT/UPDATE on scheduling tables, but cannot DELETE
+- anonymous (`anon`) write attempts are denied by policy
 
 ## 7) Downstream Issue Contracts
 This spec is normative input for:
