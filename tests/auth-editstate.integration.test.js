@@ -12,6 +12,7 @@ function createLocation(url) {
     const parsed = new URL(url);
     return {
         pathname: parsed.pathname,
+        hostname: parsed.hostname,
         search: parsed.search,
         hash: parsed.hash,
         replace: jest.fn()
@@ -259,6 +260,23 @@ describe('Auth + Edit State Integration', () => {
 
         presenceCallback([]);
         expect(document.getElementById('editAction').disabled).toBe(false);
+
+        harness.cleanup();
+    });
+
+    test('skips auth enforcement on localhost by default for dev flow', async () => {
+        const harness = loadAuthGuardHarness({
+            url: 'http://localhost:3000/pages/schedule-builder.html',
+            session: null,
+            user: null,
+            canResult: false,
+            presenceService: null
+        });
+
+        await harness.triggerDomReady();
+
+        expect(harness.authService.getSession).not.toHaveBeenCalled();
+        expect(harness.location.replace).not.toHaveBeenCalled();
 
         harness.cleanup();
     });

@@ -20,6 +20,39 @@
         return /\/login\.html$/i.test(window.location.pathname);
     }
 
+    function isLocalDevHost() {
+        const hostname = String(window.location.hostname || '').toLowerCase();
+        if (!hostname) return false;
+        return (
+            hostname === 'localhost' ||
+            hostname === '127.0.0.1' ||
+            hostname === '::1'
+        );
+    }
+
+    function readAuthModeOverride() {
+        const params = new URLSearchParams(window.location.search);
+        const queryMode = String(params.get('auth') || '').trim().toLowerCase();
+        if (queryMode === 'on' || queryMode === 'required') return 'required';
+        if (queryMode === 'off' || queryMode === 'disabled') return 'disabled';
+
+        const globalMode = String(
+            window.PROGRAM_COMMAND_AUTH_MODE ||
+            window.__PROGRAM_COMMAND_AUTH_MODE ||
+            ''
+        ).trim().toLowerCase();
+        if (globalMode === 'required') return 'required';
+        if (globalMode === 'disabled') return 'disabled';
+        return null;
+    }
+
+    function shouldEnforceAuth() {
+        const mode = readAuthModeOverride();
+        if (mode === 'required') return true;
+        if (mode === 'disabled') return false;
+        return !isLocalDevHost();
+    }
+
     function loginUrl() {
         return window.location.pathname.includes('/pages/')
             ? '../login.html'
@@ -583,6 +616,13 @@
     }
 
     async function initGuard() {
+        if (!shouldEnforceAuth()) {
+            if (isLoginPage()) {
+                window.location.replace(getNextPath());
+            }
+            return;
+        }
+
         if (typeof window.AuthService === 'undefined') {
             console.warn('Auth guard skipped: AuthService is not available.');
             return;
