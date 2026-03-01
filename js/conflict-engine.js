@@ -251,6 +251,19 @@ const ConflictEngine = (function() {
         }
     };
 
+    const DEFAULT_RULE_PLUGIN_METADATA = {
+        room_restriction: { name: 'Room Restriction Rule', tier: 'warning' },
+        student_conflict: { name: 'Student Pathway Rule', tier: 'warning' },
+        faculty_double_book: { name: 'Faculty Double Book Rule', tier: 'hard_block' },
+        room_double_book: { name: 'Room Double Book Rule', tier: 'hard_block' },
+        evening_safety: { name: 'Evening Safety Rule', tier: 'warning' },
+        ay_setup_alignment: { name: 'AY Setup Alignment Rule', tier: 'warning' },
+        enrollment_threshold: { name: 'Enrollment Threshold Rule', tier: 'suggestion' },
+        campus_transition: { name: 'Campus Transition Rule', tier: 'suggestion' }
+    };
+
+    const rulePlugins = new Map();
+
     function normalizeConstraintType(type) {
         const normalized = String(type || '').trim().toLowerCase();
         return CONSTRAINT_TYPE_ALIASES[normalized] || normalized;
@@ -536,6 +549,117 @@ const ConflictEngine = (function() {
 
     function getRuleRegistryEntry(normalizedConstraintType) {
         return CONFLICT_RULE_REGISTRY[normalizedConstraintType] || CONFLICT_RULE_REGISTRY._default;
+    }
+
+    /**
+     * @typedef {Object} RulePlugin
+     * @property {string} id
+     * @property {string} name
+     * @property {'hard_block'|'warning'|'suggestion'|'optimization'} [tier]
+     * @property {boolean} [enabled]
+     * @property {number} [weight]
+     * @property {(schedule: Array, ruleDetails: Object, constraint: Object, context: Object) => Array} detect
+     */
+
+    function normalizeRulePlugin(plugin = {}) {
+        const id = normalizeConstraintType(plugin.id);
+        if (!id) {
+            throw new Error('Rule plugin requires a non-empty id');
+        }
+        if (typeof plugin.detect !== 'function') {
+            throw new Error(`Rule plugin "${id}" requires a detect(schedule, context) function`);
+        }
+
+        const metadata = DEFAULT_RULE_PLUGIN_METADATA[id] || {};
+        const tier = clampIssueTier(toTierName(plugin.tier || metadata.tier), id);
+        const weight = Number(plugin.weight);
+
+        return {
+            id,
+            name: String(plugin.name || metadata.name || id),
+            tier,
+            enabled: plugin.enabled !== false,
+            detect: plugin.detect,
+            weight: Number.isFinite(weight) ? weight : 1
+        };
+    }
+
+    function registerRule(plugin, options = {}) {
+        const normalized = normalizeRulePlugin(plugin);
+        const replace = options.replace === true;
+        if (!replace && rulePlugins.has(normalized.id)) {
+            throw new Error(`Rule plugin "${normalized.id}" is already registered`);
+        }
+        rulePlugins.set(normalized.id, normalized);
+        return normalized;
+    }
+
+    function getRulePlugin(id) {
+        const normalized = normalizeConstraintType(id);
+        return rulePlugins.get(normalized) || null;
+    }
+
+    function enableRule(id) {
+        const plugin = getRulePlugin(id);
+        if (!plugin) return false;
+        plugin.enabled = true;
+        return true;
+    }
+
+    function disableRule(id) {
+        const plugin = getRulePlugin(id);
+        if (!plugin) return false;
+        plugin.enabled = false;
+        return true;
+    }
+
+    function setWeight(id, weight) {
+        const plugin = getRulePlugin(id);
+        const numericWeight = Number(weight);
+        if (!plugin || !Number.isFinite(numericWeight)) return false;
+        plugin.weight = numericWeight;
+        return true;
+    }
+
+    function getProgramRuleOverride(context, id) {
+        const overrides = context?.ruleOverrides;
+        if (!overrides || typeof overrides !== 'object') return null;
+        const override = overrides[id];
+        return override && typeof override === 'object' ? override : null;
+    }
+
+    function isRuleEnabledForEvaluation(plugin, context = {}) {
+        if (!plugin || plugin.enabled === false) return false;
+        const override = getProgramRuleOverride(context, plugin.id);
+        if (override && typeof override.enabled === 'boolean') {
+            return override.enabled;
+        }
+        return true;
+    }
+
+    function getEffectiveRuleDetails(plugin, ruleDetails = {}, context = {}) {
+        const rawRule = (ruleDetails && typeof ruleDetails === 'object') ? { ...ruleDetails } : {};
+        const override = getProgramRuleOverride(context, plugin.id);
+
+        if (!Number.isFinite(Number(rawRule.weight))) {
+            if (override && Number.isFinite(Number(override.weight))) {
+                rawRule.weight = Number(override.weight);
+            } else if (Number.isFinite(Number(plugin.weight))) {
+                rawRule.weight = Number(plugin.weight);
+            }
+        }
+
+        return rawRule;
+    }
+
+    function listRegisteredRules() {
+        return Array.from(rulePlugins.values()).map((plugin) => ({
+            id: plugin.id,
+            name: plugin.name,
+            tier: plugin.tier,
+            enabled: plugin.enabled !== false,
+            weight: Number(plugin.weight)
+        }));
     }
 
     function calculateWeightedIssueScore(issue, normalizedConstraintType, ruleDetails = {}) {
@@ -989,7 +1113,8 @@ const ConflictEngine = (function() {
             scoringModel: {
                 version: 'v2',
                 registry: CONFLICT_RULE_REGISTRY,
-                taxonomy: CONFLICT_TIER_DEFINITIONS
+                taxonomy: CONFLICT_TIER_DEFINITIONS,
+                registeredRules: listRegisteredRules()
             }
         };
 
@@ -1003,49 +1128,53 @@ const ConflictEngine = (function() {
             enabledConstraints
         };
 
-        // Run each enabled constraint checker
+        // Run each enabled constraint rule plugin
         enabledConstraints.forEach(constraint => {
             const normalizedConstraintType = normalizeConstraintType(constraint.constraint_type);
-            const checker = checkers[normalizedConstraintType];
-            if (checker) {
-                const issues = checker(schedule, constraint.rule_details, constraint, evaluationContext);
-                issues.forEach(issue => {
-                    issue.constraintId = constraint.id;
-                    issue.constraintType = normalizedConstraintType;
-                    issue.constraintTypeOriginal = constraint.constraint_type;
-                    issue.constraintRule = getRuleRegistryEntry(normalizedConstraintType);
-                    issue.severityTier = resolveIssueTier(issue, normalizedConstraintType, evaluationContext);
-                    issue.tier = issue.severityTier;
-                    issue.severity = resolveLegacySeverityFromTier(issue.severityTier);
-                    issue.blocksSave = Boolean(CONFLICT_TIER_DEFINITIONS[issue.severityTier]?.blocksSave);
+            const plugin = getRulePlugin(normalizedConstraintType);
+            if (!plugin || !isRuleEnabledForEvaluation(plugin, evaluationContext)) return;
 
-                    const weighted = calculateWeightedIssueScore(
-                        issue,
-                        normalizedConstraintType,
-                        constraint.rule_details
-                    );
-                    issue.score = weighted.total;
-                    issue.scoreExplanation = weighted.explanation;
-                    issue.scoreBreakdown = weighted.breakdown;
-                    issue.scoreRuleMeta = weighted.rule;
+            const effectiveRuleDetails = getEffectiveRuleDetails(plugin, constraint.rule_details, evaluationContext);
+            const issues = plugin.detect(schedule, effectiveRuleDetails, constraint, evaluationContext);
 
-                    results.summary.weightedScore += issue.score;
-                    results.summary.weightedByConstraintType[normalizedConstraintType] =
-                        (results.summary.weightedByConstraintType[normalizedConstraintType] || 0) + issue.score;
-                    results.summary.tierCounts[issue.severityTier] =
-                        (results.summary.tierCounts[issue.severityTier] || 0) + 1;
+            (Array.isArray(issues) ? issues : []).forEach(issue => {
+                issue.constraintId = constraint.id;
+                issue.constraintType = normalizedConstraintType;
+                issue.constraintTypeOriginal = constraint.constraint_type;
+                issue.constraintRule = getRuleRegistryEntry(normalizedConstraintType);
+                issue.rulePluginId = plugin.id;
+                issue.rulePluginName = plugin.name;
+                issue.severityTier = resolveIssueTier(issue, normalizedConstraintType, evaluationContext);
+                issue.tier = issue.severityTier;
+                issue.severity = resolveLegacySeverityFromTier(issue.severityTier);
+                issue.blocksSave = Boolean(CONFLICT_TIER_DEFINITIONS[issue.severityTier]?.blocksSave);
 
-                    if (issue.severityTier === 'hard_block') {
-                        results.conflicts.push(issue);
-                        results.summary.criticalCount++;
-                    } else if (issue.severityTier === 'warning') {
-                        results.warnings.push(issue);
-                        results.summary.warningCount++;
-                    } else {
-                        results.suggestions.push(issue);
-                    }
-                });
-            }
+                const weighted = calculateWeightedIssueScore(
+                    issue,
+                    normalizedConstraintType,
+                    effectiveRuleDetails
+                );
+                issue.score = weighted.total;
+                issue.scoreExplanation = weighted.explanation;
+                issue.scoreBreakdown = weighted.breakdown;
+                issue.scoreRuleMeta = weighted.rule;
+
+                results.summary.weightedScore += issue.score;
+                results.summary.weightedByConstraintType[normalizedConstraintType] =
+                    (results.summary.weightedByConstraintType[normalizedConstraintType] || 0) + issue.score;
+                results.summary.tierCounts[issue.severityTier] =
+                    (results.summary.tierCounts[issue.severityTier] || 0) + 1;
+
+                if (issue.severityTier === 'hard_block') {
+                    results.conflicts.push(issue);
+                    results.summary.criticalCount++;
+                } else if (issue.severityTier === 'warning') {
+                    results.warnings.push(issue);
+                    results.summary.warningCount++;
+                } else {
+                    results.suggestions.push(issue);
+                }
+            });
         });
 
         results.summary.totalActionableIssues = results.conflicts.length + results.warnings.length;
@@ -1053,6 +1182,11 @@ const ConflictEngine = (function() {
         // Backward-compatible field used by existing UI sections.
         results.summary.totalIssues = results.summary.totalActionableIssues;
         return results;
+    }
+
+    // Backward-compatible API alias
+    function findIssues(schedule, constraints, context = {}) {
+        return evaluate(schedule, constraints, context);
     }
 
     /**
@@ -1340,6 +1474,16 @@ const ConflictEngine = (function() {
         }
     };
 
+    Object.entries(checkers).forEach(([id, detect]) => {
+        const metadata = DEFAULT_RULE_PLUGIN_METADATA[id] || {};
+        registerRule({
+            id,
+            name: metadata.name || id,
+            tier: metadata.tier || 'suggestion',
+            detect
+        });
+    });
+
     /**
      * Calculate available room resolutions for a course
      */
@@ -1495,10 +1639,16 @@ const ConflictEngine = (function() {
     // Public API
     return {
         evaluate,
+        findIssues,
         checkers,
         COMMON_PAIRINGS,
         evaluateAySetup,
-        ruleRegistry: CONFLICT_RULE_REGISTRY
+        ruleRegistry: CONFLICT_RULE_REGISTRY,
+        registerRule,
+        enableRule,
+        disableRule,
+        setWeight,
+        listRules: listRegisteredRules
     };
 })();
 
