@@ -59,4 +59,21 @@ describe('DirtyStateTracker', () => {
         DirtyStateTracker.detachFromStateManager();
         expect(unsubscribe).toHaveBeenCalled();
     });
+
+    test('setPendingNavigation is tracked and cleared by markClean', () => {
+        DirtyStateTracker.markDirty('schedule:2026-27');
+        DirtyStateTracker.setPendingNavigation('/pages/workload-dashboard.html');
+
+        expect(DirtyStateTracker.getPendingNavigation()).toBe('/pages/workload-dashboard.html');
+
+        DirtyStateTracker.markClean();
+        expect(DirtyStateTracker.getPendingNavigation()).toBeNull();
+        expect(DirtyStateTracker.isDirty()).toBe(false);
+    });
+
+    test('rejects invalid onChange listeners and ignores invalid state managers', () => {
+        expect(() => DirtyStateTracker.onChange(null)).toThrow('DirtyStateTracker listener must be a function.');
+        expect(DirtyStateTracker.attachToStateManager(null)).toBe(false);
+        expect(DirtyStateTracker.attachToStateManager({})).toBe(false);
+    });
 });
