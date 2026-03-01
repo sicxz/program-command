@@ -5272,6 +5272,18 @@
 
 
         // Listen for the custom event from the AppHeader component
+        function canPerform(action, resource) {
+            if (!window.AuthService || typeof window.AuthService.can !== 'function') {
+                return true;
+            }
+            return window.AuthService.can(action, resource);
+        }
+
+        document.addEventListener('header-permission-denied', (e) => {
+            const message = e?.detail?.message || 'Insufficient permissions for this action.';
+            showToast(message, 'error');
+        });
+
         document.addEventListener('header-action', (e) => {
             const action = e.detail.action;
             if (action === 'save') {
@@ -5285,11 +5297,23 @@
             } else if (action === 'sheets') {
                 exportToGoogleSheets();
             } else if (action === 'rules') {
+                if (!canPerform('write', 'system-config')) {
+                    showToast('Insufficient permissions: only admins can change constraint rules.', 'error');
+                    return;
+                }
                 openConstraintsModal();
             } else if (action === 'api') {
+                if (!canPerform('manage', 'system-config')) {
+                    showToast('Insufficient permissions: only admins can access API connections.', 'error');
+                    return;
+                }
                 openApiSettingsModal();
             } else if (action === 'accounts') {
-                showToast('Users & accounts is the next build step: add Supabase Auth + role-based permissions.', 'success');
+                if (!canPerform('manage', 'accounts')) {
+                    showToast('Insufficient permissions: only admins can manage users and accounts.', 'error');
+                    return;
+                }
+                showToast('Users & accounts management UI is not implemented yet.');
             } else if (action === 'nav-enrollment') {
                 window.location.href = 'enrollment-dashboard.html';
             } else if (action === 'nav-workload') {

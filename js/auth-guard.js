@@ -25,6 +25,25 @@
             : 'index.html';
     }
 
+    function can(action, resource, user) {
+        if (window.AuthService && typeof window.AuthService.can === 'function') {
+            return window.AuthService.can(action, resource, user);
+        }
+        const role = String(user?.role || '').toLowerCase();
+        return role === 'admin';
+    }
+
+    function getRoutePolicy() {
+        if (/\/pages\/department-onboarding\.html$/i.test(window.location.pathname)) {
+            return {
+                action: 'manage',
+                resource: 'system-config',
+                message: 'Insufficient permissions: only admins can access Department Onboarding.'
+            };
+        }
+        return null;
+    }
+
     function redirectToLogin() {
         const next = encodeURIComponent(getCurrentPathWithQuery());
         window.location.replace(`${loginUrl()}?next=${next}`);
@@ -134,6 +153,57 @@
         });
     }
 
+    function renderPermissionDenied(message) {
+        if (isLoginPage()) return;
+        document.body.innerHTML = `
+            <main style="
+                min-height: 100vh;
+                display: grid;
+                place-items: center;
+                background: linear-gradient(180deg, #f6f8fa 0%, #ffffff 100%);
+                padding: 24px;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            ">
+                <section style="
+                    width: min(560px, 100%);
+                    background: #fff;
+                    border: 1px solid #f1b0b7;
+                    border-radius: 12px;
+                    padding: 22px;
+                    box-shadow: 0 16px 36px rgba(31, 35, 40, 0.12);
+                ">
+                    <h1 style="margin: 0 0 8px; font-size: 24px; color: #cf222e;">Access Denied</h1>
+                    <p style="margin: 0 0 16px; color: #57606a; line-height: 1.45;">
+                        ${message || 'You do not have permission to access this page.'}
+                    </p>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <a href="${homeUrl()}" style="
+                            display: inline-block;
+                            padding: 10px 14px;
+                            border-radius: 8px;
+                            background: #a10022;
+                            color: #fff;
+                            text-decoration: none;
+                            font-weight: 700;
+                            font-size: 14px;
+                        ">Return to Home</a>
+                        <a href="${loginUrl()}" style="
+                            display: inline-block;
+                            padding: 10px 14px;
+                            border-radius: 8px;
+                            border: 1px solid #d0d7de;
+                            background: #fff;
+                            color: #1f2328;
+                            text-decoration: none;
+                            font-weight: 600;
+                            font-size: 14px;
+                        ">Switch Account</a>
+                    </div>
+                </section>
+            </main>
+        `;
+    }
+
     async function handleLoginPage() {
         const session = await window.AuthService.getSession();
         if (session) {
@@ -149,6 +219,12 @@
         }
 
         const user = (await window.AuthService.getUser()) || session.user || null;
+        const routePolicy = getRoutePolicy();
+        if (routePolicy && !can(routePolicy.action, routePolicy.resource, user)) {
+            renderPermissionDenied(routePolicy.message);
+            return;
+        }
+
         renderSessionIndicator(user);
     }
 

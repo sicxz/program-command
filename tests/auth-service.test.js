@@ -149,6 +149,42 @@ describe('AuthService', () => {
         );
     });
 
+    test('can(action, resource) enforces chair permissions from auth contract', () => {
+        const { AuthService } = loadAuthService();
+
+        expect(AuthService.can('write', 'schedule', { role: 'chair' })).toBe(true);
+        expect(AuthService.can('read', 'system-config', { role: 'chair' })).toBe(true);
+        expect(AuthService.can('write', 'system-config', { role: 'chair' })).toBe(false);
+        expect(AuthService.can('manage', 'accounts', { role: 'chair' })).toBe(false);
+    });
+
+    test('can(action, resource) grants full access for admin role', () => {
+        const { AuthService } = loadAuthService();
+
+        expect(AuthService.can('read', 'departments', { role: 'admin' })).toBe(true);
+        expect(AuthService.can('write', 'system-config', { role: 'admin' })).toBe(true);
+        expect(AuthService.can('manage', 'accounts', { role: 'admin' })).toBe(true);
+        expect(AuthService.can('delete', 'unknown-resource', { role: 'admin' })).toBe(true);
+    });
+
+    test('can(action, resource) uses cached role when context is omitted', async () => {
+        const { AuthService, mockAuth } = loadAuthService();
+        mockAuth.signInWithPassword.mockResolvedValue({
+            data: {
+                user: {
+                    id: 'user-5',
+                    email: 'admin@example.edu',
+                    app_metadata: { role: 'admin' }
+                },
+                session: { access_token: 'admin-token' }
+            },
+            error: null
+        });
+
+        await AuthService.signIn('admin@example.edu', 'secret');
+        expect(AuthService.can('manage', 'accounts')).toBe(true);
+    });
+
     test('throws when Supabase is not configured for auth operations', async () => {
         const { AuthService } = loadAuthService({ isConfigured: false });
         await expect(AuthService.signIn('chair@example.edu', 'pw')).rejects.toThrow('Supabase is not configured.');
