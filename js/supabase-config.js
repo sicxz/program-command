@@ -48,7 +48,14 @@ function initSupabase() {
         return null;
     }
 
-    supabaseClient = supabaseSdk.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    supabaseClient = supabaseSdk.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: {
+            flowType: 'pkce',
+            detectSessionInUrl: true,
+            persistSession: true,
+            autoRefreshToken: true
+        }
+    });
     supabase = supabaseClient; // Set global reference
     // Expose client for module and non-module scripts.
     window.supabaseClient = supabaseClient;
