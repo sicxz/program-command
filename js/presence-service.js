@@ -71,6 +71,7 @@ const PresenceService = (function() {
                 key,
                 channel: null,
                 callbacks: new Set(),
+                saveNoticeCallbacks: new Set(),
                 heartbeatTimer: null,
                 joinPromise: null,
                 joinedAt: new Date().toISOString(),
@@ -131,6 +132,17 @@ const PresenceService = (function() {
         });
     }
 
+    function emitSaveNotice(state, payload) {
+        const noticePayload = payload?.payload || payload || {};
+        state.saveNoticeCallbacks.forEach((callback) => {
+            try {
+                callback(noticePayload);
+            } catch (error) {
+                console.error('Presence save-notice callback failed:', error);
+            }
+        });
+    }
+
     async function trackHeartbeat(state) {
         if (!state?.channel || !state.user?.id || typeof state.channel.track !== 'function') {
             return;
@@ -175,7 +187,8 @@ const PresenceService = (function() {
                 state.channel
                     .on('presence', { event: 'sync' }, () => emitPresenceChange(state))
                     .on('presence', { event: 'join' }, () => emitPresenceChange(state))
-                    .on('presence', { event: 'leave' }, () => emitPresenceChange(state));
+                    .on('presence', { event: 'leave' }, () => emitPresenceChange(state))
+                    .on('broadcast', { event: 'save-notice' }, (payload) => emitSaveNotice(state, payload));
             }
 
             await new Promise((resolve, reject) => {
@@ -267,6 +280,7 @@ const PresenceService = (function() {
         }
 
         state.callbacks.clear();
+        state.saveNoticeCallbacks.clear();
         pageStates.delete(key);
     }
 
@@ -294,6 +308,47 @@ const PresenceService = (function() {
         };
     }
 
+    async function announceSave(pageId, payload = {}) {
+        const key = sanitizePageId(pageId);
+        const state = ensurePageState(key);
+        const joined = await joinPage(key);
+        if (!joined || !state.channel || typeof state.channel.send !== 'function') {
+            return false;
+        }
+
+        const enrichedPayload = {
+            ...payload,
+            page_id: key,
+            session_id: sessionId,
+            sent_at: new Date().toISOString()
+        };
+
+        await state.channel.send({
+            type: 'broadcast',
+            event: 'save-notice',
+            payload: enrichedPayload
+        });
+
+        return true;
+    }
+
+    function onSaveNotice(pageId, callback) {
+        if (typeof callback !== 'function') {
+            throw new Error('Save notice callback must be a function.');
+        }
+
+        const state = ensurePageState(pageId);
+        state.saveNoticeCallbacks.add(callback);
+
+        joinPage(pageId).catch((error) => {
+            console.warn('Presence join failed for save notice:', error?.message || error);
+        });
+
+        return () => {
+            state.saveNoticeCallbacks.delete(callback);
+        };
+    }
+
     function resetForTests() {
         Array.from(pageStates.keys()).forEach((key) => leavePage(key));
     }
@@ -303,6 +358,8 @@ const PresenceService = (function() {
         leavePage,
         getActiveEditors,
         onPresenceChange,
+        announceSave,
+        onSaveNotice,
         _resetForTests: resetForTests
     };
 })();

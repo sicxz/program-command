@@ -20,6 +20,7 @@ function createHarness({
             return channel;
         }),
         track: jest.fn().mockResolvedValue({}),
+        send: jest.fn().mockResolvedValue('ok'),
         untrack: jest.fn(),
         unsubscribe: jest.fn(),
         presenceState: jest.fn(() => presenceState)
@@ -156,5 +157,42 @@ describe('PresenceService', () => {
         expect(channel.untrack).toHaveBeenCalled();
         expect(channel.unsubscribe).toHaveBeenCalled();
         expect(client.removeChannel).toHaveBeenCalled();
+    });
+
+    test('announceSave broadcasts save notice and onSaveNotice receives it', async () => {
+        const { PresenceService, handlers, channel } = createHarness();
+        const callback = jest.fn();
+
+        const unsubscribe = PresenceService.onSaveNotice('/index.html', callback);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        await PresenceService.announceSave('/index.html', {
+            user_id: 'user-self',
+            user_label: 'self@example.edu'
+        });
+
+        expect(channel.send).toHaveBeenCalledWith(expect.objectContaining({
+            type: 'broadcast',
+            event: 'save-notice',
+            payload: expect.objectContaining({
+                user_id: 'user-self',
+                user_label: 'self@example.edu'
+            })
+        }));
+
+        handlers['broadcast:save-notice']({
+            payload: {
+                user_id: 'user-a',
+                user_label: 'a@example.edu',
+                sent_at: new Date().toISOString()
+            }
+        });
+
+        expect(callback).toHaveBeenCalledWith(expect.objectContaining({
+            user_id: 'user-a',
+            user_label: 'a@example.edu'
+        }));
+
+        unsubscribe();
     });
 });
