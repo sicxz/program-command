@@ -203,3 +203,10 @@ flowchart LR
 - Should `departments` remain a user-facing entity or be folded into `programs` later?
 - Do we require one default department per program in v1, or can a program have multiple departments?
 - Should `programs.config` include explicit schema versioning (`config_version`) from day one?
+
+## Review Checklist
+- [x] `programs` table shape defined (`id`, `name`, `code`, `config`, `created_by`, `created_at`, `updated_at`).
+- [x] Program-scoped table inventory captured.
+- [x] FK/index strategy documented for `program_id`.
+- [x] Current-program context decision recorded (Option A JWT claim selected, Option B rejected for v1).
+- [x] Schema diagram and migration plan included.
