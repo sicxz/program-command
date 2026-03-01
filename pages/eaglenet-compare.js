@@ -300,7 +300,8 @@
             return;
         }
 
-        const inventoryCount = programs.reduce((sum, program) => sum + (Array.isArray(program.roomInventory) ? program.roomInventory.length : 0), 0);
+        const inventoryCount = Number(catalog.summary?.roomInventoryCount) || programs.reduce((sum, program) => sum + (Array.isArray(program.roomInventory) ? program.roomInventory.length : 0), 0);
+        const nonRoomCount = Number(catalog.summary?.nonRoomInventoryCount) || programs.reduce((sum, program) => sum + (Array.isArray(program.nonRoomInventory) ? program.nonRoomInventory.length : 0), 0);
 
         node.className = '';
         node.innerHTML = `
@@ -319,28 +320,47 @@
                 </div>
                 <div class="metric">
                     <strong>${escapeHtml(inventoryCount)}</strong>
-                    <span>Room inventory entries</span>
+                    <span>Schedulable room entries</span>
+                </div>
+                <div class="metric">
+                    <strong>${escapeHtml(nonRoomCount)}</strong>
+                    <span>Location exceptions</span>
                 </div>
             </div>
             <div class="catalog-grid">
                 ${programs.map((program) => {
                     const rooms = Array.isArray(program.roomInventory) ? program.roomInventory : [];
+                    const nonRoomInventory = Array.isArray(program.nonRoomInventory) ? program.nonRoomInventory : [];
                     const roomPreview = rooms.slice(0, 5).map((entry) => `<span class="catalog-chip">${escapeHtml(globalScope.EECSDepartmentCatalog?.formatRoomInventoryEntry(entry) || '')}</span>`).join('');
                     const overflow = rooms.length > 5
                         ? `<span class="catalog-chip">+${rooms.length - 5} more</span>`
+                        : '';
+                    const nonRoomPreview = nonRoomInventory.slice(0, 4)
+                        .map((entry) => `<span class="catalog-chip">${escapeHtml(globalScope.EECSDepartmentCatalog?.formatNonRoomInventoryEntry(entry) || '')}</span>`)
+                        .join('');
+                    const nonRoomOverflow = nonRoomInventory.length > 4
+                        ? `<span class="catalog-chip">+${nonRoomInventory.length - 4} more</span>`
                         : '';
                     return `
                         <article class="catalog-card">
                             <h3>${escapeHtml(program.code)} · ${escapeHtml(program.displayName || program.subjectDescription || '')}</h3>
                             <p class="catalog-meta">
                                 ${escapeHtml((program.terms || []).join(' · '))}
-                                · ${escapeHtml(rooms.length)} room inventory entries
+                                · ${escapeHtml(rooms.length)} schedulable rooms
+                                · ${escapeHtml(nonRoomInventory.length)} location exceptions
                                 · ${escapeHtml((program.sourceFiles || []).length)} source files
                             </p>
                             <div class="catalog-inventory">
                                 ${roomPreview}
                                 ${overflow}
                             </div>
+                            ${nonRoomInventory.length ? `
+                                <p class="catalog-meta">Location exceptions</p>
+                                <div class="catalog-inventory">
+                                    ${nonRoomPreview}
+                                    ${nonRoomOverflow}
+                                </div>
+                            ` : ''}
                         </article>
                     `;
                 }).join('')}

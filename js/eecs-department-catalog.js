@@ -1,7 +1,7 @@
 (function eecsDepartmentCatalogRuntime(globalScope) {
     'use strict';
 
-    const DEFAULT_CATALOG_PATH = '../data/eecs-department-catalog.json';
+    const DEFAULT_CATALOG_FILE = 'data/eecs-department-catalog.json';
 
     const state = {
         loaded: false,
@@ -31,6 +31,14 @@
             .trim();
     }
 
+    function normalizeId(value) {
+        return normalizeText(value)
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+/, '')
+            .replace(/-+$/, '');
+    }
+
     function termSortKey(value) {
         const normalized = normalizeTermLabel(value);
         const match = normalized.match(/^(Fall|Winter|Spring)\s+(\d{4})$/i);
@@ -50,11 +58,15 @@
         const building = normalizeText(entry.building);
         const room = normalizeText(entry.room);
         const count = Number(entry.count);
+        const kind = normalizeText(entry.kind);
+        const label = normalizeText(entry.label);
 
         return {
             campus,
             building,
             room,
+            kind,
+            label,
             count: Number.isFinite(count) && count > 0 ? count : 0
         };
     }
@@ -67,35 +79,160 @@
         ].join(' :: ');
     }
 
+    function isSchedulableRoomEntry(entry) {
+        return Boolean(
+            normalizeText(entry?.room) &&
+            normalizeText(entry?.room).toUpperCase() !== 'XX' &&
+            normalizeText(entry?.building) &&
+            normalizeText(entry?.building).toLowerCase() !== 'arranged'
+        );
+    }
+
+    function compareInventoryEntries(left, right) {
+        return (
+            normalizeText(left?.campus).localeCompare(normalizeText(right?.campus)) ||
+            normalizeText(left?.building).localeCompare(normalizeText(right?.building)) ||
+            normalizeText(left?.room).localeCompare(normalizeText(right?.room))
+        );
+    }
+
+    function nonRoomInventoryKey(entry) {
+        return [
+            normalizeText(entry?.kind),
+            normalizeText(entry?.campus),
+            normalizeText(entry?.building),
+            normalizeText(entry?.room),
+            normalizeText(entry?.label)
+        ].join(' :: ');
+    }
+
+    function normalizeNonRoomInventoryEntry(entry) {
+        if (!isObject(entry) || isSchedulableRoomEntry(entry)) return null;
+
+        const campus = normalizeText(entry.campus);
+        const building = normalizeText(entry.building);
+        const room = normalizeText(entry.room);
+        const count = Number(entry.count);
+        const kind = normalizeText(entry.kind) || (
+            !building && !room
+                ? 'unspecified-location'
+                : building === 'Arranged'
+                    ? 'arranged'
+                    : !building && room
+                        ? 'room-without-building'
+                        : 'non-room-location'
+        );
+
+        const label = normalizeText(entry.label) || (
+            kind === 'unspecified-location'
+                ? (campus ? `${campus} / Unspecified location` : 'Unspecified location')
+                : kind === 'arranged'
+                    ? (campus ? `${campus} / Arranged` : 'Arranged')
+                    : kind === 'arranged-placeholder'
+                        ? (campus ? `${campus} / Arranged / XX` : 'Arranged / XX')
+                        : kind === 'room-without-building'
+                            ? `Unspecified building / ${room || 'Unknown room'}`
+                            : [campus, building, room].filter(Boolean).join(' / ') || 'Unspecified location'
+        );
+
+        return {
+            campus,
+            building,
+            room,
+            kind,
+            label,
+            count: Number.isFinite(count) && count > 0 ? count : 0
+        };
+    }
+
+    function compareNonRoomInventoryEntries(left, right) {
+        return (
+            normalizeText(left?.kind).localeCompare(normalizeText(right?.kind)) ||
+            normalizeText(left?.campus).localeCompare(normalizeText(right?.campus)) ||
+            normalizeText(left?.building).localeCompare(normalizeText(right?.building)) ||
+            normalizeText(left?.room).localeCompare(normalizeText(right?.room)) ||
+            normalizeText(left?.label).localeCompare(normalizeText(right?.label))
+        );
+    }
+
+    function resolveCatalogPath(path) {
+        const explicitPath = normalizeText(path);
+        if (explicitPath) return explicitPath;
+
+        const pathname = normalizeText(globalScope?.location?.pathname).toLowerCase();
+        if (pathname.includes('/pages/')) {
+            return `../${DEFAULT_CATALOG_FILE}`;
+        }
+        return DEFAULT_CATALOG_FILE;
+    }
+
     function normalizeProgram(program) {
         if (!isObject(program)) return null;
 
         const code = normalizeText(program.code).toUpperCase();
+        const id = normalizeId(program.id || code || program.displayName || program.name);
         const subjectDescription = normalizeText(program.subjectDescription || program.displayName || program.name);
         const displayName = normalizeText(program.displayName || subjectDescription || code);
-        const aliases = Array.isArray(program.aliases)
-            ? [...new Set(program.aliases.map(normalizeText).filter(Boolean))]
-            : [];
+        const aliases = [...new Set([
+            ...(Array.isArray(program.aliases) ? program.aliases : []),
+            id,
+            code.toLowerCase()
+        ].map(normalizeText).filter(Boolean))];
         const terms = Array.isArray(program.terms)
             ? [...new Set(program.terms.map(normalizeTermLabel).filter(Boolean))]
             : [];
         const roomMap = new Map();
+        const nonRoomMap = new Map();
 
         (Array.isArray(program.roomInventory) ? program.roomInventory : [])
             .map(normalizeInventoryEntry)
             .filter(Boolean)
             .forEach((entry) => {
-                const key = inventoryEntryKey(entry);
-                if (!key.trim()) return;
-                const existing = roomMap.get(key);
+                const normalizedEntry = isSchedulableRoomEntry(entry)
+                    ? entry
+                    : normalizeNonRoomInventoryEntry(entry);
+                if (!normalizedEntry) return;
+
+                const targetMap = isSchedulableRoomEntry(normalizedEntry) ? roomMap : nonRoomMap;
+                const key = isSchedulableRoomEntry(normalizedEntry)
+                    ? inventoryEntryKey(normalizedEntry)
+                    : nonRoomInventoryKey(normalizedEntry);
+                if (!key || !key.trim()) return;
+
+                const existing = targetMap.get(key);
+                if (existing) {
+                    existing.count += normalizedEntry.count;
+                    return;
+                }
+
+                targetMap.set(key, normalizedEntry);
+            });
+
+        (Array.isArray(program.nonRoomInventory) ? program.nonRoomInventory : [])
+            .map(normalizeNonRoomInventoryEntry)
+            .filter(Boolean)
+            .forEach((entry) => {
+                const key = nonRoomInventoryKey(entry);
+                if (!key || !key.trim()) return;
+
+                const existing = nonRoomMap.get(key);
                 if (existing) {
                     existing.count += entry.count;
                     return;
                 }
-                roomMap.set(key, entry);
+
+                nonRoomMap.set(key, entry);
             });
 
+        const roomInventory = [...roomMap.values()].sort(compareInventoryEntries);
+        const nonRoomInventory = [...nonRoomMap.values()]
+            .filter(Boolean)
+            .sort(compareNonRoomInventoryEntries);
+        const roomPlacementCount = roomInventory.reduce((sum, entry) => sum + Number(entry.count || 0), 0);
+        const nonRoomPlacementCount = nonRoomInventory.reduce((sum, entry) => sum + Number(entry.count || 0), 0);
+
         return {
+            id,
             code,
             subjectDescription,
             displayName,
@@ -104,7 +241,12 @@
             sourceFiles: Array.isArray(program.sourceFiles)
                 ? [...new Set(program.sourceFiles.map(normalizeText).filter(Boolean))]
                 : [],
-            roomInventory: [...roomMap.values()]
+            roomInventory,
+            nonRoomInventory,
+            roomInventoryCount: roomInventory.length,
+            nonRoomInventoryCount: nonRoomInventory.length,
+            roomPlacementCount,
+            nonRoomPlacementCount
         };
     }
 
@@ -135,7 +277,10 @@
                 return left.localeCompare(right);
             });
 
-        const inventoryCount = programs.reduce((sum, program) => sum + program.roomInventory.length, 0);
+        const roomInventoryCount = programs.reduce((sum, program) => sum + (program.roomInventoryCount || 0), 0);
+        const nonRoomInventoryCount = programs.reduce((sum, program) => sum + (program.nonRoomInventoryCount || 0), 0);
+        const roomPlacementCount = programs.reduce((sum, program) => sum + (program.roomPlacementCount || 0), 0);
+        const nonRoomPlacementCount = programs.reduce((sum, program) => sum + (program.nonRoomPlacementCount || 0), 0);
 
         return {
             version: normalizeText(raw.version) || '1.0',
@@ -143,8 +288,8 @@
             sourceFolder: normalizeText(raw.sourceFolder) || null,
             department: {
                 code: normalizeText(department.code || raw.departmentCode).toUpperCase() || 'EECS',
-                name: normalizeText(department.name || raw.departmentName || department.displayName || raw.departmentDisplayName || 'EECS'),
-                displayName: normalizeText(department.displayName || raw.departmentDisplayName || department.name || raw.departmentName || 'EECS'),
+                name: normalizeText(department.name || raw.departmentName || department.displayName || raw.departmentDisplayName || 'Electrical Engineering, Computer Science, and Cybersecurity'),
+                displayName: normalizeText(department.displayName || raw.departmentDisplayName || department.name || raw.departmentName || 'Electrical Engineering, Computer Science, and Cybersecurity'),
                 aliases: Array.isArray(department.aliases)
                     ? [...new Set(department.aliases.map(normalizeText).filter(Boolean))]
                     : []
@@ -154,7 +299,11 @@
             summary: {
                 programCount: programs.length,
                 termCount: terms.length,
-                roomInventoryCount: inventoryCount
+                roomInventoryCount,
+                nonRoomInventoryCount,
+                roomPlacementCount,
+                nonRoomPlacementCount,
+                inventoryEntryCount: roomInventoryCount + nonRoomInventoryCount
             }
         };
     }
@@ -171,10 +320,10 @@
         }
     }
 
-    async function load(path = DEFAULT_CATALOG_PATH, options = {}) {
+    async function load(path = '', options = {}) {
         const config = isObject(options) ? options : {};
         const forceReload = Boolean(config.forceReload);
-        const requestedPath = normalizeText(path) || DEFAULT_CATALOG_PATH;
+        const requestedPath = resolveCatalogPath(path);
 
         if (!forceReload && state.loaded && state.source === requestedPath) {
             return getSnapshot();
@@ -242,6 +391,7 @@
         if (!normalizedId || !state.catalog) return null;
         const programs = Array.isArray(state.catalog.programs) ? state.catalog.programs : [];
         return deepClone(programs.find((program) => {
+            if (normalizeText(program.id).toUpperCase() === normalizedId) return true;
             if (normalizeText(program.code).toUpperCase() === normalizedId) return true;
             const aliases = Array.isArray(program.aliases) ? program.aliases : [];
             return aliases.some((alias) => normalizeText(alias).toUpperCase() === normalizedId);
@@ -253,6 +403,11 @@
         return Array.isArray(program?.roomInventory) ? program.roomInventory : [];
     }
 
+    function getProgramNonRoomInventory(programId) {
+        const program = getProgram(programId);
+        return Array.isArray(program?.nonRoomInventory) ? program.nonRoomInventory : [];
+    }
+
     function getDepartmentSummary() {
         const catalog = state.catalog || normalizeCatalog(null);
         return {
@@ -260,12 +415,14 @@
             terms: catalog.terms.slice(),
             summary: deepClone(catalog.summary),
             programs: (catalog.programs || []).map((program) => ({
+                id: program.id,
                 code: program.code,
                 displayName: program.displayName,
                 subjectDescription: program.subjectDescription,
                 aliases: program.aliases.slice(),
                 terms: program.terms.slice(),
-                roomInventoryCount: Array.isArray(program.roomInventory) ? program.roomInventory.length : 0,
+                roomInventoryCount: Number(program.roomInventoryCount) || (Array.isArray(program.roomInventory) ? program.roomInventory.length : 0),
+                nonRoomInventoryCount: Number(program.nonRoomInventoryCount) || (Array.isArray(program.nonRoomInventory) ? program.nonRoomInventory.length : 0),
                 sourceFiles: program.sourceFiles.slice()
             }))
         };
@@ -279,8 +436,15 @@
         return count > 0 ? `${label} (${count})` : label;
     }
 
+    function formatNonRoomInventoryEntry(entry) {
+        if (!isObject(entry)) return '';
+        const label = normalizeText(entry.label) || [entry.campus, entry.building, entry.room].map(normalizeText).filter(Boolean).join(' / ') || 'Unspecified location';
+        const count = Number(entry.count) || 0;
+        return count > 0 ? `${label} (${count})` : label;
+    }
+
     const api = {
-        DEFAULT_CATALOG_PATH,
+        DEFAULT_CATALOG_PATH: DEFAULT_CATALOG_FILE,
         load,
         getSnapshot,
         getCatalog,
@@ -288,8 +452,10 @@
         getPrograms,
         getProgram,
         getProgramRoomInventory,
+        getProgramNonRoomInventory,
         getDepartmentSummary,
-        formatRoomInventoryEntry
+        formatRoomInventoryEntry,
+        formatNonRoomInventoryEntry
     };
 
     if (globalScope) {
