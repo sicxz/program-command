@@ -119,3 +119,10 @@ This spec is normative input for:
 - implementing program multi-tenancy claims (`program_id`) end-to-end
 
 Those are handled in subsequent A/T issues.
+
+## 9) Environment Auth Enforcement
+- Production/staging hosts enforce auth guard by default.
+- Local development hosts (`localhost`, `127.0.0.1`, `::1`) bypass auth guard by default.
+- Optional override controls:
+  - query param: `?auth=required` or `?auth=disabled`
+  - global flag before `auth-guard.js`: `window.PROGRAM_COMMAND_AUTH_MODE = 'required' | 'disabled'`
