@@ -94,6 +94,41 @@ describe('ConflictEngine regression scenarios (real planning patterns)', () => {
         expect(JSON.stringify(issue.resolutions || [])).not.toMatch(/10:00-12:00|13:00-15:00|16:00-18:00/);
     });
 
+    test('flags Spring 2026-style pathway conflicts for 401/463 and 365/468 pairs', () => {
+        const schedule = [
+            { code: 'DESN 401', day: 'MW', time: '10:00-12:20', room: '206', instructor: 'T.Masingale' },
+            { code: 'DESN 463', day: 'MW', time: '10:00-12:20', room: '209', instructor: 'C.Manikoth' },
+            { code: 'DESN 365', day: 'TR', time: '13:00-15:20', room: '210', instructor: 'S.Mills' },
+            { code: 'DESN 468', day: 'TR', time: '13:00-15:20', room: '212', instructor: 'S.Durr' }
+        ];
+        const constraints = [
+            {
+                id: 'student-pathway',
+                enabled: true,
+                constraint_type: 'student_conflict',
+                rule_details: { severity: 'warning' }
+            }
+        ];
+
+        const result = ConflictEngine.evaluate(schedule, constraints, {
+            currentQuarter: 'spring',
+            scheduleByQuarter: { fall: [], winter: [], spring: schedule }
+        });
+
+        const allIssues = [...result.conflicts, ...result.warnings, ...result.suggestions];
+        const has401463 = allIssues.some((issue) => {
+            const codes = (issue.courses || []).map((course) => (typeof course === 'string' ? course : course.code));
+            return codes.includes('DESN 401') && codes.includes('DESN 463');
+        });
+        const has365468 = allIssues.some((issue) => {
+            const codes = (issue.courses || []).map((course) => (typeof course === 'string' ? course : course.code));
+            return codes.includes('DESN 365') && codes.includes('DESN 468');
+        });
+
+        expect(has401463).toBe(true);
+        expect(has365468).toBe(true);
+    });
+
     test('ay setup alignment flags adjunct shortfall for planning targets', () => {
         const scheduleByQuarter = {
             fall: [

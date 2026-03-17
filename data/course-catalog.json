@@ -9,7 +9,11 @@
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "100",
-      "offeredQuarters": ["Fall", "Winter", "Spring"]
+      "offeredQuarters": [
+        "Fall",
+        "Winter",
+        "Spring"
+      ]
     },
     {
       "code": "DESN 200",
@@ -17,47 +21,70 @@
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "200",
-      "offeredQuarters": ["Fall", "Winter", "Spring"]
+      "offeredQuarters": [
+        "Fall",
+        "Winter",
+        "Spring"
+      ]
     },
     {
       "code": "DESN 216",
-      "title": "Digital Tools for Design",
+      "title": "Digital Foundations",
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "200",
-      "offeredQuarters": ["Fall", "Winter", "Spring"]
+      "offeredQuarters": [
+        "Fall",
+        "Winter",
+        "Spring"
+      ]
     },
     {
       "code": "DESN 243",
-      "title": "Typography I",
+      "title": "Typography",
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "200",
-      "offeredQuarters": ["Fall", "Winter", "Spring"]
+      "offeredQuarters": [
+        "Fall",
+        "Winter",
+        "Spring"
+      ]
     },
     {
       "code": "DESN 263",
-      "title": "User Experience Design I",
+      "title": "Visual Communication Design",
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "200",
-      "offeredQuarters": ["Fall", "Winter", "Spring"]
+      "offeredQuarters": [
+        "Fall",
+        "Winter",
+        "Spring"
+      ]
     },
     {
       "code": "DESN 301",
-      "title": "Visual Communication II",
+      "title": "Visual Storytelling",
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "300",
-      "offeredQuarters": ["Fall", "Winter", "Spring"]
+      "offeredQuarters": [
+        "Fall",
+        "Winter",
+        "Spring"
+      ]
     },
     {
       "code": "DESN 305",
-      "title": "Design History",
+      "title": "Social Media Design",
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "300",
-      "offeredQuarters": ["Fall", "Winter"]
+      "offeredQuarters": [
+        "Fall",
+        "Winter"
+      ]
     },
     {
       "code": "DESN 325",
@@ -65,7 +92,11 @@
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "300",
-      "offeredQuarters": ["Fall", "Winter", "Spring"]
+      "offeredQuarters": [
+        "Fall",
+        "Winter",
+        "Spring"
+      ]
     },
     {
       "code": "DESN 326",
@@ -73,7 +104,10 @@
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "300",
-      "offeredQuarters": ["Winter", "Spring"]
+      "offeredQuarters": [
+        "Winter",
+        "Spring"
+      ]
     },
     {
       "code": "DESN 335",
@@ -81,7 +115,11 @@
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "300",
-      "offeredQuarters": ["Fall", "Winter", "Spring"]
+      "offeredQuarters": [
+        "Fall",
+        "Winter",
+        "Spring"
+      ]
     },
     {
       "code": "DESN 336",
@@ -89,7 +127,10 @@
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "300",
-      "offeredQuarters": ["Winter", "Spring"]
+      "offeredQuarters": [
+        "Winter",
+        "Spring"
+      ]
     },
     {
       "code": "DESN 338",
@@ -97,7 +138,10 @@
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "300",
-      "offeredQuarters": ["Fall", "Winter"]
+      "offeredQuarters": [
+        "Fall",
+        "Winter"
+      ]
     },
     {
       "code": "DESN 343",
@@ -105,7 +149,11 @@
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "300",
-      "offeredQuarters": ["Fall", "Winter", "Spring"]
+      "offeredQuarters": [
+        "Fall",
+        "Winter",
+        "Spring"
+      ]
     },
     {
       "code": "DESN 345",
@@ -113,7 +161,10 @@
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "300",
-      "offeredQuarters": ["Fall", "Spring"]
+      "offeredQuarters": [
+        "Fall",
+        "Spring"
+      ]
     },
     {
       "code": "DESN 348",
@@ -121,7 +172,9 @@
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "300",
-      "offeredQuarters": ["Winter"]
+      "offeredQuarters": [
+        "Winter"
+      ]
     },
     {
       "code": "DESN 350",
@@ -129,7 +182,11 @@
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "300",
-      "offeredQuarters": ["Fall", "Winter", "Spring"]
+      "offeredQuarters": [
+        "Fall",
+        "Winter",
+        "Spring"
+      ]
     },
     {
       "code": "DESN 351",
@@ -137,7 +194,9 @@
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "300",
-      "offeredQuarters": ["Spring"]
+      "offeredQuarters": [
+        "Spring"
+      ]
     },
     {
       "code": "DESN 355",
@@ -145,7 +204,9 @@
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "300",
-      "offeredQuarters": ["Winter"]
+      "offeredQuarters": [
+        "Winter"
+      ]
     },
     {
       "code": "DESN 359",
@@ -153,7 +214,11 @@
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "300",
-      "offeredQuarters": ["Fall", "Winter", "Spring"]
+      "offeredQuarters": [
+        "Fall",
+        "Winter",
+        "Spring"
+      ]
     },
     {
       "code": "DESN 360",
@@ -161,7 +226,11 @@
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "300",
-      "offeredQuarters": ["Fall", "Winter", "Spring"]
+      "offeredQuarters": [
+        "Fall",
+        "Winter",
+        "Spring"
+      ]
     },
     {
       "code": "DESN 363",
@@ -169,7 +238,11 @@
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "300",
-      "offeredQuarters": ["Fall", "Winter", "Spring"]
+      "offeredQuarters": [
+        "Fall",
+        "Winter",
+        "Spring"
+      ]
     },
     {
       "code": "DESN 365",
@@ -177,7 +250,10 @@
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "300",
-      "offeredQuarters": ["Fall", "Winter"]
+      "offeredQuarters": [
+        "Fall",
+        "Winter"
+      ]
     },
     {
       "code": "DESN 366",
@@ -185,7 +261,10 @@
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "300",
-      "offeredQuarters": ["Winter", "Spring"]
+      "offeredQuarters": [
+        "Winter",
+        "Spring"
+      ]
     },
     {
       "code": "DESN 368",
@@ -193,7 +272,9 @@
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "300",
-      "offeredQuarters": ["Fall"],
+      "offeredQuarters": [
+        "Fall"
+      ],
       "required": true,
       "notes": "Required course starting 2026-27 academic year"
     },
@@ -203,9 +284,13 @@
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "300",
-      "offeredQuarters": ["Winter"],
-      "prerequisites": ["DESN 368"],
-      "notes": "Requires DESN 368 (Fall→Winter sequence)"
+      "offeredQuarters": [
+        "Winter"
+      ],
+      "prerequisites": [
+        "DESN 368"
+      ],
+      "notes": "Requires DESN 368 (Fall\u2192Winter sequence)"
     },
     {
       "code": "DESN 374",
@@ -213,7 +298,9 @@
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "300",
-      "offeredQuarters": ["Winter"]
+      "offeredQuarters": [
+        "Winter"
+      ]
     },
     {
       "code": "DESN 378",
@@ -221,7 +308,10 @@
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "300",
-      "offeredQuarters": ["Fall", "Spring"]
+      "offeredQuarters": [
+        "Fall",
+        "Spring"
+      ]
     },
     {
       "code": "DESN 379",
@@ -229,15 +319,21 @@
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "300",
-      "offeredQuarters": ["Spring"]
+      "offeredQuarters": [
+        "Spring"
+      ]
     },
     {
       "code": "DESN 384",
-      "title": "Design Business Practices",
+      "title": "Digital Sound",
       "defaultCredits": 5,
+      "defaultModality": "online",
       "typicalEnrollmentCap": 24,
       "level": "300",
-      "offeredQuarters": ["Winter", "Spring"]
+      "offeredQuarters": [
+        "Winter",
+        "Spring"
+      ]
     },
     {
       "code": "DESN 385",
@@ -245,7 +341,10 @@
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "300",
-      "offeredQuarters": ["Winter", "Spring"]
+      "offeredQuarters": [
+        "Winter",
+        "Spring"
+      ]
     },
     {
       "code": "DESN 396",
@@ -253,7 +352,11 @@
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "300",
-      "offeredQuarters": ["Fall", "Winter", "Spring"]
+      "offeredQuarters": [
+        "Fall",
+        "Winter",
+        "Spring"
+      ]
     },
     {
       "code": "DESN 399",
@@ -261,7 +364,11 @@
       "defaultCredits": 5,
       "typicalEnrollmentCap": 5,
       "level": "300",
-      "offeredQuarters": ["Fall", "Winter", "Spring"],
+      "offeredQuarters": [
+        "Fall",
+        "Winter",
+        "Spring"
+      ],
       "isVariable": true,
       "workloadMultiplier": 0.2
     },
@@ -271,7 +378,11 @@
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "400",
-      "offeredQuarters": ["Fall", "Winter", "Spring"]
+      "offeredQuarters": [
+        "Fall",
+        "Winter",
+        "Spring"
+      ]
     },
     {
       "code": "DESN 458",
@@ -279,7 +390,10 @@
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "400",
-      "offeredQuarters": ["Fall", "Winter"]
+      "offeredQuarters": [
+        "Fall",
+        "Winter"
+      ]
     },
     {
       "code": "DESN 463",
@@ -287,7 +401,11 @@
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "400",
-      "offeredQuarters": ["Fall", "Winter", "Spring"]
+      "offeredQuarters": [
+        "Fall",
+        "Winter",
+        "Spring"
+      ]
     },
     {
       "code": "DESN 468",
@@ -295,7 +413,10 @@
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "400",
-      "offeredQuarters": ["Winter", "Spring"]
+      "offeredQuarters": [
+        "Winter",
+        "Spring"
+      ]
     },
     {
       "code": "DESN 480",
@@ -303,7 +424,9 @@
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "400",
-      "offeredQuarters": ["Spring"]
+      "offeredQuarters": [
+        "Spring"
+      ]
     },
     {
       "code": "DESN 490",
@@ -311,7 +434,11 @@
       "defaultCredits": 2,
       "typicalEnrollmentCap": 24,
       "level": "400",
-      "offeredQuarters": ["Fall", "Winter", "Spring"]
+      "offeredQuarters": [
+        "Fall",
+        "Winter",
+        "Spring"
+      ]
     },
     {
       "code": "DESN 491",
@@ -319,7 +446,11 @@
       "defaultCredits": 5,
       "typicalEnrollmentCap": 10,
       "level": "400",
-      "offeredQuarters": ["Fall", "Winter", "Spring"],
+      "offeredQuarters": [
+        "Fall",
+        "Winter",
+        "Spring"
+      ],
       "isVariable": true,
       "workloadMultiplier": 0.2
     },
@@ -329,7 +460,11 @@
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "400",
-      "offeredQuarters": ["Fall", "Winter", "Spring"]
+      "offeredQuarters": [
+        "Fall",
+        "Winter",
+        "Spring"
+      ]
     },
     {
       "code": "DESN 495",
@@ -337,7 +472,12 @@
       "defaultCredits": 5,
       "typicalEnrollmentCap": 15,
       "level": "400",
-      "offeredQuarters": ["Fall", "Winter", "Spring", "Summer"],
+      "offeredQuarters": [
+        "Fall",
+        "Winter",
+        "Spring",
+        "Summer"
+      ],
       "isVariable": true,
       "workloadMultiplier": 0.1
     },
@@ -347,7 +487,11 @@
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "400",
-      "offeredQuarters": ["Fall", "Winter", "Spring"]
+      "offeredQuarters": [
+        "Fall",
+        "Winter",
+        "Spring"
+      ]
     },
     {
       "code": "DESN 499",
@@ -355,7 +499,12 @@
       "defaultCredits": 5,
       "typicalEnrollmentCap": 10,
       "level": "400",
-      "offeredQuarters": ["Fall", "Winter", "Spring", "Summer"],
+      "offeredQuarters": [
+        "Fall",
+        "Winter",
+        "Spring",
+        "Summer"
+      ],
       "isVariable": true,
       "workloadMultiplier": 0.2
     }

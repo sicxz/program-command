@@ -2848,28 +2848,33 @@
         .swap-toggle-container {
             display: flex;
             align-items: center;
-            gap: 10px;
-            background: #f8f9fa;
-            padding: 8px 16px;
-            border-radius: 8px;
-            border: 1px solid #e5e7eb;
+            gap: 8px;
+            background: #ffffff;
+            padding: 4px 8px;
+            border-radius: 6px;
+            border: 1px solid #d0d7de;
         }
 
         .swap-toggle-label {
-            font-size: 0.85rem;
+            font-size: 0.78rem;
             color: #6b7280;
             font-weight: 500;
+            padding: 3px 7px;
+            border-radius: 5px;
+            border: 1px solid transparent;
         }
 
         .swap-toggle-label.active {
-            color: #059669;
-            font-weight: 600;
+            color: #374151;
+            background: #f8fafc;
+            border-color: #d0d7de;
+            font-weight: 500;
         }
 
         .swap-toggle {
             position: relative;
-            width: 50px;
-            height: 26px;
+            width: 42px;
+            height: 22px;
             cursor: pointer;
         }
 
@@ -2885,30 +2890,32 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: #e5e7eb;
-            border-radius: 26px;
+            background: #f3f4f6;
+            border-radius: 6px;
+            border: 1px solid #d0d7de;
             transition: 0.3s;
         }
 
         .swap-toggle-slider:before {
             position: absolute;
             content: "";
-            height: 20px;
-            width: 20px;
-            left: 3px;
-            bottom: 3px;
+            height: 16px;
+            width: 16px;
+            left: 2px;
+            bottom: 2px;
             background: white;
-            border-radius: 50%;
+            border-radius: 4px;
             transition: 0.3s;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.16);
         }
 
         .swap-toggle input:checked+.swap-toggle-slider {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            background: #eef2f7;
+            border-color: #c2cbd5;
         }
 
         .swap-toggle input:checked+.swap-toggle-slider:before {
-            transform: translateX(24px);
+            transform: translateX(20px);
         }
 
         .displaced-tray.drag-over {
@@ -3545,7 +3552,7 @@
         .schedule-grid-actions {
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 10px;
         }
 
         .scheduler-assistant-panel {
@@ -3655,37 +3662,43 @@
             background: var(--ewu-red-dark);
         }
 
-        .btn-ewu-accent {
-            background: var(--ewu-red) !important;
-            color: #fff !important;
-            border: 1px solid var(--ewu-red-dark) !important;
-            border-radius: 0 !important;
-            font-weight: 700 !important;
+        .schedule-grid-actions .btn-ewu-accent {
+            background: #ffffff !important;
+            color: #4b5563 !important;
+            border: 1px solid #d0d7de !important;
+            border-radius: 6px !important;
+            font-weight: 500 !important;
+            box-shadow: none !important;
         }
 
-        .btn-ewu-accent:hover {
-            background: var(--ewu-red-dark) !important;
+        .schedule-grid-actions .btn-ewu-accent:hover {
+            background: #f8fafc !important;
+            border-color: #c2cbd5 !important;
+            color: #374151 !important;
         }
 
         .btn-add-course-main {
-            padding: 10px 16px !important;
+            padding: 5px 10px !important;
             display: inline-flex !important;
             align-items: center !important;
-            gap: 8px !important;
+            gap: 5px !important;
             height: auto !important;
+            font-size: 0.78rem !important;
+            line-height: 1.05 !important;
+            font-weight: 500 !important;
         }
 
         .btn-save-db {
-            display: none !important;
-            background: #166534 !important;
-            border: 1px solid #14532d !important;
-            color: #fff !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 6px !important;
+            background: #ffffff !important;
+            border: 1px solid #c9d2dc !important;
+            color: #4b5563 !important;
         }
 
         .btn-save-db.visible {
             display: inline-flex !important;
-            align-items: center !important;
-            gap: 8px !important;
         }
 
         .btn-save-db[disabled] {
@@ -3694,7 +3707,9 @@
         }
 
         .btn-save-db:hover:not([disabled]) {
-            background: #14532d !important;
+            background: #f8fafc !important;
+            border-color: #c2cbd5 !important;
+            color: #374151 !important;
         }
 
         .save-dirty-dot {
@@ -4548,15 +4563,11 @@
                         <span class="save-dirty-dot" id="saveDirtyDot" aria-hidden="true"></span>
                         <span id="saveDbButtonText">Save Schedule</span>
                     </button>
+                    <div class="action-bar-attribution" id="saveDbStatus" aria-live="polite"></div>
                     <button class="btn-ewu-accent btn-add-course-main" onclick="openAddCourseModal()">
                         <span class="btn-add-icon">+</span> Add Course
                     </button>
-                    <button class="btn-ewu-accent btn-add-course-main" onclick="openClssImportModal()">
-                        📥 Import CLSS
-                    </button>
-                    <button class="btn-ewu-accent btn-add-course-main" onclick="openWorkloadReviewFromScheduler()">
-                        👥 Make Workloads
-                    </button>
+                    <button class="btn-ewu-accent btn-add-course-main" onclick="openWorkloadReviewFromScheduler()">Make Workloads</button>
                 </div>
             </div>
             <div class="schedule-grid" id="scheduleGrid"></div>
@@ -4689,6 +4700,69 @@
             aliases: Array.isArray(slot.aliases) ? slot.aliases.slice() : []
         }));
         let schedulerRoomLabels = { ...DEFAULT_SCHEDULER_ROOM_LABELS };
+        const COURSE_TITLE_OVERRIDES = {
+            'DESN 100': 'Drawing for Communication',
+            'DESN 200': 'Visual Thinking + Making',
+            'DESN 210': 'Design Lab',
+            'DESN 213': 'Photoshop',
+            'DESN 214': 'Illustrator',
+            'DESN 215': 'Indesign',
+            'DESN 216': 'Digital Foundations',
+            'DESN 217': 'Figma',
+            'DESN 243': 'Typography',
+            'DESN 263': 'Visual Communication Design',
+            'DESN 301': 'Visual Storytelling',
+            'DESN 305': 'Social Media Design and Management',
+            'DESN 325': 'Emergent Design',
+            'DESN 326': 'Introduction to Animation',
+            'DESN 335': 'Board Game Design',
+            'DESN 336': '3D Animation',
+            'DESN 338': 'User Experience Design 1',
+            'DESN 343': 'Typography 2',
+            'DESN 345': 'Digital Game Design',
+            'DESN 348': 'User Experience Design 2',
+            'DESN 350': 'Digital Photography',
+            'DESN 351': 'Advanced Photography',
+            'DESN 355': 'Motion Design',
+            'DESN 359': 'Histories of Design',
+            'DESN 360': 'Zine and Publication Design',
+            'DESN 365': 'Motion Design 2',
+            'DESN 366': 'Production Design',
+            'DESN 368': 'Code + Design 1',
+            'DESN 369': 'Web Development 1',
+            'DESN 374': 'AI + Design',
+            'DESN 375': 'Digital Video',
+            'DESN 378': 'Code + Design 2',
+            'DESN 379': 'Web Development 2',
+            'DESN 384': 'Digital Sound',
+            'DESN 396': 'Experimental Course',
+            'DESN 398': 'Seminar',
+            'DESN 399': 'Directed Study',
+            'DESN 401': 'Imaginary Worlds',
+            'DESN 446': '4D Animation',
+            'DESN 458': 'User Experience Design 3',
+            'DESN 463': 'Community-Driven Design',
+            'DESN 468': 'Code + Design 3',
+            'DESN 469': 'Web Development 3',
+            'DESN 480': 'Professional Practice',
+            'DESN 490': 'Senior Capstone',
+            'DESN 491': 'Senior Project',
+            'DESN 493': 'Portfolio Practice',
+            'DESN 495': 'Internship',
+            'DESN 496': 'Experimental',
+            'DESN 497': 'Workshop, Short Course, Conference, Seminar',
+            'DESN 498': 'Seminar',
+            'DESN 499': 'Directed Study'
+        };
+        const COURSE_METADATA_OVERRIDES = {
+            'DESN 384': {
+                defaultModality: 'online'
+            }
+        };
+        let courseCatalog = null;
+        let courseCatalogByCode = {};
+        let canonicalCourseList = [];
+        let courseCatalogSyncedToDb = false;
         let CLSS_IMPORT_PROFILE_FACULTY_ALIASES = {};
         let CLSS_IMPORT_PROFILE_COURSE_ALIASES = {};
         let CLSS_IMPORT_PROFILE_COURSE_ALIAS_LOOKUP = {};
@@ -4703,6 +4777,29 @@
 
         function escapeRegex(text) {
             return String(text || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        function normalizeCourseModality(value) {
+            return String(value || '').trim().toLowerCase() === 'online' ? 'online' : 'in-person';
+        }
+
+        function mergeCourseCatalogMetadata(course) {
+            const code = normalizeCourseCode(course?.code);
+            const metadata = COURSE_METADATA_OVERRIDES[code] || {};
+            return {
+                ...course,
+                code,
+                defaultCredits: Number(course?.defaultCredits) || 5,
+                defaultModality: normalizeCourseModality(course?.defaultModality || metadata.defaultModality)
+            };
+        }
+
+        function getCourseDefaultModality(courseCode) {
+            const code = normalizeCourseCode(courseCode);
+            return normalizeCourseModality(
+                courseCatalogByCode?.[code]?.defaultModality
+                || COURSE_METADATA_OVERRIDES[code]?.defaultModality
+            );
         }
 
         function parseSchedulerRangeToMinutes(rangeValue) {
@@ -4855,10 +4952,9 @@
         }
 
         function getSchedulerRoomOptionList() {
-            const configuredRooms = Object.keys(schedulerRoomLabels || {}).filter(Boolean);
             const ordered = Array.isArray(CLSS_IMPORT_ROOM_PRIORITY) ? CLSS_IMPORT_ROOM_PRIORITY.slice() : [];
             const allowed = Array.from(CLSS_IMPORT_ALLOWED_ROOMS || []);
-            const merged = [...new Set([...ordered, ...allowed, ...configuredRooms])].filter(Boolean);
+            const merged = [...new Set([...ordered, ...allowed])].filter(Boolean);
             return merged.length ? merged : Object.keys(DEFAULT_SCHEDULER_ROOM_LABELS);
         }
 
@@ -5873,13 +5969,13 @@
                         { code: 'DESN 468', name: 'Code + Design 3', room: '206', instructor: 'T. Masingale', credits: 5 },
                         { code: 'DESN 365', name: 'Motion Des. 2', room: '209', instructor: 'G.Hustrulid', credits: 5 },
                         { code: 'DESN 243', name: 'Typography', room: '210', instructor: 'S.Durr', credits: 5 },
-                        { code: 'DESN 384', name: 'Digital Sound', room: 'CEB 102', instructor: 'J.Braukmann', credits: 5 },
                         { code: 'DESN 100', name: 'Drawing Com.', room: 'CEB 104', instructor: 'A.Sopu', credits: 5 }
                     ]
                 },
                 'ONLINE': {
                     'async': [
-                        { code: 'DESN 216', name: 'Digital Fdns.', room: 'ONLINE', instructor: 'Barton/Pettigrew', credits: 5 }
+                        { code: 'DESN 216', name: 'Digital Fdns.', room: 'ONLINE', instructor: 'Barton/Pettigrew', credits: 5 },
+                        { code: 'DESN 384', name: 'Digital Sound', room: 'ONLINE', instructor: 'J.Braukmann', credits: 5 }
                     ]
                 }
             }
@@ -8091,6 +8187,14 @@
             document.getElementById('editEnrollmentCap').value = defaultCap;
             document.getElementById('editRoom').value = currentCourseData.room || '';
             document.getElementById('editNotes').value = '';
+            const isOnlineCourse = String(currentCourseData.day || '').toUpperCase() === 'ONLINE'
+                || String(currentCourseData.room || '').toUpperCase() === 'ONLINE'
+                || getCourseDefaultModality(currentCourseData.code) === 'online';
+            const editOnlineCheckbox = document.getElementById('editOnlineSection');
+            if (editOnlineCheckbox) {
+                editOnlineCheckbox.checked = isOnlineCourse;
+                editOnlineCheckbox.disabled = getCourseDefaultModality(currentCourseData.code) === 'online';
+            }
 
             // Parse time slot (e.g., "10:00-12:00" -> start: "10:00", end: "12:00")
             let startTime = '';
@@ -8204,6 +8308,8 @@
                 }
             }
 
+            toggleEditOnlineMode(isOnlineCourse);
+
             // Open edit modal
             document.getElementById('courseEditModal').classList.add('active');
         }
@@ -8221,6 +8327,30 @@
             return days;
         }
 
+        function toggleEditOnlineMode(isOnline) {
+            const inPersonFields = document.getElementById('editInPersonFields');
+            const roomInput = document.getElementById('editRoom');
+            const startTimeInput = document.getElementById('editStartTime');
+            const endTimeInput = document.getElementById('editEndTime');
+            if (!inPersonFields || !roomInput || !startTimeInput || !endTimeInput) return;
+
+            if (isOnline) {
+                inPersonFields.style.display = 'none';
+                roomInput.value = 'ONLINE';
+                roomInput.disabled = true;
+                startTimeInput.required = false;
+                endTimeInput.required = false;
+            } else {
+                inPersonFields.style.display = 'block';
+                if (String(roomInput.value || '').trim().toUpperCase() === 'ONLINE') {
+                    roomInput.value = '';
+                }
+                roomInput.disabled = false;
+                startTimeInput.required = true;
+                endTimeInput.required = true;
+            }
+        }
+
         function handleEditFormSubmit(e) {
             e.preventDefault();
 
@@ -8232,16 +8362,21 @@
 
             const newInstructor = document.getElementById('editFaculty').value || 'TBD';
             const newRoom = document.getElementById('editRoom').value || '';
+            const isOnlineEdit = getCourseDefaultModality(currentCourseData?.code || document.getElementById('editCourseCode')?.value) === 'online'
+                || Boolean(document.getElementById('editOnlineSection')?.checked);
+            const originalQuarter = String(currentCourseData?.quarter || quarterLower).toLowerCase();
+            const sourceDay = currentCourseData?.day || '';
+            const sourceTime = currentCourseData?.time || '';
 
             const updates = {
                 section: document.getElementById('editSection').value,
                 credits: parseInt(document.getElementById('editCredits').value) || 5,
                 enrollmentCap: parseInt(document.getElementById('editEnrollmentCap').value) || 24,
                 assignedFaculty: newInstructor,
-                room: newRoom,
+                room: isOnlineEdit ? 'ONLINE' : newRoom,
                 days: getEditSelectedDays(),
-                startTime: document.getElementById('editStartTime').value || null,
-                endTime: document.getElementById('editEndTime').value || null,
+                startTime: isOnlineEdit ? null : (document.getElementById('editStartTime').value || null),
+                endTime: isOnlineEdit ? null : (document.getElementById('editEndTime').value || null),
                 notes: document.getElementById('editNotes').value || null
             };
 
@@ -8250,25 +8385,81 @@
 
             // Update the scheduleData directly for immediate display (primary save path)
             if (currentCourseData) {
-                const { day, time, room, code } = currentCourseData;
-                const quarterData = scheduleData[quarterLower];
+                const sourceQuarterData = scheduleData[originalQuarter] || {};
+                const sourceCourses = sourceQuarterData?.[sourceDay]?.[sourceTime];
+                let extractedCourse = null;
 
-                if (quarterData && quarterData[day] && quarterData[day][time]) {
-                    const courses = quarterData[day][time];
-                    const courseIndex = courses.findIndex(c => c.code === code && c.room === room);
-
-                    if (courseIndex !== -1) {
-                        courses[courseIndex].instructor = newInstructor;
-                        if (newRoom) courses[courseIndex].room = newRoom;
-                        // Update other fields
-                        courses[courseIndex].credits = updates.credits;
-                        courses[courseIndex].enrollmentCap = updates.enrollmentCap;
-                        courses[courseIndex].section = updates.section;
-                        if (updates.notes) courses[courseIndex].notes = updates.notes;
-                        saveScheduleData();
-                        setScheduleDirty(true);
-                        savedSuccessfully = true;
+                if (Array.isArray(sourceCourses)) {
+                    const sourceIndex = sourceCourses.findIndex((course) =>
+                        normalizeCourseCode(course.code) === normalizeCourseCode(currentCourseData.code)
+                        && String(course.instructor || 'TBD') === String(currentCourseData.instructor || 'TBD')
+                    );
+                    if (sourceIndex !== -1) {
+                        extractedCourse = sourceCourses.splice(sourceIndex, 1)[0];
                     }
+                }
+
+                if (!extractedCourse) {
+                    // Fallback: scan quarter for first matching course code/instructor.
+                    Object.keys(sourceQuarterData).some((dayKey) => {
+                        const dayBlock = sourceQuarterData[dayKey];
+                        if (!dayBlock || typeof dayBlock !== 'object') return false;
+                        return Object.keys(dayBlock).some((timeKey) => {
+                            const list = dayBlock[timeKey];
+                            if (!Array.isArray(list)) return false;
+                            const index = list.findIndex((course) =>
+                                normalizeCourseCode(course.code) === normalizeCourseCode(currentCourseData.code)
+                                && String(course.instructor || 'TBD') === String(currentCourseData.instructor || 'TBD')
+                            );
+                            if (index === -1) return false;
+                            extractedCourse = list.splice(index, 1)[0];
+                            return true;
+                        });
+                    });
+                }
+
+                if (extractedCourse) {
+                    const destinationQuarterData = scheduleData[quarterLower] || {};
+                    if (!scheduleData[quarterLower]) scheduleData[quarterLower] = destinationQuarterData;
+
+                    let targetDay = 'ONLINE';
+                    let targetTime = 'async';
+                    if (!isOnlineEdit) {
+                        const selectedDays = getEditSelectedDays();
+                        const startTimeValue = document.getElementById('editStartTime').value;
+                        targetDay = (selectedDays.includes('M') || selectedDays.includes('W')) ? 'MW' : 'TR';
+                        targetTime = startTimeValue.replace(':', '') === '1000'
+                            ? '10:00-12:20'
+                            : startTimeValue.replace(':', '') === '1300'
+                                ? '13:00-15:20'
+                                : '16:00-18:20';
+                    }
+
+                    if (!destinationQuarterData[targetDay]) destinationQuarterData[targetDay] = {};
+                    if (!destinationQuarterData[targetDay][targetTime]) destinationQuarterData[targetDay][targetTime] = [];
+
+                    extractedCourse.instructor = newInstructor;
+                    extractedCourse.room = isOnlineEdit ? 'ONLINE' : (newRoom || extractedCourse.room || '');
+                    extractedCourse.credits = updates.credits;
+                    extractedCourse.enrollmentCap = updates.enrollmentCap;
+                    extractedCourse.section = updates.section;
+                    extractedCourse.notes = updates.notes || null;
+                    extractedCourse.name = extractedCourse.name || currentCourseData.name || extractedCourse.code;
+
+                    destinationQuarterData[targetDay][targetTime].push(extractedCourse);
+
+                    // Clean up emptied source containers.
+                    const sourceQuarterBlock = scheduleData[originalQuarter];
+                    if (sourceQuarterBlock?.[sourceDay]?.[sourceTime] && sourceQuarterBlock[sourceDay][sourceTime].length === 0) {
+                        delete sourceQuarterBlock[sourceDay][sourceTime];
+                        if (Object.keys(sourceQuarterBlock[sourceDay]).length === 0) {
+                            delete sourceQuarterBlock[sourceDay];
+                        }
+                    }
+
+                    saveScheduleData();
+                    setScheduleDirty(true);
+                    savedSuccessfully = true;
                 }
             }
 
@@ -8404,9 +8595,10 @@
             const button = document.getElementById('saveDbButton');
             const label = document.getElementById('saveDbButtonText');
             const dirtyDot = document.getElementById('saveDirtyDot');
+            const status = document.getElementById('saveDbStatus');
             if (!button || !label) return;
 
-            const shouldShow = scheduleDirty || scheduleSaveInProgress;
+            const shouldShow = true;
             button.classList.toggle('visible', shouldShow);
             button.disabled = scheduleSaveInProgress;
             if (dirtyDot) {
@@ -8415,10 +8607,19 @@
 
             if (scheduleSaveInProgress) {
                 label.textContent = 'Saving...';
+                if (status) {
+                    status.textContent = currentAcademicYear ? `Saving ${currentAcademicYear}...` : 'Saving changes...';
+                }
             } else if (scheduleDirty) {
                 label.textContent = 'Save Schedule';
+                if (status) {
+                    status.textContent = currentAcademicYear ? `Unsaved changes for ${currentAcademicYear}` : 'Unsaved changes';
+                }
             } else {
                 label.textContent = 'Saved';
+                if (status) {
+                    status.textContent = currentAcademicYear ? `Saved for ${currentAcademicYear}` : 'All changes saved';
+                }
             }
         }
 
@@ -11833,18 +12034,224 @@
         // ADD COURSE FUNCTIONALITY
         // ============================================
 
+        function formatCatalogTitle(rawTitle) {
+            return String(rawTitle || '')
+                .trim()
+                .toLowerCase()
+                .split(/\s+/)
+                .map((word) => {
+                    if (word === '+') return '+';
+                    if (/^\d+$/.test(word)) return word;
+                    if (word === 'ii' || word === 'iii' || word === 'iv') return word.toUpperCase();
+                    return word.charAt(0).toUpperCase() + word.slice(1);
+                })
+                .join(' ')
+                .replace(/\s\+\s/g, ' + ')
+                .trim();
+        }
+
+        function renderCourseOptionsFromCatalog(select) {
+            if (!select) return;
+            select.innerHTML = '<option value="">Select Course...</option>';
+            canonicalCourseList.forEach((course) => {
+                const code = normalizeCourseCode(course.code);
+                const title = COURSE_TITLE_OVERRIDES[code] || course.title;
+                const option = document.createElement('option');
+                option.value = code;
+                option.textContent = `${code} - ${title}`;
+                select.appendChild(option);
+            });
+        }
+
+        function renderCourseOptionsFromDatabase(select, courses) {
+            if (!select) return;
+            select.innerHTML = '<option value="">Select Course...</option>';
+            (Array.isArray(courses) ? courses : []).forEach((course) => {
+                const code = normalizeCourseCode(course.code);
+                if (!code) return;
+                const canonicalTitle = String(COURSE_TITLE_OVERRIDES[code] || courseCatalogByCode?.[code]?.title || '').trim();
+                const title = canonicalTitle || String(course.title || code).trim();
+                const option = document.createElement('option');
+                option.value = code;
+                option.textContent = `${code} - ${title}`;
+                select.appendChild(option);
+            });
+        }
+
+        async function ensureCourseCatalogLoaded() {
+            if (canonicalCourseList.length > 0) {
+                return canonicalCourseList;
+            }
+
+            courseCatalogByCode = {};
+
+            const markdownPaths = [
+                'ewu-design-catalog/courses/courses-202526.md',
+                '/ewu-design-catalog/courses/courses-202526.md',
+                './ewu-design-catalog/courses/courses-202526.md'
+            ];
+
+            for (const markdownPath of markdownPaths) {
+                try {
+                    const offeringsResponse = await fetch(markdownPath);
+                    if (!offeringsResponse.ok) continue;
+                    const markdown = await offeringsResponse.text();
+                    const lines = String(markdown || '').split(/\r\n|\n|\r/);
+                    const parsed = [];
+
+                    lines.forEach((line) => {
+                        const match = String(line || '')
+                            .trim()
+                            .match(/^DESN\s+(\d{3})\.\s+(.+?)\.\s+\d+(?:-\d+)?\s+Credits\./i);
+                        if (!match) return;
+                        const code = `DESN ${match[1]}`;
+                        const title = formatCatalogTitle(match[2]);
+                        parsed.push(mergeCourseCatalogMetadata({ code, title, defaultCredits: 5 }));
+                    });
+
+                    if (parsed.length > 0) {
+                        const dedupedByCode = new Map();
+                        parsed.forEach((course) => {
+                            dedupedByCode.set(course.code, course);
+                        });
+                        canonicalCourseList = Array.from(dedupedByCode.values())
+                            .sort((a, b) => a.code.localeCompare(b.code, 'en', { numeric: true, sensitivity: 'base' }));
+                        canonicalCourseList.forEach((course) => {
+                            courseCatalogByCode[course.code] = course;
+                        });
+                        break;
+                    }
+                } catch (error) {
+                    console.warn(`Could not load markdown course offerings from ${markdownPath}:`, error);
+                }
+            }
+
+            if (canonicalCourseList.length === 0) {
+                try {
+                    const response = await fetch('data/course-catalog.json');
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    const json = await response.json();
+                    courseCatalog = json;
+                    canonicalCourseList = (json.courses || [])
+                        .map((course) => mergeCourseCatalogMetadata({
+                            ...course,
+                            title: String(course.title || course.code || '').trim()
+                        }))
+                        .filter((course) => course.code);
+                    canonicalCourseList.forEach((course) => {
+                        courseCatalogByCode[course.code] = course;
+                    });
+                } catch (fallbackError) {
+                    console.warn('Could not load fallback JSON catalog for Add Course modal:', fallbackError);
+                }
+            }
+
+            return canonicalCourseList;
+        }
+
+        async function syncCourseCatalogTitlesToSupabase(client) {
+            if (!client || courseCatalogSyncedToDb || !canonicalCourseList.length) {
+                return;
+            }
+
+            const department = await resolveActiveDepartmentRecord(client);
+            if (!department?.id) return;
+
+            const payload = canonicalCourseList.map((course) => ({
+                department_id: department.id,
+                code: course.code,
+                title: course.title,
+                default_credits: Number(course.defaultCredits) || 5
+            }));
+
+            const upserted = await client
+                .from('courses')
+                .upsert(payload, { onConflict: 'department_id,code' });
+            if (upserted.error) throw upserted.error;
+            courseCatalogSyncedToDb = true;
+        }
+
+        async function resolveActiveDepartmentRecord(client) {
+            if (!client) return null;
+            const departmentIdentity = getActiveDepartmentIdentity();
+            let { data: department, error: departmentError } = await client
+                .from('departments')
+                .select('id')
+                .eq('code', departmentIdentity.code)
+                .maybeSingle();
+            if (departmentError) throw departmentError;
+
+            if (!department) {
+                const created = await client
+                    .from('departments')
+                    .insert({ name: departmentIdentity.name, code: departmentIdentity.code })
+                    .select('id')
+                    .single();
+                if (created.error) throw created.error;
+                department = created.data;
+            }
+            return department;
+        }
+
+        function populateAddRoomDropdown() {
+            const select = document.getElementById('addRoom');
+            if (!select) return;
+
+            const previousValue = select.value;
+            select.innerHTML = '<option value="">Select Room...</option>';
+
+            const entries = Object.entries(schedulerRoomLabels || {}).sort(([aCode], [bCode]) =>
+                String(aCode || '').localeCompare(String(bCode || ''), 'en', { numeric: true, sensitivity: 'base' })
+            );
+
+            entries.forEach(([code, label]) => {
+                const option = document.createElement('option');
+                option.value = code;
+                option.textContent = label || code;
+                select.appendChild(option);
+            });
+
+            const onlineOption = document.createElement('option');
+            onlineOption.value = 'ONLINE';
+            onlineOption.textContent = 'ONLINE ASYNC';
+            select.appendChild(onlineOption);
+
+            if (previousValue && Array.from(select.options).some((opt) => opt.value === previousValue)) {
+                select.value = previousValue;
+            }
+        }
+
+        function applySelectedCourseDefaults() {
+            const select = document.getElementById('addCourseCode');
+            const creditsInput = document.getElementById('addCredits');
+            const onlineCheckbox = document.getElementById('addOnlineSection');
+            if (!select || !creditsInput || !onlineCheckbox) return;
+
+            const code = normalizeCourseCode(select.value);
+            const course = code ? courseCatalogByCode?.[code] : null;
+            creditsInput.value = Number(course?.defaultCredits) || 5;
+
+            const forceOnline = code ? getCourseDefaultModality(code) === 'online' : false;
+            onlineCheckbox.checked = forceOnline;
+            onlineCheckbox.disabled = forceOnline;
+            toggleOnlineMode(forceOnline);
+        }
+
         async function openAddCourseModal() {
             document.getElementById('addCourseForm').reset();
             document.getElementById('addDayM').checked = true;
             document.getElementById('addDayW').checked = true;
             document.getElementById('addOnlineSection').checked = false;
             toggleOnlineMode(false);
+            populateAddRoomDropdown();
             document.getElementById('addCourseModal').classList.add('active');
 
             // Load courses from Supabase
+            await ensureCourseCatalogLoaded();
             await loadCoursesFromSupabase();
             // Load faculty from Supabase
             await loadFacultyFromSupabase();
+            applySelectedCourseDefaults();
         }
 
         function toggleOnlineMode(isOnline) {
@@ -11872,32 +12279,45 @@
 
         async function loadCoursesFromSupabase() {
             const select = document.getElementById('addCourseCode');
+            await ensureCourseCatalogLoaded();
+
             const client = getDatabaseClient();
-            if (!client) return; // Keep hardcoded fallback if Supabase not configured
+            if (!client) {
+                // No live DB client available: fallback to canonical offerings snapshot.
+                renderCourseOptionsFromCatalog(select);
+                return;
+            }
 
             try {
+                const department = await resolveActiveDepartmentRecord(client);
+                if (!department?.id) {
+                    renderCourseOptionsFromCatalog(select);
+                    return;
+                }
                 const { data: courses, error } = await client
                     .from('courses')
                     .select('code, title')
+                    .eq('department_id', department.id)
                     .order('code');
-
                 if (error) throw error;
-
-                if (courses && courses.length > 0) {
-                    // Clear existing options except the placeholder
-                    select.innerHTML = '<option value="">Select Course...</option>';
-
-                    // Add courses from database
-                    courses.forEach(course => {
-                        const option = document.createElement('option');
-                        option.value = course.code;
-                        option.textContent = `${course.code} - ${course.title}`;
-                        select.appendChild(option);
+                if (Array.isArray(courses) && courses.length > 0) {
+                    // DB-first rendering so add/remove/edit course ops are reflected immediately.
+                    const dedupedByCode = new Map();
+                    courses.forEach((course) => {
+                        const code = normalizeCourseCode(course.code);
+                        if (!code) return;
+                        dedupedByCode.set(code, {
+                            code,
+                            title: String(course.title || code).trim()
+                        });
                     });
-                    console.log(`Loaded ${courses.length} courses from Supabase`);
+                    renderCourseOptionsFromDatabase(select, Array.from(dedupedByCode.values()));
+                    return;
                 }
+                renderCourseOptionsFromCatalog(select);
             } catch (err) {
-                console.warn('Could not load courses from Supabase, using fallback:', err.message);
+                console.warn('Could not load DB courses for Add Course modal:', err.message);
+                renderCourseOptionsFromCatalog(select);
             }
         }
 
@@ -11961,11 +12381,16 @@
             e.preventDefault();
 
             const courseCode = normalizeCourseCode(document.getElementById('addCourseCode').value);
-            const courseName = document.getElementById('addCourseCode').options[document.getElementById('addCourseCode').selectedIndex].text.split(' - ')[1] || '';
+            const selectedOption = document.getElementById('addCourseCode').options[document.getElementById('addCourseCode').selectedIndex];
+            const optionText = String(selectedOption?.textContent || '').trim();
+            const courseName = optionText.startsWith(`${courseCode} - `)
+                ? optionText.slice(`${courseCode} - `.length)
+                : optionText;
             const section = document.getElementById('addSection').value;
             const credits = parseInt(document.getElementById('addCredits').value);
             const instructor = document.getElementById('addFaculty').value || 'TBD';
-            const isOnline = document.getElementById('addOnlineSection').checked;
+            const isOnline = getCourseDefaultModality(courseCode) === 'online'
+                || document.getElementById('addOnlineSection').checked;
             const room = document.getElementById('addRoom').value;
 
             const quarter = window.StateManager?.get('currentQuarter') || 'spring';
@@ -12092,6 +12517,72 @@
             return data;
         }
 
+        function enforceCourseDefaultModalities(data) {
+            let mutated = false;
+
+            for (const quarter of ['fall', 'winter', 'spring']) {
+                const quarterData = data?.[quarter];
+                if (!quarterData || typeof quarterData !== 'object') continue;
+
+                if (!quarterData.ONLINE || typeof quarterData.ONLINE !== 'object') {
+                    quarterData.ONLINE = { async: [] };
+                    mutated = true;
+                }
+                if (!Array.isArray(quarterData.ONLINE.async)) {
+                    quarterData.ONLINE.async = [];
+                    mutated = true;
+                }
+
+                Object.entries(quarterData).forEach(([dayPattern, dayBucket]) => {
+                    if (dayPattern === 'ONLINE' || !dayBucket || typeof dayBucket !== 'object') return;
+
+                    Object.keys(dayBucket).forEach((timeKey) => {
+                        const courses = dayBucket[timeKey];
+                        if (!Array.isArray(courses) || courses.length === 0) return;
+
+                        const remaining = [];
+                        courses.forEach((course) => {
+                            if (getCourseDefaultModality(course?.code) === 'online') {
+                                quarterData.ONLINE.async.push({
+                                    ...course,
+                                    room: 'ONLINE'
+                                });
+                                mutated = true;
+                            } else {
+                                remaining.push(course);
+                            }
+                        });
+
+                        if (remaining.length > 0) {
+                            dayBucket[timeKey] = remaining;
+                        } else {
+                            delete dayBucket[timeKey];
+                            mutated = true;
+                        }
+                    });
+
+                    if (Object.keys(dayBucket).length === 0) {
+                        delete quarterData[dayPattern];
+                        mutated = true;
+                    }
+                });
+
+                quarterData.ONLINE.async = quarterData.ONLINE.async.map((course) => {
+                    if (getCourseDefaultModality(course?.code) === 'online'
+                        && String(course?.room || '').trim().toUpperCase() !== 'ONLINE') {
+                        mutated = true;
+                        return {
+                            ...course,
+                            room: 'ONLINE'
+                        };
+                    }
+                    return course;
+                });
+            }
+
+            return mutated;
+        }
+
         function loadScheduleData(year) {
             const targetYear = year || currentAcademicYear;
             try {
@@ -12100,6 +12591,7 @@
                     let parsed = JSON.parse(saved);
                     parsed = migrateTimeSlots(parsed);
                     parsed = normalizeScheduleCourseCodes(parsed);
+                    const modalityMigrated = enforceCourseDefaultModalities(parsed);
                     const hasCourses = (qData) => {
                         if (!qData) return false;
                         return Object.values(qData).some(dayData =>
@@ -12115,6 +12607,9 @@
                         }
                     }
                     console.log('Schedule data loaded for year:', targetYear);
+                    if (modalityMigrated) {
+                        console.log('Migrated course modality defaults for year:', targetYear);
+                    }
                     saveScheduleData();
                     return true;
                 }
@@ -12122,47 +12617,6 @@
                 console.warn('Could not load schedule data:', e);
             }
             return false;
-        }
-
-        function snapshotHasCourses(snapshot) {
-            if (!snapshot || typeof snapshot !== 'object') return false;
-            return ['fall', 'winter', 'spring'].some((quarter) => {
-                const quarterData = snapshot[quarter];
-                if (!quarterData || typeof quarterData !== 'object') return false;
-                return Object.values(quarterData).some((dayData) => {
-                    if (!dayData || typeof dayData !== 'object') return false;
-                    return Object.values(dayData).some((timeData) =>
-                        Array.isArray(timeData) && timeData.length > 0
-                    );
-                });
-            });
-        }
-
-        function findMostRecentSavedScheduleYear() {
-            const prefix = String(scheduleStorageKeyPrefix || 'designSchedulerData_').trim() || 'designSchedulerData_';
-            const years = [];
-
-            for (let i = 0; i < localStorage.length; i += 1) {
-                const key = localStorage.key(i);
-                if (!key || !key.startsWith(prefix)) continue;
-                const year = key.slice(prefix.length);
-                if (!/^\d{4}-\d{2}$/.test(year)) continue;
-
-                try {
-                    const raw = localStorage.getItem(key);
-                    if (!raw) continue;
-                    const parsed = JSON.parse(raw);
-                    if (snapshotHasCourses(parsed)) {
-                        years.push(year);
-                    }
-                } catch (error) {
-                    // ignore malformed localStorage values
-                }
-            }
-
-            if (!years.length) return '';
-            years.sort((a, b) => String(b).localeCompare(String(a)));
-            return years[0];
         }
 
         function clearScheduleData() {
@@ -12505,6 +12959,8 @@
             await initializeDepartmentProfileContext();
             await loadEnrollmentData();
             await loadFacultyData();
+            await ensureCourseCatalogLoaded();
+            await loadCoursesFromSupabase();
 
             // Initialize custom faculty from localStorage
             customFaculty = JSON.parse(localStorage.getItem('customFaculty') || '[]');
@@ -12513,6 +12969,7 @@
             rebuildFacultyDropdowns();
 
             // Add change handlers to faculty selects
+            document.getElementById('addCourseCode')?.addEventListener('change', applySelectedCourseDefaults);
             document.getElementById('addFaculty')?.addEventListener('change', () => handleFacultySelectChange('addFaculty'));
             document.getElementById('editFaculty')?.addEventListener('change', () => handleFacultySelectChange('editFaculty'));
 
@@ -12520,17 +12977,14 @@
             migrateOldScheduleData();
 
             // Load saved schedule data from localStorage
-            const loadedCurrentYear = loadScheduleData();
-            if (!loadedCurrentYear) {
-                const fallbackYear = findMostRecentSavedScheduleYear();
-                if (fallbackYear && fallbackYear !== currentAcademicYear) {
-                    switchAcademicYear(fallbackYear);
-                    showToast(`Loaded saved schedule from ${fallbackYear}`, 'warning');
-                }
-            }
+            loadScheduleData();
 
             // Check for imported schedule from schedule builder
             checkForImportedSchedule();
+
+            if (enforceCourseDefaultModalities(scheduleData)) {
+                saveScheduleData();
+            }
 
             // Initialize ScheduleManager for editing
             if (typeof ScheduleManager !== 'undefined') {
@@ -12731,6 +13185,15 @@
                     </div>
 
                     <div class="form-group">
+                        <label
+                            style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; background: #f8fafc; border-radius: 6px; border: 1px solid #d0d7de;">
+                            <input type="checkbox" id="editOnlineSection" onchange="toggleEditOnlineMode(this.checked)">
+                            <span style="font-weight: 500; color: #374151;">Online/Async Section</span>
+                        </label>
+                    </div>
+
+                    <div id="editInPersonFields">
+                    <div class="form-group">
                         <label class="form-label">Days</label>
                         <div style="display: flex; gap: 12px; margin-top: 6px;">
                             <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
@@ -12766,6 +13229,7 @@
                     <div class="form-group">
                         <label for="editRoom" class="form-label">Room</label>
                         <input type="text" id="editRoom" class="form-input" placeholder="e.g., CEB 242">
+                    </div>
                     </div>
 
                     <div class="form-group">
@@ -13107,16 +13571,9 @@
                         <div class="form-group">
                             <label for="addRoom" class="form-label">Room</label>
                             <select id="addRoom" class="form-select" required>
-                                <option value="">Select Room...</option>
-                                <option value="206">206 - UX Lab</option>
-                                <option value="207">207 - Media Lab</option>
-                                <option value="209">209 - Mac Lab</option>
-                                <option value="210">210 - Mac Lab</option>
-                                <option value="212">212 - Project Lab</option>
-                                <option value="CEB 102">CEB 102</option>
-                                <option value="CEB 104">CEB 104</option>
-                                <option value="ONLINE">Online / Async</option>
-                            </select>
+                            <option value="">Select Room...</option>
+                        </select>
+                        <small style="color: #6b7280; font-size: 0.85em;">Use in-person rooms for on-campus sections; choose ONLINE ASYNC for fully online.</small>
                         </div>
                     </div>
                 </div>
@@ -13502,6 +13959,86 @@
         // ============================================
         // SAVE, CONFLICT DETECTION & AI ANALYSIS
         // ============================================
+        const FALLBACK_RECOVERY_DRAFT_KEY = 'pc_session_recovery_draft_v1';
+
+        function safeCaptureRecoveryDraft(reason = 'save-failed') {
+            if (typeof window.captureRecoveryDraft === 'function') {
+                try {
+                    window.captureRecoveryDraft(reason);
+                    return;
+                } catch (error) {
+                    console.warn('captureRecoveryDraft failed, using fallback draft capture:', error);
+                }
+            }
+
+            try {
+                const payload = {
+                    reason,
+                    savedAt: new Date().toISOString(),
+                    academicYear: typeof currentAcademicYear === 'string' ? currentAcademicYear : '',
+                    scheduleData: typeof scheduleData === 'object' ? scheduleData : null
+                };
+                localStorage.setItem(FALLBACK_RECOVERY_DRAFT_KEY, JSON.stringify(payload));
+            } catch (error) {
+                console.warn('Could not persist fallback session recovery draft:', error);
+            }
+        }
+
+        function safeClearRecoveryDraft() {
+            if (typeof window.clearRecoveryDraft === 'function') {
+                try {
+                    window.clearRecoveryDraft();
+                    return;
+                } catch (error) {
+                    console.warn('clearRecoveryDraft failed, using fallback cleanup:', error);
+                }
+            }
+
+            try {
+                localStorage.removeItem(FALLBACK_RECOVERY_DRAFT_KEY);
+            } catch (error) {
+                console.warn('Could not clear fallback session recovery draft:', error);
+            }
+        }
+
+        function getDepartmentIdentityForSave() {
+            if (typeof window.getActiveDepartmentIdentity === 'function') {
+                try {
+                    const identity = window.getActiveDepartmentIdentity();
+                    if (identity && typeof identity === 'object') {
+                        const code = String(identity.code || '').trim().toUpperCase();
+                        const name = String(identity.name || '').trim();
+                        if (code || name) {
+                            return {
+                                code: code || 'DESN',
+                                name: name || 'Design'
+                            };
+                        }
+                    }
+                } catch (error) {
+                    console.warn('Could not read active department identity from module context:', error);
+                }
+            }
+
+            const fallbackIdentity = window.activeDepartmentProfile?.identity || {};
+            return {
+                code: String(fallbackIdentity.code || 'DESN').trim().toUpperCase() || 'DESN',
+                name: String(fallbackIdentity.name || 'Design').trim() || 'Design'
+            };
+        }
+
+        function normalizeLookupKeyForSave(value) {
+            if (typeof window.normalizeLookupKey === 'function') {
+                try {
+                    return window.normalizeLookupKey(value);
+                } catch (error) {
+                    // Fall through to local normalization when delegated helper fails.
+                }
+            }
+            return String(value || '')
+                .toLowerCase()
+                .replace(/[^a-z0-9]/g, '');
+        }
 
         async function exportToGoogleSheets() {
             if (window.location.hostname.endsWith('github.io')) {
@@ -13614,6 +14151,19 @@
                 || message.includes('sync_scheduled_courses_for_academic_year');
         }
 
+        function isPermissionDeniedError(error) {
+            const code = String(error?.code || '').toUpperCase();
+            const status = Number(error?.status || error?.statusCode || 0);
+            const message = String(error?.message || '').toLowerCase();
+            return status === 401
+                || status === 403
+                || code === '42501'
+                || code === 'PGRST301'
+                || message.includes('row-level security')
+                || message.includes('permission denied')
+                || message.includes('not allowed');
+        }
+
         async function syncScheduledCoursesViaRpc(client, academicYearId, records) {
             const rpcResult = await client.rpc('sync_scheduled_courses_for_academic_year', {
                 p_academic_year_id: academicYearId,
@@ -13707,11 +14257,14 @@
 
             const client = getDatabaseClient();
             if (!client) {
+                saveScheduleData();
+                setScheduleDirty(false);
+                updateSaveDbButtonState();
                 if (!silent) {
-                    showToast('Supabase is not connected. Changes are still saved locally.', 'error');
+                    showToast('Supabase is not connected. Schedule saved locally on this device.', 'warning');
                 }
-                captureRecoveryDraft(`save-no-client-${trigger}`);
-                return false;
+                safeCaptureRecoveryDraft(`save-no-client-${trigger}`);
+                return true;
             }
 
             const rows = collectScheduleCoursesForDatabase();
@@ -13721,7 +14274,7 @@
             try {
                 // Always keep local backup in sync with current in-memory state.
                 saveScheduleData();
-                const departmentIdentity = getActiveDepartmentIdentity();
+                const departmentIdentity = getDepartmentIdentityForSave();
 
                 let { data: department, error: departmentError } = await client
                     .from('departments')
@@ -13741,17 +14294,30 @@
                     department = created.data;
                 }
 
-                const yearResult = await client
+                let academicYearId = null;
+                const existingYearResult = await client
                     .from('academic_years')
-                    .upsert({
-                        department_id: department.id,
-                        year: currentAcademicYear,
-                        is_active: true
-                    }, { onConflict: 'department_id,year' })
                     .select('id')
-                    .single();
-                if (yearResult.error) throw yearResult.error;
-                const academicYearId = yearResult.data.id;
+                    .eq('department_id', department.id)
+                    .eq('year', currentAcademicYear)
+                    .maybeSingle();
+                if (existingYearResult.error) throw existingYearResult.error;
+
+                if (existingYearResult.data?.id) {
+                    academicYearId = existingYearResult.data.id;
+                } else {
+                    const yearResult = await client
+                        .from('academic_years')
+                        .upsert({
+                            department_id: department.id,
+                            year: currentAcademicYear,
+                            is_active: true
+                        }, { onConflict: 'department_id,year' })
+                        .select('id')
+                        .single();
+                    if (yearResult.error) throw yearResult.error;
+                    academicYearId = yearResult.data.id;
+                }
 
                 const [courseResult, facultyResult, roomResult] = await Promise.all([
                     client.from('courses').select('id, code').eq('department_id', department.id),
@@ -13768,7 +14334,7 @@
                 (facultyResult.data || []).forEach((f) => {
                     const canonical = String(f.name || '').trim();
                     if (!canonical) return;
-                    facultyMap.set(normalizeLookupKey(canonical), f.id);
+                    facultyMap.set(normalizeLookupKeyForSave(canonical), f.id);
                 });
                 const roomMap = new Map((roomResult.data || []).map((r) => [String(r.room_code || '').trim().toUpperCase(), r.id]));
 
@@ -13788,7 +14354,7 @@
                     }
 
                     const instructorName = String(row.instructor || '').trim();
-                    const instructorKey = normalizeLookupKey(instructorName);
+                    const instructorKey = normalizeLookupKeyForSave(instructorName);
                     if (instructorName && instructorName.toUpperCase() !== 'TBD' && !facultyMap.has(instructorKey)) {
                         missingFaculty.set(instructorName, {
                             department_id: department.id,
@@ -13803,7 +14369,13 @@
                         .from('courses')
                         .upsert(Array.from(missingCourses.values()), { onConflict: 'department_id,code' })
                         .select('id, code');
-                    if (seeded.error) throw seeded.error;
+                    if (seeded.error) {
+                        if (isPermissionDeniedError(seeded.error)) {
+                            console.warn('Could not auto-seed missing courses due to permissions; continuing save without course linkage.', seeded.error);
+                        } else {
+                            throw seeded.error;
+                        }
+                    }
                     (seeded.data || []).forEach((c) => {
                         courseMap.set(normalizeCourseCode(c.code), c.id);
                     });
@@ -13814,9 +14386,15 @@
                         .from('faculty')
                         .upsert(Array.from(missingFaculty.values()), { onConflict: 'department_id,name' })
                         .select('id, name');
-                    if (seeded.error) throw seeded.error;
+                    if (seeded.error) {
+                        if (isPermissionDeniedError(seeded.error)) {
+                            console.warn('Could not auto-seed missing faculty due to permissions; continuing save without faculty linkage.', seeded.error);
+                        } else {
+                            throw seeded.error;
+                        }
+                    }
                     (seeded.data || []).forEach((f) => {
-                        facultyMap.set(normalizeLookupKey(f.name), f.id);
+                        facultyMap.set(normalizeLookupKeyForSave(f.name), f.id);
                     });
                 }
 
@@ -13833,7 +14411,7 @@
                             academic_year_id: academicYearId,
                             course_id: courseMap.get(courseCode) || null,
                             faculty_id: instructorName && instructorName.toUpperCase() !== 'TBD'
-                                ? (facultyMap.get(normalizeLookupKey(instructorName)) || null)
+                                ? (facultyMap.get(normalizeLookupKeyForSave(instructorName)) || null)
                                 : null,
                             room_id: roomCode && roomCode !== 'ONLINE'
                                 ? (roomMap.get(roomCode) || null)
@@ -13854,14 +14432,23 @@
                 }
 
                 setScheduleDirty(false);
-                clearRecoveryDraft();
+                safeClearRecoveryDraft();
                 if (!silent) {
                     showToast(`Saved ${records.length} schedule entries to Supabase (${saveCounts.updated} updated, ${saveCounts.inserted} new${saveCounts.deleted ? `, ${saveCounts.deleted} removed` : ''}).`);
                 }
                 return true;
             } catch (error) {
                 console.error('Error saving schedule to Supabase:', error);
-                captureRecoveryDraft(`save-failed-${trigger}`);
+                safeCaptureRecoveryDraft(`save-failed-${trigger}`);
+                if (isPermissionDeniedError(error)) {
+                    // Persist local state and clear dirty marker so Save has a reliable local-only mode.
+                    saveScheduleData();
+                    setScheduleDirty(false);
+                    if (!silent) {
+                        showToast('Cloud save blocked by permissions. Changes were saved locally on this device.', 'warning');
+                    }
+                    return true;
+                }
                 if (!silent) {
                     showToast('Database save failed: ' + (error.message || 'Unknown error'), 'error');
                 }
