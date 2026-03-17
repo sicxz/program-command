@@ -327,6 +327,7 @@
       "code": "DESN 384",
       "title": "Digital Sound",
       "defaultCredits": 5,
+      "defaultModality": "online",
       "typicalEnrollmentCap": 24,
       "level": "300",
       "offeredQuarters": [

@@ -4754,6 +4754,11 @@
             'DESN 498': 'Seminar',
             'DESN 499': 'Directed Study'
         };
+        const COURSE_METADATA_OVERRIDES = {
+            'DESN 384': {
+                defaultModality: 'online'
+            }
+        };
         let courseCatalog = null;
         let courseCatalogByCode = {};
         let canonicalCourseList = [];
@@ -4772,6 +4777,29 @@
 
         function escapeRegex(text) {
             return String(text || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        function normalizeCourseModality(value) {
+            return String(value || '').trim().toLowerCase() === 'online' ? 'online' : 'in-person';
+        }
+
+        function mergeCourseCatalogMetadata(course) {
+            const code = normalizeCourseCode(course?.code);
+            const metadata = COURSE_METADATA_OVERRIDES[code] || {};
+            return {
+                ...course,
+                code,
+                defaultCredits: Number(course?.defaultCredits) || 5,
+                defaultModality: normalizeCourseModality(course?.defaultModality || metadata.defaultModality)
+            };
+        }
+
+        function getCourseDefaultModality(courseCode) {
+            const code = normalizeCourseCode(courseCode);
+            return normalizeCourseModality(
+                courseCatalogByCode?.[code]?.defaultModality
+                || COURSE_METADATA_OVERRIDES[code]?.defaultModality
+            );
         }
 
         function parseSchedulerRangeToMinutes(rangeValue) {
@@ -5941,13 +5969,13 @@
                         { code: 'DESN 468', name: 'Code + Design 3', room: '206', instructor: 'T. Masingale', credits: 5 },
                         { code: 'DESN 365', name: 'Motion Des. 2', room: '209', instructor: 'G.Hustrulid', credits: 5 },
                         { code: 'DESN 243', name: 'Typography', room: '210', instructor: 'S.Durr', credits: 5 },
-                        { code: 'DESN 384', name: 'Digital Sound', room: 'CEB 102', instructor: 'J.Braukmann', credits: 5 },
                         { code: 'DESN 100', name: 'Drawing Com.', room: 'CEB 104', instructor: 'A.Sopu', credits: 5 }
                     ]
                 },
                 'ONLINE': {
                     'async': [
-                        { code: 'DESN 216', name: 'Digital Fdns.', room: 'ONLINE', instructor: 'Barton/Pettigrew', credits: 5 }
+                        { code: 'DESN 216', name: 'Digital Fdns.', room: 'ONLINE', instructor: 'Barton/Pettigrew', credits: 5 },
+                        { code: 'DESN 384', name: 'Digital Sound', room: 'ONLINE', instructor: 'J.Braukmann', credits: 5 }
                     ]
                 }
             }
@@ -8160,10 +8188,12 @@
             document.getElementById('editRoom').value = currentCourseData.room || '';
             document.getElementById('editNotes').value = '';
             const isOnlineCourse = String(currentCourseData.day || '').toUpperCase() === 'ONLINE'
-                || String(currentCourseData.room || '').toUpperCase() === 'ONLINE';
+                || String(currentCourseData.room || '').toUpperCase() === 'ONLINE'
+                || getCourseDefaultModality(currentCourseData.code) === 'online';
             const editOnlineCheckbox = document.getElementById('editOnlineSection');
             if (editOnlineCheckbox) {
                 editOnlineCheckbox.checked = isOnlineCourse;
+                editOnlineCheckbox.disabled = getCourseDefaultModality(currentCourseData.code) === 'online';
             }
 
             // Parse time slot (e.g., "10:00-12:00" -> start: "10:00", end: "12:00")
@@ -8332,7 +8362,8 @@
 
             const newInstructor = document.getElementById('editFaculty').value || 'TBD';
             const newRoom = document.getElementById('editRoom').value || '';
-            const isOnlineEdit = Boolean(document.getElementById('editOnlineSection')?.checked);
+            const isOnlineEdit = getCourseDefaultModality(currentCourseData?.code || document.getElementById('editCourseCode')?.value) === 'online'
+                || Boolean(document.getElementById('editOnlineSection')?.checked);
             const originalQuarter = String(currentCourseData?.quarter || quarterLower).toLowerCase();
             const sourceDay = currentCourseData?.day || '';
             const sourceTime = currentCourseData?.time || '';
@@ -12075,7 +12106,7 @@
                         if (!match) return;
                         const code = `DESN ${match[1]}`;
                         const title = formatCatalogTitle(match[2]);
-                        parsed.push({ code, title, defaultCredits: 5 });
+                        parsed.push(mergeCourseCatalogMetadata({ code, title, defaultCredits: 5 }));
                     });
 
                     if (parsed.length > 0) {
@@ -12101,14 +12132,12 @@
                     if (!response.ok) throw new Error(`HTTP ${response.status}`);
                     const json = await response.json();
                     courseCatalog = json;
-                    canonicalCourseList = (json.courses || []).map((course) => {
-                        const code = normalizeCourseCode(course.code);
-                        return {
-                            code,
-                            title: String(course.title || code || '').trim(),
-                            defaultCredits: Number(course.defaultCredits) || 5
-                        };
-                    }).filter((course) => course.code);
+                    canonicalCourseList = (json.courses || [])
+                        .map((course) => mergeCourseCatalogMetadata({
+                            ...course,
+                            title: String(course.title || course.code || '').trim()
+                        }))
+                        .filter((course) => course.code);
                     canonicalCourseList.forEach((course) => {
                         courseCatalogByCode[course.code] = course;
                     });
@@ -12192,6 +12221,22 @@
             }
         }
 
+        function applySelectedCourseDefaults() {
+            const select = document.getElementById('addCourseCode');
+            const creditsInput = document.getElementById('addCredits');
+            const onlineCheckbox = document.getElementById('addOnlineSection');
+            if (!select || !creditsInput || !onlineCheckbox) return;
+
+            const code = normalizeCourseCode(select.value);
+            const course = code ? courseCatalogByCode?.[code] : null;
+            creditsInput.value = Number(course?.defaultCredits) || 5;
+
+            const forceOnline = code ? getCourseDefaultModality(code) === 'online' : false;
+            onlineCheckbox.checked = forceOnline;
+            onlineCheckbox.disabled = forceOnline;
+            toggleOnlineMode(forceOnline);
+        }
+
         async function openAddCourseModal() {
             document.getElementById('addCourseForm').reset();
             document.getElementById('addDayM').checked = true;
@@ -12206,6 +12251,7 @@
             await loadCoursesFromSupabase();
             // Load faculty from Supabase
             await loadFacultyFromSupabase();
+            applySelectedCourseDefaults();
         }
 
         function toggleOnlineMode(isOnline) {
@@ -12343,7 +12389,8 @@
             const section = document.getElementById('addSection').value;
             const credits = parseInt(document.getElementById('addCredits').value);
             const instructor = document.getElementById('addFaculty').value || 'TBD';
-            const isOnline = document.getElementById('addOnlineSection').checked;
+            const isOnline = getCourseDefaultModality(courseCode) === 'online'
+                || document.getElementById('addOnlineSection').checked;
             const room = document.getElementById('addRoom').value;
 
             const quarter = window.StateManager?.get('currentQuarter') || 'spring';
@@ -12470,6 +12517,72 @@
             return data;
         }
 
+        function enforceCourseDefaultModalities(data) {
+            let mutated = false;
+
+            for (const quarter of ['fall', 'winter', 'spring']) {
+                const quarterData = data?.[quarter];
+                if (!quarterData || typeof quarterData !== 'object') continue;
+
+                if (!quarterData.ONLINE || typeof quarterData.ONLINE !== 'object') {
+                    quarterData.ONLINE = { async: [] };
+                    mutated = true;
+                }
+                if (!Array.isArray(quarterData.ONLINE.async)) {
+                    quarterData.ONLINE.async = [];
+                    mutated = true;
+                }
+
+                Object.entries(quarterData).forEach(([dayPattern, dayBucket]) => {
+                    if (dayPattern === 'ONLINE' || !dayBucket || typeof dayBucket !== 'object') return;
+
+                    Object.keys(dayBucket).forEach((timeKey) => {
+                        const courses = dayBucket[timeKey];
+                        if (!Array.isArray(courses) || courses.length === 0) return;
+
+                        const remaining = [];
+                        courses.forEach((course) => {
+                            if (getCourseDefaultModality(course?.code) === 'online') {
+                                quarterData.ONLINE.async.push({
+                                    ...course,
+                                    room: 'ONLINE'
+                                });
+                                mutated = true;
+                            } else {
+                                remaining.push(course);
+                            }
+                        });
+
+                        if (remaining.length > 0) {
+                            dayBucket[timeKey] = remaining;
+                        } else {
+                            delete dayBucket[timeKey];
+                            mutated = true;
+                        }
+                    });
+
+                    if (Object.keys(dayBucket).length === 0) {
+                        delete quarterData[dayPattern];
+                        mutated = true;
+                    }
+                });
+
+                quarterData.ONLINE.async = quarterData.ONLINE.async.map((course) => {
+                    if (getCourseDefaultModality(course?.code) === 'online'
+                        && String(course?.room || '').trim().toUpperCase() !== 'ONLINE') {
+                        mutated = true;
+                        return {
+                            ...course,
+                            room: 'ONLINE'
+                        };
+                    }
+                    return course;
+                });
+            }
+
+            return mutated;
+        }
+
         function loadScheduleData(year) {
             const targetYear = year || currentAcademicYear;
             try {
@@ -12478,6 +12591,7 @@
                     let parsed = JSON.parse(saved);
                     parsed = migrateTimeSlots(parsed);
                     parsed = normalizeScheduleCourseCodes(parsed);
+                    const modalityMigrated = enforceCourseDefaultModalities(parsed);
                     const hasCourses = (qData) => {
                         if (!qData) return false;
                         return Object.values(qData).some(dayData =>
@@ -12493,6 +12607,9 @@
                         }
                     }
                     console.log('Schedule data loaded for year:', targetYear);
+                    if (modalityMigrated) {
+                        console.log('Migrated course modality defaults for year:', targetYear);
+                    }
                     saveScheduleData();
                     return true;
                 }
@@ -12852,6 +12969,7 @@
             rebuildFacultyDropdowns();
 
             // Add change handlers to faculty selects
+            document.getElementById('addCourseCode')?.addEventListener('change', applySelectedCourseDefaults);
             document.getElementById('addFaculty')?.addEventListener('change', () => handleFacultySelectChange('addFaculty'));
             document.getElementById('editFaculty')?.addEventListener('change', () => handleFacultySelectChange('editFaculty'));
 
@@ -12863,6 +12981,10 @@
 
             // Check for imported schedule from schedule builder
             checkForImportedSchedule();
+
+            if (enforceCourseDefaultModalities(scheduleData)) {
+                saveScheduleData();
+            }
 
             // Initialize ScheduleManager for editing
             if (typeof ScheduleManager !== 'undefined') {
