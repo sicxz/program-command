@@ -1,0 +1,15 @@
+---
+description: Repository workflow defaults for Cursor in Program Command
+alwaysApply: true
+---
+
+# Cursor Repo Workflow
+
+Follow `AGENTS.md` as the workflow source of truth for this repository.
+
+- Treat `origin` as the canonical remote and do not base new work on `old-origin`.
+- Use one issue, branch, and worktree per substantial task.
+- Keep durable decisions in issues, PRs, or checked-in docs rather than relying on local chat history.
+- Default scheduler triage and UX fixes to `index.html` unless the user explicitly asks for `pages/schedule-builder.html`.
+- Prefer Supabase as the production source of truth; treat local JSON and `localStorage` as fallback or draft layers unless the task is explicitly about them.
+- Run the narrowest relevant tests, and run `npm run build` for runtime-facing changes.
