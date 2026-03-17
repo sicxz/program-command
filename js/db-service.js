@@ -358,36 +358,96 @@ const dbService = {
     /**
      * Get or create an academic year
      */
-    async getOrCreateYear(yearString) {
+    async getOrCreateYear(yearString, options = {}) {
         if (!isSupabaseConfigured()) return null;
 
         await this.initialize();
         const currentUserId = await this._resolveCurrentAuthUserId();
+        const normalizedYearString = this._normalizeNullableString(yearString);
+        const schedulerContract = this._buildAcademicYearSchedulerContract(options);
+        const client = getSupabaseClient();
+
+        if (!normalizedYearString) {
+            throw new Error('yearString is required');
+        }
 
         // Try to get existing
-        const { data: existing } = await getSupabaseClient()
+        const { data: existing, error: existingError } = await client
             .from('academic_years')
             .select('*')
             .eq('department_id', this.departmentId)
-            .eq('year', yearString)
-            .single();
+            .eq('year', normalizedYearString)
+            .maybeSingle();
 
-        if (existing) return existing;
+        if (existingError) throw existingError;
+
+        if (existing) {
+            const updatePayload = {};
+
+            if (!existing.scheduler_profile_version && schedulerContract.schedulerProfileVersion) {
+                updatePayload.scheduler_profile_version = schedulerContract.schedulerProfileVersion;
+            }
+            if (!existing.scheduler_profile_snapshot && schedulerContract.schedulerProfileSnapshot) {
+                updatePayload.scheduler_profile_snapshot = schedulerContract.schedulerProfileSnapshot;
+            }
+
+            if (Object.keys(updatePayload).length > 0) {
+                updatePayload.updated_by = currentUserId;
+                updatePayload.updated_at = new Date().toISOString();
+
+                const { data: updated, error: updateError } = await client
+                    .from('academic_years')
+                    .update(updatePayload)
+                    .eq('id', existing.id)
+                    .select()
+                    .single();
+
+                if (updateError) {
+                    if (this._isMissingAcademicYearSchedulerContractColumnError(updateError)) {
+                        return existing;
+                    }
+                    throw updateError;
+                }
+
+                return updated;
+            }
+
+            return existing;
+        }
 
         // Create new
-        const { data, error } = await getSupabaseClient()
+        const insertPayload = {
+            department_id: this.departmentId,
+            year: normalizedYearString,
+            is_active: false,
+            updated_by: currentUserId
+        };
+
+        if (schedulerContract.schedulerProfileVersion) {
+            insertPayload.scheduler_profile_version = schedulerContract.schedulerProfileVersion;
+        }
+        if (schedulerContract.schedulerProfileSnapshot) {
+            insertPayload.scheduler_profile_snapshot = schedulerContract.schedulerProfileSnapshot;
+        }
+
+        let insertResult = await client
             .from('academic_years')
-            .insert({
-                department_id: this.departmentId,
-                year: yearString,
-                is_active: false,
-                updated_by: currentUserId
-            })
+            .insert(insertPayload)
             .select()
             .single();
 
-        if (error) throw error;
-        return data;
+        if (insertResult.error && this._isMissingAcademicYearSchedulerContractColumnError(insertResult.error)) {
+            delete insertPayload.scheduler_profile_version;
+            delete insertPayload.scheduler_profile_snapshot;
+            insertResult = await client
+                .from('academic_years')
+                .insert(insertPayload)
+                .select()
+                .single();
+        }
+
+        if (insertResult.error) throw insertResult.error;
+        return insertResult.data;
     },
 
     // ============================================
@@ -402,7 +462,7 @@ const dbService = {
             return [];
         }
 
-        let query = supabase
+        let query = getSupabaseClient()
             .from('scheduled_courses')
             .select(`
                 *,
@@ -432,14 +492,20 @@ const dbService = {
         }
 
         const currentUserId = await this._resolveCurrentAuthUserId();
+        const schedulerContract = this._buildAcademicYearSchedulerContract(courseData || {});
+        const placement = this._canonicalizeSchedulePlacement(
+            courseData.dayPattern,
+            courseData.timeSlot,
+            schedulerContract.schedulerProfileSnapshot
+        );
         const record = {
             academic_year_id: courseData.academicYearId,
             course_id: courseData.courseId,
             faculty_id: courseData.facultyId || null,
             room_id: courseData.roomId || null,
             quarter: courseData.quarter,
-            day_pattern: courseData.dayPattern,
-            time_slot: courseData.timeSlot,
+            day_pattern: placement.day_pattern,
+            time_slot: placement.time_slot,
             section: courseData.section,
             projected_enrollment: courseData.projectedEnrollment || null,
             updated_by: currentUserId,
@@ -491,25 +557,34 @@ const dbService = {
     /**
      * Batch save multiple scheduled courses
      */
-    async batchSaveSchedule(courses, yearId) {
+    async batchSaveSchedule(courses, yearId, options = {}) {
         if (!isSupabaseConfigured()) {
             console.warn('Cannot batch save: Supabase not configured');
             return [];
         }
 
         const currentUserId = await this._resolveCurrentAuthUserId();
-        const records = courses.map(c => ({
-            academic_year_id: yearId,
-            course_id: c.courseId,
-            faculty_id: c.facultyId || null,
-            room_id: c.roomId || null,
-            quarter: c.quarter,
-            day_pattern: c.dayPattern,
-            time_slot: c.timeSlot,
-            section: c.section,
-            projected_enrollment: c.projectedEnrollment || null,
-            updated_by: currentUserId
-        }));
+        const schedulerContract = this._buildAcademicYearSchedulerContract(options);
+        const records = courses.map((c) => {
+            const placement = this._canonicalizeSchedulePlacement(
+                c.dayPattern,
+                c.timeSlot,
+                schedulerContract.schedulerProfileSnapshot
+            );
+
+            return {
+                academic_year_id: yearId,
+                course_id: c.courseId,
+                faculty_id: c.facultyId || null,
+                room_id: c.roomId || null,
+                quarter: c.quarter,
+                day_pattern: placement.day_pattern,
+                time_slot: placement.time_slot,
+                section: c.section,
+                projected_enrollment: c.projectedEnrollment || null,
+                updated_by: currentUserId
+            };
+        });
 
         const { data, error } = await getSupabaseClient()
             .from('scheduled_courses')
@@ -525,7 +600,7 @@ const dbService = {
      * Uses the Supabase RPC transaction path defined in:
      * scripts/supabase-schedule-sync-rpc.sql
      */
-    async syncScheduledCoursesForAcademicYear(academicYearId, records = []) {
+    async syncScheduledCoursesForAcademicYear(academicYearId, records = [], options = {}) {
         if (!isSupabaseConfigured()) {
             console.warn('Cannot sync schedule: Supabase not configured');
             return null;
@@ -541,6 +616,7 @@ const dbService = {
 
         await this.initialize();
         const currentUserId = await this._resolveCurrentAuthUserId();
+        const schedulerContract = this._buildAcademicYearSchedulerContract(options);
 
         const normalizedRecords = records.map((record, index) => {
             if (!record || typeof record !== 'object') {
@@ -562,13 +638,19 @@ const dbService = {
                 throw new Error(`records[${index}].projected_enrollment must be an integer when provided`);
             }
 
+            const placement = this._canonicalizeSchedulePlacement(
+                record.day_pattern ?? record.dayPattern,
+                record.time_slot ?? record.timeSlot,
+                schedulerContract.schedulerProfileSnapshot
+            );
+
             return {
                 course_id: this._normalizeNullableString(record.course_id ?? record.courseId),
                 faculty_id: this._normalizeNullableString(record.faculty_id ?? record.facultyId),
                 room_id: this._normalizeNullableString(record.room_id ?? record.roomId),
                 quarter,
-                day_pattern: this._normalizeNullableString(record.day_pattern ?? record.dayPattern),
-                time_slot: this._normalizeNullableString(record.time_slot ?? record.timeSlot),
+                day_pattern: placement.day_pattern,
+                time_slot: placement.time_slot,
                 section: this._normalizeNullableString(record.section) || '001',
                 projected_enrollment: projectedEnrollment,
                 updated_by: this._normalizeNullableString(record.updated_by ?? record.updatedBy ?? currentUserId),
@@ -943,6 +1025,230 @@ const dbService = {
         if (value === null || value === undefined) return null;
         const normalized = String(value).trim();
         return normalized ? normalized : null;
+    },
+
+    _normalizeSchedulerLookupKey(value) {
+        return String(value || '')
+            .toUpperCase()
+            .replace(/\s+/g, '')
+            .replace(/[^A-Z0-9:-]/g, '');
+    },
+
+    _normalizeDayPatternId(value) {
+        const normalized = this._normalizeNullableString(value);
+        return normalized ? normalized.toUpperCase() : null;
+    },
+
+    _normalizeTimeSlotId(value) {
+        return this._normalizeNullableString(value);
+    },
+
+    _normalizeMinuteValue(value) {
+        const numeric = Number(value);
+        return Number.isFinite(numeric) ? numeric : null;
+    },
+
+    _parseSchedulerRangeToMinutes(rangeValue) {
+        const match = String(rangeValue || '').trim().match(/^(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})$/);
+        if (!match) {
+            return { startMinutes: null, endMinutes: null };
+        }
+
+        const startHours = Number(match[1]);
+        const startMinutes = Number(match[2]);
+        const endHours = Number(match[3]);
+        const endMinutes = Number(match[4]);
+        if ([startHours, startMinutes, endHours, endMinutes].some((value) => !Number.isFinite(value))) {
+            return { startMinutes: null, endMinutes: null };
+        }
+
+        return {
+            startMinutes: (startHours * 60) + startMinutes,
+            endMinutes: (endHours * 60) + endMinutes
+        };
+    },
+
+    _normalizeSchedulerAliases(aliases, normalizer) {
+        if (!Array.isArray(aliases)) return [];
+
+        const values = aliases
+            .map((alias) => normalizer.call(this, alias))
+            .filter(Boolean);
+
+        return [...new Set(values)];
+    },
+
+    _normalizeSchedulerDayPatternEntry(entry) {
+        if (typeof entry === 'string') {
+            const id = this._normalizeDayPatternId(entry);
+            if (!id) return null;
+            return { id, label: id, aliases: [id] };
+        }
+
+        if (!entry || typeof entry !== 'object') return null;
+
+        const id = this._normalizeDayPatternId(entry.id ?? entry.key ?? entry.value);
+        if (!id) return null;
+
+        const label = this._normalizeNullableString(entry.label ?? entry.name) || id;
+        const aliases = this._normalizeSchedulerAliases(entry.aliases, this._normalizeDayPatternId);
+
+        return {
+            id,
+            label,
+            aliases: [...new Set([id, ...aliases])]
+        };
+    },
+
+    _normalizeSchedulerTimeSlotEntry(entry) {
+        if (typeof entry === 'string') {
+            const id = this._normalizeTimeSlotId(entry);
+            if (!id) return null;
+            const range = this._parseSchedulerRangeToMinutes(id);
+            return {
+                id,
+                label: id,
+                aliases: [id],
+                startMinutes: range.startMinutes,
+                endMinutes: range.endMinutes
+            };
+        }
+
+        if (!entry || typeof entry !== 'object') return null;
+
+        const id = this._normalizeTimeSlotId(entry.id ?? entry.value ?? entry.slot);
+        if (!id) return null;
+
+        const label = this._normalizeNullableString(entry.label ?? entry.name) || id;
+        const aliases = this._normalizeSchedulerAliases(entry.aliases, this._normalizeTimeSlotId);
+        const range = this._parseSchedulerRangeToMinutes(id);
+
+        return {
+            id,
+            label,
+            aliases: [...new Set([id, ...aliases])],
+            startMinutes: this._normalizeMinuteValue(entry.startMinutes) ?? range.startMinutes,
+            endMinutes: this._normalizeMinuteValue(entry.endMinutes) ?? range.endMinutes
+        };
+    },
+
+    _normalizeSchedulerProfileSnapshot(snapshot) {
+        if (!snapshot || typeof snapshot !== 'object') return null;
+
+        const dayPatterns = Array.isArray(snapshot.dayPatterns)
+            ? snapshot.dayPatterns
+                .map((entry) => this._normalizeSchedulerDayPatternEntry(entry))
+                .filter(Boolean)
+            : [];
+
+        const timeSlots = Array.isArray(snapshot.timeSlots)
+            ? snapshot.timeSlots
+                .map((entry) => this._normalizeSchedulerTimeSlotEntry(entry))
+                .filter(Boolean)
+            : [];
+
+        if (!dayPatterns.length && !timeSlots.length) {
+            return null;
+        }
+
+        return { dayPatterns, timeSlots };
+    },
+
+    _buildAcademicYearSchedulerContract(options = {}) {
+        if (!options || typeof options !== 'object') {
+            return {
+                schedulerProfileVersion: null,
+                schedulerProfileSnapshot: null
+            };
+        }
+
+        const profile = options.profile && typeof options.profile === 'object'
+            ? options.profile
+            : null;
+        const profileId = this._normalizeNullableString(profile?.id);
+        const profileVersion = Number(profile?.version);
+        const derivedProfileVersion = profileId && Number.isFinite(profileVersion)
+            ? `${profileId}@v${profileVersion}`
+            : (profileId || (Number.isFinite(profileVersion) ? `v${profileVersion}` : null));
+
+        return {
+            schedulerProfileVersion: this._normalizeNullableString(
+                options.schedulerProfileVersion
+                ?? options.schedulerVersion
+                ?? options.profileVersion
+                ?? derivedProfileVersion
+            ),
+            schedulerProfileSnapshot: this._normalizeSchedulerProfileSnapshot(
+                options.schedulerProfileSnapshot
+                ?? options.schedulerSnapshot
+                ?? options.scheduler
+                ?? profile?.scheduler
+                ?? null
+            )
+        };
+    },
+
+    _normalizeSpecialSchedulerPlacement(dayPattern, timeSlot) {
+        const normalizedDay = this._normalizeDayPatternId(dayPattern);
+        if (normalizedDay !== 'ONLINE' && normalizedDay !== 'ARRANGED') {
+            return null;
+        }
+
+        const normalizedTime = this._normalizeTimeSlotId(timeSlot);
+        return {
+            day_pattern: normalizedDay,
+            time_slot: normalizedDay === 'ONLINE'
+                ? (normalizedTime ? normalizedTime.toLowerCase() : 'async')
+                : (normalizedTime ? normalizedTime.toLowerCase() : 'arranged')
+        };
+    },
+
+    _canonicalizeSchedulePlacement(dayPattern, timeSlot, schedulerSnapshot = null) {
+        const specialPlacement = this._normalizeSpecialSchedulerPlacement(dayPattern, timeSlot);
+        if (specialPlacement) {
+            return specialPlacement;
+        }
+
+        const snapshot = this._normalizeSchedulerProfileSnapshot(schedulerSnapshot);
+        const normalizedDay = this._normalizeDayPatternId(dayPattern);
+        const normalizedTime = this._normalizeTimeSlotId(timeSlot);
+
+        let canonicalDay = normalizedDay;
+        if (normalizedDay && snapshot?.dayPatterns?.length) {
+            const lookup = this._normalizeSchedulerLookupKey(normalizedDay);
+            const match = snapshot.dayPatterns.find((pattern) => {
+                const aliases = [pattern.id, ...(Array.isArray(pattern.aliases) ? pattern.aliases : [])];
+                return aliases.some((alias) => this._normalizeSchedulerLookupKey(alias) === lookup);
+            });
+            if (match?.id) {
+                canonicalDay = match.id;
+            }
+        }
+
+        let canonicalTime = normalizedTime;
+        if (normalizedTime && snapshot?.timeSlots?.length) {
+            const lookup = this._normalizeSchedulerLookupKey(normalizedTime);
+            const match = snapshot.timeSlots.find((slot) => {
+                const aliases = [slot.id, ...(Array.isArray(slot.aliases) ? slot.aliases : [])];
+                return aliases.some((alias) => this._normalizeSchedulerLookupKey(alias) === lookup);
+            });
+            if (match?.id) {
+                canonicalTime = match.id;
+            }
+        }
+
+        return {
+            day_pattern: canonicalDay,
+            time_slot: canonicalTime
+        };
+    },
+
+    _isMissingAcademicYearSchedulerContractColumnError(error) {
+        const code = String(error?.code || '').toUpperCase();
+        const message = String(error?.message || '');
+        return code === '42703'
+            || code === 'PGRST204'
+            || /scheduler_profile_(snapshot|version)/i.test(message);
     },
 
     async _resolveCurrentAuthUserId() {
