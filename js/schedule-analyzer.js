@@ -183,11 +183,92 @@ const ScheduleAnalyzer = (function() {
         return recommendations;
     }
 
+    function parseAssignedSlotKey(slotKey) {
+        if (!slotKey || slotKey === 'unassigned') return null;
+        const normalized = String(slotKey).trim();
+        const match = normalized.match(/^(MW|TR)-(\d{2}:\d{2}-\d{2}:\d{2})-(.+)$/);
+        if (match) {
+            return { day: match[1], time: match[2], room: match[3] };
+        }
+        const parts = normalized.split('-');
+        if (parts.length >= 4) {
+            return {
+                day: parts[0],
+                time: `${parts[1]}-${parts[2]}`,
+                room: parts.slice(3).join('-')
+            };
+        }
+        return null;
+    }
+
+    function flattenQuarterSchedule(quarterData) {
+        const assigned = quarterData?.assignedCourses || {};
+        const rows = [];
+        Object.entries(assigned).forEach(([slotKey, courses]) => {
+            const slot = parseAssignedSlotKey(slotKey);
+            if (!slot || !Array.isArray(courses)) return;
+            courses.forEach((course) => {
+                rows.push({
+                    code: course.courseCode,
+                    day: slot.day,
+                    time: slot.time,
+                    room: slot.room,
+                    instructor: course.facultyName || 'TBD',
+                    credits: Number(course.credits || 5)
+                });
+            });
+        });
+        return rows;
+    }
+
+    function getDefaultConflictConstraints() {
+        return [
+            { id: 'student-pathway', enabled: true, constraint_type: 'student_conflict', rule_details: { severity: 'warning' } },
+            { id: 'faculty-double-book', enabled: true, constraint_type: 'faculty_double_book', rule_details: { severity: 'critical' } },
+            { id: 'room-double-book', enabled: true, constraint_type: 'room_double_book', rule_details: { severity: 'critical' } },
+            { id: 'evening-safety', enabled: true, constraint_type: 'evening_safety', rule_details: { severity: 'warning' } }
+        ];
+    }
+
     /**
      * Analyze scheduling conflicts
      */
     function analyzeConflicts(schedule) {
         const conflicts = [];
+
+        if (typeof ConflictEngine !== 'undefined' && typeof ConflictEngine.evaluate === 'function') {
+            const byQuarter = {
+                fall: flattenQuarterSchedule(schedule?.Fall || {}),
+                winter: flattenQuarterSchedule(schedule?.Winter || {}),
+                spring: flattenQuarterSchedule(schedule?.Spring || {})
+            };
+
+            Object.entries({ Fall: 'fall', Winter: 'winter', Spring: 'spring' }).forEach(([label, quarterKey]) => {
+                const quarterSchedule = byQuarter[quarterKey];
+                if (!Array.isArray(quarterSchedule) || quarterSchedule.length === 0) return;
+
+                const evalResult = ConflictEngine.evaluate(quarterSchedule, getDefaultConflictConstraints(), {
+                    currentQuarter: quarterKey,
+                    scheduleByQuarter: byQuarter
+                });
+                const issues = [...(evalResult.conflicts || []), ...(evalResult.warnings || [])];
+                issues.forEach((issue, index) => {
+                    conflicts.push({
+                        id: issue.id || `${quarterKey}-conflict-${index}`,
+                        type: issue.constraintType || issue.type || 'constraint',
+                        quarter: label,
+                        title: issue.title || 'Scheduling conflict',
+                        detail: issue.description || issue.detail || issue.message || '',
+                        priority: issue.severity === 'critical' ? 'high' : 'medium',
+                        action: { type: 'review-conflict', quarter: label, issueType: issue.constraintType || issue.type || 'constraint' }
+                    });
+                });
+            });
+
+            if (conflicts.length > 0) {
+                return conflicts;
+            }
+        }
 
         Object.entries(schedule).forEach(([quarter, quarterData]) => {
             const assignedCourses = quarterData.assignedCourses || {};

@@ -10,11 +10,13 @@ let assignedCourses = {}; // { 'MW-10:00-12:00-206': [course1, course2], ... }
 let roomConstraints = null; // Loaded from room-constraints.json
 let caseByeCaseCourses = []; // Courses handled individually, not in grid
 
-// Room configuration - organized by campus (207 excluded - dedicated project room)
-const CATALYST_ROOMS = ['206', '209', '210', '212'];
-const CHENEY_ROOMS = ['CEB 102', 'CEB 104'];
-const ROOMS = [...CATALYST_ROOMS, ...CHENEY_ROOMS];
-const ROOM_NAMES = {
+// Room configuration - organized by campus (data-driven from room-constraints.json when available)
+const DEFAULT_CATALYST_ROOMS = ['206', '209', '210', '212'];
+const DEFAULT_CHENEY_ROOMS = ['CEB 102', 'CEB 104'];
+let CATALYST_ROOMS = [...DEFAULT_CATALYST_ROOMS];
+let CHENEY_ROOMS = [...DEFAULT_CHENEY_ROOMS];
+let ROOMS = [...CATALYST_ROOMS, ...CHENEY_ROOMS];
+let ROOM_NAMES = {
     '206': '206 UX Lab',
     '209': '209 Mac Lab',
     '210': '210 Mac Lab',
@@ -24,8 +26,64 @@ const ROOM_NAMES = {
 };
 
 // Courses allowed in Room 212
-const ROOM_212_PRIMARY = ['DESN 301', 'DESN 359', 'DESN 401'];
-const ROOM_212_OVERFLOW = ['DESN 100', 'DESN 200'];
+let ROOM_212_PRIMARY = ['DESN 301', 'DESN 359', 'DESN 401'];
+let ROOM_212_OVERFLOW = ['DESN 100', 'DESN 200'];
+
+function getRoomCode(entry) {
+    if (!entry) return '';
+    if (typeof entry === 'string') return entry.trim();
+    return String(entry.id || entry.code || '').trim();
+}
+
+function getRoomLabel(entry, fallbackCode) {
+    if (!entry) return fallbackCode;
+    if (typeof entry === 'string') return fallbackCode;
+    return String(entry.name || fallbackCode || '').trim() || fallbackCode;
+}
+
+function applyRoomConfigurationFromConstraints() {
+    const catalystRooms = [];
+    const cheneyRooms = [];
+    const roomNames = {};
+
+    const catalystEntries = roomConstraints?.campuses?.catalyst?.rooms || [];
+    const cheneyEntries = roomConstraints?.campuses?.cheney?.rooms || [];
+    const includeRoom = (entry) => !entry?.excludeFromGrid;
+
+    catalystEntries.filter(includeRoom).forEach((entry) => {
+        const code = getRoomCode(entry);
+        if (!code) return;
+        catalystRooms.push(code);
+        roomNames[code] = getRoomLabel(entry, code);
+    });
+
+    cheneyEntries.filter(includeRoom).forEach((entry) => {
+        const code = getRoomCode(entry);
+        if (!code) return;
+        cheneyRooms.push(code);
+        roomNames[code] = getRoomLabel(entry, code);
+    });
+
+    CATALYST_ROOMS = catalystRooms.length ? catalystRooms : [...DEFAULT_CATALYST_ROOMS];
+    CHENEY_ROOMS = cheneyRooms.length ? cheneyRooms : [...DEFAULT_CHENEY_ROOMS];
+    ROOMS = [...CATALYST_ROOMS, ...CHENEY_ROOMS];
+    ROOM_NAMES = { ...ROOM_NAMES, ...roomNames };
+
+    const primary212 = roomConstraints?.courseRoomRules?.room212Only?.courses;
+    const overflow212 = roomConstraints?.courseRoomRules?.cheneyOnly?.overflowCourses;
+    if (Array.isArray(primary212) && primary212.length > 0) {
+        ROOM_212_PRIMARY = [...new Set(primary212.map((code) => String(code || '').trim()).filter(Boolean))];
+    }
+    if (Array.isArray(overflow212) && overflow212.length > 0) {
+        ROOM_212_OVERFLOW = [...new Set(overflow212.map((code) => String(code || '').trim()).filter(Boolean))];
+    }
+}
+
+function getCampusRooms(campusId) {
+    if (campusId === 'catalyst') return [...CATALYST_ROOMS];
+    if (campusId === 'cheney') return [...CHENEY_ROOMS];
+    return [...ROOMS];
+}
 
 // State for all quarters
 let allQuartersSchedule = {
@@ -161,6 +219,51 @@ function refreshSaveAttributionLabelForYear(targetYear) {
         return;
     }
     setSaveAttributionLabel(state.userLabel, state.savedAt);
+}
+
+let saveCloudButtonResetTimer = null;
+
+function setCloudSaveUi(state, detail = '') {
+    const saveButton = document.getElementById('saveToCloudBtn');
+    const statusLabel = document.getElementById('saveCloudStatus');
+    if (!saveButton) return;
+
+    if (saveCloudButtonResetTimer) {
+        clearTimeout(saveCloudButtonResetTimer);
+        saveCloudButtonResetTimer = null;
+    }
+
+    const targetYear = document.getElementById('academicYear')?.value || currentSchedule?.year || '--';
+    const defaultStatus = detail || `Ready to save ${targetYear}`;
+
+    if (state === 'saving') {
+        saveButton.disabled = true;
+        saveButton.textContent = '☁️ Saving...';
+        if (statusLabel) statusLabel.textContent = detail || `Saving ${targetYear} to cloud...`;
+        return;
+    }
+
+    if (state === 'saved') {
+        saveButton.disabled = false;
+        saveButton.textContent = '✅ Saved';
+        if (statusLabel) statusLabel.textContent = detail || `Saved ${targetYear}`;
+        saveCloudButtonResetTimer = setTimeout(() => {
+            saveButton.textContent = '☁️ Save to Cloud';
+            if (statusLabel) statusLabel.textContent = `Ready to save ${targetYear}`;
+        }, 2500);
+        return;
+    }
+
+    if (state === 'error') {
+        saveButton.disabled = false;
+        saveButton.textContent = '⚠️ Retry Save';
+        if (statusLabel) statusLabel.textContent = detail || `Save failed for ${targetYear}`;
+        return;
+    }
+
+    saveButton.disabled = false;
+    saveButton.textContent = '☁️ Save to Cloud';
+    if (statusLabel) statusLabel.textContent = defaultStatus;
 }
 
 async function resolveCurrentUserAttribution() {
@@ -610,6 +713,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         const constraintsResponse = await fetch('../data/room-constraints.json');
         if (constraintsResponse.ok) {
             roomConstraints = await constraintsResponse.json();
+            applyRoomConfigurationFromConstraints();
             console.log('Room constraints loaded:', roomConstraints);
         }
 
@@ -663,10 +767,12 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         const activeYear = document.getElementById('academicYear')?.value || '2026-27';
         refreshSaveAttributionLabelForYear(activeYear);
+        setCloudSaveUi('idle', `Ready to save ${activeYear}`);
         const academicYearSelect = document.getElementById('academicYear');
         if (academicYearSelect) {
             academicYearSelect.addEventListener('change', (event) => {
                 refreshSaveAttributionLabelForYear(event.target.value);
+                setCloudSaveUi('idle', `Ready to save ${event.target.value}`);
             });
         }
 
@@ -2740,16 +2846,19 @@ function __getSaveStateForTests() {
  */
 async function saveToDatabase() {
     if (!currentSchedule) {
+        setCloudSaveUi('error', 'No schedule loaded to save');
         showToast('No schedule to save', 'error');
         return;
     }
 
     if (!isSupabaseConfigured()) {
+        setCloudSaveUi('error', 'Database not configured');
         showToast('Database not configured', 'error');
         return;
     }
 
     try {
+        setCloudSaveUi('saving');
         showToast('Saving to database...');
         const userAttribution = await resolveCurrentUserAttribution();
 
@@ -2761,6 +2870,7 @@ async function saveToDatabase() {
         // Get or create academic year
         const yearRecord = await dbService.getOrCreateYear(targetYear);
         if (!yearRecord) {
+            setCloudSaveUi('error', `Could not resolve academic year ${targetYear}`);
             showToast('Failed to get academic year', 'error');
             return;
         }
@@ -2774,6 +2884,7 @@ async function saveToDatabase() {
         const syncResult = await dbService.syncScheduledCoursesForAcademicYear(yearRecord.id, recordsWithUserContext);
 
         if (!syncResult) {
+            setCloudSaveUi('error', `Save failed for ${targetYear}`);
             showToast('Error saving to database', 'error');
             return;
         }
@@ -2789,10 +2900,12 @@ async function saveToDatabase() {
             savedAt
         });
         setSaveAttributionLabel(userAttribution.label, savedAt);
+        setCloudSaveUi('saved', `Saved ${targetYear} at ${formatSaveAttributionDate(savedAt)}`);
         showToast(`Saved ${targetYear}: ${updatedCount} updated, ${insertedCount} inserted, ${deletedCount} removed`);
 
     } catch (error) {
         console.error('Database save error:', error);
+        setCloudSaveUi('error', 'Save failed. Review error details and retry.');
         showToast(buildDatabaseSaveErrorMessage(error), 'error');
     }
 }
@@ -3074,10 +3187,51 @@ function showToast(message, type = 'success') {
 }
 
 /**
+ * Populate room dropdown from room constraints data
+ */
+function populateRoomDropdown() {
+    const select = document.getElementById('addCourseRoom');
+    if (!select) return;
+
+    const previousValue = select.value;
+    select.innerHTML = '';
+
+    const onlineOption = document.createElement('option');
+    onlineOption.value = 'ONLINE ASYNC';
+    onlineOption.textContent = 'ONLINE ASYNC';
+    select.appendChild(onlineOption);
+
+    const addCampusGroup = (label, rooms) => {
+        if (!Array.isArray(rooms) || rooms.length === 0) return;
+        const group = document.createElement('optgroup');
+        group.label = label;
+        rooms.forEach((roomCode) => {
+            const option = document.createElement('option');
+            option.value = roomCode;
+            option.textContent = ROOM_NAMES[roomCode] || roomCode;
+            group.appendChild(option);
+        });
+        select.appendChild(group);
+    };
+
+    addCampusGroup('Catalyst (Spokane)', CATALYST_ROOMS);
+    addCampusGroup('Cheney (Main)', CHENEY_ROOMS);
+
+    const hasPrevious = [...select.options].some((option) => option.value === previousValue);
+    if (hasPrevious) {
+        select.value = previousValue;
+    } else {
+        const preferredDefault = CATALYST_ROOMS[0] || CHENEY_ROOMS[0] || 'ONLINE ASYNC';
+        select.value = preferredDefault;
+    }
+}
+
+/**
  * Open Add Course modal
  */
 function openAddCourseModal() {
     populateCourseDropdown();
+    populateRoomDropdown();
     populateFacultyDropdown();
     document.getElementById('addCourseModal').classList.add('active');
     document.getElementById('addCourseSection').value = '001';
@@ -3143,11 +3297,7 @@ function handleCourseSelection() {
             }
         } else if (prefs.allowedCampus) {
             // Select first room on allowed campus
-            const campusRooms = {
-                'catalyst': ['206', '209', '210', '212'],
-                'cheney': ['CEB 102', 'CEB 104']
-            };
-            const rooms = campusRooms[prefs.allowedCampus] || [];
+            const rooms = getCampusRooms(prefs.allowedCampus);
             for (const room of rooms) {
                 if ([...roomSelect.options].some(opt => opt.value === room)) {
                     roomSelect.value = room;
@@ -3218,22 +3368,19 @@ function populateCourseDropdown() {
     // Get courses from catalog or use default list
     const courses = courseCatalog?.courses || [
         { code: 'DESN 100', title: 'Introduction to Design' },
-        { code: 'DESN 200', title: 'Typography' },
-        { code: 'DESN 216', title: 'Drawing for Design' },
-        { code: 'DESN 263', title: 'Digital Imaging' },
-        { code: 'DESN 265', title: 'Digital Illustration' },
-        { code: 'DESN 267', title: 'Visual Storytelling' },
-        { code: 'DESN 301', title: 'Senior Thesis I' },
-        { code: 'DESN 311', title: 'UX I' },
-        { code: 'DESN 313', title: 'UX II' },
-        { code: 'DESN 326', title: 'Motion Design I' },
-        { code: 'DESN 336', title: 'Motion Design II' },
-        { code: 'DESN 350', title: 'Design History' },
-        { code: 'DESN 355', title: 'Web Design' },
-        { code: 'DESN 357', title: 'Print Design' },
+        { code: 'DESN 200', title: 'Visual Communication I' },
+        { code: 'DESN 216', title: 'Digital Foundations' },
+        { code: 'DESN 243', title: 'Typography' },
+        { code: 'DESN 263', title: 'Visual Communication Design' },
+        { code: 'DESN 301', title: 'Visual Storytelling' },
+        { code: 'DESN 305', title: 'Social Media Design' },
+        { code: 'DESN 326', title: 'Motion Graphics II' },
+        { code: 'DESN 336', title: 'Web Design II' },
+        { code: 'DESN 350', title: 'Brand Identity Design' },
+        { code: 'DESN 355', title: 'Environmental Graphics' },
         { code: 'DESN 359', title: 'Design Studio I' },
         { code: 'DESN 360', title: 'Design Studio II' },
-        { code: 'DESN 384', title: 'Professional Practice' },
+        { code: 'DESN 384', title: 'Digital Sound' },
         { code: 'DESN 401', title: 'Senior Thesis II' }
     ];
 

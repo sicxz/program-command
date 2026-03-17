@@ -351,6 +351,7 @@
             <button class="btn-primary" onclick="saveToDatabase()" id="saveToCloudBtn">
                 ☁️ Save to Cloud
             </button>
+            <div class="action-bar-attribution" id="saveCloudStatus">Ready to save</div>
             <button class="btn-ai" onclick="evaluateWithAI()">
                 ✨ Evaluate with AI
             </button>
@@ -409,17 +410,9 @@
                     <div class="form-group">
                         <label for="addCourseRoom">Room</label>
                         <select id="addCourseRoom" required>
-                            <optgroup label="Catalyst (Spokane)">
-                                <option value="206">206 - UX Lab</option>
-                                <option value="209">209 - Mac Lab</option>
-                                <option value="210">210 - Mac Lab</option>
-                                <option value="212">212 - Project Lab</option>
-                            </optgroup>
-                            <optgroup label="Cheney (Main)">
-                                <option value="CEB 102">CEB 102</option>
-                                <option value="CEB 104">CEB 104</option>
-                            </optgroup>
+                            <option value="ONLINE ASYNC">ONLINE ASYNC</option>
                         </select>
+                        <small>For online classes, select ONLINE ASYNC.</small>
                     </div>
                     <div class="form-group">
                         <label for="addCourseFaculty">Faculty</label>
@@ -619,6 +612,7 @@
     <script src="../js/schedule-evaluator.js"></script>
     <!-- Application Scripts -->
     <script src="../js/constraints-engine.js"></script>
+    <script src="../js/conflict-engine.js"></script>
     <script src="../js/prerequisite-graph.js"></script>
     <script src="../js/demand-predictor.js"></script>
     <script src="../js/schedule-generator.js"></script>
