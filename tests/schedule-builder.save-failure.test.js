@@ -76,6 +76,19 @@ describe('schedule-builder save failure rollback safety', () => {
         const afterState = JSON.parse(JSON.stringify(builder.__getSaveStateForTests()));
 
         expect(afterState).toEqual(beforeState);
+        expect(global.dbService.getOrCreateYear).toHaveBeenCalledWith('2026-27', expect.objectContaining({
+            schedulerProfileSnapshot: expect.objectContaining({
+                dayPatterns: expect.arrayContaining([
+                    expect.objectContaining({ id: 'MW' }),
+                    expect.objectContaining({ id: 'TR' })
+                ]),
+                timeSlots: expect.arrayContaining([
+                    expect.objectContaining({ id: '10:00-12:20' }),
+                    expect.objectContaining({ id: '13:00-15:20' }),
+                    expect.objectContaining({ id: '16:00-18:20' })
+                ])
+            })
+        }));
         expect(global.dbService.syncScheduledCoursesForAcademicYear).toHaveBeenCalledTimes(1);
         expect(document.getElementById('toastMessage').textContent).toContain('Save blocked by permissions');
     });
