@@ -6,6 +6,8 @@ This file is the shared source of truth across Codex, Claude Code, and Cursor.
 Tool-specific files should add only small compatibility notes and should not
 silently diverge from the workflow here.
 
+Startup prompt source of truth: `startup.md`.
+
 ## Workflow Defaults
 
 - Work through GitHub issues in priority order when the user has not named a different task.
@@ -17,6 +19,7 @@ silently diverge from the workflow here.
 - `old-origin` is legacy history only. Do not use it as the base for new work.
 - Keep durable decisions in GitHub issues, PR descriptions, or checked-in docs. Do not rely on local chat history, one machine's memory, or tool-specific session state.
 - If a workflow rule matters across machines, write it here instead of leaving it in local app settings.
+- At the start of a fresh session, if operating context is incomplete, ask the concise getting-started questions from `startup.md` before doing substantial work.
 
 ## Autonomy Defaults
 
@@ -46,4 +49,5 @@ silently diverge from the workflow here.
 ## Tool Alignment
 
 - `CLAUDE.md` supplements project architecture and local development context. If `CLAUDE.md` and `AGENTS.md` conflict on workflow, `AGENTS.md` wins.
+- `startup.md` defines the user-facing getting-started questions for fresh sessions and cross-machine handoffs.
 - Cursor rules should point back to this file rather than restating large blocks of workflow text.

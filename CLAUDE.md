@@ -5,6 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Workflow source of truth: `AGENTS.md`.
 
 - Use `AGENTS.md` for branch strategy, autonomy defaults, verification expectations, and cross-machine workflow rules.
+- Use `startup.md` for the short getting-started questions when a new session begins without enough operating context.
 - Use this file for project architecture, runtime constraints, and development commands.
 - If this file conflicts with `AGENTS.md` on workflow, follow `AGENTS.md`.
 
