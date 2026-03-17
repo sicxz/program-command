@@ -4955,6 +4955,13 @@ function sortQuarterRows(rows) {
 }
 
 function buildQuarterExportRows(facultyRecord) {
+    if (typeof window !== 'undefined' && window.WorkloadExportMapping && window.WorkloadExportMapping.buildQuarterExportRows) {
+        return window.WorkloadExportMapping.buildQuarterExportRows(facultyRecord, {
+            getDepartmentIdentity,
+            isAppliedLearningCode,
+            roundToTenths
+        });
+    }
     const quarters = { Fall: [], Winter: [], Spring: [] };
     const appliedTotals = {
         Fall: { credits: 0, count: 0, codes: new Set() },
@@ -5128,6 +5135,9 @@ function getFacultyRecordForExport(facultyName) {
 }
 
 function getQuarterColumnMap() {
+    if (typeof window !== 'undefined' && window.WorkloadExportMapping && window.WorkloadExportMapping.getQuarterColumnMap) {
+        return window.WorkloadExportMapping.getQuarterColumnMap();
+    }
     return {
         Fall: { course: 'B', note: 'C', credits: 'D' },
         Winter: { course: 'E', note: 'F', credits: 'G' },

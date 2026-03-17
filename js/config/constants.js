@@ -196,6 +196,88 @@ const CONSTANTS = {
     },
 
     // ===========================================
+    // CONFLICT ENGINE TAXONOMY (CE-01)
+    // ===========================================
+    CONFLICTS: {
+        /**
+         * Canonical severity tiers used by Conflict Engine v2
+         */
+        TIERS: {
+            HARD_BLOCK: {
+                id: 'hard_block',
+                label: 'Hard Block',
+                scoreMin: 90,
+                scoreMax: 100,
+                blocksSave: true,
+                uiTreatment: 'red-banner-blocking'
+            },
+            WARNING: {
+                id: 'warning',
+                label: 'Warning',
+                scoreMin: 50,
+                scoreMax: 89,
+                blocksSave: false,
+                uiTreatment: 'yellow-card-acknowledge'
+            },
+            SUGGESTION: {
+                id: 'suggestion',
+                label: 'Suggestion',
+                scoreMin: 20,
+                scoreMax: 49,
+                blocksSave: false,
+                uiTreatment: 'blue-info-dismissible'
+            },
+            OPTIMIZATION: {
+                id: 'optimization',
+                label: 'Optimization',
+                scoreMin: 1,
+                scoreMax: 19,
+                blocksSave: false,
+                uiTreatment: 'green-tip-collapsible'
+            }
+        },
+
+        /**
+         * Legacy compatibility for current engine outputs/UI
+         */
+        LEGACY_SEVERITY_TO_TIER: {
+            critical: 'hard_block',
+            warning: 'warning',
+            info: 'suggestion'
+        },
+        TIER_TO_LEGACY_SEVERITY: {
+            hard_block: 'critical',
+            warning: 'warning',
+            suggestion: 'info',
+            optimization: 'info'
+        },
+
+        /**
+         * Default tier assignment for current checker set (8 conflict types)
+         */
+        DEFAULT_TIER_BY_CONSTRAINT: {
+            room_restriction: 'warning',
+            student_conflict: 'warning',
+            faculty_double_book: 'hard_block',
+            room_double_book: 'hard_block',
+            evening_safety: 'warning',
+            ay_setup_alignment: 'warning',
+            enrollment_threshold: 'suggestion',
+            campus_transition: 'suggestion'
+        },
+
+        /**
+         * Escalation and demotion guardrails
+         */
+        ESCALATION: {
+            STUDENT_CONFLICT_PROMOTE_WARNING_DAYS: 45,
+            STUDENT_CONFLICT_PROMOTE_HARD_BLOCK_DAYS: 14,
+            STUDENT_CONFLICT_DEMOTE_SUGGESTION_DAYS: 120,
+            LOW_IMPACT_PATHWAY_SCORE_MAX: 8
+        }
+    },
+
+    // ===========================================
     // DATA LOADING CONFIGURATION
     // ===========================================
     DATA: {
@@ -340,6 +422,16 @@ if (typeof Object.freeze === 'function') {
     Object.freeze(CONSTANTS.CHART);
     Object.freeze(CONSTANTS.CHART.COLORS);
     Object.freeze(CONSTANTS.UI);
+    Object.freeze(CONSTANTS.CONFLICTS);
+    Object.freeze(CONSTANTS.CONFLICTS.TIERS);
+    Object.freeze(CONSTANTS.CONFLICTS.TIERS.HARD_BLOCK);
+    Object.freeze(CONSTANTS.CONFLICTS.TIERS.WARNING);
+    Object.freeze(CONSTANTS.CONFLICTS.TIERS.SUGGESTION);
+    Object.freeze(CONSTANTS.CONFLICTS.TIERS.OPTIMIZATION);
+    Object.freeze(CONSTANTS.CONFLICTS.LEGACY_SEVERITY_TO_TIER);
+    Object.freeze(CONSTANTS.CONFLICTS.TIER_TO_LEGACY_SEVERITY);
+    Object.freeze(CONSTANTS.CONFLICTS.DEFAULT_TIER_BY_CONSTRAINT);
+    Object.freeze(CONSTANTS.CONFLICTS.ESCALATION);
     Object.freeze(CONSTANTS.DATA);
     Object.freeze(CONSTANTS.NOTIFICATIONS);
     Object.freeze(CONSTANTS.EXPORT);

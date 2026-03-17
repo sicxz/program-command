@@ -93,10 +93,95 @@ const ConflictEngine = (function() {
         student_scheduling_conflict: 'student_conflict'
     };
 
+    const FALLBACK_CONFLICT_TAXONOMY = {
+        tiers: {
+            hard_block: { label: 'Hard Block', scoreMin: 90, scoreMax: 100, blocksSave: true },
+            warning: { label: 'Warning', scoreMin: 50, scoreMax: 89, blocksSave: false },
+            suggestion: { label: 'Suggestion', scoreMin: 20, scoreMax: 49, blocksSave: false },
+            optimization: { label: 'Optimization', scoreMin: 1, scoreMax: 19, blocksSave: false }
+        },
+        legacyToTier: {
+            critical: 'hard_block',
+            warning: 'warning',
+            info: 'suggestion'
+        },
+        tierToLegacy: {
+            hard_block: 'critical',
+            warning: 'warning',
+            suggestion: 'info',
+            optimization: 'info'
+        },
+        defaultTierByConstraint: {
+            room_restriction: 'warning',
+            student_conflict: 'warning',
+            faculty_double_book: 'hard_block',
+            room_double_book: 'hard_block',
+            evening_safety: 'warning',
+            ay_setup_alignment: 'warning',
+            enrollment_threshold: 'suggestion',
+            campus_transition: 'suggestion'
+        },
+        escalation: {
+            STUDENT_CONFLICT_PROMOTE_WARNING_DAYS: 45,
+            STUDENT_CONFLICT_PROMOTE_HARD_BLOCK_DAYS: 14,
+            STUDENT_CONFLICT_DEMOTE_SUGGESTION_DAYS: 120,
+            LOW_IMPACT_PATHWAY_SCORE_MAX: 8
+        }
+    };
+
+    const externalConflictConstants = (
+        typeof CONSTANTS !== 'undefined'
+        && CONSTANTS
+        && typeof CONSTANTS === 'object'
+        && CONSTANTS.CONFLICTS
+    ) ? CONSTANTS.CONFLICTS : null;
+
+    const CONFLICT_TIER_DEFINITIONS = {
+        ...FALLBACK_CONFLICT_TAXONOMY.tiers,
+        ...(externalConflictConstants?.TIERS
+            ? {
+                hard_block: externalConflictConstants.TIERS.HARD_BLOCK || FALLBACK_CONFLICT_TAXONOMY.tiers.hard_block,
+                warning: externalConflictConstants.TIERS.WARNING || FALLBACK_CONFLICT_TAXONOMY.tiers.warning,
+                suggestion: externalConflictConstants.TIERS.SUGGESTION || FALLBACK_CONFLICT_TAXONOMY.tiers.suggestion,
+                optimization: externalConflictConstants.TIERS.OPTIMIZATION || FALLBACK_CONFLICT_TAXONOMY.tiers.optimization
+            }
+            : {})
+    };
+
+    const LEGACY_SEVERITY_TO_TIER = {
+        ...FALLBACK_CONFLICT_TAXONOMY.legacyToTier,
+        ...(externalConflictConstants?.LEGACY_SEVERITY_TO_TIER || {})
+    };
+
+    const TIER_TO_LEGACY_SEVERITY = {
+        ...FALLBACK_CONFLICT_TAXONOMY.tierToLegacy,
+        ...(externalConflictConstants?.TIER_TO_LEGACY_SEVERITY || {})
+    };
+
+    const DEFAULT_TIER_BY_CONSTRAINT = {
+        ...FALLBACK_CONFLICT_TAXONOMY.defaultTierByConstraint,
+        ...(externalConflictConstants?.DEFAULT_TIER_BY_CONSTRAINT || {})
+    };
+
+    const TIER_ESCALATION = {
+        ...FALLBACK_CONFLICT_TAXONOMY.escalation,
+        ...(externalConflictConstants?.ESCALATION || {})
+    };
+
+    function resolveTierScore(tier) {
+        const def = CONFLICT_TIER_DEFINITIONS[tier];
+        if (!def) return 20;
+        const min = Number(def.scoreMin);
+        const max = Number(def.scoreMax);
+        if (!Number.isFinite(min) || !Number.isFinite(max)) return 20;
+        return Math.round((min + max) / 2);
+    }
+
     const ISSUE_SEVERITY_SCORE = {
-        critical: 100,
-        warning: 60,
-        info: 25
+        hard_block: resolveTierScore('hard_block'),
+        warning: resolveTierScore('warning'),
+        suggestion: resolveTierScore('suggestion'),
+        optimization: resolveTierScore('optimization')
     };
 
     const ISSUE_PRIORITY_SCORE = {
@@ -166,9 +251,106 @@ const ConflictEngine = (function() {
         }
     };
 
+    const DEFAULT_RULE_PLUGIN_METADATA = {
+        room_restriction: { name: 'Room Restriction Rule', tier: 'warning' },
+        student_conflict: { name: 'Student Pathway Rule', tier: 'warning' },
+        faculty_double_book: { name: 'Faculty Double Book Rule', tier: 'hard_block' },
+        room_double_book: { name: 'Room Double Book Rule', tier: 'hard_block' },
+        evening_safety: { name: 'Evening Safety Rule', tier: 'warning' },
+        ay_setup_alignment: { name: 'AY Setup Alignment Rule', tier: 'warning' },
+        enrollment_threshold: { name: 'Enrollment Threshold Rule', tier: 'suggestion' },
+        campus_transition: { name: 'Campus Transition Rule', tier: 'suggestion' }
+    };
+
+    const rulePlugins = new Map();
+
     function normalizeConstraintType(type) {
         const normalized = String(type || '').trim().toLowerCase();
         return CONSTRAINT_TYPE_ALIASES[normalized] || normalized;
+    }
+
+    function toTierName(rawValue) {
+        const normalized = String(rawValue || '').trim().toLowerCase().replace(/\s+/g, '_');
+        if (!normalized) return '';
+        if (CONFLICT_TIER_DEFINITIONS[normalized]) return normalized;
+        return LEGACY_SEVERITY_TO_TIER[normalized] || '';
+    }
+
+    function clampIssueTier(baseTier, normalizedConstraintType) {
+        if (CONFLICT_TIER_DEFINITIONS[baseTier]) return baseTier;
+        const fallback = DEFAULT_TIER_BY_CONSTRAINT[normalizedConstraintType];
+        if (CONFLICT_TIER_DEFINITIONS[fallback]) return fallback;
+        return 'suggestion';
+    }
+
+    function isUpperDivisionPathwayIssue(issue) {
+        const courses = Array.isArray(issue?.courses) ? issue.courses : [];
+        const has400LevelCourse = courses.some((course) => {
+            const code = normalizeCourseCode(course?.code || course);
+            const match = code.match(/(\d{3})/);
+            return match ? Number(match[1]) >= 400 : false;
+        });
+        return has400LevelCourse || String(issue?.pathwayImpact || '').includes('graduation');
+    }
+
+    function promoteTier(tier) {
+        if (tier === 'optimization') return 'suggestion';
+        if (tier === 'suggestion') return 'warning';
+        if (tier === 'warning') return 'hard_block';
+        return 'hard_block';
+    }
+
+    function demoteTier(tier) {
+        if (tier === 'hard_block') return 'warning';
+        if (tier === 'warning') return 'suggestion';
+        if (tier === 'suggestion') return 'optimization';
+        return 'optimization';
+    }
+
+    function applyTierEscalationRules(tier, normalizedConstraintType, issue, context = {}) {
+        let nextTier = clampIssueTier(tier, normalizedConstraintType);
+        const daysUntilGraduation = Number(
+            context.daysUntilGraduation ?? context.graduationDeadlineDays
+        );
+        const pathwayImpactScore = Number(issue?.pathwayImpactScore || 0);
+
+        if (normalizedConstraintType === 'student_conflict' && Number.isFinite(daysUntilGraduation)) {
+            if (daysUntilGraduation <= TIER_ESCALATION.STUDENT_CONFLICT_PROMOTE_WARNING_DAYS && nextTier === 'suggestion') {
+                nextTier = promoteTier(nextTier);
+            }
+
+            if (
+                daysUntilGraduation <= TIER_ESCALATION.STUDENT_CONFLICT_PROMOTE_HARD_BLOCK_DAYS
+                && nextTier === 'warning'
+                && isUpperDivisionPathwayIssue(issue)
+            ) {
+                nextTier = promoteTier(nextTier);
+            }
+
+            if (
+                daysUntilGraduation >= TIER_ESCALATION.STUDENT_CONFLICT_DEMOTE_SUGGESTION_DAYS
+                && nextTier === 'warning'
+                && pathwayImpactScore <= TIER_ESCALATION.LOW_IMPACT_PATHWAY_SCORE_MAX
+            ) {
+                nextTier = demoteTier(nextTier);
+            }
+        }
+
+        if (normalizedConstraintType === 'room_restriction' && issue?.roomFitStatus === 'blocked') {
+            nextTier = 'hard_block';
+        }
+
+        return clampIssueTier(nextTier, normalizedConstraintType);
+    }
+
+    function resolveIssueTier(issue, normalizedConstraintType, context = {}) {
+        const raw = issue?.severityTier || issue?.tier || issue?.severity;
+        const baseTier = clampIssueTier(toTierName(raw), normalizedConstraintType);
+        return applyTierEscalationRules(baseTier, normalizedConstraintType, issue, context);
+    }
+
+    function resolveLegacySeverityFromTier(tier) {
+        return TIER_TO_LEGACY_SEVERITY[tier] || 'info';
     }
 
     function normalizeTimeSlotLabel(timeSlot) {
@@ -369,13 +551,127 @@ const ConflictEngine = (function() {
         return CONFLICT_RULE_REGISTRY[normalizedConstraintType] || CONFLICT_RULE_REGISTRY._default;
     }
 
+    /**
+     * @typedef {Object} RulePlugin
+     * @property {string} id
+     * @property {string} name
+     * @property {'hard_block'|'warning'|'suggestion'|'optimization'} [tier]
+     * @property {boolean} [enabled]
+     * @property {number} [weight]
+     * @property {(schedule: Array, ruleDetails: Object, constraint: Object, context: Object) => Array} detect
+     */
+
+    function normalizeRulePlugin(plugin = {}) {
+        const id = normalizeConstraintType(plugin.id);
+        if (!id) {
+            throw new Error('Rule plugin requires a non-empty id');
+        }
+        if (typeof plugin.detect !== 'function') {
+            throw new Error(`Rule plugin "${id}" requires a detect(schedule, context) function`);
+        }
+
+        const metadata = DEFAULT_RULE_PLUGIN_METADATA[id] || {};
+        const tier = clampIssueTier(toTierName(plugin.tier || metadata.tier), id);
+        const weight = Number(plugin.weight);
+
+        return {
+            id,
+            name: String(plugin.name || metadata.name || id),
+            tier,
+            enabled: plugin.enabled !== false,
+            detect: plugin.detect,
+            weight: Number.isFinite(weight) ? weight : 1
+        };
+    }
+
+    function registerRule(plugin, options = {}) {
+        const normalized = normalizeRulePlugin(plugin);
+        const replace = options.replace === true;
+        if (!replace && rulePlugins.has(normalized.id)) {
+            throw new Error(`Rule plugin "${normalized.id}" is already registered`);
+        }
+        rulePlugins.set(normalized.id, normalized);
+        return normalized;
+    }
+
+    function getRulePlugin(id) {
+        const normalized = normalizeConstraintType(id);
+        return rulePlugins.get(normalized) || null;
+    }
+
+    function enableRule(id) {
+        const plugin = getRulePlugin(id);
+        if (!plugin) return false;
+        plugin.enabled = true;
+        return true;
+    }
+
+    function disableRule(id) {
+        const plugin = getRulePlugin(id);
+        if (!plugin) return false;
+        plugin.enabled = false;
+        return true;
+    }
+
+    function setWeight(id, weight) {
+        const plugin = getRulePlugin(id);
+        const numericWeight = Number(weight);
+        if (!plugin || !Number.isFinite(numericWeight)) return false;
+        plugin.weight = numericWeight;
+        return true;
+    }
+
+    function getProgramRuleOverride(context, id) {
+        const overrides = context?.ruleOverrides;
+        if (!overrides || typeof overrides !== 'object') return null;
+        const override = overrides[id];
+        return override && typeof override === 'object' ? override : null;
+    }
+
+    function isRuleEnabledForEvaluation(plugin, context = {}) {
+        if (!plugin || plugin.enabled === false) return false;
+        const override = getProgramRuleOverride(context, plugin.id);
+        if (override && typeof override.enabled === 'boolean') {
+            return override.enabled;
+        }
+        return true;
+    }
+
+    function getEffectiveRuleDetails(plugin, ruleDetails = {}, context = {}) {
+        const rawRule = (ruleDetails && typeof ruleDetails === 'object') ? { ...ruleDetails } : {};
+        const override = getProgramRuleOverride(context, plugin.id);
+
+        if (!Number.isFinite(Number(rawRule.weight))) {
+            if (override && Number.isFinite(Number(override.weight))) {
+                rawRule.weight = Number(override.weight);
+            } else if (Number.isFinite(Number(plugin.weight))) {
+                rawRule.weight = Number(plugin.weight);
+            }
+        }
+
+        return rawRule;
+    }
+
+    function listRegisteredRules() {
+        return Array.from(rulePlugins.values()).map((plugin) => ({
+            id: plugin.id,
+            name: plugin.name,
+            tier: plugin.tier,
+            enabled: plugin.enabled !== false,
+            weight: Number(plugin.weight)
+        }));
+    }
+
     function calculateWeightedIssueScore(issue, normalizedConstraintType, ruleDetails = {}) {
         const registry = getRuleRegistryEntry(normalizedConstraintType);
-        const severity = String(issue?.severity || 'info').toLowerCase();
+        const tier = clampIssueTier(
+            toTierName(issue?.severityTier || issue?.tier || issue?.severity),
+            normalizedConstraintType
+        );
         const priority = String(issue?.priority || '').toLowerCase();
         const ruleWeightOverride = Number(ruleDetails?.weight);
         const ruleWeight = Number.isFinite(ruleWeightOverride) ? ruleWeightOverride : 1;
-        const severityWeight = ISSUE_SEVERITY_SCORE[severity] || ISSUE_SEVERITY_SCORE.info;
+        const severityWeight = ISSUE_SEVERITY_SCORE[tier] || ISSUE_SEVERITY_SCORE.suggestion;
         const priorityWeight = ISSUE_PRIORITY_SCORE[priority] || 0;
         const hardnessMultiplier = registry.hardness === 'hard' ? 1.15 : 0.85;
         const impactCourseCount = Array.isArray(issue?.courses) ? issue.courses.length : 0;
@@ -386,7 +682,7 @@ const ConflictEngine = (function() {
             : 0;
 
         const contributions = [
-            { source: 'severity', value: severityWeight, detail: severity },
+            { source: 'severity', value: severityWeight, detail: tier },
             { source: 'registry-base', value: baseWeight, detail: registry.id },
             { source: 'priority', value: priorityWeight, detail: priority || 'none' },
             { source: 'affected-courses', value: impactWeight, detail: impactCourseCount }
@@ -411,7 +707,7 @@ const ConflictEngine = (function() {
             total,
             explanation: [
                 `${registry.label} (${registry.hardness})`,
-                `severity=${severity}`,
+                `tier=${tier}`,
                 priority ? `priority=${priority}` : null,
                 issue?.pathwayImpact ? `pathway=${issue.pathwayImpact}` : null,
                 `courses=${impactCourseCount}`,
@@ -432,9 +728,11 @@ const ConflictEngine = (function() {
         };
     }
 
-    function getIssueSeverityRank(severity) {
-        if (severity === 'critical') return 2;
-        if (severity === 'warning') return 1;
+    function getIssueSeverityRank(severityOrTier) {
+        const tier = toTierName(severityOrTier) || 'suggestion';
+        if (tier === 'hard_block') return 3;
+        if (tier === 'warning') return 2;
+        if (tier === 'suggestion') return 1;
         return 0;
     }
 
@@ -799,14 +1097,24 @@ const ConflictEngine = (function() {
             suggestions: [],
             summary: {
                 totalIssues: 0,
+                totalActionableIssues: 0,
+                totalTieredIssues: 0,
                 criticalCount: 0,
                 warningCount: 0,
+                tierCounts: {
+                    hard_block: 0,
+                    warning: 0,
+                    suggestion: 0,
+                    optimization: 0
+                },
                 weightedScore: 0,
                 weightedByConstraintType: {}
             },
             scoringModel: {
                 version: 'v2',
-                registry: CONFLICT_RULE_REGISTRY
+                registry: CONFLICT_RULE_REGISTRY,
+                taxonomy: CONFLICT_TIER_DEFINITIONS,
+                registeredRules: listRegisteredRules()
             }
         };
 
@@ -820,47 +1128,65 @@ const ConflictEngine = (function() {
             enabledConstraints
         };
 
-        // Run each enabled constraint checker
+        // Run each enabled constraint rule plugin
         enabledConstraints.forEach(constraint => {
             const normalizedConstraintType = normalizeConstraintType(constraint.constraint_type);
-            const checker = checkers[normalizedConstraintType];
-            if (checker) {
-                const issues = checker(schedule, constraint.rule_details, constraint, evaluationContext);
-                issues.forEach(issue => {
-                    issue.constraintId = constraint.id;
-                    issue.constraintType = normalizedConstraintType;
-                    issue.constraintTypeOriginal = constraint.constraint_type;
-                    issue.constraintRule = getRuleRegistryEntry(normalizedConstraintType);
+            const plugin = getRulePlugin(normalizedConstraintType);
+            if (!plugin || !isRuleEnabledForEvaluation(plugin, evaluationContext)) return;
 
-                    const weighted = calculateWeightedIssueScore(
-                        issue,
-                        normalizedConstraintType,
-                        constraint.rule_details
-                    );
-                    issue.score = weighted.total;
-                    issue.scoreExplanation = weighted.explanation;
-                    issue.scoreBreakdown = weighted.breakdown;
-                    issue.scoreRuleMeta = weighted.rule;
+            const effectiveRuleDetails = getEffectiveRuleDetails(plugin, constraint.rule_details, evaluationContext);
+            const issues = plugin.detect(schedule, effectiveRuleDetails, constraint, evaluationContext);
 
-                    results.summary.weightedScore += issue.score;
-                    results.summary.weightedByConstraintType[normalizedConstraintType] =
-                        (results.summary.weightedByConstraintType[normalizedConstraintType] || 0) + issue.score;
+            (Array.isArray(issues) ? issues : []).forEach(issue => {
+                issue.constraintId = constraint.id;
+                issue.constraintType = normalizedConstraintType;
+                issue.constraintTypeOriginal = constraint.constraint_type;
+                issue.constraintRule = getRuleRegistryEntry(normalizedConstraintType);
+                issue.rulePluginId = plugin.id;
+                issue.rulePluginName = plugin.name;
+                issue.severityTier = resolveIssueTier(issue, normalizedConstraintType, evaluationContext);
+                issue.tier = issue.severityTier;
+                issue.severity = resolveLegacySeverityFromTier(issue.severityTier);
+                issue.blocksSave = Boolean(CONFLICT_TIER_DEFINITIONS[issue.severityTier]?.blocksSave);
 
-                    if (issue.severity === 'critical') {
-                        results.conflicts.push(issue);
-                        results.summary.criticalCount++;
-                    } else if (issue.severity === 'warning') {
-                        results.warnings.push(issue);
-                        results.summary.warningCount++;
-                    } else {
-                        results.suggestions.push(issue);
-                    }
-                });
-            }
+                const weighted = calculateWeightedIssueScore(
+                    issue,
+                    normalizedConstraintType,
+                    effectiveRuleDetails
+                );
+                issue.score = weighted.total;
+                issue.scoreExplanation = weighted.explanation;
+                issue.scoreBreakdown = weighted.breakdown;
+                issue.scoreRuleMeta = weighted.rule;
+
+                results.summary.weightedScore += issue.score;
+                results.summary.weightedByConstraintType[normalizedConstraintType] =
+                    (results.summary.weightedByConstraintType[normalizedConstraintType] || 0) + issue.score;
+                results.summary.tierCounts[issue.severityTier] =
+                    (results.summary.tierCounts[issue.severityTier] || 0) + 1;
+
+                if (issue.severityTier === 'hard_block') {
+                    results.conflicts.push(issue);
+                    results.summary.criticalCount++;
+                } else if (issue.severityTier === 'warning') {
+                    results.warnings.push(issue);
+                    results.summary.warningCount++;
+                } else {
+                    results.suggestions.push(issue);
+                }
+            });
         });
 
-        results.summary.totalIssues = results.conflicts.length + results.warnings.length;
+        results.summary.totalActionableIssues = results.conflicts.length + results.warnings.length;
+        results.summary.totalTieredIssues = results.conflicts.length + results.warnings.length + results.suggestions.length;
+        // Backward-compatible field used by existing UI sections.
+        results.summary.totalIssues = results.summary.totalActionableIssues;
         return results;
+    }
+
+    // Backward-compatible API alias
+    function findIssues(schedule, constraints, context = {}) {
+        return evaluate(schedule, constraints, context);
     }
 
     /**
@@ -1148,6 +1474,16 @@ const ConflictEngine = (function() {
         }
     };
 
+    Object.entries(checkers).forEach(([id, detect]) => {
+        const metadata = DEFAULT_RULE_PLUGIN_METADATA[id] || {};
+        registerRule({
+            id,
+            name: metadata.name || id,
+            tier: metadata.tier || 'suggestion',
+            detect
+        });
+    });
+
     /**
      * Calculate available room resolutions for a course
      */
@@ -1303,10 +1639,16 @@ const ConflictEngine = (function() {
     // Public API
     return {
         evaluate,
+        findIssues,
         checkers,
         COMMON_PAIRINGS,
         evaluateAySetup,
-        ruleRegistry: CONFLICT_RULE_REGISTRY
+        ruleRegistry: CONFLICT_RULE_REGISTRY,
+        registerRule,
+        enableRule,
+        disableRule,
+        setWeight,
+        listRules: listRegisteredRules
     };
 })();
 

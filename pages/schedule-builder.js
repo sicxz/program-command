@@ -51,6 +51,7 @@ let dbCourses = [];
 const SCHEDULE_PLACEMENTS_KEY = 'schedule_placements';
 const FACULTY_BUILD_STORAGE_KEY = 'faculty_build_scenario_v1';
 const FACULTY_PREFERENCES_LOCAL_KEY = 'faculty_preferences_local_v1';
+const SAVE_ATTRIBUTION_STORAGE_KEY = 'schedule_builder_last_save_attribution_v1';
 
 const DEFAULT_FACULTY_BUILD_SCENARIO = {
     faculty: [
@@ -106,6 +107,60 @@ function saveFacultyPreferencesCache() {
     } catch (error) {
         console.warn('Could not save faculty preferences cache:', error);
     }
+}
+
+function formatSaveAttributionDate(isoString) {
+    if (!isoString) return '--';
+    const date = new Date(isoString);
+    if (Number.isNaN(date.getTime())) return '--';
+    return date.toLocaleString();
+}
+
+function setSaveAttributionLabel(userLabel, savedAt) {
+    const label = document.getElementById('saveAttributionLabel');
+    if (!label) return;
+    label.textContent = `Last saved by ${userLabel || '--'} at ${formatSaveAttributionDate(savedAt)}`;
+}
+
+function readSaveAttributionState() {
+    try {
+        const raw = localStorage.getItem(SAVE_ATTRIBUTION_STORAGE_KEY);
+        return raw ? JSON.parse(raw) : null;
+    } catch (error) {
+        return null;
+    }
+}
+
+function writeSaveAttributionState(state) {
+    try {
+        localStorage.setItem(SAVE_ATTRIBUTION_STORAGE_KEY, JSON.stringify(state));
+    } catch (error) {
+        console.warn('Could not persist save attribution state:', error);
+    }
+}
+
+function refreshSaveAttributionLabelForYear(targetYear) {
+    const state = readSaveAttributionState();
+    if (!state || state.year !== targetYear) {
+        setSaveAttributionLabel('--', null);
+        return;
+    }
+    setSaveAttributionLabel(state.userLabel, state.savedAt);
+}
+
+async function resolveCurrentUserAttribution() {
+    if (typeof window !== 'undefined' && window.AuthService && typeof window.AuthService.getUser === 'function') {
+        try {
+            const user = await window.AuthService.getUser();
+            if (user?.id) {
+                const preferredName = user.user_metadata?.full_name || user.user_metadata?.name || user.email || user.id;
+                return { id: user.id, label: preferredName };
+            }
+        } catch (error) {
+            // fallback below
+        }
+    }
+    return { id: null, label: 'Authenticated user' };
 }
 
 function setFacultyPreference(name, preference) {
@@ -553,6 +608,15 @@ document.addEventListener('DOMContentLoaded', async function() {
         loadFacultyPreferencesCache();
         initializeFacultyBuildScenario();
         loadDraft();
+
+        const activeYear = document.getElementById('academicYear')?.value || '2026-27';
+        refreshSaveAttributionLabelForYear(activeYear);
+        const academicYearSelect = document.getElementById('academicYear');
+        if (academicYearSelect) {
+            academicYearSelect.addEventListener('change', (event) => {
+                refreshSaveAttributionLabelForYear(event.target.value);
+            });
+        }
 
     } catch (error) {
         console.error('Initialization error:', error);
@@ -2470,6 +2534,148 @@ function loadDraft() {
 // DATABASE SAVE/LOAD FUNCTIONS
 // ============================================
 
+
+function getAllQuarterSchedulesForSave() {
+    const snapshot = {
+        Fall: allQuartersSchedule.Fall || { assignedCourses: {}, caseByeCaseCourses: [] },
+        Winter: allQuartersSchedule.Winter || { assignedCourses: {}, caseByeCaseCourses: [] },
+        Spring: allQuartersSchedule.Spring || { assignedCourses: {}, caseByeCaseCourses: [] }
+    };
+
+    const activeQuarterSnapshot = snapshot[activeQuarter] || { assignedCourses: {}, caseByeCaseCourses: [] };
+    snapshot[activeQuarter] = {
+        ...activeQuarterSnapshot,
+        assignedCourses: { ...assignedCourses },
+        caseByeCaseCourses: [...caseByeCaseCourses]
+    };
+
+    return snapshot;
+}
+
+function parseScheduleSlotKey(slotKey) {
+    const parts = String(slotKey || '').split('-');
+    if (parts.length < 4) return null;
+
+    const dayPattern = parts[0];
+    const timeSlot = `${parts[1]}-${parts[2]}`;
+    const roomCode = parts.slice(3).join('-');
+
+    if (!dayPattern || !timeSlot || !roomCode) return null;
+
+    return { dayPattern, timeSlot, roomCode };
+}
+
+function shouldPersistFacultyName(name) {
+    const normalized = String(name || '').trim().toLowerCase();
+    return !!normalized && normalized !== 'tbd' && normalized !== 'adjunct';
+}
+
+function buildDatabaseSaveErrorMessage(error) {
+    const message = String(error?.message || error || 'Unknown save error');
+    const normalized = message.toLowerCase();
+
+    if (error?.code === '42501' || normalized.includes('permission') || normalized.includes('rls') || normalized.includes('policy')) {
+        return 'Save blocked by permissions. Verify Supabase RLS policies for schedule writes. Draft changes were not modified.';
+    }
+
+    if (normalized.includes('network') || normalized.includes('fetch') || normalized.includes('timeout')) {
+        return 'Network error while saving. Draft changes were not modified; retry after reconnecting.';
+    }
+
+    if (normalized.includes('academicyearid is required') || normalized.includes('p_academic_year_id is required') || normalized.includes('quarter is required')) {
+        return `Save validation failed: ${message}`;
+    }
+
+    return `Error saving to database: ${message}`;
+}
+
+async function buildYearScopedScheduleSyncRecords(quarterSchedules) {
+    const records = [];
+    const courseIdCache = new Map();
+    const facultyIdCache = new Map();
+    const roomIdCache = new Map();
+
+    const lookupCachedId = async (cache, key, lookup) => {
+        if (!key) return null;
+        if (!cache.has(key)) {
+            cache.set(key, await lookup(key));
+        }
+        return cache.get(key) || null;
+    };
+
+    for (const quarter of ['Fall', 'Winter', 'Spring']) {
+        const slotAssignments = quarterSchedules?.[quarter]?.assignedCourses || {};
+
+        for (const [slotKey, courses] of Object.entries(slotAssignments)) {
+            if (slotKey === 'unassigned') continue;
+
+            const parsedSlot = parseScheduleSlotKey(slotKey);
+            if (!parsedSlot) {
+                console.warn('Skipping invalid schedule slot key during save:', slotKey);
+                continue;
+            }
+
+            const { dayPattern, timeSlot, roomCode } = parsedSlot;
+            const roomId = await lookupCachedId(roomIdCache, roomCode, (value) => dbService.lookupRoomId(value));
+
+            for (const course of courses || []) {
+                const courseCode = String(course?.courseCode || '').trim();
+                if (!courseCode) {
+                    console.warn('Skipping schedule row without course code:', course);
+                    continue;
+                }
+
+                const facultyName = String(course?.facultyName || '').trim();
+                const courseId = await lookupCachedId(courseIdCache, courseCode, (value) => dbService.lookupCourseId(value));
+                const facultyId = shouldPersistFacultyName(facultyName)
+                    ? await lookupCachedId(facultyIdCache, facultyName, (value) => dbService.lookupFacultyId(value))
+                    : null;
+
+                records.push({
+                    course_id: courseId,
+                    faculty_id: facultyId,
+                    room_id: roomId,
+                    quarter,
+                    day_pattern: dayPattern,
+                    time_slot: timeSlot,
+                    section: course?.section || '001',
+                    projected_enrollment: course?.predictedDemand ?? null
+                });
+            }
+        }
+    }
+
+    return records;
+}
+
+function __setSaveStateForTests(nextState = {}) {
+    if (Object.prototype.hasOwnProperty.call(nextState, 'currentSchedule')) {
+        currentSchedule = nextState.currentSchedule;
+    }
+    if (Object.prototype.hasOwnProperty.call(nextState, 'assignedCourses')) {
+        assignedCourses = nextState.assignedCourses;
+    }
+    if (Object.prototype.hasOwnProperty.call(nextState, 'caseByeCaseCourses')) {
+        caseByeCaseCourses = nextState.caseByeCaseCourses;
+    }
+    if (Object.prototype.hasOwnProperty.call(nextState, 'allQuartersSchedule')) {
+        allQuartersSchedule = nextState.allQuartersSchedule;
+    }
+    if (Object.prototype.hasOwnProperty.call(nextState, 'activeQuarter')) {
+        activeQuarter = nextState.activeQuarter;
+    }
+}
+
+function __getSaveStateForTests() {
+    return {
+        currentSchedule,
+        assignedCourses,
+        caseByeCaseCourses,
+        allQuartersSchedule,
+        activeQuarter
+    };
+}
+
 /**
  * Save schedule to Supabase database
  */
@@ -2486,79 +2692,49 @@ async function saveToDatabase() {
 
     try {
         showToast('Saving to database...');
+        const userAttribution = await resolveCurrentUserAttribution();
 
         // Initialize database service
         await dbService.initialize();
 
+        const targetYear = document.getElementById('academicYear')?.value || currentSchedule.year;
+
         // Get or create academic year
-        const yearRecord = await dbService.getOrCreateYear(currentSchedule.year);
+        const yearRecord = await dbService.getOrCreateYear(targetYear);
         if (!yearRecord) {
             showToast('Failed to get academic year', 'error');
             return;
         }
 
-        // Clear existing schedule for this year/quarter
-        const { error: deleteError } = await supabase
-            .from('scheduled_courses')
-            .delete()
-            .eq('academic_year_id', yearRecord.id)
-            .eq('quarter', currentSchedule.quarter);
+        const quarterSchedules = getAllQuarterSchedulesForSave();
+        const records = await buildYearScopedScheduleSyncRecords(quarterSchedules);
+        const recordsWithUserContext = records.map((record) => ({
+            ...record,
+            updated_by: userAttribution.id
+        }));
+        const syncResult = await dbService.syncScheduledCoursesForAcademicYear(yearRecord.id, recordsWithUserContext);
 
-        if (deleteError) {
-            console.error('Error clearing old schedule:', deleteError);
+        if (!syncResult) {
+            showToast('Error saving to database', 'error');
+            return;
         }
 
-        // Build records to insert
-        const records = [];
-
-        for (const [key, courses] of Object.entries(assignedCourses)) {
-            if (key === 'unassigned') continue;
-
-            const [dayPattern, timeSlot, room] = key.split('-');
-
-            for (const course of courses) {
-                // Look up IDs
-                const courseId = await dbService.lookupCourseId(course.courseCode);
-                const facultyId = course.facultyName && course.facultyName !== 'TBD' && course.facultyName !== 'Adjunct'
-                    ? await dbService.lookupFacultyId(course.facultyName)
-                    : null;
-                const roomId = await dbService.lookupRoomId(room);
-
-                records.push({
-                    academic_year_id: yearRecord.id,
-                    course_id: courseId,
-                    faculty_id: facultyId,
-                    room_id: roomId,
-                    quarter: currentSchedule.quarter,
-                    day_pattern: dayPattern,
-                    time_slot: timeSlot,
-                    section: course.section || '001',
-                    projected_enrollment: course.predictedDemand || null
-                });
-            }
-        }
-
-        // Insert all records
-        if (records.length > 0) {
-            const { data, error } = await supabase
-                .from('scheduled_courses')
-                .insert(records)
-                .select();
-
-            if (error) {
-                console.error('Error saving schedule:', error);
-                showToast('Error saving to database', 'error');
-                return;
-            }
-
-            showToast(`Saved ${records.length} courses to database`);
-        } else {
-            showToast('No courses to save');
-        }
+        const updatedCount = Number(syncResult.updated_count || 0);
+        const insertedCount = Number(syncResult.inserted_count || 0);
+        const deletedCount = Number(syncResult.deleted_count || 0);
+        const savedAt = new Date().toISOString();
+        writeSaveAttributionState({
+            year: targetYear,
+            userId: userAttribution.id,
+            userLabel: userAttribution.label,
+            savedAt
+        });
+        setSaveAttributionLabel(userAttribution.label, savedAt);
+        showToast(`Saved ${targetYear}: ${updatedCount} updated, ${insertedCount} inserted, ${deletedCount} removed`);
 
     } catch (error) {
         console.error('Database save error:', error);
-        showToast('Error saving to database', 'error');
+        showToast(buildDatabaseSaveErrorMessage(error), 'error');
     }
 }
 
@@ -3653,4 +3829,17 @@ function exportAiReport() {
     URL.revokeObjectURL(url);
 
     showToast('Report exported');
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        saveToDatabase,
+        getAllQuarterSchedulesForSave,
+        parseScheduleSlotKey,
+        shouldPersistFacultyName,
+        buildDatabaseSaveErrorMessage,
+        buildYearScopedScheduleSyncRecords,
+        __setSaveStateForTests,
+        __getSaveStateForTests
+    };
 }

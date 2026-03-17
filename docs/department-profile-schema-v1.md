@@ -11,8 +11,10 @@ This schema defines the runtime configuration contract for department onboarding
   - `code` (string, required)
   - `displayName` (string, required)
   - `shortName` (string, optional)
-- `branding` (object, optional):
+- `branding` (object, required):
   - `appTitle` (string)
+  - `logoUrl` (string, optional)
+  - `brandColor` (hex string, optional)
   - `headerEyebrow` (string)
   - `headerSubtitle` (string)
   - `textSlots` (object map, optional): profile-driven UI labels/help copy
@@ -20,6 +22,7 @@ This schema defines the runtime configuration contract for department onboarding
 - `academic` (object, required):
   - `system` (string, currently `quarter`)
   - `quarters` (array of strings, required)
+  - `yearLabelFormat` (string, required): e.g. `YYYY-YY`
   - `defaultTargetYearMode` (string, optional)
   - `defaultWorkloadImportYearMode` (string, optional)
   - `defaultSchedulerYear` (string, optional)
@@ -42,11 +45,21 @@ This schema defines the runtime configuration contract for department onboarding
   - `dashboardSubtitleBase` (string, optional)
   - `productionResetDefaultScheduleYear` (string, optional)
   - `defaultAnnualTargets` (object, optional)
+  - `appliedLearningCourses` (object, required): course-code map to `{ title, rate }`
+  - `courseTypeMultipliers` (object, required): named multipliers such as internship/practicum/independentStudy
+  - `utilizationThresholds` (object, required):
+    - `overloadedPercent` (number, > 0)
+    - `optimalMinPercent` (number, > 0)
 - `import` (object, optional):
   - `clss.roomMatchPriority` (array of strings, optional)
   - `clss.preferredMatchingOrder` (array of strings, optional)
   - `clss.facultyAliases` (object map, optional): alias to canonical faculty name
   - `clss.courseAliases` (object map, optional): alias code to canonical course code
+- `courseModel` (object, required):
+  - `courseCodePrefix` (string, required) e.g. `DESN`
+  - `catalogStructure` (string, optional)
+- `dashboard` (object, required):
+  - `modules` (object, required): boolean feature toggles (schedule/workload/capacity/etc.)
 
 ## Runtime Loader
 
@@ -65,6 +78,7 @@ If manifest/profile loading fails or validation fails, runtime falls back to the
 
 - Unsupported profile versions fail validation.
 - Missing required fields fail validation.
+- Invalid primitive types fail validation (string/boolean/number checks).
 - Runtime applies v1 defaults for optional fields.
 - Runtime emits contrast warnings when branding foreground/background header tokens fail a 4.5:1 ratio check.
 - Migration hook entry point exists in `js/department-profile.js` (`migrateProfile`) for future version upgrades.

@@ -17,6 +17,7 @@
     "validate-data": "node scripts/validate-enrollment.js enrollment-data/processed/corrected-all-quarters.csv",
     "serve": "node api-server.js",
     "check:data-freshness": "node scripts/check-data-freshness.js",
+    "check:rls": "node scripts/supabase-policy-smoke-check.js",
     "qa:onboarding": "npm test -- tests/conflict-engine.slot-resolutions.test.js tests/conflict-engine.regression-scenarios.test.js tests/conflict-engine.room-fit-recommendations.test.js tests/workload-integration.test.js tests/department-profile.onboarding.test.js"
   },
   "repository": {

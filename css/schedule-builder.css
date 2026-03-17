@@ -1067,6 +1067,13 @@ body {
     line-height: 1.35;
 }
 
+.action-bar-attribution {
+    margin-top: 6px;
+    font-size: 0.74rem;
+    color: #374151;
+    font-family: var(--mono-font);
+}
+
 /* Toast */
 .toast {
     position: fixed;
