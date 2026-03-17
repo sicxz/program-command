@@ -4855,9 +4855,10 @@
         }
 
         function getSchedulerRoomOptionList() {
+            const configuredRooms = Object.keys(schedulerRoomLabels || {}).filter(Boolean);
             const ordered = Array.isArray(CLSS_IMPORT_ROOM_PRIORITY) ? CLSS_IMPORT_ROOM_PRIORITY.slice() : [];
             const allowed = Array.from(CLSS_IMPORT_ALLOWED_ROOMS || []);
-            const merged = [...new Set([...ordered, ...allowed])].filter(Boolean);
+            const merged = [...new Set([...ordered, ...allowed, ...configuredRooms])].filter(Boolean);
             return merged.length ? merged : Object.keys(DEFAULT_SCHEDULER_ROOM_LABELS);
         }
 
@@ -12123,6 +12124,47 @@
             return false;
         }
 
+        function snapshotHasCourses(snapshot) {
+            if (!snapshot || typeof snapshot !== 'object') return false;
+            return ['fall', 'winter', 'spring'].some((quarter) => {
+                const quarterData = snapshot[quarter];
+                if (!quarterData || typeof quarterData !== 'object') return false;
+                return Object.values(quarterData).some((dayData) => {
+                    if (!dayData || typeof dayData !== 'object') return false;
+                    return Object.values(dayData).some((timeData) =>
+                        Array.isArray(timeData) && timeData.length > 0
+                    );
+                });
+            });
+        }
+
+        function findMostRecentSavedScheduleYear() {
+            const prefix = String(scheduleStorageKeyPrefix || 'designSchedulerData_').trim() || 'designSchedulerData_';
+            const years = [];
+
+            for (let i = 0; i < localStorage.length; i += 1) {
+                const key = localStorage.key(i);
+                if (!key || !key.startsWith(prefix)) continue;
+                const year = key.slice(prefix.length);
+                if (!/^\d{4}-\d{2}$/.test(year)) continue;
+
+                try {
+                    const raw = localStorage.getItem(key);
+                    if (!raw) continue;
+                    const parsed = JSON.parse(raw);
+                    if (snapshotHasCourses(parsed)) {
+                        years.push(year);
+                    }
+                } catch (error) {
+                    // ignore malformed localStorage values
+                }
+            }
+
+            if (!years.length) return '';
+            years.sort((a, b) => String(b).localeCompare(String(a)));
+            return years[0];
+        }
+
         function clearScheduleData() {
             localStorage.removeItem(getStorageKey());
             showToast('Schedule data cleared - refresh to reset');
@@ -12478,7 +12520,14 @@
             migrateOldScheduleData();
 
             // Load saved schedule data from localStorage
-            loadScheduleData();
+            const loadedCurrentYear = loadScheduleData();
+            if (!loadedCurrentYear) {
+                const fallbackYear = findMostRecentSavedScheduleYear();
+                if (fallbackYear && fallbackYear !== currentAcademicYear) {
+                    switchAcademicYear(fallbackYear);
+                    showToast(`Loaded saved schedule from ${fallbackYear}`, 'warning');
+                }
+            }
 
             // Check for imported schedule from schedule builder
             checkForImportedSchedule();

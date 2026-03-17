@@ -36,13 +36,28 @@ let allQuartersSchedule = {
 let activeQuarter = 'Fall';
 let courseCatalog = null; // Loaded from course-catalog.json
 
-// Time slots: 2hr 20min classes
-const TIMES = ['10:00 AM - 12:20 PM', '1:00 PM - 3:20 PM', '4:00 PM - 6:20 PM'];
-const TIME_KEYS = ['10:00-12:20', '13:00-15:20', '16:00-18:20']; // For data storage
-const DAYS = ['MW', 'TR'];
+// Scheduler pattern configuration (profile-driven with sensible defaults for Design)
+let schedulerDayPatterns = [
+    { id: 'MW', label: 'Monday / Wednesday' },
+    { id: 'TR', label: 'Tuesday / Thursday' }
+];
+let schedulerTimeSlots = [
+    { id: '10:00-12:20', label: '10:00-12:20', startMinutes: 10 * 60, endMinutes: (12 * 60) + 20 },
+    { id: '13:00-15:20', label: '13:00-15:20', startMinutes: 13 * 60, endMinutes: (15 * 60) + 20 },
+    { id: '16:00-18:20', label: '16:00-18:20', startMinutes: 16 * 60, endMinutes: (18 * 60) + 20 }
+];
 
-// Evening time slot (for safety pairing rule)
-const EVENING_TIME = '4:00 PM - 6:20 PM';
+let DAYS = schedulerDayPatterns.map((pattern) => pattern.id);
+let TIME_KEYS = schedulerTimeSlots.map((slot) => slot.id); // For data storage
+let TIMES = schedulerTimeSlots.map((slot) => slot.label);
+
+// Derived bucket helpers (updated once profile is loaded)
+let EVENING_SLOT_IDS = schedulerTimeSlots
+    .filter((slot) => Number.isFinite(slot.startMinutes) && slot.startMinutes >= 16 * 60)
+    .map((slot) => slot.id);
+
+// Program Command storage prefix (kept in sync with department profile scheduler.storageKeyPrefix)
+let PROGRAM_COMMAND_STORAGE_KEY_PREFIX = 'designSchedulerData_';
 
 // Store courses from database for constraints
 let dbCourses = [];
@@ -554,6 +569,43 @@ document.addEventListener('DOMContentLoaded', async function() {
     console.log('Initializing Schedule Builder...');
 
     try {
+        // Initialize department profile + scheduler patterns
+        if (window.DepartmentProfileManager && typeof window.DepartmentProfileManager.initialize === 'function') {
+            try {
+                const snapshot = await window.DepartmentProfileManager.initialize();
+                const profile = snapshot?.profile
+                    || (typeof window.DepartmentProfileManager.getCurrentProfile === 'function'
+                        ? window.DepartmentProfileManager.getCurrentProfile()
+                        : null)
+                    || (typeof window.DepartmentProfileManager.getDefaultProfile === 'function'
+                        ? window.DepartmentProfileManager.getDefaultProfile()
+                        : null);
+
+                const scheduler = profile && profile.scheduler ? profile.scheduler : {};
+
+                if (Array.isArray(scheduler.dayPatterns) && scheduler.dayPatterns.length > 0) {
+                    schedulerDayPatterns = scheduler.dayPatterns.slice();
+                }
+                if (Array.isArray(scheduler.timeSlots) && scheduler.timeSlots.length > 0) {
+                    schedulerTimeSlots = scheduler.timeSlots.slice();
+                }
+
+                DAYS = schedulerDayPatterns.map((pattern) => String(pattern.id || '').trim().toUpperCase()).filter(Boolean);
+                TIME_KEYS = schedulerTimeSlots.map((slot) => String(slot.id || '').trim()).filter(Boolean);
+                TIMES = schedulerTimeSlots.map((slot) => String(slot.label || slot.id || '').trim());
+
+                EVENING_SLOT_IDS = schedulerTimeSlots
+                    .filter((slot) => Number.isFinite(slot.startMinutes) && slot.startMinutes >= 16 * 60)
+                    .map((slot) => slot.id);
+
+                if (scheduler.storageKeyPrefix && typeof scheduler.storageKeyPrefix === 'string') {
+                    PROGRAM_COMMAND_STORAGE_KEY_PREFIX = scheduler.storageKeyPrefix.trim() || PROGRAM_COMMAND_STORAGE_KEY_PREFIX;
+                }
+            } catch (profileError) {
+                console.warn('Could not initialize department profile for Schedule Builder; falling back to defaults.', profileError);
+            }
+        }
+
         // Load room constraints
         const constraintsResponse = await fetch('../data/room-constraints.json');
         if (constraintsResponse.ok) {
@@ -628,7 +680,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 let analysisResults = null;
 
 function getProgramCommandScheduleStorageKey(academicYear) {
-    return `designSchedulerData_${academicYear}`;
+    return `${PROGRAM_COMMAND_STORAGE_KEY_PREFIX}${academicYear}`;
 }
 
 function extractCoursesFromProgramCommandDraft(academicYear) {
@@ -1471,7 +1523,7 @@ function getValidRooms(courseCode, quarter, slotUsage = {}) {
         const cebSlots = Object.keys(slotUsage).filter(k =>
             k.includes('CEB 102') || k.includes('CEB 104')
         );
-        const cebFull = cebSlots.length >= (TIMES.length * DAYS.length * 2); // 2 CEB rooms
+        const cebFull = cebSlots.length >= (TIME_KEYS.length * DAYS.length * 2); // 2 CEB rooms
 
         if (cebFull && ROOM_212_OVERFLOW.includes(courseCode)) {
             return ['CEB 102', 'CEB 104', '212'];
@@ -1530,8 +1582,15 @@ function getFacultyCandidates(preferredFaculty, selectedFaculty = []) {
 }
 
 function getTimeBucketForKey(timeKey) {
-    if (timeKey === '10:00-12:20') return 'morning';
-    if (timeKey === '13:00-15:20') return 'afternoon';
+    const slot = schedulerTimeSlots.find((entry) => String(entry.id || '').trim() === String(timeKey || '').trim());
+    if (!slot || !Number.isFinite(slot.startMinutes) || !Number.isFinite(slot.endMinutes)) {
+        return 'unspecified';
+    }
+
+    const start = slot.startMinutes;
+
+    if (start < 12 * 60) return 'morning';
+    if (start < 16 * 60) return 'afternoon';
     return 'evening';
 }
 
@@ -3056,12 +3115,14 @@ function handleCourseSelection() {
         // Pre-populate time slot based on preferred times
         const timeSelect = document.getElementById('addCourseTime');
         if (prefs.preferredTimes && prefs.preferredTimes.length > 0) {
-            // Map time preferences to actual time keys
-            const timeMapping = {
-                'morning': '10:00-12:20',
-                'afternoon': '13:00-15:20',
-                'evening': '16:00-18:20'
-            };
+            // Map time preferences to actual time keys using current profile-driven slots
+            const timeMapping = {};
+            schedulerTimeSlots.forEach((slot) => {
+                const bucket = getTimeBucketForKey(slot.id);
+                if (!timeMapping[bucket]) {
+                    timeMapping[bucket] = slot.id;
+                }
+            });
             // Select first preferred time that's valid
             for (const timePref of prefs.preferredTimes) {
                 const timeKey = timeMapping[timePref];
