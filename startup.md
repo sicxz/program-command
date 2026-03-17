@@ -20,6 +20,9 @@ substantial work:
 3. Should I stop at a PR, or continue through merge if checks pass?
 4. Are destructive DB, schema, or data changes allowed for this task?
 
+If the user asks for autonomous or unattended work, also confirm that progress
+should be logged hourly to `update-YYYY-MM-DD.md` in the repo root.
+
 ## Defaults
 
 If the user already answered one or more of the questions in their first
@@ -34,6 +37,7 @@ If the user says something like "use the usual defaults", interpret that as:
 - otherwise prefer the repo's normal integration branch rules from `AGENTS.md`
 - stop at PR unless the user explicitly asked for merge
 - do not perform destructive DB, schema, or data operations without explicit permission
+- if working unattended for an extended period, append hourly status to `update-YYYY-MM-DD.md`
 
 ## Example Startup Prompt
 

@@ -25,6 +25,13 @@ Startup prompt source of truth: `startup.md`.
 
 - Work end-to-end without waiting for supervision unless blocked.
 - Make reasonable technical, UX, and test-scope decisions.
+- When working autonomously for an extended period, append a progress entry at least once per hour to `update-YYYY-MM-DD.md` in the repo root.
+- Each hourly update entry should include:
+  - local timestamp
+  - current issue, branch, or goal
+  - what changed since the previous update
+  - tests or verification run
+  - current blocker or next step
 - Only interrupt the user for:
   - credentials, secrets, or missing access
   - destructive operations such as data wipes, force-pushes, or production schema actions

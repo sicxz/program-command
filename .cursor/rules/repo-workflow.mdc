@@ -11,6 +11,7 @@ Follow `AGENTS.md` as the workflow source of truth for this repository.
 - Use one issue, branch, and worktree per substantial task.
 - Keep durable decisions in issues, PRs, or checked-in docs rather than relying on local chat history.
 - If a fresh session starts without enough operating context, ask the concise getting-started questions from `startup.md` before doing substantial work.
+- If working autonomously for an extended period, append hourly progress to `update-YYYY-MM-DD.md` in the repo root.
 - Default scheduler triage and UX fixes to `index.html` unless the user explicitly asks for `pages/schedule-builder.html`.
 - Prefer Supabase as the production source of truth; treat local JSON and `localStorage` as fallback or draft layers unless the task is explicitly about them.
 - Run the narrowest relevant tests, and run `npm run build` for runtime-facing changes.
