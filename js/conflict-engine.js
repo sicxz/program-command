@@ -43,6 +43,8 @@ const ConflictEngine = (function() {
         ['DESN 458', 'DESN 468'],
         
         // Senior year combinations - CRITICAL
+        ['DESN 401', 'DESN 463'],
+        ['DESN 365', 'DESN 468'],
         ['DESN 463', 'DESN 480'],
         ['DESN 463', 'DESN 490'],
         ['DESN 480', 'DESN 490'],
@@ -66,6 +68,8 @@ const ConflictEngine = (function() {
         'DESN 463::DESN 490': { label: 'graduation-critical', score: 28 },
         'DESN 480::DESN 490': { label: 'graduation-critical', score: 28 },
         'DESN 469::DESN 480': { label: 'graduation-critical', score: 24 },
+        'DESN 401::DESN 463': { label: 'pathway-sequence-critical', score: 22 },
+        'DESN 365::DESN 468': { label: 'pathway-sequence-critical', score: 20 },
         'DESN 348::DESN 458': { label: 'pathway-sequence-critical', score: 18 },
         'DESN 355::DESN 365': { label: 'pathway-sequence-critical', score: 16 },
         'DESN 368::DESN 378': { label: 'pathway-sequence-critical', score: 16 },
