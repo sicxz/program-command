@@ -6071,12 +6071,12 @@
                     '13:00-15:20': [
                         { code: 'DESN 338', name: 'UX 1', room: '206', instructor: 'M.Lybbert', credits: 5 },
                         { code: 'DESN 345', name: 'Digital Game', room: '209', instructor: 'Manikoth', credits: 5 },
-                        { code: 'DESN 263', name: 'VCD 1', room: '210', instructor: 'A.Sopu', credits: 5 },
                         { code: 'DESN 200', name: 'Visual Thinking', room: 'CEB 102', instructor: 'S.Mills', credits: 5 }
                     ],
                     '16:00-18:20': [
                         { code: 'DESN 458', name: 'UX 3', room: '206', instructor: 'M.Lybbert', credits: 5 },
-                        { code: 'DESN 350', name: 'Digital Photo', room: '209', instructor: 'Adjunct', credits: 5 }
+                        { code: 'DESN 350', name: 'Digital Photo', room: '209', instructor: 'Adjunct', credits: 5 },
+                        { code: 'DESN 263', name: 'VCD 1', room: '210', instructor: 'A.Sopu', credits: 5 }
                     ]
                 },
                 'TR': {
@@ -12777,6 +12777,81 @@
             return mutated;
         }
 
+        function ensureScheduleBucket(quarterData, dayPattern, timeKey) {
+            if (!quarterData[dayPattern] || typeof quarterData[dayPattern] !== 'object') {
+                quarterData[dayPattern] = {};
+            }
+            if (!Array.isArray(quarterData[dayPattern][timeKey])) {
+                quarterData[dayPattern][timeKey] = [];
+            }
+            return quarterData[dayPattern][timeKey];
+        }
+
+        function removeScheduledCourse(quarterData, dayPattern, timeKey, predicate) {
+            const bucket = quarterData?.[dayPattern]?.[timeKey];
+            if (!Array.isArray(bucket)) return null;
+
+            const index = bucket.findIndex(predicate);
+            if (index < 0) return null;
+
+            const [course] = bucket.splice(index, 1);
+            if (bucket.length === 0) {
+                delete quarterData[dayPattern][timeKey];
+                if (quarterData[dayPattern] && Object.keys(quarterData[dayPattern]).length === 0) {
+                    delete quarterData[dayPattern];
+                }
+            }
+            return course;
+        }
+
+        function upsertScheduledCourse(quarterData, dayPattern, timeKey, course, predicate) {
+            const bucket = ensureScheduleBucket(quarterData, dayPattern, timeKey);
+            const index = bucket.findIndex(predicate);
+            if (index >= 0) {
+                bucket[index] = {
+                    ...bucket[index],
+                    ...course
+                };
+            } else {
+                bucket.push(course);
+            }
+        }
+
+        function applyCanonicalSchedulePatternMigrations(year, data) {
+            if (String(year || '').trim() !== '2025-26' || !data || typeof data !== 'object') {
+                return false;
+            }
+
+            let mutated = false;
+            const spring = data.spring;
+            if (spring && typeof spring === 'object') {
+                const movedDesn263 = removeScheduledCourse(
+                    spring,
+                    'MW',
+                    '13:00-15:20',
+                    (course) => normalizeCourseCode(course?.code) === 'DESN 263' && String(course?.room || '').trim() === '210'
+                );
+                if (movedDesn263) {
+                    upsertScheduledCourse(
+                        spring,
+                        'MW',
+                        '16:00-18:20',
+                        {
+                            ...movedDesn263,
+                            room: '210',
+                            instructor: 'A.Sopu',
+                            credits: 5
+                        },
+                        (course) => normalizeCourseCode(course?.code) === 'DESN 263' && String(course?.room || '').trim() === '210'
+                    );
+                    mutated = true;
+                }
+
+            }
+
+            return mutated;
+        }
+
         function loadScheduleData(year) {
             const targetYear = year || currentAcademicYear;
             try {
@@ -12786,6 +12861,7 @@
                     parsed = migrateTimeSlots(parsed);
                     parsed = normalizeScheduleCourseCodes(parsed);
                     const modalityMigrated = enforceCourseDefaultModalities(parsed);
+                    const canonicalPatternMigrated = applyCanonicalSchedulePatternMigrations(targetYear, parsed);
                     const hasCourses = (qData) => {
                         if (!qData) return false;
                         return Object.values(qData).some(dayData =>
@@ -12803,6 +12879,9 @@
                     console.log('Schedule data loaded for year:', targetYear);
                     if (modalityMigrated) {
                         console.log('Migrated course modality defaults for year:', targetYear);
+                    }
+                    if (canonicalPatternMigrated) {
+                        console.log('Applied canonical schedule pattern updates for year:', targetYear);
                     }
                     saveScheduleData();
                     return true;
