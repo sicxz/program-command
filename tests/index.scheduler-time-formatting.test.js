@@ -85,4 +85,18 @@ describe('index scheduler time formatting', () => {
         expect(source).toContain('<option value="15:20">3:20 PM</option>');
         expect(source).toContain('<option value="18:20">6:20 PM</option>');
     });
+
+    test('grid time column shows time only while preserving day context for accessibility', () => {
+        const { source } = loadSchedulerTimeHelpers();
+
+        expect(source).toContain("timeSlot.textContent = timeLabel;");
+        expect(source).toContain("timeSlot.setAttribute('aria-label', `${getSchedulerDayLabel(day)} ${timeLabel}`);");
+    });
+
+    test('single-course scheduler cells render as full slot blocks', () => {
+        const { source } = loadSchedulerTimeHelpers();
+
+        expect(source).toContain("cell.classList.add('single-course-cell');");
+        expect(source).toContain("block.classList.add('single-course-block');");
+    });
 });
