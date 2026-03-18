@@ -5113,6 +5113,12 @@
             return roomLabels[code] || code;
         }
 
+        function getCurrentSchedulerQuarter() {
+            const navComponent = document.getElementById('mainQuarterNav') || document.querySelector('quarter-nav');
+            const currentQuarter = navComponent?.currentQuarter || window.StateManager?.get('currentQuarter') || 'spring';
+            return String(currentQuarter || 'spring').toLowerCase();
+        }
+
         function normalizeCourseAliasLookupKey(code) {
             return normalizeSchedulerLookupKey(normalizeCourseCode(code));
         }
@@ -6472,7 +6478,7 @@
             const targetDay = this.dataset.day;
             const targetTime = this.dataset.time;
             const targetRoom = this.dataset.room;
-            const quarter = window.StateManager?.get('currentQuarter') || 'spring';
+            const quarter = String(draggedCourse.quarter || getCurrentSchedulerQuarter()).toLowerCase();
             const data = scheduleData[quarter];
 
             // Check if dropping from displaced tray
@@ -6534,7 +6540,7 @@
         }
 
         function moveCourse(course, newDay, newTime, newRoom) {
-            const quarter = window.StateManager?.get('currentQuarter') || 'spring';
+            const quarter = String(course?.quarter || getCurrentSchedulerQuarter()).toLowerCase();
 
             // Update local schedule data
             const data = scheduleData[quarter];
@@ -6542,7 +6548,12 @@
             // Find and remove from original location
             if (data[course.originalDay] && data[course.originalDay][course.originalTime]) {
                 const originalCourses = data[course.originalDay][course.originalTime];
-                const courseIndex = originalCourses.findIndex(c => c.code === course.courseCode);
+                let courseIndex = originalCourses.findIndex(c =>
+                    c.code === course.courseCode && c.room === course.originalRoom
+                );
+                if (courseIndex < 0) {
+                    courseIndex = originalCourses.findIndex(c => c.code === course.courseCode);
+                }
 
                 if (courseIndex > -1) {
                     const movedCourse = originalCourses.splice(courseIndex, 1)[0];
@@ -6584,6 +6595,7 @@
                                     name: existing.name,
                                     instructor: existing.instructor,
                                     credits: existing.credits,
+                                    originalQuarter: quarter,
                                     originalDay: newDay,
                                     originalTime: newTime,
                                     originalRoom: newRoom
@@ -6607,7 +6619,7 @@
                             endTime: convertTimeSlotToEnd(newTime)
                         };
 
-                        ScheduleManager.updateCourseAssignment('2025-26', quarter, course.courseId, updates);
+                        ScheduleManager.updateCourseAssignment(currentAcademicYear, quarter, course.courseId, updates);
                     }
 
                     // Save and re-render the schedule
@@ -8607,7 +8619,7 @@
                 showToast('Course updated successfully');
                 closeEditModal();
                 // Refresh the schedule view
-                const currentQuarter = window.StateManager?.get('currentQuarter') || 'spring';
+                const currentQuarter = getCurrentSchedulerQuarter();
                 renderSchedule(currentQuarter);
                 renderOnlineCourses(currentQuarter);
                 renderArrangedCourses(currentQuarter);
@@ -8615,7 +8627,7 @@
                 // No direct save path available - try just closing and refreshing
                 showToast('Course updated');
                 closeEditModal();
-                const currentQuarter = window.StateManager?.get('currentQuarter') || 'spring';
+                const currentQuarter = getCurrentSchedulerQuarter();
                 renderSchedule(currentQuarter);
                 renderOnlineCourses(currentQuarter);
                 renderArrangedCourses(currentQuarter);
@@ -8949,6 +8961,7 @@
                 name: course.name || '',
                 instructor: course.instructor || 'TBD',
                 credits: course.credits ?? 5,
+                originalQuarter: String(course.originalQuarter || getCurrentSchedulerQuarter()).toLowerCase(),
                 originalDay: course.originalDay || 'unknown',
                 originalTime: course.originalTime || 'unknown',
                 originalRoom: course.originalRoom || 'TBD'
@@ -9077,6 +9090,7 @@
                 courseName: course.name,
                 instructor: course.instructor,
                 credits: course.credits,
+                quarter: String(course.originalQuarter || getCurrentSchedulerQuarter()).toLowerCase(),
                 isFromDisplacedTray: true,
                 displacedIndex: index,
                 originalDay: course.originalDay,
@@ -9138,7 +9152,7 @@
 
             if (!draggedCourse || draggedCourse.isFromDisplacedTray) return;
 
-            const quarter = window.StateManager?.get('currentQuarter') || 'spring';
+            const quarter = String(draggedCourse.quarter || getCurrentSchedulerQuarter()).toLowerCase();
             const data = scheduleData[quarter];
 
             // Remove course from schedule and add to tray
@@ -9158,6 +9172,7 @@
                         name: course.name,
                         instructor: course.instructor,
                         credits: course.credits,
+                        originalQuarter: quarter,
                         originalDay: draggedCourse.originalDay,
                         originalTime: draggedCourse.originalTime,
                         originalRoom: draggedCourse.originalRoom
@@ -9184,7 +9199,8 @@
         function deleteCourse(courseCode, day, time, room, shiftKey) {
             if (shiftKey) {
                 // Shift+Click: Move to displaced tray
-                const data = scheduleData[window.StateManager?.get('currentQuarter') || 'spring'];
+                const currentQuarter = getCurrentSchedulerQuarter();
+                const data = scheduleData[currentQuarter];
                 if (data[day] && data[day][time]) {
                     const courseIndex = data[day][time].findIndex(c => c.code === courseCode && c.room === room);
                     if (courseIndex > -1) {
@@ -9194,6 +9210,7 @@
                             name: course.name,
                             instructor: course.instructor,
                             credits: course.credits,
+                            originalQuarter: currentQuarter,
                             originalDay: day,
                             originalTime: time,
                             originalRoom: room
@@ -9201,7 +9218,7 @@
                         data[day][time].splice(courseIndex, 1);
                         saveScheduleData(); // Persist changes
                         setScheduleDirty(true);
-                        renderSchedule(window.StateManager?.get('currentQuarter') || 'spring');
+                        renderSchedule(currentQuarter);
                         showToast(courseCode + ' moved to displaced tray');
                     }
                 }
@@ -9218,7 +9235,7 @@
             if (!courseToDelete) return;
 
             const { courseCode, day, time, room } = courseToDelete;
-            const quarter = window.StateManager?.get('currentQuarter') || 'spring';
+            const quarter = getCurrentSchedulerQuarter();
             const data = scheduleData[quarter];
 
             if (data[day] && data[day][time]) {
@@ -12570,7 +12587,7 @@
                 || document.getElementById('addOnlineSection').checked;
             const room = document.getElementById('addRoom').value;
 
-            const quarter = window.StateManager?.get('currentQuarter') || 'spring';
+            const quarter = getCurrentSchedulerQuarter();
             const data = scheduleData[quarter];
 
             let dayPattern, timeSlot;
@@ -12858,8 +12875,7 @@
             updateQuarterTabLabels(newYear);
 
             // Re-render current quarter
-            const navComponent = document.getElementById('mainQuarterNav');
-            const quarter = navComponent ? navComponent.currentQuarter : (window.StateManager?.get('currentQuarter') || 'spring');
+            const quarter = getCurrentSchedulerQuarter();
 
             renderSchedule(quarter);
             renderConflicts(quarter);
@@ -12880,8 +12896,7 @@
             // Update schedule grid title
             const quarterTitle = document.getElementById('quarterTitle');
             if (quarterTitle) {
-                const navComponent = document.getElementById('mainQuarterNav');
-                const currentQuarter = navComponent ? navComponent.currentQuarter : window.StateManager?.get('currentQuarter') || 'spring';
+                const currentQuarter = getCurrentSchedulerQuarter();
                 const qYear = currentQuarter === 'fall' ? fullStartYear : fullEndYear;
                 quarterTitle.textContent = currentQuarter.charAt(0).toUpperCase() + currentQuarter.slice(1) + ' ' + qYear;
             }
@@ -14656,7 +14671,7 @@
          * Get current schedule data from the grid
          */
         function getCurrentScheduleData() {
-            const quarter = window.StateManager?.get('currentQuarter') || 'spring';
+            const quarter = getCurrentSchedulerQuarter();
             const quarterCourses = flattenQuarterData(scheduleData[quarter] || {});
             return quarterCourses.map((course, index) => ({
                 code: normalizeCourseCode(course.code),
@@ -14781,7 +14796,7 @@
             const content = document.getElementById('conflictResultsContent');
 
             // Get the currently selected quarter
-            const currentQuarter = window.StateManager?.get('currentQuarter') || 'spring';
+            const currentQuarter = getCurrentSchedulerQuarter();
             const [startYearPart, endYearPart] = String(currentAcademicYear || '2025-26').split('-');
             const quarterYear = currentQuarter === 'fall'
                 ? Number(startYearPart)
@@ -15649,7 +15664,7 @@ RESPONSE FORMAT:
             renderMarkdownResponse(responseEl, '_Thinking..._');
 
             try {
-                const quarter = window.StateManager?.get('currentQuarter') || 'spring';
+                const quarter = getCurrentSchedulerQuarter();
                 const prompt = buildSchedulerQuestionPrompt(question, quarter);
                 const model = aiService.getCurrentDefaultModel?.() || 'gpt-4o-mini';
                 const provider = aiService.getCurrentProvider?.();
@@ -15697,7 +15712,7 @@ RESPONSE FORMAT:
             content.style.display = 'none';
 
             try {
-                const quarter = window.StateManager?.get('currentQuarter') || 'spring';
+                const quarter = getCurrentSchedulerQuarter();
                 const scheduleSnapshot = buildScheduleSnapshotForAI(quarter);
                 const prompt = ScheduleEvaluator.buildPrompt(scheduleSnapshot, {}, [], { quarter });
                 const model = aiService.getCurrentDefaultModel?.() || 'gpt-4o-mini';
@@ -15776,7 +15791,7 @@ RESPONSE FORMAT:
 
         function openPrintDialog() {
             const modal = document.getElementById('printModal');
-            const currentQuarter = window.StateManager?.get('currentQuarter') || 'spring';
+            const currentQuarter = getCurrentSchedulerQuarter();
             const quarterLabel = currentQuarter.charAt(0).toUpperCase() + currentQuarter.slice(1) + ' 2026';
             document.getElementById('printCurrentLabel').textContent = quarterLabel;
             modal.classList.add('active');
@@ -15794,7 +15809,7 @@ RESPONSE FORMAT:
 
             const quarters = mode === 'all'
                 ? ['fall', 'winter', 'spring']
-                : [window.StateManager?.get('currentQuarter') || 'spring'];
+                : [getCurrentSchedulerQuarter()];
             const departmentIdentity = getActiveDepartmentIdentity();
             const departmentLabel = departmentIdentity.displayName || departmentIdentity.name || 'Department';
 
