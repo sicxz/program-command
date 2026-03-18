@@ -20,9 +20,9 @@ These contracts are prerequisites for the DB-first cutover in issue `#190` and f
 
 ### Why IDs are the contract
 - The runtime already treats day/slot values as stable identifiers rather than display labels
-- The schedule sync key in [`index.html`](/Users/tmasingale/.codex/worktrees/e1ec/scheduler-v2-codex-mainline/index.html#L14041) depends on canonical `day_pattern` and `time_slot`
-- The builder save path persists `day_pattern` and `time_slot` directly from parsed slot keys in [`pages/schedule-builder.js`](/Users/tmasingale/.codex/worktrees/e1ec/scheduler-v2-codex-mainline/pages/schedule-builder.js#L2777)
-- The database layer already saves these fields as first-class persisted columns in [`js/db-service.js`](/Users/tmasingale/.codex/worktrees/e1ec/scheduler-v2-codex-mainline/js/db-service.js#L367)
+- The schedule sync key in `index.html:14123` depends on canonical `day_pattern` and `time_slot`
+- The builder save path persists `day_pattern` and `time_slot` directly from parsed slot keys in `pages/schedule-builder.js:2671-2699`
+- The database layer already saves these fields as first-class persisted columns in `js/db-service.js:570-571`
 
 ### Interpretation rule
 Canonical day/slot IDs must be interpreted against a year-scoped frozen scheduler snapshot, not against the latest live department profile.
@@ -76,10 +76,10 @@ The target contract is:
 ### Why this contract is needed now
 Current runtime paths still resolve rooms without academic-year context:
 
-- [`index.html`](/Users/tmasingale/.codex/worktrees/e1ec/scheduler-v2-codex-mainline/index.html#L14252) loads `rooms` by `department_id` only and maps `room_code -> id`
-- [`js/db-service.js`](/Users/tmasingale/.codex/worktrees/e1ec/scheduler-v2-codex-mainline/js/db-service.js#L264) reads `rooms` by `department_id` only
-- [`js/db-service.js`](/Users/tmasingale/.codex/worktrees/e1ec/scheduler-v2-codex-mainline/js/db-service.js#L760) looks up `room_code` without year context
-- [`pages/schedule-builder.js`](/Users/tmasingale/.codex/worktrees/e1ec/scheduler-v2-codex-mainline/pages/schedule-builder.js#L2784) saves room assignments through that yearless lookup path
+- `index.html:14322-14339` loads `rooms` by `department_id` only and maps `room_code -> id`
+- `js/db-service.js:264-277` reads `rooms` by `department_id` only
+- `js/db-service.js:911-922` looks up `room_code` without year context
+- `pages/schedule-builder.js:2677-2699` saves room assignments through that yearless lookup path
 
 Those assumptions are acceptable only as a temporary pre-migration state. They are not the long-term contract.
 
@@ -95,7 +95,7 @@ Those assumptions are acceptable only as a temporary pre-migration state. They a
 - room validation must resolve against the selected academic year only
 - conflict checks, exports, and builder hydration must use year-scoped room rows
 - any yearless `room_code` lookup is a bug once year-aware room inventory lands
-- [`data/room-constraints.json`](/Users/tmasingale/.codex/worktrees/e1ec/scheduler-v2-codex-mainline/data/room-constraints.json) remains seed/fallback data, not the live production source of truth
+- `data/room-constraints.json` remains seed/fallback data, not the live production source of truth
 
 ### Migration/backfill requirements
 - clone or backfill room inventory per academic year before DB-first room hydration becomes authoritative
