@@ -92,4 +92,11 @@ describe('index scheduler time formatting', () => {
         expect(source).toContain("timeSlot.textContent = timeLabel;");
         expect(source).toContain("timeSlot.setAttribute('aria-label', `${getSchedulerDayLabel(day)} ${timeLabel}`);");
     });
+
+    test('single-course scheduler cells render as full slot blocks', () => {
+        const { source } = loadSchedulerTimeHelpers();
+
+        expect(source).toContain("cell.classList.add('single-course-cell');");
+        expect(source).toContain("block.classList.add('single-course-block');");
+    });
 });

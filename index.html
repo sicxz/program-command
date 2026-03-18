@@ -4003,6 +4003,22 @@
             box-shadow: 0 4px 12px rgba(31, 35, 40, 0.12);
         }
 
+        .schedule-cell.single-course-cell {
+            display: flex;
+            padding: 0;
+        }
+
+        .single-course-cell .course-block.single-course-block {
+            flex: 1;
+            min-height: 100%;
+            margin-bottom: 0;
+            border-radius: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            padding: 12px 14px;
+        }
+
         .btn-ewu-accent {
             border-radius: 8px !important;
             box-shadow: 0 1px 0 rgba(27, 31, 36, 0.08) !important;
@@ -6339,6 +6355,9 @@
 
                         const cell = document.createElement('div');
                         cell.className = 'schedule-cell drop-zone';
+                        if (courses.length === 1) {
+                            cell.classList.add('single-course-cell');
+                        }
                         cell.dataset.day = day;
                         cell.dataset.time = time;
                         cell.dataset.room = room;
@@ -6389,6 +6408,9 @@
 
                             const block = document.createElement('div');
                             block.className = 'course-block conflict-' + conflictLevel + ' ' + facultyClass + ' ' + trendClass;
+                            if (courses.length === 1) {
+                                block.classList.add('single-course-block');
+                            }
                             block.dataset.courseId = courseId;
                             block.dataset.quarter = quarter;
                             block.dataset.courseCode = course.code;
