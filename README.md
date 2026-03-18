@@ -75,6 +75,7 @@ Meeting patterns (day patterns and time slots) are now fully driven by the activ
 - Profiles live in `department-profiles/<program>-v1.json`
 - Each profile defines `scheduler.dayPatterns` and `scheduler.timeSlots` (with `startMinutes`/`endMinutes`)
 - Both Program Command and the Schedule Builder read from this configuration, so changing meeting patterns for a program only requires editing the profile JSON.
+- The persisted scheduler/room storage contract is documented in [`docs/scheduler-storage-contract.md`](docs/scheduler-storage-contract.md).
 
 CLSS import is considered **deprecated** as a source of truth for time/meeting patterns; any remaining CLSS tooling is review-only and should not be relied on for defining patterns going forward.
 
