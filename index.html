@@ -6328,9 +6328,9 @@
                 times.forEach(time => {
                     const timeSlot = document.createElement('div');
                     timeSlot.className = 'time-slot';
-                    timeSlot.textContent = getSchedulerDayLabel(day);
-                    timeSlot.appendChild(document.createElement('br'));
-                    timeSlot.appendChild(document.createTextNode(getSchedulerTimeSlotDisplayText(time)));
+                    const timeLabel = getSchedulerTimeSlotDisplayText(time);
+                    timeSlot.textContent = timeLabel;
+                    timeSlot.setAttribute('aria-label', `${getSchedulerDayLabel(day)} ${timeLabel}`);
                     grid.appendChild(timeSlot);
 
                     rooms.forEach(room => {
