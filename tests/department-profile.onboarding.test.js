@@ -160,4 +160,15 @@ describe('DepartmentProfileManager onboarding helpers', () => {
         expect(report.errors.join(' | ')).toContain('workload.utilizationThresholds.overloadedPercent');
         expect(report.errors.join(' | ')).toContain('dashboard.modules.schedule');
     });
+
+    test('loads year-aware room inventory for the design profile', async () => {
+        const manager = window.DepartmentProfileManager;
+        const snapshot = await manager.initialize({ forceReload: true });
+
+        expect(snapshot.profile.scheduler.allowedRooms).toEqual(['206', '209', '210', 'CEB 102', 'CEB 104']);
+        expect(snapshot.profile.import.clss.roomMatchPriority).toEqual(['206', '209', '210', 'CEB 102', 'CEB 104']);
+        expect(snapshot.profile.scheduler.roomLabelsByYear['2025-26'].roomLabels['207']).toBeUndefined();
+        expect(snapshot.profile.scheduler.roomLabelsByYear['2026-27'].roomLabels['207']).toBe('207 Media Lab');
+        expect(snapshot.profile.scheduler.roomLabelsByYear['2026-27'].roomLabels['212']).toBe('212 Project Lab');
+    });
 });

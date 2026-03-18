@@ -4699,6 +4699,8 @@
             ...slot,
             aliases: Array.isArray(slot.aliases) ? slot.aliases.slice() : []
         }));
+        let schedulerRoomLabelsDefault = { ...DEFAULT_SCHEDULER_ROOM_LABELS };
+        let schedulerRoomLabelsByYear = {};
         let schedulerRoomLabels = { ...DEFAULT_SCHEDULER_ROOM_LABELS };
         const COURSE_TITLE_OVERRIDES = {
             'DESN 100': 'Drawing for Communication',
@@ -4889,6 +4891,116 @@
             }));
         }
 
+        function normalizeSchedulerRoomLabels(roomLabels) {
+            const normalizedRoomLabels = {};
+            if (!roomLabels || typeof roomLabels !== 'object') return normalizedRoomLabels;
+
+            Object.entries(roomLabels).forEach(([code, label]) => {
+                const normalizedCode = String(code || '').trim();
+                const normalizedLabel = String(label || '').trim();
+                if (!normalizedCode || !normalizedLabel) return;
+                normalizedRoomLabels[normalizedCode] = normalizedLabel;
+            });
+
+            return normalizedRoomLabels;
+        }
+
+        function parseSchedulerRoomLabelsByYear(rawRoomLabelsByYear, defaultRoomLabels) {
+            const labelsByYear = {};
+            if (!rawRoomLabelsByYear || typeof rawRoomLabelsByYear !== 'object') return labelsByYear;
+
+            Object.entries(rawRoomLabelsByYear).forEach(([year, entry]) => {
+                const normalizedYear = String(year || '').trim();
+                if (!normalizedYear) return;
+
+                const entryObject = entry && typeof entry === 'object' ? entry : {};
+                const rawLabels = entryObject.roomLabels && typeof entryObject.roomLabels === 'object'
+                    ? entryObject.roomLabels
+                    : entryObject;
+                const explicitLabels = normalizeSchedulerRoomLabels(rawLabels);
+                const shouldInheritDefault = entryObject.inheritDefault !== false;
+                labelsByYear[normalizedYear] = shouldInheritDefault
+                    ? { ...defaultRoomLabels, ...explicitLabels }
+                    : explicitLabels;
+            });
+
+            return labelsByYear;
+        }
+
+        function getConfiguredSchedulerRoomLabelsForYear(year) {
+            const normalizedYear = String(year || '').trim();
+            if (normalizedYear && schedulerRoomLabelsByYear[normalizedYear]) {
+                return schedulerRoomLabelsByYear[normalizedYear];
+            }
+
+            const runtimeScheduler = activeDepartmentProfile?.scheduler || {};
+            const runtimeRoomLabels = normalizeSchedulerRoomLabels(runtimeScheduler.roomLabels);
+            const runtimeDefaultRoomLabels = Object.keys(runtimeRoomLabels).length
+                ? { ...runtimeRoomLabels }
+                : schedulerRoomLabelsDefault;
+            const runtimeLabelsByYear = parseSchedulerRoomLabelsByYear(
+                runtimeScheduler.roomLabelsByYear,
+                runtimeDefaultRoomLabels
+            );
+
+            if (normalizedYear && runtimeLabelsByYear[normalizedYear]) {
+                return runtimeLabelsByYear[normalizedYear];
+            }
+
+            return runtimeDefaultRoomLabels;
+        }
+
+        function getHistoricalRoomCodesFromScheduleData(data) {
+            const codes = new Set();
+            ['fall', 'winter', 'spring'].forEach((quarter) => {
+                const quarterData = data?.[quarter];
+                if (!quarterData || typeof quarterData !== 'object') return;
+
+                Object.values(quarterData).forEach((dayBlock) => {
+                    if (!dayBlock || typeof dayBlock !== 'object') return;
+
+                    Object.values(dayBlock).forEach((slotCourses) => {
+                        if (!Array.isArray(slotCourses)) return;
+                        slotCourses.forEach((course) => {
+                            const roomCode = String(course?.room || '').trim();
+                            if (!roomCode || roomCode === 'ONLINE' || roomCode === 'ARRANGED') return;
+                            codes.add(roomCode);
+                        });
+                    });
+                });
+            });
+            return [...codes];
+        }
+
+        function getSchedulerRoomLabelsForYear(year, options = {}) {
+            const {
+                includeHistoricalRooms = true,
+                extraRooms = []
+            } = options || {};
+
+            const labels = { ...getConfiguredSchedulerRoomLabelsForYear(year) };
+
+            if (includeHistoricalRooms) {
+                getHistoricalRoomCodesFromScheduleData(scheduleData).forEach((roomCode) => {
+                    if (!labels[roomCode]) labels[roomCode] = roomCode;
+                });
+            }
+
+            extraRooms
+                .map((roomCode) => String(roomCode || '').trim())
+                .filter(Boolean)
+                .forEach((roomCode) => {
+                    if (!labels[roomCode]) labels[roomCode] = roomCode;
+                });
+
+            return labels;
+        }
+
+        function syncSchedulerRoomLabelsForYear(year, options = {}) {
+            schedulerRoomLabels = getSchedulerRoomLabelsForYear(year, options);
+            return schedulerRoomLabels;
+        }
+
         function getSchedulerDayPatterns() {
             return Array.isArray(schedulerDayPatterns) && schedulerDayPatterns.length
                 ? schedulerDayPatterns
@@ -4951,10 +5063,17 @@
             return startMatch ? startMatch.id : '';
         }
 
-        function getSchedulerRoomOptionList() {
+        function getSchedulerRoomOptionList(options = {}) {
+            const {
+                year = currentAcademicYear,
+                includeHistoricalRooms = true,
+                extraRooms = []
+            } = options;
+            const roomLabels = getSchedulerRoomLabelsForYear(year, { includeHistoricalRooms, extraRooms });
+            const configuredRooms = Object.keys(roomLabels || {}).filter(Boolean);
             const ordered = Array.isArray(CLSS_IMPORT_ROOM_PRIORITY) ? CLSS_IMPORT_ROOM_PRIORITY.slice() : [];
             const allowed = Array.from(CLSS_IMPORT_ALLOWED_ROOMS || []);
-            const merged = [...new Set([...ordered, ...allowed])].filter(Boolean);
+            const merged = [...new Set([...ordered, ...allowed, ...configuredRooms, ...extraRooms])].filter(Boolean);
             return merged.length ? merged : Object.keys(DEFAULT_SCHEDULER_ROOM_LABELS);
         }
 
@@ -4985,9 +5104,13 @@
             return '';
         }
 
-        function getSchedulerRoomHeaderLabel(roomCode) {
+        function getSchedulerRoomHeaderLabel(roomCode, options = {}) {
             const code = String(roomCode || '').trim();
-            return schedulerRoomLabels[code] || code;
+            const roomLabels = getSchedulerRoomLabelsForYear(options.year || currentAcademicYear, {
+                includeHistoricalRooms: options.includeHistoricalRooms !== false,
+                extraRooms: options.extraRooms || []
+            });
+            return roomLabels[code] || code;
         }
 
         function normalizeCourseAliasLookupKey(code) {
@@ -5079,20 +5202,12 @@
             schedulerDayPatterns = parseSchedulerDayPatterns(scheduler.dayPatterns);
             schedulerTimeSlots = parseSchedulerTimeSlots(scheduler.timeSlots);
 
-            const configuredRoomLabels = scheduler.roomLabels && typeof scheduler.roomLabels === 'object'
-                ? scheduler.roomLabels
-                : {};
-            const normalizedRoomLabels = {};
-            Object.entries(configuredRoomLabels).forEach(([code, label]) => {
-                const normalizedCode = String(code || '').trim();
-                const normalizedLabel = String(label || '').trim();
-                if (!normalizedCode || !normalizedLabel) return;
-                normalizedRoomLabels[normalizedCode] = normalizedLabel;
-            });
-            schedulerRoomLabels = {
-                ...DEFAULT_SCHEDULER_ROOM_LABELS,
-                ...normalizedRoomLabels
-            };
+            const normalizedRoomLabels = normalizeSchedulerRoomLabels(scheduler.roomLabels);
+            schedulerRoomLabelsDefault = Object.keys(normalizedRoomLabels).length
+                ? { ...normalizedRoomLabels }
+                : { ...DEFAULT_SCHEDULER_ROOM_LABELS };
+            schedulerRoomLabelsByYear = parseSchedulerRoomLabelsByYear(scheduler.roomLabelsByYear, schedulerRoomLabelsDefault);
+            syncSchedulerRoomLabelsForYear(currentAcademicYear, { includeHistoricalRooms: true });
 
             if (typeof scheduler.storageKeyPrefix === 'string' && scheduler.storageKeyPrefix.trim()) {
                 scheduleStorageKeyPrefix = scheduler.storageKeyPrefix.trim();
@@ -6100,7 +6215,8 @@
             const data = scheduleData[quarter];
             const days = getSchedulerDayIds();
             const times = getSchedulerTimeSlotIds();
-            const rooms = getSchedulerRoomOptionList();
+            syncSchedulerRoomLabelsForYear(currentAcademicYear, { includeHistoricalRooms: true });
+            const rooms = getSchedulerRoomOptionList({ year: currentAcademicYear, includeHistoricalRooms: true });
             grid.style.gridTemplateColumns = `100px repeat(${rooms.length}, 1fr)`;
 
             // Clear grid safely
@@ -6109,7 +6225,7 @@
             }
 
             // Header row - create elements safely
-            const headers = ['Time', ...rooms.map((room) => getSchedulerRoomHeaderLabel(room))];
+            const headers = ['Time', ...rooms.map((room) => getSchedulerRoomHeaderLabel(room, { year: currentAcademicYear, includeHistoricalRooms: true }))];
             headers.forEach(text => {
                 const header = document.createElement('div');
                 header.className = 'grid-header';
@@ -6183,7 +6299,7 @@
                             const trendClass = 'trend-' + enrollment.trend;
 
                             // Generate a course ID for editing
-                            const courseId = '2025-26-' + quarter + '-' + course.code.replace(/\s+/g, '').toLowerCase() + '-001';
+                            const courseId = currentAcademicYear + '-' + quarter + '-' + course.code.replace(/\s+/g, '').toLowerCase() + '-001';
 
                             const block = document.createElement('div');
                             block.className = 'course-block conflict-' + conflictLevel + ' ' + facultyClass + ' ' + trendClass;
@@ -8178,14 +8294,19 @@
             document.getElementById('editCredits').value = currentCourseData.credits || 5;
 
             // Set year and quarter
-            document.getElementById('editYear').value = '2025-26'; // Current academic year
+            ensureEditYearOption(currentAcademicYear);
+            document.getElementById('editYear').value = currentAcademicYear;
             document.getElementById('editQuarter').value = currentCourseData.quarter || 'spring';
 
             // Default enrollment cap is 24 for most courses
             const specialCaps = { 'DESN 399': 5, 'DESN 491': 10, 'DESN 495': 15, 'DESN 499': 10 };
             const defaultCap = specialCaps[currentCourseData.code] || 24;
             document.getElementById('editEnrollmentCap').value = defaultCap;
-            document.getElementById('editRoom').value = currentCourseData.room || '';
+            populateEditRoomDropdown({
+                year: currentAcademicYear,
+                selectedRoom: currentCourseData.room || '',
+                includeHistoricalRooms: true
+            });
             document.getElementById('editNotes').value = '';
             const isOnlineCourse = String(currentCourseData.day || '').toUpperCase() === 'ONLINE'
                 || String(currentCourseData.room || '').toUpperCase() === 'ONLINE'
@@ -8282,7 +8403,7 @@
 
             // Try to get more data from ScheduleManager if available
             if (typeof ScheduleManager !== 'undefined' && currentCourseData.courseId) {
-                const schedule = ScheduleManager.getQuarterSchedule('2025-26', currentCourseData.quarter);
+                const schedule = ScheduleManager.getQuarterSchedule(currentAcademicYear, currentCourseData.quarter);
                 const course = schedule.find(c => c.id === currentCourseData.courseId);
                 if (course) {
                     document.getElementById('editSection').value = course.section || '001';
@@ -8345,6 +8466,11 @@
                 if (String(roomInput.value || '').trim().toUpperCase() === 'ONLINE') {
                     roomInput.value = '';
                 }
+                populateEditRoomDropdown({
+                    year: document.getElementById('editYear')?.value || currentAcademicYear,
+                    selectedRoom: roomInput.value || currentCourseData?.room || '',
+                    includeHistoricalRooms: true
+                });
                 roomInput.disabled = false;
                 startTimeInput.required = true;
                 endTimeInput.required = true;
@@ -12200,7 +12326,8 @@
             const previousValue = select.value;
             select.innerHTML = '<option value="">Select Room...</option>';
 
-            const entries = Object.entries(schedulerRoomLabels || {}).sort(([aCode], [bCode]) =>
+            const roomLabels = getSchedulerRoomLabelsForYear(currentAcademicYear, { includeHistoricalRooms: false });
+            const entries = Object.entries(roomLabels || {}).sort(([aCode], [bCode]) =>
                 String(aCode || '').localeCompare(String(bCode || ''), 'en', { numeric: true, sensitivity: 'base' })
             );
 
@@ -12218,6 +12345,56 @@
 
             if (previousValue && Array.from(select.options).some((opt) => opt.value === previousValue)) {
                 select.value = previousValue;
+            }
+        }
+
+        function ensureEditYearOption(year) {
+            const select = document.getElementById('editYear');
+            const normalizedYear = String(year || '').trim();
+            if (!select || !normalizedYear) return;
+            if (Array.from(select.options).some((option) => option.value === normalizedYear)) return;
+
+            const option = document.createElement('option');
+            option.value = normalizedYear;
+            option.textContent = normalizedYear;
+            select.appendChild(option);
+        }
+
+        function populateEditRoomDropdown(options = {}) {
+            const {
+                year = currentAcademicYear,
+                selectedRoom = '',
+                includeHistoricalRooms = false
+            } = options;
+            const select = document.getElementById('editRoom');
+            if (!select) return;
+
+            const normalizedSelectedRoom = String(selectedRoom || '').trim();
+            const selectedInPersonRoom = ['ONLINE', 'ARRANGED'].includes(normalizedSelectedRoom.toUpperCase())
+                ? ''
+                : normalizedSelectedRoom;
+            const roomLabels = getSchedulerRoomLabelsForYear(year, {
+                includeHistoricalRooms,
+                extraRooms: selectedInPersonRoom ? [selectedInPersonRoom] : []
+            });
+            const roomCodes = getSchedulerRoomOptionList({
+                year,
+                includeHistoricalRooms,
+                extraRooms: selectedInPersonRoom ? [selectedInPersonRoom] : []
+            }).sort((aCode, bCode) =>
+                String(aCode || '').localeCompare(String(bCode || ''), 'en', { numeric: true, sensitivity: 'base' })
+            );
+
+            select.innerHTML = '<option value="">Select Room...</option>';
+            roomCodes.forEach((code) => {
+                const option = document.createElement('option');
+                option.value = code;
+                option.textContent = roomLabels[code] || code;
+                select.appendChild(option);
+            });
+
+            if (selectedInPersonRoom && Array.from(select.options).some((option) => option.value === selectedInPersonRoom)) {
+                select.value = selectedInPersonRoom;
             }
         }
 
@@ -12972,6 +13149,13 @@
             document.getElementById('addCourseCode')?.addEventListener('change', applySelectedCourseDefaults);
             document.getElementById('addFaculty')?.addEventListener('change', () => handleFacultySelectChange('addFaculty'));
             document.getElementById('editFaculty')?.addEventListener('change', () => handleFacultySelectChange('editFaculty'));
+            document.getElementById('editYear')?.addEventListener('change', (event) => {
+                populateEditRoomDropdown({
+                    year: event.target.value || currentAcademicYear,
+                    selectedRoom: document.getElementById('editRoom')?.value || currentCourseData?.room || '',
+                    includeHistoricalRooms: true
+                });
+            });
 
             // Migrate old schedule data format to year-aware format
             migrateOldScheduleData();
@@ -13228,7 +13412,9 @@
 
                     <div class="form-group">
                         <label for="editRoom" class="form-label">Room</label>
-                        <input type="text" id="editRoom" class="form-input" placeholder="e.g., CEB 242">
+                        <select id="editRoom" class="form-select">
+                            <option value="">Select Room...</option>
+                        </select>
                     </div>
                     </div>
 
