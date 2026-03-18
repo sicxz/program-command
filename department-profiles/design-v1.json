@@ -48,7 +48,7 @@
   },
   "scheduler": {
     "storageKeyPrefix": "designSchedulerData_",
-    "allowedRooms": ["206", "209", "210", "CEB 102", "CEB 104"],
+    "allowedRooms": ["206", "207", "209", "210", "212", "CEB 102", "CEB 104"],
     "dayPatterns": [
       { "id": "MW", "label": "Monday / Wednesday", "aliases": ["MW", "WM"] },
       { "id": "TR", "label": "Tuesday / Thursday", "aliases": ["TR", "RT", "TH", "TTH"] }
@@ -60,8 +60,10 @@
     ],
     "roomLabels": {
       "206": "206 UX Lab",
+      "207": "207 Media Lab",
       "209": "209 Mac Lab",
       "210": "210 Mac Lab",
+      "212": "212 Project Lab",
       "CEB 102": "CEB 102",
       "CEB 104": "CEB 104"
     },
@@ -70,8 +72,10 @@
         "inheritDefault": false,
         "roomLabels": {
           "206": "206 UX Lab",
+          "207": "207 Media Lab",
           "209": "209 Mac Lab",
           "210": "210 Mac Lab",
+          "212": "212 Project Lab",
           "CEB 102": "CEB 102",
           "CEB 104": "CEB 104"
         }
@@ -123,7 +127,7 @@
   },
   "import": {
     "clss": {
-      "roomMatchPriority": ["206", "209", "210", "CEB 102", "CEB 104"],
+      "roomMatchPriority": ["206", "207", "209", "210", "212", "CEB 102", "CEB 104"],
       "preferredMatchingOrder": [
         "course+section+instructor+quarter",
         "course+quarter+instructor",

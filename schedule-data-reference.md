@@ -140,7 +140,6 @@
 |------------|-------------|------|------------|---------|
 | DESN 338 | UX Design 1 | 206 UX Lab | M.Lybbert | 5 |
 | DESN 345 | Digital Game Design | 209 Mac Lab | C.Manikoth | 5 |
-| DESN 263 | Visual Communication Design 1 | 210 Mac Lab | A.Sopu | 5 |
 | DESN 200 | Visual Thinking | CEB 102 | S.Mills | 5 |
 
 #### 4:00 PM - 6:00 PM
@@ -148,6 +147,7 @@
 |------------|-------------|------|------------|---------|
 | DESN 458 | UX Design 3 | 206 UX Lab | M.Lybbert | 5 |
 | DESN 350 | Digital Photography | 209 Mac Lab | Adjunct | 5 |
+| DESN 263 | Visual Communication Design 1 | 210 Mac Lab | A.Sopu | 5 |
 
 ---
 
@@ -167,7 +167,6 @@
 | DESN 468 | Code + Design 3 | 206 UX Lab | T.Masingale | 5 |
 | DESN 365 | Motion Design 2 | 209 Mac Lab | G.Hustrulid | 5 |
 | DESN 243 | Typography | 210 Mac Lab | S.Durr | 5 |
-| DESN 384 | Digital Sound Design | CEB 102 | J.Braukmann | 5 |
 | DESN 100 | Drawing Communication | CEB 104 | A.Sopu | 5 |
 
 ---
@@ -176,6 +175,7 @@
 | Course Code | Course Name | Instructor | Credits |
 |------------|-------------|------------|---------|
 | DESN 216 | Digital Foundations | Barton/Pettigrew | 5 |
+| DESN 384 | Digital Sound Design | J.Braukmann | 5 |
 
 ---
 
@@ -235,7 +235,6 @@
 
 ### Online Course Consistency
 - **DESN 216** - Offered online every quarter (Barton/Pettigrew)
-- **DESN 301** - Spring quarter online option added
 
 ---
 
@@ -270,7 +269,7 @@ Required Courses: DESN 368, DESN 369, DESN 379, DESN 468
 - **ADDED:** Missing online DESN 216 sections (all quarters)
 - **ADDED:** Missing DESN 100 sections (S.Allison - Fall MW 1-3, Winter TR 1-3)
 - **ADDED:** Missing DESN 396 Japan Study Abroad (Winter, arranged)
-- **ADDED:** Missing DESN 301 online section (Spring)
+- **CORRECTED:** Spring MW DESN 263 placement to 4:00 PM - 6:00 PM
 
 ---
 
