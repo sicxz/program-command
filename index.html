@@ -5063,6 +5063,86 @@
             return startMatch ? startMatch.id : '';
         }
 
+        function formatSchedulerClockTime(value) {
+            const match = String(value || '').trim().match(/^(\d{1,2}):(\d{2})$/);
+            if (!match) return String(value || '').trim();
+
+            let hours = Number(match[1]);
+            const minutes = match[2];
+            const meridiem = hours >= 12 ? 'PM' : 'AM';
+
+            if (hours === 0) {
+                hours = 12;
+            } else if (hours > 12) {
+                hours -= 12;
+            }
+
+            return `${hours}:${minutes} ${meridiem}`;
+        }
+
+        function formatSchedulerTimeRange(value) {
+            const text = String(value || '').trim();
+            if (!text) return '';
+            if (!text.includes('-')) {
+                return formatSchedulerClockTime(text);
+            }
+
+            const [start, end] = text.split('-').map((part) => String(part || '').trim());
+            if (!start || !end) return text;
+            return `${formatSchedulerClockTime(start)} - ${formatSchedulerClockTime(end)}`;
+        }
+
+        function getSchedulerTimeSlotDisplayText(value) {
+            const slot = getSchedulerTimeSlotByAlias(value);
+            const rawLabel = String(slot?.label || slot?.id || value || '').trim();
+            return formatSchedulerTimeRange(rawLabel) || rawLabel;
+        }
+
+        function parseSchedulerClockValueToMinutes(value) {
+            const match = String(value || '').trim().match(/^(\d{1,2}):(\d{2})$/);
+            if (!match) return null;
+
+            const hours = Number(match[1]);
+            const minutes = Number(match[2]);
+            if (!Number.isFinite(hours) || !Number.isFinite(minutes) || minutes > 59) {
+                return null;
+            }
+            return (hours * 60) + minutes;
+        }
+
+        function getSchedulerTimeSlotForClockInputs(startValue, endValue) {
+            const startMinutes = parseSchedulerClockValueToMinutes(startValue);
+            const endMinutes = parseSchedulerClockValueToMinutes(endValue);
+
+            if (startMinutes == null) return null;
+
+            const exact = getSchedulerTimeSlots().find((slot) =>
+                Number.isFinite(slot.startMinutes)
+                && slot.startMinutes === startMinutes
+                && (endMinutes == null || slot.endMinutes === endMinutes)
+            );
+            if (exact) return exact;
+
+            return getSchedulerTimeSlots().find((slot) =>
+                Number.isFinite(slot.startMinutes)
+                && slot.startMinutes === startMinutes
+            ) || null;
+        }
+
+        function syncSchedulerEndTimeInput(startInputId, endInputId) {
+            const startInput = document.getElementById(startInputId);
+            const endInput = document.getElementById(endInputId);
+            if (!startInput || !endInput) return;
+
+            const slot = getSchedulerTimeSlotForClockInputs(startInput.value, endInput.value)
+                || getSchedulerTimeSlotForClockInputs(startInput.value, null);
+            if (!slot || !Number.isFinite(slot.endMinutes)) return;
+
+            const hours = Math.floor(slot.endMinutes / 60);
+            const minutes = slot.endMinutes % 60;
+            endInput.value = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+        }
+
         function getSchedulerRoomOptionList(options = {}) {
             const {
                 year = currentAcademicYear,
@@ -6248,9 +6328,9 @@
                 times.forEach(time => {
                     const timeSlot = document.createElement('div');
                     timeSlot.className = 'time-slot';
-                    timeSlot.textContent = day;
+                    timeSlot.textContent = getSchedulerDayLabel(day);
                     timeSlot.appendChild(document.createElement('br'));
-                    timeSlot.appendChild(document.createTextNode(time));
+                    timeSlot.appendChild(document.createTextNode(getSchedulerTimeSlotDisplayText(time)));
                     grid.appendChild(timeSlot);
 
                     rooms.forEach(room => {
@@ -6458,7 +6538,7 @@
                 const time = this.dataset.time;
                 const room = this.dataset.room;
                 document.getElementById('dropIndicatorText').textContent =
-                    'Drop to move to ' + day + ' ' + time + ' in Room ' + room;
+                    'Drop to move to ' + getSchedulerDayLabel(day) + ' ' + getSchedulerTimeSlotDisplayText(time) + ' in Room ' + room;
             }
         }
 
@@ -6630,7 +6710,7 @@
                     renderConflictSolver(quarter);
                     updateStats(quarter);
 
-                    let toastMsg = 'Moved ' + course.courseCode + ' to ' + newDay + ' ' + newTime + ' Room ' + newRoom;
+                    let toastMsg = 'Moved ' + course.courseCode + ' to ' + getSchedulerDayLabel(newDay) + ' ' + getSchedulerTimeSlotDisplayText(newTime) + ' Room ' + newRoom;
                     if (hasExisting) {
                         if (swapMode && swappedCourse) {
                             toastMsg += ' (swapped with ' + swappedCourse.code + ')';
@@ -7145,7 +7225,7 @@
 
         function formatConflictSlot(day, time) {
             const dayLabel = getSchedulerDayLabel(day) || day;
-            return `${dayLabel}, ${formatTime(time)}`;
+            return `${dayLabel}, ${getSchedulerTimeSlotDisplayText(time)}`;
         }
 
         function createConflictEntry({
@@ -8270,8 +8350,10 @@
             currentCourseData = { code, name, instructor, credits, room, courseId, quarter, day, time };
 
             // Format day/time for display
-            const dayDisplay = day || 'TBD';
-            const timeDisplay = time || 'TBD';
+            const dayDisplay = isSchedulableDay(day) ? getSchedulerDayLabel(day) : (day || 'TBD');
+            const timeDisplay = String(day || '').toUpperCase() === 'ONLINE' || String(time || '').toLowerCase() === 'async'
+                ? 'Online / Async'
+                : (time ? getSchedulerTimeSlotDisplayText(time) : 'TBD');
 
             // Build details content
             const content = document.getElementById('courseDetailsContent');
@@ -8341,6 +8423,7 @@
             }
             document.getElementById('editStartTime').value = startTime;
             document.getElementById('editEndTime').value = endTime;
+            syncSchedulerEndTimeInput('editStartTime', 'editEndTime');
 
             // Clear day checkboxes first
             ['M', 'T', 'W', 'Th', 'F'].forEach(day => {
@@ -8565,12 +8648,12 @@
                     if (!isOnlineEdit) {
                         const selectedDays = getEditSelectedDays();
                         const startTimeValue = document.getElementById('editStartTime').value;
+                        const endTimeValue = document.getElementById('editEndTime').value;
                         targetDay = (selectedDays.includes('M') || selectedDays.includes('W')) ? 'MW' : 'TR';
-                        targetTime = startTimeValue.replace(':', '') === '1000'
-                            ? '10:00-12:20'
-                            : startTimeValue.replace(':', '') === '1300'
-                                ? '13:00-15:20'
-                                : '16:00-18:20';
+                        targetTime = getSchedulerTimeSlotForClockInputs(startTimeValue, endTimeValue)?.id
+                            || getSchedulerTimeSlotForClockInputs(startTimeValue, null)?.id
+                            || sourceTime
+                            || '10:00-12:20';
                     }
 
                     if (!destinationQuarterData[targetDay]) destinationQuarterData[targetDay] = {};
@@ -12437,6 +12520,7 @@
             document.getElementById('addDayW').checked = true;
             document.getElementById('addOnlineSection').checked = false;
             toggleOnlineMode(false);
+            syncSchedulerEndTimeInput('addStartTime', 'addEndTime');
             populateAddRoomDropdown();
             document.getElementById('addCourseModal').classList.add('active');
 
@@ -12598,9 +12682,11 @@
             } else {
                 const days = getAddSelectedDays();
                 const startTime = document.getElementById('addStartTime').value;
+                const endTime = document.getElementById('addEndTime').value;
                 dayPattern = (days.includes('M') || days.includes('W')) ? 'MW' : 'TR';
-                timeSlot = startTime.replace(':', '') === '1000' ? '10:00-12:20' :
-                    startTime.replace(':', '') === '1300' ? '13:00-15:20' : '16:00-18:20';
+                timeSlot = getSchedulerTimeSlotForClockInputs(startTime, endTime)?.id
+                    || getSchedulerTimeSlotForClockInputs(startTime, null)?.id
+                    || '10:00-12:20';
             }
 
             // Ensure structure exists
@@ -13492,10 +13578,10 @@
                         </div>
                     </div>
 
-                    <div class="form-input-group">
-                        <div class="form-group">
-                            <label for="editStartTime" class="form-label">Start Time</label>
-                            <input type="time" id="editStartTime" class="form-input">
+                        <div class="form-input-group">
+                            <div class="form-group">
+                                <label for="editStartTime" class="form-label">Start Time</label>
+                            <input type="time" id="editStartTime" class="form-input" onchange="syncSchedulerEndTimeInput('editStartTime', 'editEndTime')">
                         </div>
 
                         <div class="form-group">
@@ -13831,7 +13917,7 @@
                         <div class="form-input-group">
                             <div class="form-group">
                                 <label for="addStartTime" class="form-label">Start Time</label>
-                                <select id="addStartTime" class="form-select" required>
+                                <select id="addStartTime" class="form-select" onchange="syncSchedulerEndTimeInput('addStartTime', 'addEndTime')" required>
                                     <option value="10:00">10:00 AM</option>
                                     <option value="13:00">1:00 PM</option>
                                     <option value="16:00">4:00 PM</option>
@@ -13841,9 +13927,9 @@
                             <div class="form-group">
                                 <label for="addEndTime" class="form-label">End Time</label>
                                 <select id="addEndTime" class="form-select" required>
-                                    <option value="12:00">12:00 PM</option>
-                                    <option value="15:00">3:00 PM</option>
-                                    <option value="18:00">6:00 PM</option>
+                                    <option value="12:20">12:20 PM</option>
+                                    <option value="15:20">3:20 PM</option>
+                                    <option value="18:20">6:20 PM</option>
                                 </select>
                             </div>
                         </div>
@@ -15052,7 +15138,7 @@
                                             <h5 style="color: #10b981; margin: 0 0 12px 0;">Resolution Options</h5>
                                             <p style="color: #94a3b8; font-size: 0.85em; margin-bottom: 12px;">Move one course to reduce the conflict:</p>
                                             ${c.resolutions.map((r, i) => {
-                                const timeDisplay = r.time ? r.time.replace('10:00-12:20', '10:00 AM - 12:20 PM').replace('13:00-15:20', '1:00 - 3:20 PM').replace('16:00-18:20', '4:00 - 6:20 PM') : (r.target_slot || 'alternate time');
+                                const timeDisplay = r.time ? getSchedulerTimeSlotDisplayText(r.time) : (r.target_slot || 'alternate time');
                                 const dayDisplay = r.dayName || (r.target_slot ? (r.target_slot.startsWith('MW') ? 'Monday/Wednesday' : 'Tuesday/Thursday') : '');
                                 return `
                                                 <div style="background: #1e293b; padding: 10px 12px; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid ${i < 2 ? '#10b981' : '#3b82f6'};">
