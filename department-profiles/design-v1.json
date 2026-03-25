@@ -9,8 +9,6 @@
   },
   "branding": {
     "appTitle": "Program Command - EWU Design",
-    "logoUrl": "",
-    "brandColor": "#a10022",
     "headerEyebrow": "EWU DESIGN · PROGRAM COMMAND",
     "headerSubtitle": "Design Program Planning, Scheduling, and Scenario Control",
     "textSlots": {
@@ -41,7 +39,6 @@
   "academic": {
     "system": "quarter",
     "quarters": ["fall", "winter", "spring"],
-    "yearLabelFormat": "YYYY-YY",
     "defaultTargetYearMode": "current",
     "defaultWorkloadImportYearMode": "next",
     "defaultSchedulerYear": "2025-26"
@@ -72,23 +69,6 @@
     "dashboardTitle": "Faculty Workload Dashboard",
     "dashboardSubtitleBase": "EWU Design Department - Academic Workload Analysis",
     "productionResetDefaultScheduleYear": "2026-27",
-    "utilizationThresholds": {
-      "overloadedPercent": 100,
-      "optimalMinPercent": 60
-    },
-    "courseTypeMultipliers": {
-      "scheduled": 1,
-      "independentStudy": 0.2,
-      "seniorProject": 0.2,
-      "internship": 0.1,
-      "practicum": 0.2
-    },
-    "appliedLearningCourses": {
-      "DESN 399": { "title": "Independent Study", "rate": 0.2 },
-      "DESN 491": { "title": "Senior Project", "rate": 0.2 },
-      "DESN 495": { "title": "Internship", "rate": 0.1 },
-      "DESN 499": { "title": "Independent Study", "rate": 0.2 }
-    },
     "defaultAnnualTargets": {
       "Full Professor": 36,
       "Associate Professor": 36,
@@ -109,20 +89,6 @@
       ],
       "facultyAliases": {},
       "courseAliases": {}
-    }
-  },
-  "courseModel": {
-    "courseCodePrefix": "DESN",
-    "catalogStructure": "course-catalog.json"
-  },
-  "dashboard": {
-    "modules": {
-      "schedule": true,
-      "workload": true,
-      "capacity": true,
-      "releaseTime": true,
-      "constraints": true,
-      "onboarding": true
     }
   }
 }

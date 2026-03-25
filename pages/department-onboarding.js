@@ -30,6 +30,41 @@
             || 'department';
     }
 
+    function buildStorageKeyPrefix(identity) {
+        const base = sanitizeBaseId(identity?.code || identity?.shortName || identity?.name || 'department');
+        return `${base}SchedulerData_`;
+    }
+
+    function getNextAcademicYearLabel(yearLabel) {
+        const normalized = String(yearLabel || '').trim();
+        const match = normalized.match(/^(\d{4})-(\d{2})$/);
+        if (!match) return '';
+        const startYear = Number(match[1]);
+        if (!Number.isFinite(startYear)) return '';
+        return `${startYear + 1}-${String(startYear + 2).slice(-2)}`;
+    }
+
+    function remapDepartmentCourseCodes(courseMap, nextCode, previousCode) {
+        if (!courseMap || typeof courseMap !== 'object' || Array.isArray(courseMap)) {
+            return courseMap;
+        }
+
+        const nextPrefix = sanitizeCode(nextCode);
+        const previousPrefix = sanitizeCode(previousCode);
+        if (!nextPrefix) return clone(courseMap);
+
+        return Object.entries(courseMap).reduce((result, [courseCode, details]) => {
+            const normalizedCode = String(courseCode || '').trim();
+            let nextCourseCode = normalizedCode;
+            if (previousPrefix) {
+                const previousPattern = new RegExp(`^${previousPrefix}(\\s+\\d)`, 'i');
+                nextCourseCode = normalizedCode.replace(previousPattern, `${nextPrefix}$1`);
+            }
+            result[nextCourseCode] = clone(details);
+            return result;
+        }, {});
+    }
+
     function parseListLines(rawText) {
         return String(rawText || '')
             .split(/\r?\n/)
@@ -151,6 +186,7 @@
         const courseAliasParse = parseAliasLines(qs('courseAliasInput')?.value || '');
 
         const profile = clone(state.baseProfile);
+        const previousCode = String(profile.identity?.code || '').trim();
         profile.id = sanitizeBaseId(identity.code || identity.name || profile.id || 'department');
         profile.identity = {
             ...profile.identity,
@@ -160,7 +196,13 @@
             shortName: identity.shortName || identity.name
         };
 
+        profile.branding = profile.branding || {};
+        profile.branding.appTitle = `Program Command - ${profile.identity.displayName}`;
+        profile.branding.headerEyebrow = `${profile.identity.displayName.toUpperCase()} · PROGRAM COMMAND`;
+        profile.branding.headerSubtitle = `${profile.identity.shortName} Program Planning and Schedule Operations`;
+
         profile.scheduler = profile.scheduler || {};
+        profile.scheduler.storageKeyPrefix = buildStorageKeyPrefix(profile.identity);
         profile.scheduler.allowedRooms = rooms;
 
         const existingRoomLabels = profile.scheduler.roomLabels && typeof profile.scheduler.roomLabels === 'object'
@@ -177,6 +219,21 @@
         profile.import.clss.roomMatchPriority = rooms.slice();
         profile.import.clss.facultyAliases = facultyAliasParse.aliases;
         profile.import.clss.courseAliases = courseAliasParse.aliases;
+
+        profile.workload = profile.workload || {};
+        profile.workload.dashboardTitle = String(profile.workload.dashboardTitle || 'Faculty Workload Dashboard').trim() || 'Faculty Workload Dashboard';
+        profile.workload.dashboardSubtitleBase = `${profile.identity.displayName} Department - Academic Workload Analysis`;
+        const resetYear = getNextAcademicYearLabel(profile.academic?.defaultSchedulerYear);
+        if (resetYear) {
+            profile.workload.productionResetDefaultScheduleYear = resetYear;
+        }
+        if (profile.workload.appliedLearningCourses && typeof profile.workload.appliedLearningCourses === 'object' && !Array.isArray(profile.workload.appliedLearningCourses)) {
+            profile.workload.appliedLearningCourses = remapDepartmentCourseCodes(
+                profile.workload.appliedLearningCourses,
+                profile.identity.code,
+                previousCode
+            );
+        }
 
         profile.onboardingMeta = {
             basedOn: String(qs('baseProfileSelect')?.value || ''),

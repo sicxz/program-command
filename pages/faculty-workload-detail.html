@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Faculty Workload Detail - Design Scheduler</title>
+    <title>Faculty Workload Detail - Program Command</title>
     <link rel="stylesheet" href="../css/shared.css">
     <link rel="stylesheet" href="../css/dashboard.css">
     <style>
@@ -111,6 +111,7 @@
             gap: 8px;
         }
     </style>
+    <script src="../js/department-profile.js"></script>
     <script src="../js/config/constants.js"></script>
     <script src="../js/data-loader.js"></script>
     <script src="../js/workload-integration.js"></script>
@@ -120,7 +121,7 @@
         <header>
             <a href="./workload-dashboard.html" class="back-link">← Back to Faculty Workload</a>
             <h1>📄 Faculty Workload Detail</h1>
-            <p class="subtitle">Manage DESN 399 / 491 / 495 / 499 student-credit entries and workload conversion.</p>
+            <p class="subtitle" id="detailSubtitle">Manage applied-learning student-credit entries and workload conversion.</p>
         </header>
 
         <div class="content detail-layout">
@@ -159,7 +160,7 @@
             <div class="chart-container">
                 <h2>Course Rates</h2>
                 <div id="ratesList" class="rates-list"></div>
-                <p class="formula-note">Example: 5 student credits in DESN 499 = 1.0 faculty workload credits (rate 0.2).</p>
+                <p class="formula-note" id="detailFormulaNote">Faculty workload credits are calculated from student credits multiplied by the course rate.</p>
             </div>
 
             <div class="chart-container">
@@ -223,9 +224,5 @@
     </div>
 
     <script src="./faculty-workload-detail.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="../js/supabase-config.js"></script>
-    <script src="../js/auth-service.js"></script>
-    <script src="../js/auth-guard.js"></script>
 </body>
 </html>
