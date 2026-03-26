@@ -193,7 +193,7 @@ describe('Auth + Edit State Integration', () => {
         jest.restoreAllMocks();
     });
 
-    test('blocks chair users from admin-only onboarding route', async () => {
+    test('allows chair users into the onboarding route after authentication', async () => {
         const presenceService = {
             joinPage: jest.fn().mockResolvedValue(true),
             onPresenceChange: jest.fn(),
@@ -209,14 +209,9 @@ describe('Auth + Edit State Integration', () => {
 
         await harness.triggerDomReady();
 
-        expect(harness.authService.can).toHaveBeenCalledWith(
-            'manage',
-            'system-config',
-            expect.objectContaining({ role: 'chair' })
-        );
-        expect(document.body.textContent).toContain('Access Denied');
-        expect(document.body.textContent).toContain('only admins can access Department Onboarding');
-        expect(presenceService.joinPage).not.toHaveBeenCalled();
+        expect(harness.authService.can).not.toHaveBeenCalled();
+        expect(document.body.textContent).not.toContain('Access Denied');
+        expect(presenceService.joinPage).toHaveBeenCalledWith('/pages/department-onboarding.html');
 
         harness.cleanup();
     });

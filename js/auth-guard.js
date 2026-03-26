@@ -20,6 +20,11 @@
         return /\/login\.html$/i.test(window.location.pathname);
     }
 
+    function isProgramShellPage() {
+        const pathname = String(window.location.pathname || '').toLowerCase();
+        return pathname === '/' || pathname.endsWith('/index.html');
+    }
+
     function isLocalDevHost() {
         const hostname = String(window.location.hostname || '').toLowerCase();
         if (!hostname) return false;
@@ -74,13 +79,6 @@
     }
 
     function getRoutePolicy() {
-        if (/\/pages\/department-onboarding\.html$/i.test(window.location.pathname)) {
-            return {
-                action: 'manage',
-                resource: 'system-config',
-                message: 'Insufficient permissions: only admins can access Department Onboarding.'
-            };
-        }
         return null;
     }
 
@@ -620,6 +618,9 @@
     async function handleProtectedPage() {
         const session = await window.AuthService.getSession();
         if (!session) {
+            if (isProgramShellPage()) {
+                return;
+            }
             redirectToLogin();
             return;
         }

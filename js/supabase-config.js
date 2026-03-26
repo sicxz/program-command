@@ -19,7 +19,7 @@ const CURRENT_DEPARTMENT_NAME = 'Design';
 
 // Initialize Supabase client (only if credentials are configured)
 let supabaseClient = null;
-var supabase = null; // Global reference for other services (var to avoid redeclaration issues)
+var supabase = (typeof window !== 'undefined' && window.supabase) ? window.supabase : null; // Preserve CDN global until client init.
 
 function isSupabaseConfigured() {
     return SUPABASE_URL !== 'YOUR_SUPABASE_PROJECT_URL' &&
@@ -32,13 +32,20 @@ function initSupabase() {
         return null;
     }
 
-    if (!window.supabase || !window.supabase.createClient) {
+    const supabaseLibrary = (typeof window !== 'undefined' && window.supabase && typeof window.supabase.createClient === 'function')
+        ? window.supabase
+        : (supabase && typeof supabase.createClient === 'function' ? supabase : null);
+
+    if (!supabaseLibrary) {
         console.error('Supabase JS library not loaded. Add the script tag before this file.');
         return null;
     }
 
-    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    supabaseClient = supabaseLibrary.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     supabase = supabaseClient; // Set global reference
+    if (typeof window !== 'undefined') {
+        window.supabase = supabaseClient;
+    }
     console.log('Supabase client initialized successfully');
     return supabaseClient;
 }

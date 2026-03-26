@@ -499,6 +499,77 @@ const dbService = {
         return data;
     },
 
+    /**
+     * Atomically sync all scheduled courses for a single academic year.
+     * Uses the Supabase RPC transaction path defined in:
+     * scripts/supabase-schedule-sync-rpc.sql
+     */
+    async syncScheduledCoursesForAcademicYear(academicYearId, records = []) {
+        if (!isSupabaseConfigured()) {
+            console.warn('Cannot sync schedule: Supabase not configured');
+            return null;
+        }
+
+        if (!academicYearId || typeof academicYearId !== 'string') {
+            throw new Error('academicYearId is required');
+        }
+
+        if (!Array.isArray(records)) {
+            throw new Error('records must be an array');
+        }
+
+        await this.initialize();
+        const currentUserId = await this._resolveCurrentAuthUserId();
+
+        const normalizedRecords = records.map((record, index) => {
+            if (!record || typeof record !== 'object') {
+                throw new Error(`records[${index}] must be an object`);
+            }
+
+            const quarter = String(record.quarter || '').trim();
+            if (!quarter) {
+                throw new Error(`records[${index}].quarter is required`);
+            }
+
+            const rawProjectedEnrollment = record.projected_enrollment ?? record.projectedEnrollment ?? null;
+            const projectedEnrollment =
+                rawProjectedEnrollment === null || rawProjectedEnrollment === undefined || rawProjectedEnrollment === ''
+                    ? null
+                    : Number.parseInt(rawProjectedEnrollment, 10);
+
+            if (rawProjectedEnrollment !== null && rawProjectedEnrollment !== undefined && rawProjectedEnrollment !== '' && Number.isNaN(projectedEnrollment)) {
+                throw new Error(`records[${index}].projected_enrollment must be an integer when provided`);
+            }
+
+            return {
+                course_id: this._normalizeNullableString(record.course_id ?? record.courseId),
+                faculty_id: this._normalizeNullableString(record.faculty_id ?? record.facultyId),
+                room_id: this._normalizeNullableString(record.room_id ?? record.roomId),
+                quarter,
+                day_pattern: this._normalizeNullableString(record.day_pattern ?? record.dayPattern),
+                time_slot: this._normalizeNullableString(record.time_slot ?? record.timeSlot),
+                section: this._normalizeNullableString(record.section) || '001',
+                projected_enrollment: projectedEnrollment,
+                updated_by: this._normalizeNullableString(record.updated_by ?? record.updatedBy ?? currentUserId),
+                updated_at: this._normalizeNullableString(record.updated_at ?? record.updatedAt)
+            };
+        });
+
+        const { data, error } = await getSupabaseClient().rpc('sync_scheduled_courses_for_academic_year', {
+            p_academic_year_id: academicYearId,
+            p_records: normalizedRecords
+        });
+
+        if (error) throw error;
+
+        const summary = Array.isArray(data) ? data[0] : data;
+        return {
+            updated_count: Number(summary?.updated_count || 0),
+            inserted_count: Number(summary?.inserted_count || 0),
+            deleted_count: Number(summary?.deleted_count || 0)
+        };
+    },
+
     // ============================================
     // FACULTY PREFERENCES
     // ============================================
@@ -812,6 +883,58 @@ const dbService = {
             .single();
 
         return data?.id;
+    },
+
+    async getLatestScheduleSaveMetadata(academicYearId) {
+        if (!isSupabaseConfigured()) return null;
+        if (!academicYearId) return null;
+
+        const { data, error } = await getSupabaseClient()
+            .from('scheduled_courses')
+            .select('updated_by, updated_at')
+            .eq('academic_year_id', academicYearId)
+            .not('updated_at', 'is', null)
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        if (error) throw error;
+        return data || null;
+    },
+
+    _normalizeNullableString(value) {
+        if (value === null || value === undefined) return null;
+        const normalized = String(value).trim();
+        return normalized ? normalized : null;
+    },
+
+    async _resolveCurrentAuthUserId() {
+        if (!isSupabaseConfigured()) return null;
+
+        try {
+            if (typeof window !== 'undefined' && window.AuthService && typeof window.AuthService.getUser === 'function') {
+                const user = await window.AuthService.getUser();
+                if (user?.id) {
+                    return user.id;
+                }
+            }
+        } catch (error) {
+            // Fall through to direct Supabase lookup.
+        }
+
+        try {
+            const client = getSupabaseClient();
+            if (client?.auth && typeof client.auth.getUser === 'function') {
+                const { data, error } = await client.auth.getUser();
+                if (!error && data?.user?.id) {
+                    return data.user.id;
+                }
+            }
+        } catch (error) {
+            return null;
+        }
+
+        return null;
     }
 };
 
