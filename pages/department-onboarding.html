@@ -189,6 +189,19 @@
             letter-spacing: 0.08em;
             text-transform: uppercase;
         }
+
+        .handoff-artifact-groups {
+            display: grid;
+            gap: 8px;
+            margin-top: 6px;
+        }
+
+        .handoff-artifact-groups ul {
+            margin: 0;
+            padding-left: 18px;
+            display: grid;
+            gap: 4px;
+        }
     </style>
 </head>
 <body>
@@ -205,6 +218,7 @@
             <div class="handoff-meta">
                 <div id="handoffSummary"></div>
                 <div id="handoffArtifact"></div>
+                <div class="handoff-artifact-groups" id="handoffArtifactGroups" hidden></div>
             </div>
         </section>
 

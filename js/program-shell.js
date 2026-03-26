@@ -191,6 +191,139 @@
         };
     }
 
+    const TERM_LABELS = Object.freeze({
+        fall: 'Fall',
+        winter: 'Winter',
+        spring: 'Spring',
+        summer: 'Summer'
+    });
+
+    const TERM_SORT_ORDER = Object.freeze({
+        fall: 0,
+        winter: 1,
+        spring: 2,
+        summer: 3,
+        unassigned: 99
+    });
+
+    function createArtifactMetadata(artifact) {
+        if (!artifact || typeof artifact !== 'object') return null;
+        return {
+            name: String(artifact.name || '').trim() || null,
+            size: Number(artifact.size) || 0,
+            type: String(artifact.type || '').trim() || null,
+            capturedAt: artifact.capturedAt || new Date().toISOString()
+        };
+    }
+
+    function isScreenshotFile(file) {
+        if (!file || typeof file !== 'object') return false;
+        const name = String(file.name || '').trim().toLowerCase();
+        const type = String(file.type || '').trim().toLowerCase();
+        if (type.startsWith('image/')) return true;
+        return /\.(png|jpe?g|webp|gif|bmp)$/i.test(name);
+    }
+
+    function inferScreenshotTermYear(value) {
+        const normalized = String(value || '').trim();
+        if (!normalized) return { term: null, year: null };
+
+        const byTermFirst = normalized.match(/\b(fall|winter|spring|summer)\b[^0-9]{0,12}(20\d{2})\b/i);
+        if (byTermFirst) {
+            return {
+                term: String(byTermFirst[1] || '').trim().toLowerCase() || null,
+                year: Number(byTermFirst[2]) || null
+            };
+        }
+
+        const byYearFirst = normalized.match(/\b(20\d{2})\b[^a-z0-9]{0,12}(fall|winter|spring|summer)\b/i);
+        if (byYearFirst) {
+            return {
+                term: String(byYearFirst[2] || '').trim().toLowerCase() || null,
+                year: Number(byYearFirst[1]) || null
+            };
+        }
+
+        return { term: null, year: null };
+    }
+
+    function formatScreenshotGroupLabel(term, year) {
+        if (!term || !year) return 'Unassigned';
+        return `${TERM_LABELS[term] || term} ${year}`;
+    }
+
+    function buildScreenshotArtifactBatch(files, options = {}) {
+        const normalizedFiles = Array.from(files || [])
+            .filter((file) => file && typeof file === 'object' && isScreenshotFile(file))
+            .map((file, index) => {
+                const artifact = createArtifactMetadata(file) || {};
+                const relativePath = String(file.webkitRelativePath || file.relativePath || '').trim() || null;
+                const sourcePath = relativePath || artifact.name || `screenshot-${index + 1}`;
+                const inference = inferScreenshotTermYear(sourcePath);
+                const groupKey = inference.term && inference.year
+                    ? `${inference.term}-${inference.year}`
+                    : 'unassigned';
+
+                return {
+                    name: artifact.name || `screenshot-${index + 1}`,
+                    size: artifact.size || 0,
+                    type: artifact.type || null,
+                    relativePath,
+                    sourcePath,
+                    term: inference.term,
+                    year: inference.year,
+                    groupKey
+                };
+            });
+
+        const groupsMap = new Map();
+        normalizedFiles.forEach((file) => {
+            if (!groupsMap.has(file.groupKey)) {
+                groupsMap.set(file.groupKey, {
+                    key: file.groupKey,
+                    term: file.term,
+                    year: file.year,
+                    label: formatScreenshotGroupLabel(file.term, file.year),
+                    fileCount: 0,
+                    sampleNames: []
+                });
+            }
+
+            const group = groupsMap.get(file.groupKey);
+            group.fileCount += 1;
+            if (group.sampleNames.length < 4) {
+                group.sampleNames.push(file.relativePath || file.name);
+            }
+        });
+
+        const rootFolderName = String(options.rootFolderName || '').trim() || (() => {
+            const firstRelativePath = normalizedFiles.find((file) => file.relativePath)?.relativePath || '';
+            return firstRelativePath ? firstRelativePath.split('/')[0] : null;
+        })();
+
+        const groups = Array.from(groupsMap.values()).sort((left, right) => {
+            const leftYear = Number(left.year) || Number.MAX_SAFE_INTEGER;
+            const rightYear = Number(right.year) || Number.MAX_SAFE_INTEGER;
+            if (leftYear !== rightYear) return leftYear - rightYear;
+
+            const leftOrder = TERM_SORT_ORDER[left.term || 'unassigned'] ?? TERM_SORT_ORDER.unassigned;
+            const rightOrder = TERM_SORT_ORDER[right.term || 'unassigned'] ?? TERM_SORT_ORDER.unassigned;
+            if (leftOrder !== rightOrder) return leftOrder - rightOrder;
+
+            return String(left.label || '').localeCompare(String(right.label || ''));
+        });
+
+        return {
+            mode: String(options.mode || 'files').trim() || 'files',
+            rootFolderName: rootFolderName || null,
+            count: normalizedFiles.length,
+            totalSize: normalizedFiles.reduce((sum, file) => sum + (Number(file.size) || 0), 0),
+            groups,
+            files: normalizedFiles,
+            capturedAt: options.capturedAt || new Date().toISOString()
+        };
+    }
+
     function resolveStoredSelection(groups = DEFAULT_PROGRAM_GROUPS) {
         const storedSelection = readSelection();
         const resolvedProgram = findProgramById(storedSelection?.id, groups);
@@ -216,13 +349,9 @@
 
     function createOnboardingContext(program, options = {}) {
         const selection = createProgramSelection(program);
-        const artifact = options.artifact && typeof options.artifact === 'object'
-            ? {
-                name: String(options.artifact.name || '').trim() || null,
-                size: Number(options.artifact.size) || 0,
-                type: String(options.artifact.type || '').trim() || null,
-                capturedAt: options.artifact.capturedAt || new Date().toISOString()
-            }
+        const artifact = createArtifactMetadata(options.artifact);
+        const artifactBatch = options.artifactBatch && typeof options.artifactBatch === 'object'
+            ? buildScreenshotArtifactBatch(options.artifactBatch.files || [], options.artifactBatch)
             : null;
 
         return {
@@ -230,6 +359,7 @@
             source: String(options.source || 'manual').trim() || 'manual',
             suggestedIdentity: buildSuggestedIdentity(program),
             artifact,
+            artifactBatch,
             createdAt: new Date().toISOString()
         };
     }
@@ -465,9 +595,12 @@
             chooser: global.document.getElementById('programShellChooser'),
             manualButton: global.document.getElementById('programShellManualButton'),
             spreadsheetButton: global.document.getElementById('programShellSpreadsheetButton'),
+            screenshotDirectoryButton: global.document.getElementById('programShellScreenshotDirectoryButton'),
             screenshotButton: global.document.getElementById('programShellScreenshotButton'),
             spreadsheetInput: global.document.getElementById('programShellSpreadsheetInput'),
+            screenshotDirectoryInput: global.document.getElementById('programShellScreenshotDirectoryInput'),
             screenshotInput: global.document.getElementById('programShellScreenshotInput'),
+            screenshotSupportText: global.document.getElementById('programShellScreenshotSupportText'),
             chooserMeta: global.document.getElementById('programShellChooserMeta'),
             status: global.document.getElementById('programShellStatus')
         };
@@ -477,7 +610,8 @@
             session: null,
             previewMode: false,
             chooserVisible: false,
-            runtimeLaunched: false
+            runtimeLaunched: false,
+            directoryUploadSupported: Boolean(elements.screenshotDirectoryInput && ('webkitdirectory' in elements.screenshotDirectoryInput))
         };
 
         function authSatisfied() {
@@ -627,6 +761,20 @@
                 elements.continueButton.disabled = !state.selectedProgram || !authSatisfied();
             }
 
+            if (elements.screenshotDirectoryButton) {
+                elements.screenshotDirectoryButton.hidden = !state.directoryUploadSupported;
+            }
+            if (elements.screenshotSupportText) {
+                elements.screenshotSupportText.textContent = state.directoryUploadSupported
+                    ? 'Folder upload keeps nested quarter folders when the browser supports directory selection.'
+                    : 'This browser does not expose directory selection here, so use multiple screenshot files instead.';
+            }
+            if (elements.screenshotButton) {
+                elements.screenshotButton.textContent = state.directoryUploadSupported
+                    ? 'Choose screenshot files'
+                    : 'Choose screenshots';
+            }
+
             if (elements.chooser) {
                 elements.chooser.hidden = !state.chooserVisible || !authSatisfied();
             }
@@ -740,7 +888,7 @@
             updateUi();
         }
 
-        function navigateToOnboarding(source, file) {
+        function navigateToOnboarding(source, intake = {}) {
             if (!state.selectedProgram) {
                 setStatus('error', 'Choose a program before starting onboarding.');
                 return;
@@ -756,17 +904,24 @@
 
             const context = createOnboardingContext(state.selectedProgram, {
                 source,
-                artifact: file
-                    ? {
-                        name: file.name,
-                        size: file.size,
-                        type: file.type,
-                        capturedAt: new Date().toISOString()
-                    }
-                    : null
+                artifact: intake.artifact || null,
+                artifactBatch: intake.artifactBatch || null
             });
             persistOnboardingContext(context);
             global.location.href = `${onboardingUrl}?source=${encodeURIComponent(source)}&program=${encodeURIComponent(context.id || '')}`;
+        }
+
+        function handleScreenshotSelection(files, mode) {
+            const artifactBatch = buildScreenshotArtifactBatch(files, {
+                mode
+            });
+
+            if (!artifactBatch.count) {
+                setStatus('error', 'Choose one or more screenshot files to continue.');
+                return;
+            }
+
+            navigateToOnboarding('screenshot', { artifactBatch });
         }
 
         renderProgramList();
@@ -805,18 +960,33 @@
         elements.spreadsheetButton?.addEventListener('click', () => {
             elements.spreadsheetInput?.click();
         });
+        elements.screenshotDirectoryButton?.addEventListener('click', () => {
+            elements.screenshotDirectoryInput?.click();
+        });
         elements.screenshotButton?.addEventListener('click', () => {
             elements.screenshotInput?.click();
         });
         elements.spreadsheetInput?.addEventListener('change', (event) => {
             const file = event.target?.files?.[0];
             if (!file) return;
-            navigateToOnboarding('spreadsheet', file);
+            navigateToOnboarding('spreadsheet', {
+                artifact: {
+                    name: file.name,
+                    size: file.size,
+                    type: file.type,
+                    capturedAt: new Date().toISOString()
+                }
+            });
+        });
+        elements.screenshotDirectoryInput?.addEventListener('change', (event) => {
+            const files = Array.from(event.target?.files || []);
+            if (!files.length) return;
+            handleScreenshotSelection(files, 'directory');
         });
         elements.screenshotInput?.addEventListener('change', (event) => {
-            const file = event.target?.files?.[0];
-            if (!file) return;
-            navigateToOnboarding('screenshot', file);
+            const files = Array.from(event.target?.files || []);
+            if (!files.length) return;
+            handleScreenshotSelection(files, 'files');
         });
 
         if (authService && typeof authService.onAuthStateChange === 'function') {
@@ -845,6 +1015,7 @@
         findProgramById,
         buildSuggestedIdentity,
         createProgramSelection,
+        buildScreenshotArtifactBatch,
         createOnboardingContext,
         detectProgramData,
         readSelection,

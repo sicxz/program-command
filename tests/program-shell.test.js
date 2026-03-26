@@ -74,6 +74,98 @@ describe('ProgramCommandShell', () => {
         });
     });
 
+    test('builds a screenshot batch manifest from nested folder metadata', () => {
+        const batch = shell.buildScreenshotArtifactBatch([
+            {
+                name: 'cscd fall 2025 1.png',
+                size: 128,
+                type: 'image/png',
+                webkitRelativePath: 'cscd-cyber AY2025-26/cscd fall 2025/cscd fall 2025 1.png'
+            },
+            {
+                name: 'cscd winter 2026 2.png',
+                size: 256,
+                type: 'image/png',
+                webkitRelativePath: 'cscd-cyber AY2025-26/cscd winter 2026/cscd winter 2026 2.png'
+            },
+            {
+                name: 'notes.png',
+                size: 64,
+                type: 'image/png',
+                webkitRelativePath: 'cscd-cyber AY2025-26/misc/notes.png'
+            },
+            {
+                name: '.DS_Store',
+                size: 32,
+                type: '',
+                webkitRelativePath: 'cscd-cyber AY2025-26/.DS_Store'
+            }
+        ], {
+            mode: 'directory',
+            capturedAt: '2026-03-26T18:30:00.000Z'
+        });
+
+        expect(batch).toMatchObject({
+            mode: 'directory',
+            rootFolderName: 'cscd-cyber AY2025-26',
+            count: 3,
+            totalSize: 448,
+            capturedAt: '2026-03-26T18:30:00.000Z'
+        });
+        expect(batch.groups).toEqual(expect.arrayContaining([
+            expect.objectContaining({ key: 'fall-2025', label: 'Fall 2025', fileCount: 1 }),
+            expect.objectContaining({ key: 'winter-2026', label: 'Winter 2026', fileCount: 1 }),
+            expect.objectContaining({ key: 'unassigned', label: 'Unassigned', fileCount: 1 })
+        ]));
+        expect(batch.files[0]).toEqual(expect.objectContaining({
+            name: 'cscd fall 2025 1.png',
+            relativePath: 'cscd-cyber AY2025-26/cscd fall 2025/cscd fall 2025 1.png',
+            term: 'fall',
+            year: 2025
+        }));
+    });
+
+    test('creates screenshot onboarding context with grouped artifact batch metadata', () => {
+        const program = shell.findProgramById('cybersecurity');
+        const artifactBatch = shell.buildScreenshotArtifactBatch([
+            {
+                name: 'cyber fall 2025 1.png',
+                size: 200,
+                type: 'image/png',
+                webkitRelativePath: 'cscd-cyber AY2025-26/cyber fall 2025/cyber fall 2025 1.png'
+            },
+            {
+                name: 'cyber spring 2026 1.png',
+                size: 220,
+                type: 'image/png',
+                webkitRelativePath: 'cscd-cyber AY2025-26/cyber spring 2026/cyber spring 2026 1.png'
+            }
+        ], {
+            mode: 'directory'
+        });
+
+        const context = shell.createOnboardingContext(program, {
+            source: 'screenshot',
+            artifactBatch
+        });
+
+        expect(context).toMatchObject({
+            id: 'cybersecurity',
+            label: 'Cybersecurity',
+            source: 'screenshot',
+            artifactBatch: expect.objectContaining({
+                mode: 'directory',
+                rootFolderName: 'cscd-cyber AY2025-26',
+                count: 2
+            })
+        });
+        expect(context.artifact).toBeNull();
+        expect(context.artifactBatch.groups).toEqual(expect.arrayContaining([
+            expect.objectContaining({ key: 'fall-2025', label: 'Fall 2025', fileCount: 1 }),
+            expect.objectContaining({ key: 'spring-2026', label: 'Spring 2026', fileCount: 1 })
+        ]));
+    });
+
     test('detects a previously onboarded custom profile for a non-seeded program', async () => {
         const biology = shell.findProgramById('biology');
         const manager = {

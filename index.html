@@ -344,6 +344,17 @@
             font-size: 13px;
         }
 
+        .program-shell-choice-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .program-shell-choice-note {
+            font-size: 12px;
+            color: #64748b;
+        }
+
         .program-shell-choice-tag {
             display: inline-flex;
             width: fit-content;
@@ -4771,10 +4782,15 @@
                         <h3>Screenshot upload</h3>
                         <p>Capture screenshots from class search with the enrollment view and preserve the handoff context now.</p>
                         <ul>
-                            <li>Visible in the shell today so the route is explicit.</li>
+                            <li>Accept a screenshot folder when your browser can preserve nested quarter folders.</li>
+                            <li>Fall back to choosing multiple screenshot files when folder upload is not available.</li>
                             <li>Parsing and schedule seeding remain staged after the spreadsheet path.</li>
                         </ul>
-                        <button type="button" class="program-shell-button-secondary" id="programShellScreenshotButton">Choose screenshots</button>
+                        <div class="program-shell-choice-actions">
+                            <button type="button" class="program-shell-button-secondary" id="programShellScreenshotDirectoryButton">Choose screenshot folder</button>
+                            <button type="button" class="program-shell-button-secondary" id="programShellScreenshotButton">Choose screenshot files</button>
+                        </div>
+                        <p class="program-shell-choice-note" id="programShellScreenshotSupportText">Folder upload keeps nested quarter folders when the browser supports directory selection.</p>
                     </article>
                 </div>
                 <div class="program-shell-actions">
@@ -4783,7 +4799,8 @@
             </section>
         </div>
         <input id="programShellSpreadsheetInput" type="file" accept=".csv,.xlsx,.xls" hidden>
-        <input id="programShellScreenshotInput" type="file" accept="image/*" hidden>
+        <input id="programShellScreenshotDirectoryInput" type="file" accept="image/*" multiple webkitdirectory hidden>
+        <input id="programShellScreenshotInput" type="file" accept="image/*" multiple hidden>
     </div>
 
     <!-- Displaced Course Tray Sidebar -->
