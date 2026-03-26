@@ -4687,6 +4687,8 @@
     <script src="js/department-profile.js"></script>
     <script type="module" src="js/supabase-config.js"></script>
     <script src="js/auth-service.js"></script>
+    <script src="js/eaglenet-compare.js"></script>
+    <script src="js/eaglenet-import.js"></script>
     <script src="js/program-shell.js"></script>
     <script src="js/auth-guard.js"></script>
     <script src="js/dirty-state-tracker.js"></script>
@@ -6400,6 +6402,40 @@
 
             // Auto-remove after 5 seconds
             setTimeout(() => notification.remove(), 5000);
+        }
+
+        async function resumePendingOnboardingImport() {
+            const importApi = window.ProgramCommandImport;
+            if (!importApi || typeof importApi.readPendingOnboardingImport !== 'function') {
+                return false;
+            }
+
+            const pendingImport = importApi.readPendingOnboardingImport();
+            if (!pendingImport || pendingImport.source !== 'spreadsheet') {
+                return false;
+            }
+
+            const currentProfileId = window.DepartmentProfileManager?.getStoredProfileId?.();
+            if (pendingImport.profileId && currentProfileId && String(pendingImport.profileId) !== String(currentProfileId)) {
+                return false;
+            }
+
+            try {
+                openClssImportModal();
+                applyClssSpreadsheetPayload(pendingImport, { announce: false });
+                if (typeof importApi.clearPendingOnboardingImport === 'function') {
+                    importApi.clearPendingOnboardingImport();
+                }
+                const fileName = String(pendingImport?.artifact?.name || '').trim();
+                showToast(fileName
+                    ? `Resumed onboarding spreadsheet import from ${fileName}`
+                    : 'Resumed onboarding spreadsheet import');
+                return true;
+            } catch (error) {
+                console.error('Could not resume onboarding import handoff:', error);
+                showToast(error?.message || 'Could not resume the onboarding spreadsheet import.', 'error');
+                return false;
+            }
         }
 
         function renderSchedule(quarter) {
@@ -9371,9 +9407,128 @@
         let clssImportOcrLibraryPromise = null;
         let clssImportPriorYearPlacementIndexCache = new Map();
         let clssImportLastApplyReport = null;
+        let clssImportSpreadsheetPayload = null;
 
         function getClssImportRoomOptionList() {
             return getSchedulerRoomOptionList();
+        }
+
+        function setClssImportSpreadsheetSummary(message) {
+            const summaryEl = document.getElementById('clssImportSpreadsheetSummary');
+            if (!summaryEl) return;
+            summaryEl.textContent = String(message || 'No spreadsheet selected.');
+        }
+
+        function clearClssImportSpreadsheetPayload(options = {}) {
+            clssImportSpreadsheetPayload = null;
+            setClssImportSpreadsheetSummary('No spreadsheet selected.');
+            if (options?.clearInput) {
+                const input = document.getElementById('clssImportSpreadsheetInput');
+                if (input) input.value = '';
+            }
+        }
+
+        function primeClssImportScopeFromRows(rows) {
+            const quarters = [...new Set((Array.isArray(rows) ? rows : [])
+                .map((row) => String(row?.targetQuarter || row?.reviewQuarter || '').trim().toLowerCase())
+                .filter((value) => CLSS_IMPORT_QUARTERS.includes(value)))];
+
+            const scopeSelect = document.getElementById('clssImportScope');
+            const quarterSelect = document.getElementById('clssImportQuarter');
+            if (scopeSelect) {
+                scopeSelect.value = quarters.length > 1 ? 'all' : 'single';
+            }
+            if (quarterSelect && quarters.length === 1) {
+                quarterSelect.value = quarters[0];
+            }
+            toggleClssImportInputMode();
+        }
+
+        function applyClssSpreadsheetPayload(payload, options = {}) {
+            const importApi = window.ProgramCommandImport;
+            if (!importApi || typeof importApi.buildClssPreviewRowsFromTabularRows !== 'function') {
+                throw new Error('Spreadsheet import runtime is unavailable.');
+            }
+
+            const spreadsheetImport = payload?.spreadsheetImport && typeof payload.spreadsheetImport === 'object'
+                ? payload.spreadsheetImport
+                : payload;
+            const rows = Array.isArray(spreadsheetImport?.rows) ? spreadsheetImport.rows : [];
+            if (!rows.length) {
+                throw new Error('Spreadsheet import did not contain any rows.');
+            }
+
+            const preview = importApi.buildClssPreviewRowsFromTabularRows(rows, {
+                fileName: String(spreadsheetImport?.meta?.fileName || payload?.artifact?.name || '').trim() || null,
+                defaultQuarter: (window.StateManager?.get('currentQuarter')) || 'spring',
+                dayPatterns: getSchedulerDayPatterns(),
+                timeSlots: getSchedulerTimeSlots(),
+                roomOptions: getClssImportRoomOptionList(),
+                resolveCourseCode: resolveClssImportCourseCode,
+                resolveFacultyName: getCanonicalFacultyName
+            });
+
+            clssImportSpreadsheetPayload = {
+                artifact: payload?.artifact || null,
+                spreadsheetImport,
+                meta: preview.meta
+            };
+            primeClssImportScopeFromRows(preview.rows);
+            applyClssPriorYearAutoSuggestionsToRows(preview.rows, getClssImportTargetAcademicYear());
+            clssImportPreviewRows = preview.rows;
+            renderClssImportReview(clssImportPreviewRows, preview.meta);
+
+            const fileName = String(spreadsheetImport?.meta?.fileName || payload?.artifact?.name || '').trim();
+            const quarterCounts = preview.meta?.quarterCounts && typeof preview.meta.quarterCounts === 'object'
+                ? Object.entries(preview.meta.quarterCounts)
+                    .filter(([, count]) => Number(count) > 0)
+                    .map(([quarter, count]) => `${quarter.charAt(0).toUpperCase() + quarter.slice(1)} ${count}`)
+                    .join(', ')
+                : '';
+            setClssImportSpreadsheetSummary(
+                fileName
+                    ? `${fileName}: ${preview.rows.length} parsed row${preview.rows.length === 1 ? '' : 's'}${quarterCounts ? ` (${quarterCounts})` : ''}.`
+                    : `${preview.rows.length} parsed spreadsheet row${preview.rows.length === 1 ? '' : 's'}${quarterCounts ? ` (${quarterCounts})` : ''}.`
+            );
+
+            if (options?.announce !== false) {
+                showToast(`Loaded ${preview.rows.length} spreadsheet row${preview.rows.length === 1 ? '' : 's'} for CLSS review`);
+            }
+
+            return preview;
+        }
+
+        async function handleClssImportSpreadsheetSelection(event) {
+            const file = event?.target?.files?.[0];
+            if (!file) {
+                clearClssImportSpreadsheetPayload();
+                return;
+            }
+
+            const importApi = window.ProgramCommandImport;
+            if (!importApi || typeof importApi.readTabularRowsFromFile !== 'function') {
+                setClssImportSpreadsheetSummary('Spreadsheet import runtime is unavailable.');
+                showToast('Spreadsheet import runtime is unavailable.', 'error');
+                return;
+            }
+
+            setClssImportSpreadsheetSummary(`Parsing ${file.name}...`);
+            try {
+                const spreadsheetImport = await importApi.readTabularRowsFromFile(file);
+                applyClssSpreadsheetPayload({
+                    artifact: {
+                        name: file.name,
+                        size: file.size,
+                        type: file.type,
+                        capturedAt: new Date().toISOString()
+                    },
+                    spreadsheetImport
+                });
+            } catch (error) {
+                clearClssImportSpreadsheetPayload();
+                setClssImportSpreadsheetSummary(error?.message || 'Could not parse the selected spreadsheet.');
+                showToast(error?.message || 'Could not parse the selected spreadsheet.', 'error');
+            }
         }
 
         function openClssImportModal() {
@@ -9386,6 +9541,9 @@
             refreshClssImportModeUi();
             toggleClssImportInputMode();
             handleClssImportPngSelection();
+            if (!clssImportSpreadsheetPayload) {
+                setClssImportSpreadsheetSummary('No spreadsheet selected.');
+            }
             renderClssImportResultsPanel(readClssImportLastReport());
             modal?.classList.add('active');
         }
@@ -9637,6 +9795,23 @@
             const pngCount = (document.getElementById('clssImportPngInput')?.files || []).length;
             let parseSources = getClssImportParseSources();
             let hasAnyText = parseSources.some((source) => source.text);
+            const hasSpreadsheetRows = Array.isArray(clssImportSpreadsheetPayload?.spreadsheetImport?.rows)
+                && clssImportSpreadsheetPayload.spreadsheetImport.rows.length > 0;
+
+            if (!hasAnyText && pngCount === 0 && hasSpreadsheetRows) {
+                const preview = applyClssSpreadsheetPayload(clssImportSpreadsheetPayload, { announce: false });
+                if (!preview.rows.length) {
+                    renderClssImportReview([]);
+                    showToast('Spreadsheet import did not yield any review rows.', 'error');
+                    return;
+                }
+
+                const effectiveRows = clssImportPreviewRows.map((row) => getClssImportRowEffectiveState(row));
+                const readyCount = effectiveRows.filter((row) => row.effectiveStatus === 'ready').length;
+                const needsReviewCount = effectiveRows.filter((row) => row.effectiveStatus === 'needs-review').length;
+                showToast(`Loaded ${clssImportPreviewRows.length} spreadsheet row${clssImportPreviewRows.length === 1 ? '' : 's'} (${readyCount} ready${needsReviewCount ? `, ${needsReviewCount} needs review` : ''})`);
+                return;
+            }
 
             if (!hasAnyText && pngCount > 0) {
                 const ocrResult = await populateClssImportTextFromPngs();
@@ -12948,6 +13123,7 @@
             renderConflictSolver(initialQuarter);
             renderRecommendations(initialQuarter);
             updateStats(initialQuarter);
+            await resumePendingOnboardingImport();
         }
 
         // Bridge module-scoped state/functions for legacy inline handlers and
@@ -12976,6 +13152,7 @@
             openClssImportModal,
             closeClssImportModal,
             handleClssImportPngSelection,
+            handleClssImportSpreadsheetSelection,
             invalidateClssImportPreview,
             invalidateClssImportPriorYearPlacementCache,
             refreshClssImportPreviewReview,
@@ -13224,6 +13401,11 @@
                                 <label for="clssImportPngInput">Upload CLSS screenshots (PNG, optional, multiple)</label>
                                 <input type="file" id="clssImportPngInput" accept=".png,image/png" multiple onchange="handleClssImportPngSelection()">
                                 <div class="clss-import-file-list" id="clssImportPngSummary">No screenshots selected.</div>
+                            </div>
+                            <div class="clss-import-field">
+                                <label for="clssImportSpreadsheetInput">Upload EagleNET spreadsheet (.csv, .xlsx, .xls)</label>
+                                <input type="file" id="clssImportSpreadsheetInput" accept=".csv,.xlsx,.xls" onchange="handleClssImportSpreadsheetSelection(event)">
+                                <div class="clss-import-file-list" id="clssImportSpreadsheetSummary">No spreadsheet selected.</div>
                             </div>
                             <div class="clss-import-field" id="clssImportSingleTextField">
                                 <label for="clssImportText">Paste copied CLSS text (optional)</label>

@@ -96,6 +96,40 @@ describe('ProgramCommandShell', () => {
         });
     });
 
+    test('stores parsed spreadsheet import rows in onboarding context', () => {
+        const program = shell.findProgramById('biology');
+        const context = shell.createOnboardingContext(program, {
+            source: 'spreadsheet',
+            artifact: {
+                name: 'biology-seed.csv',
+                size: 512,
+                type: 'text/csv',
+                capturedAt: '2026-03-26T18:00:00.000Z'
+            },
+            spreadsheetImport: {
+                rows: [
+                    { term: 'Fall', subject: 'BIOL', catalogNumber: '101', title: 'Intro Biology' }
+                ],
+                meta: {
+                    format: 'csv',
+                    fileName: 'biology-seed.csv',
+                    rowCount: 1
+                }
+            }
+        });
+
+        expect(context.spreadsheetImport).toEqual({
+            rows: [
+                { term: 'Fall', subject: 'BIOL', catalogNumber: '101', title: 'Intro Biology' }
+            ],
+            meta: {
+                format: 'csv',
+                fileName: 'biology-seed.csv',
+                rowCount: 1
+            }
+        });
+    });
+
     test('creates department-aware onboarding context for combined workspaces', () => {
         const program = shell.findProgramById('computer-science-cybersecurity');
         const context = shell.createOnboardingContext(program, {
