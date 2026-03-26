@@ -347,8 +347,8 @@
                 <button type="button" class="btn-production-danger" onclick="clearAllProductionWorkloads()">
                     Clear All Workloads (Production)
                 </button>
-                <button type="button" class="btn-production-warning" onclick="clearProductionScheduleYear('2026-27')">
-                    Clear Scheduler AY 2026-27
+                <button type="button" class="btn-production-warning" onclick="clearProductionScheduleYear(PRODUCTION_RESET_DEFAULT_SCHEDULE_YEAR)">
+                    Clear Scheduler AY <span id="productionResetYearLabel">2026-27</span>
                 </button>
             </div>
             <div class="production-reset-note">
@@ -484,36 +484,10 @@
                 <!-- Applied Learning Section -->
                 <div class="section-header">
                     <h2>📚 Applied Learning Workload</h2>
-                    <span class="badge">DESN 399/491/495/499</span>
+                    <span class="badge" id="appliedLearningBadge">DESN 399/491/495/499</span>
                 </div>
 
-                <div class="stats-bar">
-                    <div class="stat-card">
-                        <div class="stat-label">DESN 399 (Independent Study)</div>
-                        <div class="stat-value" id="desn399Credits">0</div>
-                        <div class="stat-subtitle" id="desn399Workload">0 workload credits</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">DESN 491 (Senior Project)</div>
-                        <div class="stat-value" id="desn491Credits">0</div>
-                        <div class="stat-subtitle" id="desn491Workload">0 workload credits</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">DESN 499 (Independent Study)</div>
-                        <div class="stat-value" id="desn499Credits">0</div>
-                        <div class="stat-subtitle" id="desn499Workload">0 workload credits</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">DESN 495 (Internship)</div>
-                        <div class="stat-value" id="desn495Credits">0</div>
-                        <div class="stat-subtitle" id="desn495Workload">0 workload credits</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Total Applied Learning</div>
-                        <div class="stat-value" id="totalAppliedCredits">0</div>
-                        <div class="stat-subtitle" id="totalAppliedWorkload">0 workload credits</div>
-                    </div>
-                </div>
+                <div class="stats-bar" id="appliedLearningCards"></div>
             </div>
         </div>
     </div>

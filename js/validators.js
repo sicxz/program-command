@@ -14,7 +14,7 @@ const Validators = (function() {
         // Fallback defaults
         return {
             VALIDATION: {
-                COURSE_CODE_PATTERN: /^DESN\s\d{3}$/,
+                COURSE_CODE_PATTERN: /^[A-Z]{2,6}\s\d{3}[A-Z]?$/,
                 ACADEMIC_YEAR_PATTERN: /^\d{4}-\d{2}$/,
                 MAX_CREDITS_PER_COURSE: 15,
                 MAX_ENROLLMENT_PER_SECTION: 100

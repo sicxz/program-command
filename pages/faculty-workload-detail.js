@@ -1,9 +1,10 @@
 /**
  * Faculty Workload Detail Page
- * Maintains per-faculty applied-learning entries for DESN 399/491/495/499.
+ * Maintains per-faculty applied-learning entries using the active department profile.
  */
 
 let workloadData = null;
+let activeDepartmentProfile = null;
 
 const state = {
     year: '',
@@ -41,22 +42,58 @@ function escapeHtml(value) {
         .replace(/'/g, '&#39;');
 }
 
-function getCourseLabel(courseCode) {
-    const labels = {
-        'DESN 399': 'DESN 399 - Independent Study',
-        'DESN 491': 'DESN 491 - Senior Project',
-        'DESN 495': 'DESN 495 - Internship',
-        'DESN 499': 'DESN 499 - Independent Study'
+function getDepartmentIdentity() {
+    const identity = activeDepartmentProfile && activeDepartmentProfile.identity
+        ? activeDepartmentProfile.identity
+        : {};
+    return {
+        code: String(identity.code || 'DESN').trim().toUpperCase() || 'DESN',
+        displayName: String(identity.displayName || identity.name || 'EWU Design').trim() || 'EWU Design'
     };
-    return labels[courseCode] || courseCode;
+}
+
+function getAppliedLearningCourses() {
+    return WorkloadIntegration.getAppliedLearningCourses()
+        .slice()
+        .sort((a, b) => a.code.localeCompare(b.code));
+}
+
+function getCourseLabel(courseCode) {
+    const match = getAppliedLearningCourses().find((course) => course.code === courseCode);
+    const title = String(match?.title || '').trim();
+    return title ? `${courseCode} - ${title}` : courseCode;
+}
+
+function applyDepartmentProfileCopy() {
+    const identity = getDepartmentIdentity();
+    const courses = getAppliedLearningCourses();
+    const courseCodes = courses.map((course) => course.code);
+    const subtitle = document.getElementById('detailSubtitle');
+    const formulaNote = document.getElementById('detailFormulaNote');
+
+    document.title = `Faculty Workload Detail - ${identity.displayName}`;
+
+    if (subtitle) {
+        subtitle.textContent = courseCodes.length
+            ? `Manage ${courseCodes.join(' / ')} student-credit entries and workload conversion.`
+            : `Manage ${identity.code} applied-learning student-credit entries and workload conversion.`;
+    }
+
+    if (formulaNote) {
+        const sample = courses[0];
+        if (sample) {
+            formulaNote.textContent = `Example: 5 student credits in ${sample.code} = ${formatNumber(5 * (Number(sample.rate) || 0), 2)} faculty workload credits (rate ${formatNumber(sample.rate, 2)}).`;
+        } else {
+            formulaNote.textContent = 'Faculty workload credits are calculated from student credits multiplied by the course rate.';
+        }
+    }
 }
 
 function populateCourseSelect() {
     const select = document.getElementById('courseInput');
     select.innerHTML = '';
 
-    const courses = WorkloadIntegration.getAppliedLearningCourses()
-        .sort((a, b) => a.code.localeCompare(b.code));
+    const courses = getAppliedLearningCourses();
 
     courses.forEach((course) => {
         const option = document.createElement('option');
@@ -69,8 +106,7 @@ function populateCourseSelect() {
 
 function renderRatesList() {
     const container = document.getElementById('ratesList');
-    const courses = WorkloadIntegration.getAppliedLearningCourses()
-        .sort((a, b) => a.code.localeCompare(b.code));
+    const courses = getAppliedLearningCourses();
 
     container.innerHTML = courses.map((course) => `
         <div class="rate-item">
@@ -343,9 +379,16 @@ function openDashboard() {
 
 async function init() {
     const query = getQueryParams();
+    const manager = window.DepartmentProfileManager;
+
+    if (manager && typeof manager.initialize === 'function') {
+        const snapshot = await manager.initialize();
+        activeDepartmentProfile = snapshot && snapshot.profile ? snapshot.profile : null;
+    }
 
     workloadData = await loadWorkloadData('../');
 
+    applyDepartmentProfileCopy();
     populateCourseSelect();
     renderRatesList();
     populateYearSelect(query.year);

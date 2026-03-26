@@ -142,12 +142,38 @@ const WORKLOAD_PLAN_GROUP_OPTIONS = [
     { id: 'chair', label: 'Group Chairs First' }
 ];
 
+function getWorkloadIntegrationApi() {
+    return typeof WorkloadIntegration !== 'undefined' ? WorkloadIntegration : null;
+}
+
 function getAppliedLearningCoursesForDashboard() {
-    if (window.WorkloadIntegration?.getAppliedLearningCourses) {
-        const rows = window.WorkloadIntegration.getAppliedLearningCourses();
+    const integration = getWorkloadIntegrationApi();
+    if (integration?.getAppliedLearningCourses) {
+        const rows = integration.getAppliedLearningCourses();
         return Array.isArray(rows) ? rows : [];
     }
     return [];
+}
+
+function getAppliedLearningSummaryConfig() {
+    const configured = getAppliedLearningCoursesForDashboard()
+        .map((entry) => ({
+            code: String(entry?.code || '').trim(),
+            title: String(entry?.title || entry?.code || '').trim(),
+            rate: Number(entry?.rate) || 0
+        }))
+        .filter((entry) => entry.code);
+
+    if (configured.length > 0) {
+        return configured;
+    }
+
+    return [
+        { code: 'DESN 399', title: 'Independent Study', rate: 0.2 },
+        { code: 'DESN 491', title: 'Senior Project', rate: 0.2 },
+        { code: 'DESN 499', title: 'Independent Study', rate: 0.2 },
+        { code: 'DESN 495', title: 'Internship', rate: 0.1 }
+    ];
 }
 const workloadPlanningUiState = {
     modalOpen: false,
@@ -187,6 +213,14 @@ function applyDepartmentProfileToDashboardHeader() {
     }
     if (subtitleEl) {
         subtitleEl.textContent = WORKLOAD_DASHBOARD_SUBTITLE_BASE;
+    }
+    updateProductionResetButton();
+}
+
+function updateProductionResetButton() {
+    const label = document.getElementById('productionResetYearLabel');
+    if (label) {
+        label.textContent = PRODUCTION_RESET_DEFAULT_SCHEDULE_YEAR;
     }
 }
 
@@ -922,8 +956,9 @@ function formatWorkloadPlanNumber(value, decimals = 1) {
 }
 
 function normalizeWorkloadPlanNameKey(name) {
-    if (window.WorkloadIntegration?.normalizeNameKey) {
-        return window.WorkloadIntegration.normalizeNameKey(name);
+    const integration = getWorkloadIntegrationApi();
+    if (integration?.normalizeNameKey) {
+        return integration.normalizeNameKey(name);
     }
 
     const cleaned = String(name || '')
@@ -4815,32 +4850,64 @@ function createProgressCell(utilizationRate, status) {
  * Render applied learning statistics
  */
 function renderAppliedLearningStats(facultyData) {
-    const summary = calculateAppliedLearningSummary(facultyData);
+    const cards = document.getElementById('appliedLearningCards');
+    const badge = document.getElementById('appliedLearningBadge');
+    if (!cards) return;
 
-    document.getElementById('desn399Credits').textContent =
-        `${summary.desn399.credits} credits`;
-    document.getElementById('desn399Workload').textContent =
-        `${summary.desn399.workload.toFixed(1)} workload credits (${summary.desn399.sections} sections)`;
+    const configuredCourses = getAppliedLearningSummaryConfig();
+    const summaryByCode = new Map(
+        configuredCourses.map((entry) => [
+            entry.code,
+            {
+                ...entry,
+                credits: 0,
+                workload: 0,
+                sections: 0
+            }
+        ])
+    );
 
-    document.getElementById('desn491Credits').textContent =
-        `${summary.desn491.credits} credits`;
-    document.getElementById('desn491Workload').textContent =
-        `${summary.desn491.workload.toFixed(1)} workload credits (${summary.desn491.sections} sections)`;
+    let totalCredits = 0;
+    let totalWorkload = 0;
 
-    document.getElementById('desn499Credits').textContent =
-        `${summary.desn499.credits} credits`;
-    document.getElementById('desn499Workload').textContent =
-        `${summary.desn499.workload.toFixed(1)} workload credits (${summary.desn499.sections} sections)`;
+    Object.values(facultyData || {}).forEach((faculty) => {
+        totalCredits += Number(faculty?.appliedLearningCredits) || 0;
+        totalWorkload += Number(faculty?.appliedLearningWorkload) || 0;
 
-    document.getElementById('desn495Credits').textContent =
-        `${summary.desn495.credits} credits`;
-    document.getElementById('desn495Workload').textContent =
-        `${summary.desn495.workload.toFixed(1)} workload credits (${summary.desn495.sections} sections)`;
+        Object.entries(faculty?.appliedLearning || {}).forEach(([code, details]) => {
+            const bucket = summaryByCode.get(code);
+            if (!bucket) return;
+            bucket.credits += Number(details?.credits) || 0;
+            bucket.workload += Number(details?.workload) || 0;
+            bucket.sections += Number(details?.sections) || 0;
+        });
+    });
 
-    document.getElementById('totalAppliedCredits').textContent =
-        `${summary.totalCredits} credits`;
-    document.getElementById('totalAppliedWorkload').textContent =
-        `${summary.totalWorkload.toFixed(1)} workload credits`;
+    if (badge) {
+        badge.textContent = configuredCourses.map((entry) => entry.code).join(' / ');
+    }
+
+    cards.innerHTML = '';
+
+    summaryByCode.forEach((entry) => {
+        const card = document.createElement('div');
+        card.className = 'stat-card';
+        card.innerHTML = `
+            <div class="stat-label">${escapeWorkloadPlanHtml(entry.code)} (${escapeWorkloadPlanHtml(entry.title)})</div>
+            <div class="stat-value">${formatWorkloadPlanNumber(entry.credits)} credits</div>
+            <div class="stat-subtitle">${formatWorkloadPlanNumber(entry.workload)} workload credits (${entry.sections} sections)</div>
+        `;
+        cards.appendChild(card);
+    });
+
+    const totalCard = document.createElement('div');
+    totalCard.className = 'stat-card';
+    totalCard.innerHTML = `
+        <div class="stat-label">Total Applied Learning</div>
+        <div class="stat-value">${formatWorkloadPlanNumber(totalCredits)} credits</div>
+        <div class="stat-subtitle">${formatWorkloadPlanNumber(totalWorkload)} workload credits</div>
+    `;
+    cards.appendChild(totalCard);
 }
 
 /**

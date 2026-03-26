@@ -10,35 +10,20 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <link rel="stylesheet" href="../css/schedule-builder.css">
     <link rel="stylesheet" href="../css/program-command-dashboard-theme.css">
+    <script src="../js/department-profile.js"></script>
+    <script src="../js/workload-integration.js"></script>
 </head>
 <body>
     <div class="container">
         <!-- Header -->
         <header class="builder-header">
-            <div class="builder-header-top">
-                <a href="../index.html" class="back-link">&larr; Back to Schedule</a>
-                <nav class="builder-quick-nav" aria-label="Builder shortcuts">
-                    <a href="../index.html" class="builder-quick-link">Main Scheduler</a>
-                    <a href="workload-dashboard.html" class="builder-quick-link">Workload Review</a>
-                    <a href="academic-year-setup.html" class="builder-quick-link">AY Setup</a>
-                </nav>
-            </div>
-            <div class="builder-eyebrow">Program Command · Chair Workflow</div>
-            <h1>Draft Schedule Builder</h1>
-            <p class="subtitle">Load a prior academic year, review recommendations, make drag-and-drop edits, then hand off to workload review.</p>
-            <div class="builder-workflow-steps" aria-label="Builder workflow">
-                <span class="workflow-step">1. Load &amp; Analyze</span>
-                <span class="workflow-step">2. Edit Schedule Grid</span>
-                <span class="workflow-step">3. Make Workloads</span>
-            </div>
+            <a href="../index.html" class="back-link">&larr; Back to Schedule</a>
+            <h1 id="builderTitle">Create New Schedule</h1>
+            <p class="subtitle" id="builderSubtitle">AI-powered schedule generation based on enrollment trends.</p>
         </header>
 
         <!-- Controls -->
         <div class="controls-bar">
-            <div class="controls-bar-lead">
-                <span class="controls-step-badge">Step 1</span>
-                <span class="controls-step-text">Copy a prior AY and generate a draft for chair review</span>
-            </div>
             <div class="control-group">
                 <label for="sourceYear">Copy From Year</label>
                 <select id="sourceYear">
@@ -85,7 +70,7 @@
             <div class="scenario-header">
                 <div>
                     <h2>Predictive Faculty Build</h2>
-                    <p>Set annual credits, inload, and DESN 499 assumptions used for auto-assignment.</p>
+                    <p id="predictiveBuildHelp">Set annual credits, inload, and reserved applied-learning assumptions used for auto-assignment.</p>
                 </div>
                 <label class="scenario-toggle">
                     <input type="checkbox" id="includeArielScenario" onchange="handleArielScenarioToggle(this.checked)">
@@ -119,7 +104,7 @@
                             <th>Faculty</th>
                             <th>Annual Credits</th>
                             <th>Inload</th>
-                            <th>DESN 499 / Quarter</th>
+                            <th id="reservedCourseHeader">Reserved Applied Learning / Quarter</th>
                             <th>Annual Scheduled</th>
                             <th>Quarterly Scheduled</th>
                         </tr>
@@ -340,11 +325,6 @@
 
         <!-- Action Bar -->
         <div class="action-bar" id="actionBar" style="display: none;">
-            <div class="action-bar-lead">
-                <div class="action-bar-title">Step 3 · Finalize Draft &amp; Handoff</div>
-                <div class="action-bar-subtitle">Save the builder draft, export to the main scheduler, or go straight to workload review.</div>
-                <div class="action-bar-attribution" id="saveAttributionLabel">Last saved by -- at --</div>
-            </div>
             <button class="btn-secondary" onclick="saveDraft()">
                 💾 Save Draft
             </button>
@@ -359,9 +339,6 @@
             </button>
             <button class="btn-primary" onclick="exportToEditor()">
                 Open in Main Schedule →
-            </button>
-            <button class="btn-primary" onclick="openWorkloadReview()">
-                👥 Make Workloads →
             </button>
             <button class="btn-settings" onclick="openApiSettingsModal()" title="API Settings">
                 ⚙️
@@ -606,14 +583,10 @@
     </div>
 
     <!-- Scripts -->
-    <!-- Department profile runtime (provides DepartmentProfileManager and scheduler config) -->
-    <script src="../js/department-profile.js"></script>
     <!-- Supabase Client Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../js/supabase-config.js"></script>
     <script src="../js/db-service.js"></script>
-    <script src="../js/auth-service.js"></script>
-    <script src="../js/auth-guard.js"></script>
     <!-- OpenAI Integration -->
     <script src="../js/claude-service.js"></script>
     <script src="../js/schedule-evaluator.js"></script>
@@ -628,6 +601,24 @@
     <script>
         // Initialize faculty panel
         async function initFacultyPanel() {
+            const profileSnapshot = typeof window.DepartmentProfileManager !== 'undefined'
+                && typeof window.DepartmentProfileManager.initialize === 'function'
+                ? await window.DepartmentProfileManager.initialize()
+                : null;
+            const profile = profileSnapshot?.profile || window.__PROGRAM_COMMAND_ACTIVE_PROFILE__ || null;
+            const targetYear = document.getElementById('academicYear')?.value
+                || profile?.academic?.defaultSchedulerYear;
+            const hasAyFaculty = typeof WorkloadIntegration !== 'undefined'
+                && typeof WorkloadIntegration.readAySetupDataForYear === 'function'
+                && Array.isArray(WorkloadIntegration.readAySetupDataForYear(targetYear)?.faculty)
+                && WorkloadIntegration.readAySetupDataForYear(targetYear).faculty.length > 0;
+            const departmentCode = String(profile?.identity?.code || 'DESN').trim().toUpperCase() || 'DESN';
+
+            if (departmentCode !== 'DESN' && !hasAyFaculty) {
+                document.getElementById('facultySelectionContainer').innerHTML = '<p style="color:#6b7280; text-align:center; padding:20px;">Add faculty targets in AY Setup to seed this panel for the active program.</p>';
+                return;
+            }
+
             if (typeof FacultyManager !== 'undefined') {
                 await FacultyManager.init({ workloadPath: '../workload-data.json' });
                 FacultyManager.renderSelectionUI('facultySelectionContainer');

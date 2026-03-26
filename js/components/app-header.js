@@ -314,7 +314,7 @@ class AppHeader extends HTMLElement {
                     h1 { font-size: 1.55rem; }
                 }
             </style>
-            
+
             <header>
                 <div class="header-shell">
                     <div class="header-copy">

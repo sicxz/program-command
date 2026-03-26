@@ -17,6 +17,8 @@
     <script src="../js/dom-utils.js"></script>
     <script src="../js/validators.js"></script>
     <script src="../js/state-manager.js"></script>
+    <script src="../js/department-profile.js"></script>
+    <script src="../js/workload-integration.js"></script>
     <script src="../js/release-time-manager.js"></script>
     <script src="../js/backup-manager.js"></script>
     <script src="../js/data-loader.js"></script>
@@ -379,18 +381,14 @@
     <div class="container">
         <header>
             <a href="../index.html" class="back-link">← Back to Schedule</a>
-            <h1>📋 Release Time Dashboard</h1>
-            <p class="subtitle">EWU Design Department - Faculty Release Time Management</p>
+            <h1 id="releaseTimeTitle">📋 Release Time Dashboard</h1>
+            <p class="subtitle" id="releaseTimeSubtitle">Department release-time planning and allocation tracking.</p>
         </header>
 
         <div class="controls">
             <div class="control-group">
                 <label for="academicYearFilter">Academic Year:</label>
-                <select id="academicYearFilter">
-                    <option value="2025-26">2025-26</option>
-                    <option value="2024-25">2024-25</option>
-                    <option value="2023-24">2023-24</option>
-                </select>
+                <select id="academicYearFilter"></select>
             </div>
 
             <div class="control-group">
@@ -523,9 +521,5 @@
     </div>
 
     <script src="release-time-dashboard.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="../js/supabase-config.js"></script>
-    <script src="../js/auth-service.js"></script>
-    <script src="../js/auth-guard.js"></script>
 </body>
 </html>

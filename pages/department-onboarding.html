@@ -160,6 +160,35 @@
             border-color: #16a34a;
             background: #f0fdf4;
         }
+
+        .handoff-card {
+            border-color: #bfdbfe;
+            background: #eff6ff;
+        }
+
+        .handoff-card h2 {
+            color: #0f172a;
+        }
+
+        .handoff-meta {
+            display: grid;
+            gap: 6px;
+            color: #1e3a8a;
+            font-size: 0.92rem;
+        }
+
+        .handoff-badge {
+            display: inline-flex;
+            width: fit-content;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: rgba(37, 99, 235, 0.12);
+            color: #1d4ed8;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
     </style>
 </head>
 <body>
@@ -170,6 +199,15 @@
     ></app-header>
 
     <main class="onboarding-shell">
+        <section class="shell-card handoff-card" id="handoffCard" hidden>
+            <span class="handoff-badge" id="handoffBadge">Onboarding handoff</span>
+            <h2 id="handoffTitle">Program onboarding handoff</h2>
+            <div class="handoff-meta">
+                <div id="handoffSummary"></div>
+                <div id="handoffArtifact"></div>
+            </div>
+        </section>
+
         <section class="shell-card">
             <h2 id="step1Title">Step 1: Entry + Base Profile</h2>
             <p id="step1Help">Select an existing profile as your base, then define department identity.</p>
@@ -236,10 +274,11 @@
 
     <script type="module" src="../js/components/app-header.js"></script>
     <script src="../js/department-profile.js"></script>
-    <script src="department-onboarding.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../js/supabase-config.js"></script>
     <script src="../js/auth-service.js"></script>
+    <script src="../js/program-shell.js"></script>
     <script src="../js/auth-guard.js"></script>
+    <script src="department-onboarding.js"></script>
 </body>
 </html>

@@ -22,8 +22,6 @@
         },
         branding: {
             appTitle: 'Program Command - EWU Design',
-            logoUrl: '',
-            brandColor: '#a10022',
             headerEyebrow: 'EWU DESIGN · PROGRAM COMMAND',
             headerSubtitle: 'Design Program Planning, Scheduling, and Scenario Control',
             textSlots: {
@@ -54,7 +52,6 @@
         academic: {
             system: 'quarter',
             quarters: ['fall', 'winter', 'spring'],
-            yearLabelFormat: 'YYYY-YY',
             defaultTargetYearMode: 'current',
             defaultWorkloadImportYearMode: 'next',
             defaultSchedulerYear: '2025-26'
@@ -85,23 +82,6 @@
             dashboardTitle: 'Faculty Workload Dashboard',
             dashboardSubtitleBase: 'EWU Design Department - Academic Workload Analysis',
             productionResetDefaultScheduleYear: '2026-27',
-            utilizationThresholds: {
-                overloadedPercent: 100,
-                optimalMinPercent: 60
-            },
-            courseTypeMultipliers: {
-                scheduled: 1,
-                independentStudy: 0.2,
-                seniorProject: 0.2,
-                internship: 0.1,
-                practicum: 0.2
-            },
-            appliedLearningCourses: {
-                'DESN 399': { title: 'Independent Study', rate: 0.2 },
-                'DESN 491': { title: 'Senior Project', rate: 0.2 },
-                'DESN 495': { title: 'Internship', rate: 0.1 },
-                'DESN 499': { title: 'Independent Study', rate: 0.2 }
-            },
             defaultAnnualTargets: {
                 'Full Professor': 36,
                 'Associate Professor': 36,
@@ -122,20 +102,6 @@
                 ],
                 facultyAliases: {},
                 courseAliases: {}
-            }
-        },
-        courseModel: {
-            courseCodePrefix: 'DESN',
-            catalogStructure: 'course-catalog.json'
-        },
-        dashboard: {
-            modules: {
-                schedule: true,
-                workload: true,
-                capacity: true,
-                releaseTime: true,
-                constraints: true,
-                onboarding: true
             }
         }
     });
@@ -323,18 +289,9 @@
         merged.academic.quarters = merged.academic.quarters
             .map((quarter) => String(quarter || '').toLowerCase())
             .filter(Boolean);
-        if (!String(merged.academic.yearLabelFormat || '').trim()) {
-            merged.academic.yearLabelFormat = DEFAULT_PROFILE.academic.yearLabelFormat;
-        }
 
         if (!isObject(merged.branding.textSlots)) {
             merged.branding.textSlots = { ...DEFAULT_PROFILE.branding.textSlots };
-        }
-        if (!String(merged.branding.logoUrl || '').trim() && DEFAULT_PROFILE.branding.logoUrl) {
-            merged.branding.logoUrl = DEFAULT_PROFILE.branding.logoUrl;
-        }
-        if (!String(merged.branding.brandColor || '').trim()) {
-            merged.branding.brandColor = DEFAULT_PROFILE.branding.brandColor;
         }
 
         if (!Array.isArray(merged.scheduler.allowedRooms)) {
@@ -368,36 +325,12 @@
             merged.import.clss.courseAliases = {};
         }
 
-        if (!isObject(merged.workload.appliedLearningCourses)) {
-            merged.workload.appliedLearningCourses = deepClone(DEFAULT_PROFILE.workload.appliedLearningCourses);
-        }
-
-        if (!isObject(merged.workload.utilizationThresholds)) {
-            merged.workload.utilizationThresholds = deepClone(DEFAULT_PROFILE.workload.utilizationThresholds);
-        }
-
-        if (!isObject(merged.workload.courseTypeMultipliers)) {
-            merged.workload.courseTypeMultipliers = deepClone(DEFAULT_PROFILE.workload.courseTypeMultipliers);
-        }
-
-        if (!isObject(merged.courseModel)) {
-            merged.courseModel = deepClone(DEFAULT_PROFILE.courseModel);
-        }
-
-        if (!isObject(merged.dashboard)) {
-            merged.dashboard = deepClone(DEFAULT_PROFILE.dashboard);
-        }
-        if (!isObject(merged.dashboard.modules)) {
-            merged.dashboard.modules = deepClone(DEFAULT_PROFILE.dashboard.modules);
-        }
-
         return merged;
     }
 
     function validateProfile(profile) {
         const errors = [];
         const warnings = [];
-        const hexColorPattern = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 
         if (!isObject(profile)) {
             return { valid: false, errors: ['Profile must be a JSON object.'], warnings };
@@ -414,26 +347,9 @@
         if (!isObject(profile.identity)) {
             errors.push('identity object is required.');
         } else {
-            if (typeof profile.identity.name !== 'string' || !profile.identity.name.trim()) errors.push('identity.name must be a non-empty string.');
-            if (typeof profile.identity.code !== 'string' || !profile.identity.code.trim()) errors.push('identity.code must be a non-empty string.');
-            if (typeof profile.identity.displayName !== 'string' || !profile.identity.displayName.trim()) errors.push('identity.displayName must be a non-empty string.');
-            if (profile.identity.shortName != null && typeof profile.identity.shortName !== 'string') {
-                errors.push('identity.shortName must be a string when provided.');
-            }
-        }
-
-        if (!isObject(profile.branding)) {
-            errors.push('branding object is required.');
-        } else {
-            if (profile.branding.logoUrl != null && typeof profile.branding.logoUrl !== 'string') {
-                errors.push('branding.logoUrl must be a string when provided.');
-            }
-            if (profile.branding.brandColor != null && (typeof profile.branding.brandColor !== 'string' || !hexColorPattern.test(profile.branding.brandColor))) {
-                errors.push('branding.brandColor must be a valid hex color (for example #a10022).');
-            }
-            if (!isObject(profile.branding.textSlots)) {
-                warnings.push('branding.textSlots should be an object map of UI labels.');
-            }
+            if (!String(profile.identity.name || '').trim()) errors.push('identity.name is required.');
+            if (!String(profile.identity.code || '').trim()) errors.push('identity.code is required.');
+            if (!String(profile.identity.displayName || '').trim()) errors.push('identity.displayName is required.');
         }
 
         if (!isObject(profile.academic)) {
@@ -444,9 +360,6 @@
             }
             if (!Array.isArray(profile.academic.quarters) || profile.academic.quarters.length === 0) {
                 errors.push('academic.quarters must be a non-empty array.');
-            }
-            if (typeof profile.academic.yearLabelFormat !== 'string' || !profile.academic.yearLabelFormat.trim()) {
-                errors.push('academic.yearLabelFormat must be a non-empty string.');
             }
         }
 
@@ -463,49 +376,8 @@
 
         if (!isObject(profile.workload)) {
             errors.push('workload object is required.');
-        } else {
-            if (!isObject(profile.workload.defaultAnnualTargets)) {
-                warnings.push('workload.defaultAnnualTargets missing; workload UI will fall back to runtime defaults.');
-            }
-            if (!isObject(profile.workload.appliedLearningCourses)) {
-                errors.push('workload.appliedLearningCourses must be an object map.');
-            }
-            if (!isObject(profile.workload.courseTypeMultipliers)) {
-                errors.push('workload.courseTypeMultipliers must be an object map.');
-            }
-            if (!isObject(profile.workload.utilizationThresholds)) {
-                errors.push('workload.utilizationThresholds must be an object.');
-            } else {
-                const overloadedPercent = Number(profile.workload.utilizationThresholds.overloadedPercent);
-                const optimalMinPercent = Number(profile.workload.utilizationThresholds.optimalMinPercent);
-                if (!Number.isFinite(overloadedPercent) || overloadedPercent <= 0) {
-                    errors.push('workload.utilizationThresholds.overloadedPercent must be a positive number.');
-                }
-                if (!Number.isFinite(optimalMinPercent) || optimalMinPercent <= 0) {
-                    errors.push('workload.utilizationThresholds.optimalMinPercent must be a positive number.');
-                }
-            }
-        }
-
-        if (!isObject(profile.courseModel)) {
-            errors.push('courseModel object is required.');
-        } else {
-            if (typeof profile.courseModel.courseCodePrefix !== 'string' || !profile.courseModel.courseCodePrefix.trim()) {
-                errors.push('courseModel.courseCodePrefix must be a non-empty string.');
-            }
-            if (profile.courseModel.catalogStructure != null && typeof profile.courseModel.catalogStructure !== 'string') {
-                errors.push('courseModel.catalogStructure must be a string when provided.');
-            }
-        }
-
-        if (!isObject(profile.dashboard) || !isObject(profile.dashboard.modules)) {
-            errors.push('dashboard.modules object is required.');
-        } else {
-            Object.entries(profile.dashboard.modules).forEach(([moduleName, enabled]) => {
-                if (typeof enabled !== 'boolean') {
-                    errors.push(`dashboard.modules.${moduleName} must be a boolean.`);
-                }
-            });
+        } else if (!isObject(profile.workload.defaultAnnualTargets)) {
+            warnings.push('workload.defaultAnnualTargets missing; workload UI will fall back to runtime defaults.');
         }
 
         return { valid: errors.length === 0, errors, warnings };

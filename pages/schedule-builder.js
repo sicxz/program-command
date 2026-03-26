@@ -9,6 +9,8 @@ let currentView = 'grid';
 let assignedCourses = {}; // { 'MW-10:00-12:00-206': [course1, course2], ... }
 let roomConstraints = null; // Loaded from room-constraints.json
 let caseByeCaseCourses = []; // Courses handled individually, not in grid
+let activeDepartmentProfile = null;
+let workloadDataCache = null;
 
 // Room configuration - organized by campus (207 excluded - dedicated project room)
 const CATALYST_ROOMS = ['206', '209', '210', '212'];
@@ -36,28 +38,13 @@ let allQuartersSchedule = {
 let activeQuarter = 'Fall';
 let courseCatalog = null; // Loaded from course-catalog.json
 
-// Scheduler pattern configuration (profile-driven with sensible defaults for Design)
-let schedulerDayPatterns = [
-    { id: 'MW', label: 'Monday / Wednesday' },
-    { id: 'TR', label: 'Tuesday / Thursday' }
-];
-let schedulerTimeSlots = [
-    { id: '10:00-12:20', label: '10:00-12:20', startMinutes: 10 * 60, endMinutes: (12 * 60) + 20 },
-    { id: '13:00-15:20', label: '13:00-15:20', startMinutes: 13 * 60, endMinutes: (15 * 60) + 20 },
-    { id: '16:00-18:20', label: '16:00-18:20', startMinutes: 16 * 60, endMinutes: (18 * 60) + 20 }
-];
+// Time slots: 2hr 20min classes
+const TIMES = ['10:00 AM - 12:20 PM', '1:00 PM - 3:20 PM', '4:00 PM - 6:20 PM'];
+const TIME_KEYS = ['10:00-12:20', '13:00-15:20', '16:00-18:20']; // For data storage
+const DAYS = ['MW', 'TR'];
 
-let DAYS = schedulerDayPatterns.map((pattern) => pattern.id);
-let TIME_KEYS = schedulerTimeSlots.map((slot) => slot.id); // For data storage
-let TIMES = schedulerTimeSlots.map((slot) => slot.label);
-
-// Derived bucket helpers (updated once profile is loaded)
-let EVENING_SLOT_IDS = schedulerTimeSlots
-    .filter((slot) => Number.isFinite(slot.startMinutes) && slot.startMinutes >= 16 * 60)
-    .map((slot) => slot.id);
-
-// Program Command storage prefix (kept in sync with department profile scheduler.storageKeyPrefix)
-let PROGRAM_COMMAND_STORAGE_KEY_PREFIX = 'designSchedulerData_';
+// Evening time slot (for safety pairing rule)
+const EVENING_TIME = '4:00 PM - 6:20 PM';
 
 // Store courses from database for constraints
 let dbCourses = [];
@@ -66,9 +53,8 @@ let dbCourses = [];
 const SCHEDULE_PLACEMENTS_KEY = 'schedule_placements';
 const FACULTY_BUILD_STORAGE_KEY = 'faculty_build_scenario_v1';
 const FACULTY_PREFERENCES_LOCAL_KEY = 'faculty_preferences_local_v1';
-const SAVE_ATTRIBUTION_STORAGE_KEY = 'schedule_builder_last_save_attribution_v1';
 
-const DEFAULT_FACULTY_BUILD_SCENARIO = {
+const LEGACY_DEFAULT_FACULTY_BUILD_SCENARIO = {
     faculty: [
         { name: 'Travis Masingale', included: true, annualCredits: 31, inloadCredits: 5, desn499PerQuarter: 2 },
         { name: 'Ginelle Hustrulid', included: true, annualCredits: 31, inloadCredits: 5, desn499PerQuarter: 2 },
@@ -98,8 +84,87 @@ let facultyBuildScenario = cloneDefaultFacultyBuildScenario();
 let facultyBuildCapacityWarnings = [];
 let facultyPreferencesCache = {};
 
+function getDepartmentIdentity() {
+    const identity = activeDepartmentProfile && activeDepartmentProfile.identity
+        ? activeDepartmentProfile.identity
+        : {};
+    return {
+        name: String(identity.name || 'Design').trim() || 'Design',
+        code: String(identity.code || 'DESN').trim().toUpperCase() || 'DESN',
+        displayName: String(identity.displayName || identity.name || 'EWU Design').trim() || 'EWU Design'
+    };
+}
+
+function getStorageNamespace() {
+    const scheduler = activeDepartmentProfile && activeDepartmentProfile.scheduler
+        ? activeDepartmentProfile.scheduler
+        : {};
+    return String(scheduler.storageKeyPrefix || activeDepartmentProfile?.id || 'designSchedulerData').trim() || 'designSchedulerData';
+}
+
+function getScopedStorageKey(baseKey) {
+    return `${getStorageNamespace()}_${baseKey}`;
+}
+
+function getCurrentAcademicYear() {
+    const now = new Date();
+    const startYear = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
+    return `${startYear}-${String(startYear + 1).slice(-2)}`;
+}
+
+function getPreviousAcademicYear(year) {
+    const match = String(year || '').match(/^(\d{4})-(\d{2})$/);
+    if (!match) return getCurrentAcademicYear();
+    const startYear = Number(match[1]) - 1;
+    return `${startYear}-${String(startYear + 1).slice(-2)}`;
+}
+
+function getAppliedLearningCourses() {
+    if (typeof WorkloadIntegration !== 'undefined' && typeof WorkloadIntegration.getAppliedLearningCourses === 'function') {
+        const courses = WorkloadIntegration.getAppliedLearningCourses();
+        return Array.isArray(courses) ? courses : [];
+    }
+    return [];
+}
+
+function getReservedAppliedLearningCourse() {
+    const courses = getAppliedLearningCourses();
+    return courses.find((course) => /499\b/.test(String(course.code || '')))
+        || courses[0]
+        || { code: `${getDepartmentIdentity().code} 499`, title: 'Independent Study' };
+}
+
+function buildDefaultFacultyBuildScenario() {
+    if (typeof WorkloadIntegration !== 'undefined' && typeof WorkloadIntegration.readAySetupDataForYear === 'function') {
+        const targetYear = String(activeDepartmentProfile?.academic?.defaultSchedulerYear || getCurrentAcademicYear()).trim() || getCurrentAcademicYear();
+        const aySetup = WorkloadIntegration.readAySetupDataForYear(targetYear);
+        const faculty = Array.isArray(aySetup?.faculty) ? aySetup.faculty : [];
+        if (faculty.length > 0) {
+            return {
+                faculty: faculty.map((entry) => {
+                    const annualTarget = Number(entry.annualTargetCredits) || 0;
+                    const releaseCredits = Number(entry.releaseCredits) || 0;
+                    return {
+                        name: String(entry.name || '').trim(),
+                        included: String(entry.role || '').toLowerCase() !== 'adjunct',
+                        annualCredits: Math.max(0, annualTarget - releaseCredits),
+                        inloadCredits: releaseCredits,
+                        desn499PerQuarter: 0
+                    };
+                }).filter((entry) => entry.name)
+            };
+        }
+    }
+
+    if (getDepartmentIdentity().code !== 'DESN') {
+        return { faculty: [] };
+    }
+
+    return LEGACY_DEFAULT_FACULTY_BUILD_SCENARIO;
+}
+
 function cloneDefaultFacultyBuildScenario() {
-    return JSON.parse(JSON.stringify(DEFAULT_FACULTY_BUILD_SCENARIO));
+    return JSON.parse(JSON.stringify(buildDefaultFacultyBuildScenario()));
 }
 
 function normalizeFacultyName(name) {
@@ -108,7 +173,8 @@ function normalizeFacultyName(name) {
 
 function loadFacultyPreferencesCache() {
     try {
-        const raw = localStorage.getItem(FACULTY_PREFERENCES_LOCAL_KEY);
+        const raw = localStorage.getItem(getScopedStorageKey(FACULTY_PREFERENCES_LOCAL_KEY))
+            || localStorage.getItem(FACULTY_PREFERENCES_LOCAL_KEY);
         facultyPreferencesCache = raw ? JSON.parse(raw) : {};
     } catch (error) {
         console.warn('Could not load faculty preferences cache:', error);
@@ -118,64 +184,10 @@ function loadFacultyPreferencesCache() {
 
 function saveFacultyPreferencesCache() {
     try {
-        localStorage.setItem(FACULTY_PREFERENCES_LOCAL_KEY, JSON.stringify(facultyPreferencesCache));
+        localStorage.setItem(getScopedStorageKey(FACULTY_PREFERENCES_LOCAL_KEY), JSON.stringify(facultyPreferencesCache));
     } catch (error) {
         console.warn('Could not save faculty preferences cache:', error);
     }
-}
-
-function formatSaveAttributionDate(isoString) {
-    if (!isoString) return '--';
-    const date = new Date(isoString);
-    if (Number.isNaN(date.getTime())) return '--';
-    return date.toLocaleString();
-}
-
-function setSaveAttributionLabel(userLabel, savedAt) {
-    const label = document.getElementById('saveAttributionLabel');
-    if (!label) return;
-    label.textContent = `Last saved by ${userLabel || '--'} at ${formatSaveAttributionDate(savedAt)}`;
-}
-
-function readSaveAttributionState() {
-    try {
-        const raw = localStorage.getItem(SAVE_ATTRIBUTION_STORAGE_KEY);
-        return raw ? JSON.parse(raw) : null;
-    } catch (error) {
-        return null;
-    }
-}
-
-function writeSaveAttributionState(state) {
-    try {
-        localStorage.setItem(SAVE_ATTRIBUTION_STORAGE_KEY, JSON.stringify(state));
-    } catch (error) {
-        console.warn('Could not persist save attribution state:', error);
-    }
-}
-
-function refreshSaveAttributionLabelForYear(targetYear) {
-    const state = readSaveAttributionState();
-    if (!state || state.year !== targetYear) {
-        setSaveAttributionLabel('--', null);
-        return;
-    }
-    setSaveAttributionLabel(state.userLabel, state.savedAt);
-}
-
-async function resolveCurrentUserAttribution() {
-    if (typeof window !== 'undefined' && window.AuthService && typeof window.AuthService.getUser === 'function') {
-        try {
-            const user = await window.AuthService.getUser();
-            if (user?.id) {
-                const preferredName = user.user_metadata?.full_name || user.user_metadata?.name || user.email || user.id;
-                return { id: user.id, label: preferredName };
-            }
-        } catch (error) {
-            // fallback below
-        }
-    }
-    return { id: null, label: 'Authenticated user' };
 }
 
 function setFacultyPreference(name, preference) {
@@ -207,7 +219,7 @@ function getScenarioFacultyEntry(name) {
 
 function saveFacultyBuildScenario() {
     try {
-        localStorage.setItem(FACULTY_BUILD_STORAGE_KEY, JSON.stringify(facultyBuildScenario));
+        localStorage.setItem(getScopedStorageKey(FACULTY_BUILD_STORAGE_KEY), JSON.stringify(facultyBuildScenario));
     } catch (error) {
         console.warn('Could not save faculty build scenario:', error);
     }
@@ -217,7 +229,8 @@ function loadFacultyBuildScenario() {
     facultyBuildScenario = cloneDefaultFacultyBuildScenario();
 
     try {
-        const raw = localStorage.getItem(FACULTY_BUILD_STORAGE_KEY);
+        const raw = localStorage.getItem(getScopedStorageKey(FACULTY_BUILD_STORAGE_KEY))
+            || localStorage.getItem(FACULTY_BUILD_STORAGE_KEY);
         if (!raw) return;
 
         const parsed = JSON.parse(raw);
@@ -387,6 +400,12 @@ function renderFacultyBuildScenario() {
         deltaEl.textContent = `With optional lecturer vs without optional lecturer annual scheduled delta: ${arielDelta.toFixed(1)} credits`;
     }
 
+    if (!facultyBuildScenario.faculty.length) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#6b7280; padding:14px;">No profile-specific AY setup faculty seeded yet. Add faculty targets in AY Setup to drive this planner.</td></tr>';
+        updateScenarioAssignmentSummary();
+        return;
+    }
+
     const rows = facultyBuildScenario.faculty.map((entry, index) => {
         const annualTarget = (Number(entry.annualCredits) || 0) + (Number(entry.inloadCredits) || 0);
         const annualScheduled = Math.max(0, annualTarget - ((Number(entry.desn499PerQuarter) || 0) * 3));
@@ -474,7 +493,8 @@ function initializeFacultyBuildScenario() {
  */
 function loadSchedulePlacements() {
     try {
-        const saved = localStorage.getItem(SCHEDULE_PLACEMENTS_KEY);
+        const saved = localStorage.getItem(getScopedStorageKey(SCHEDULE_PLACEMENTS_KEY))
+            || localStorage.getItem(SCHEDULE_PLACEMENTS_KEY);
         return saved ? JSON.parse(saved) : {};
     } catch (e) {
         console.warn('Could not load schedule placements:', e);
@@ -487,7 +507,7 @@ function loadSchedulePlacements() {
  */
 function saveSchedulePlacements(placements) {
     try {
-        localStorage.setItem(SCHEDULE_PLACEMENTS_KEY, JSON.stringify(placements));
+        localStorage.setItem(getScopedStorageKey(SCHEDULE_PLACEMENTS_KEY), JSON.stringify(placements));
     } catch (e) {
         console.warn('Could not save schedule placements:', e);
     }
@@ -564,47 +584,90 @@ function getSavedPlacement(courseCode, section, quarter) {
     return placements[key] || null;
 }
 
+function applyDepartmentProfileCopy() {
+    const identity = getDepartmentIdentity();
+    const reservedCourse = getReservedAppliedLearningCourse();
+    const titleEl = document.getElementById('builderTitle');
+    const subtitleEl = document.getElementById('builderSubtitle');
+    const helpEl = document.getElementById('predictiveBuildHelp');
+    const reservedHeaderEl = document.getElementById('reservedCourseHeader');
+
+    document.title = `Schedule Builder - ${identity.displayName}`;
+    if (titleEl) {
+        titleEl.textContent = `Create ${identity.name} Schedule`;
+    }
+    if (subtitleEl) {
+        subtitleEl.textContent = `${identity.displayName} AI-powered schedule generation based on enrollment trends.`;
+    }
+    if (helpEl) {
+        helpEl.textContent = `Set annual credits, inload, and ${reservedCourse.code} assumptions used for auto-assignment.`;
+    }
+    if (reservedHeaderEl) {
+        reservedHeaderEl.textContent = `${reservedCourse.code} / Quarter`;
+    }
+}
+
+function populateAcademicYearControls() {
+    const sourceSelect = document.getElementById('sourceYear');
+    const targetSelect = document.getElementById('academicYear');
+    const targetYear = String(activeDepartmentProfile?.academic?.defaultSchedulerYear || getCurrentAcademicYear()).trim() || getCurrentAcademicYear();
+    const options = typeof WorkloadIntegration !== 'undefined' && typeof WorkloadIntegration.getAcademicYearOptions === 'function'
+        ? WorkloadIntegration.getAcademicYearOptions(workloadDataCache || {})
+        : [];
+    const years = new Set(options);
+    years.add(targetYear);
+    years.add(getPreviousAcademicYear(targetYear));
+    years.add(getPreviousAcademicYear(getPreviousAcademicYear(targetYear)));
+
+    const sortedYears = Array.from(years)
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b));
+    const sourceYears = sortedYears.filter((year) => year < targetYear);
+    const defaultSourceYear = sourceYears[sourceYears.length - 1] || getPreviousAcademicYear(targetYear);
+    const targetYears = sortedYears.filter((year) => year >= targetYear);
+
+    sourceSelect.innerHTML = sourceYears.map((year) => {
+        const label = year === defaultSourceYear ? `${year} (Current Baseline)` : year;
+        return `<option value="${year}">${label}</option>`;
+    }).join('');
+    if (!sourceYears.length) {
+        sourceSelect.innerHTML = `<option value="${defaultSourceYear}">${defaultSourceYear}</option>`;
+    }
+    sourceSelect.value = defaultSourceYear;
+
+    targetSelect.innerHTML = targetYears.map((year) => {
+        const label = year === targetYear ? `${year} (Target)` : year;
+        return `<option value="${year}">${label}</option>`;
+    }).join('');
+    targetSelect.value = targetYear;
+}
+
+async function initializeDepartmentProfileContext() {
+    const manager = window.DepartmentProfileManager;
+    if (manager && typeof manager.initialize === 'function') {
+        try {
+            const snapshot = await manager.initialize();
+            activeDepartmentProfile = snapshot && snapshot.profile ? snapshot.profile : null;
+        } catch (error) {
+            console.warn('Could not initialize department profile:', error);
+            activeDepartmentProfile = null;
+        }
+    }
+
+    applyDepartmentProfileCopy();
+    populateAcademicYearControls();
+}
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('Initializing Schedule Builder...');
 
     try {
-        // Initialize department profile + scheduler patterns
-        if (window.DepartmentProfileManager && typeof window.DepartmentProfileManager.initialize === 'function') {
-            try {
-                const snapshot = await window.DepartmentProfileManager.initialize();
-                const profile = snapshot?.profile
-                    || (typeof window.DepartmentProfileManager.getCurrentProfile === 'function'
-                        ? window.DepartmentProfileManager.getCurrentProfile()
-                        : null)
-                    || (typeof window.DepartmentProfileManager.getDefaultProfile === 'function'
-                        ? window.DepartmentProfileManager.getDefaultProfile()
-                        : null);
-
-                const scheduler = profile && profile.scheduler ? profile.scheduler : {};
-
-                if (Array.isArray(scheduler.dayPatterns) && scheduler.dayPatterns.length > 0) {
-                    schedulerDayPatterns = scheduler.dayPatterns.slice();
-                }
-                if (Array.isArray(scheduler.timeSlots) && scheduler.timeSlots.length > 0) {
-                    schedulerTimeSlots = scheduler.timeSlots.slice();
-                }
-
-                DAYS = schedulerDayPatterns.map((pattern) => String(pattern.id || '').trim().toUpperCase()).filter(Boolean);
-                TIME_KEYS = schedulerTimeSlots.map((slot) => String(slot.id || '').trim()).filter(Boolean);
-                TIMES = schedulerTimeSlots.map((slot) => String(slot.label || slot.id || '').trim());
-
-                EVENING_SLOT_IDS = schedulerTimeSlots
-                    .filter((slot) => Number.isFinite(slot.startMinutes) && slot.startMinutes >= 16 * 60)
-                    .map((slot) => slot.id);
-
-                if (scheduler.storageKeyPrefix && typeof scheduler.storageKeyPrefix === 'string') {
-                    PROGRAM_COMMAND_STORAGE_KEY_PREFIX = scheduler.storageKeyPrefix.trim() || PROGRAM_COMMAND_STORAGE_KEY_PREFIX;
-                }
-            } catch (profileError) {
-                console.warn('Could not initialize department profile for Schedule Builder; falling back to defaults.', profileError);
-            }
+        const workloadResponse = await fetch('../workload-data.json');
+        if (workloadResponse.ok) {
+            workloadDataCache = await workloadResponse.json();
         }
+        await initializeDepartmentProfileContext();
 
         // Load room constraints
         const constraintsResponse = await fetch('../data/room-constraints.json');
@@ -661,15 +724,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         initializeFacultyBuildScenario();
         loadDraft();
 
-        const activeYear = document.getElementById('academicYear')?.value || '2026-27';
-        refreshSaveAttributionLabelForYear(activeYear);
-        const academicYearSelect = document.getElementById('academicYear');
-        if (academicYearSelect) {
-            academicYearSelect.addEventListener('change', (event) => {
-                refreshSaveAttributionLabelForYear(event.target.value);
-            });
-        }
-
     } catch (error) {
         console.error('Initialization error:', error);
         showToast('Error initializing: ' + error.message, 'error');
@@ -680,90 +734,11 @@ document.addEventListener('DOMContentLoaded', async function() {
 let analysisResults = null;
 
 function getProgramCommandScheduleStorageKey(academicYear) {
-    return `${PROGRAM_COMMAND_STORAGE_KEY_PREFIX}${academicYear}`;
-}
-
-function extractCoursesFromProgramCommandDraft(academicYear) {
-    const raw = localStorage.getItem(getProgramCommandScheduleStorageKey(academicYear));
-    if (!raw) return [];
-
-    let parsed = null;
-    try {
-        parsed = JSON.parse(raw);
-    } catch (error) {
-        console.warn(`Could not parse Program Command schedule draft for ${academicYear}:`, error);
-        return [];
-    }
-
-    if (!parsed || typeof parsed !== 'object') return [];
-
-    const quarterMap = {
-        fall: 'Fall',
-        winter: 'Winter',
-        spring: 'Spring'
-    };
-
-    const courses = [];
-    Object.entries(quarterMap).forEach(([quarterKey, quarterName]) => {
-        const quarterData = parsed[quarterKey];
-        if (!quarterData || typeof quarterData !== 'object') return;
-
-        Object.entries(quarterData).forEach(([day, daySlots]) => {
-            if (!daySlots || typeof daySlots !== 'object') return;
-
-            Object.entries(daySlots).forEach(([time, slotCourses]) => {
-                if (!Array.isArray(slotCourses)) return;
-
-                slotCourses.forEach((course, index) => {
-                    const code = String(course?.code || course?.courseCode || '').trim();
-                    if (!code) return;
-
-                    courses.push({
-                        id: `${academicYear}-${quarterKey}-${day}-${time}-${index}`,
-                        courseCode: code.replace(/-/g, ' ').replace(/\s+/g, ' ').trim().toUpperCase(),
-                        courseTitle: String(course?.name || course?.title || '').trim(),
-                        section: String(course?.section || '001').trim(),
-                        quarter: quarterName,
-                        credits: Number(course?.credits) || 5,
-                        enrolled: Number(course?.enrolled) || Number(course?.enrollment) || 0,
-                        facultyName: String(course?.instructor || 'TBD').trim() || 'TBD',
-                        room: String(course?.room || '').trim(),
-                        day: String(day || '').trim(),
-                        time: String(time || '').trim(),
-                        type: 'scheduled',
-                        source: 'program-command-draft'
-                    });
-                });
-            });
-        });
-    });
-
-    return courses;
-}
-
-async function loadSourceCoursesForBuilder(sourceYear) {
-    const draftCourses = extractCoursesFromProgramCommandDraft(sourceYear);
-    if (draftCourses.length > 0) {
-        return {
-            courses: draftCourses,
-            sourceKind: 'program-command-draft',
-            sourceLabel: 'main scheduler draft (local)'
-        };
-    }
-
-    const workloadResponse = await fetch('../workload-data.json');
-    if (!workloadResponse.ok) throw new Error('Failed to load workload data');
-    const workloadData = await workloadResponse.json();
-
-    const yearData = workloadData.workloadByYear?.byYear?.[sourceYear];
-    if (!yearData) throw new Error(`No data found for ${sourceYear}`);
-
-    const workloadCourses = extractCoursesFromYear(yearData, workloadData.facultyWorkload);
-    return {
-        courses: workloadCourses,
-        sourceKind: 'workload-data',
-        sourceLabel: 'workload-data.json'
-    };
+    const scheduler = activeDepartmentProfile && activeDepartmentProfile.scheduler
+        ? activeDepartmentProfile.scheduler
+        : {};
+    const prefix = String(scheduler.storageKeyPrefix || 'designSchedulerData_').trim() || 'designSchedulerData_';
+    return `${prefix}${academicYear}`;
 }
 
 /**
@@ -785,12 +760,17 @@ async function handleLoadAndAnalyze() {
         // Initialize analyzer
         await ScheduleAnalyzer.init();
 
-        // Load source year's schedule from Program Command draft first, then workload-data fallback
-        const sourceSchedule = await loadSourceCoursesForBuilder(sourceYear);
-        const allCourses = sourceSchedule.courses;
-        if (!Array.isArray(allCourses) || allCourses.length === 0) {
-            throw new Error(`No source schedule sections found for ${sourceYear}. Load/copy that year in the main scheduler first, or restore workload-data.json.`);
-        }
+        // Load source year's schedule from workload-data.json
+        const workloadResponse = await fetch('../workload-data.json');
+        if (!workloadResponse.ok) throw new Error('Failed to load workload data');
+        const workloadData = await workloadResponse.json();
+
+        // Get source year data
+        const yearData = workloadData.workloadByYear?.byYear?.[sourceYear];
+        if (!yearData) throw new Error(`No data found for ${sourceYear}`);
+
+        // Extract all courses from all faculty
+        const allCourses = extractCoursesFromYear(yearData, workloadData.facultyWorkload);
 
         // Group by quarter and build schedule
         const quarters = ['Fall', 'Winter', 'Spring'];
@@ -845,7 +825,7 @@ async function handleLoadAndAnalyze() {
         updatePlacementsFromSchedule(sourceYear);
         console.log(`✅ Auto-saved placements from ${sourceYear} schedule`);
 
-        showToast(`Loaded ${totalSections} sections from ${sourceYear} (${sourceSchedule.sourceLabel}). Review analysis before proceeding.`);
+        showToast(`Loaded ${totalSections} sections from ${sourceYear}. Review analysis before proceeding.`);
         updateScenarioAssignmentSummary();
 
     } catch (error) {
@@ -1159,12 +1139,17 @@ async function handleGenerate() {
     document.getElementById('actionBar').style.display = 'none';
 
     try {
-        // Load previous year's schedule from Program Command draft first, then workload-data fallback
-        const sourceSchedule = await loadSourceCoursesForBuilder(previousYear);
-        const allCourses = sourceSchedule.courses;
-        if (!Array.isArray(allCourses) || allCourses.length === 0) {
-            throw new Error(`No source schedule sections found for ${previousYear}. Load/copy that year in the main scheduler first, or restore workload-data.json.`);
-        }
+        // Load previous year's schedule from workload-data.json
+        const workloadResponse = await fetch('../workload-data.json');
+        if (!workloadResponse.ok) throw new Error('Failed to load workload data');
+        const workloadData = await workloadResponse.json();
+
+        // Get previous year data
+        const yearData = workloadData.workloadByYear?.byYear?.[previousYear];
+        if (!yearData) throw new Error(`No data found for ${previousYear}`);
+
+        // Extract all courses from all faculty
+        const allCourses = extractCoursesFromYear(yearData, workloadData.facultyWorkload);
 
         // Group by quarter
         const quarters = ['Fall', 'Winter', 'Spring'];
@@ -1243,7 +1228,7 @@ async function handleGenerate() {
         // Auto-save placements after generation for future preservation
         updatePlacementsFromSchedule(previousYear);
 
-        showToast(`Generated schedule for ${targetYear} based on ${previousYear} (${sourceSchedule.sourceLabel}) (${totalSections} total sections)`);
+        showToast(`Generated schedule for ${targetYear} based on ${previousYear} data (${totalSections} total sections)`);
         updateScenarioAssignmentSummary();
 
     } catch (error) {
@@ -1484,7 +1469,7 @@ function renderQuarterTabs() {
  * Filter out case-by-case courses (not scheduled in grid)
  */
 function filterCaseByeCaseCourses(recommendations, quarter) {
-    const caseByeCaseList = roomConstraints?.caseByCase?.courses || ['DESN 495', 'DESN 491', 'DESN 499', 'DESN 399'];
+    const caseByeCaseList = roomConstraints?.caseByCase?.courses || getAppliedLearningCourses().map((course) => course.code);
 
     const gridCourses = [];
     recommendations.forEach(rec => {
@@ -1523,7 +1508,7 @@ function getValidRooms(courseCode, quarter, slotUsage = {}) {
         const cebSlots = Object.keys(slotUsage).filter(k =>
             k.includes('CEB 102') || k.includes('CEB 104')
         );
-        const cebFull = cebSlots.length >= (TIME_KEYS.length * DAYS.length * 2); // 2 CEB rooms
+        const cebFull = cebSlots.length >= (TIMES.length * DAYS.length * 2); // 2 CEB rooms
 
         if (cebFull && ROOM_212_OVERFLOW.includes(courseCode)) {
             return ['CEB 102', 'CEB 104', '212'];
@@ -1582,15 +1567,20 @@ function getFacultyCandidates(preferredFaculty, selectedFaculty = []) {
 }
 
 function getTimeBucketForKey(timeKey) {
-    const slot = schedulerTimeSlots.find((entry) => String(entry.id || '').trim() === String(timeKey || '').trim());
-    if (!slot || !Number.isFinite(slot.startMinutes) || !Number.isFinite(slot.endMinutes)) {
-        return 'unspecified';
+    const configuredSlots = Array.isArray(activeDepartmentProfile?.scheduler?.timeSlots)
+        ? activeDepartmentProfile.scheduler.timeSlots
+        : [];
+    const match = configuredSlots.find((slot) => String(slot?.id || '').trim() === String(timeKey || '').trim());
+    const startMinutes = Number(match?.startMinutes);
+
+    if (Number.isFinite(startMinutes)) {
+        if (startMinutes < 12 * 60) return 'morning';
+        if (startMinutes < 16 * 60) return 'afternoon';
+        return 'evening';
     }
 
-    const start = slot.startMinutes;
-
-    if (start < 12 * 60) return 'morning';
-    if (start < 16 * 60) return 'afternoon';
+    if (timeKey === '10:00-12:20') return 'morning';
+    if (timeKey === '13:00-15:20') return 'afternoon';
     return 'evening';
 }
 
@@ -2537,7 +2527,7 @@ function saveDraft() {
         facultyBuildScenario: facultyBuildScenario
     };
 
-    localStorage.setItem('scheduleBuilderDraft', JSON.stringify(draft));
+    localStorage.setItem(getScopedStorageKey('scheduleBuilderDraft'), JSON.stringify(draft));
     
     // Also save placements for future use
     const targetYear = document.getElementById('academicYear')?.value || currentSchedule.year;
@@ -2550,7 +2540,8 @@ function saveDraft() {
  * Load draft from localStorage
  */
 function loadDraft() {
-    const draft = localStorage.getItem('scheduleBuilderDraft');
+    const draft = localStorage.getItem(getScopedStorageKey('scheduleBuilderDraft'))
+        || localStorage.getItem('scheduleBuilderDraft');
     if (!draft) return;
 
     try {
@@ -2592,7 +2583,6 @@ function loadDraft() {
 // ============================================
 // DATABASE SAVE/LOAD FUNCTIONS
 // ============================================
-
 
 function getAllQuarterSchedulesForSave() {
     const snapshot = {
@@ -2751,7 +2741,6 @@ async function saveToDatabase() {
 
     try {
         showToast('Saving to database...');
-        const userAttribution = await resolveCurrentUserAttribution();
 
         // Initialize database service
         await dbService.initialize();
@@ -2767,11 +2756,7 @@ async function saveToDatabase() {
 
         const quarterSchedules = getAllQuarterSchedulesForSave();
         const records = await buildYearScopedScheduleSyncRecords(quarterSchedules);
-        const recordsWithUserContext = records.map((record) => ({
-            ...record,
-            updated_by: userAttribution.id
-        }));
-        const syncResult = await dbService.syncScheduledCoursesForAcademicYear(yearRecord.id, recordsWithUserContext);
+        const syncResult = await dbService.syncScheduledCoursesForAcademicYear(yearRecord.id, records);
 
         if (!syncResult) {
             showToast('Error saving to database', 'error');
@@ -2781,14 +2766,6 @@ async function saveToDatabase() {
         const updatedCount = Number(syncResult.updated_count || 0);
         const insertedCount = Number(syncResult.inserted_count || 0);
         const deletedCount = Number(syncResult.deleted_count || 0);
-        const savedAt = new Date().toISOString();
-        writeSaveAttributionState({
-            year: targetYear,
-            userId: userAttribution.id,
-            userLabel: userAttribution.label,
-            savedAt
-        });
-        setSaveAttributionLabel(userAttribution.label, savedAt);
         showToast(`Saved ${targetYear}: ${updatedCount} updated, ${insertedCount} inserted, ${deletedCount} removed`);
 
     } catch (error) {
@@ -2940,16 +2917,20 @@ function exportJSON() {
 /**
  * Export to main schedule page (all three quarters)
  */
-function syncCurrentQuarterIntoAllQuartersSchedule() {
-    if (!currentSchedule) return;
+function exportToEditor() {
+    if (!currentSchedule) {
+        showToast('No schedule to export', 'error');
+        return;
+    }
+
+    // Save current quarter state first
     allQuartersSchedule[activeQuarter] = {
         ...allQuartersSchedule[activeQuarter],
         assignedCourses: { ...assignedCourses },
         caseByeCaseCourses: [...caseByeCaseCourses]
     };
-}
 
-function buildProgramCommandScheduleDataFromBuilder() {
+    // Build schedule data in the format the main page expects
     const scheduleData = {
         fall: { MW: {}, TR: {} },
         winter: { MW: {}, TR: {} },
@@ -2964,7 +2945,7 @@ function buildProgramCommandScheduleDataFromBuilder() {
         if (!quarterData?.assignedCourses) return;
 
         // Initialize time slots
-        TIME_KEYS.forEach(time => {
+        TIMES.forEach(time => {
             scheduleData[quarterKey]['MW'][time] = [];
             scheduleData[quarterKey]['TR'][time] = [];
         });
@@ -2995,49 +2976,6 @@ function buildProgramCommandScheduleDataFromBuilder() {
             });
         });
     });
-
-    return scheduleData;
-}
-
-function persistBuilderScheduleForProgramCommand(year, scheduleData) {
-    if (!year || !scheduleData) return false;
-    try {
-        localStorage.setItem(`designSchedulerData_${year}`, JSON.stringify(scheduleData));
-        return true;
-    } catch (error) {
-        console.error('Error saving builder schedule for Program Command handoff:', error);
-        return false;
-    }
-}
-
-function openWorkloadReview() {
-    if (!currentSchedule) {
-        showToast('No schedule to export', 'error');
-        return;
-    }
-
-    syncCurrentQuarterIntoAllQuartersSchedule();
-    const scheduleData = buildProgramCommandScheduleDataFromBuilder();
-    const saved = persistBuilderScheduleForProgramCommand(currentSchedule.year, scheduleData);
-    if (!saved) {
-        showToast('Could not prepare workload handoff', 'error');
-        return;
-    }
-
-    showToast(`Opening workload review for ${currentSchedule.year}...`, 'info');
-    setTimeout(() => {
-        window.location.href = `workload-dashboard.html?year=${encodeURIComponent(currentSchedule.year)}`;
-    }, 300);
-}
-
-function exportToEditor() {
-    if (!currentSchedule) {
-        showToast('No schedule to export', 'error');
-        return;
-    }
-
-    syncCurrentQuarterIntoAllQuartersSchedule();
-    const scheduleData = buildProgramCommandScheduleDataFromBuilder();
 
     // Store in localStorage for main page to import
     const exportData = {
@@ -3115,14 +3053,12 @@ function handleCourseSelection() {
         // Pre-populate time slot based on preferred times
         const timeSelect = document.getElementById('addCourseTime');
         if (prefs.preferredTimes && prefs.preferredTimes.length > 0) {
-            // Map time preferences to actual time keys using current profile-driven slots
-            const timeMapping = {};
-            schedulerTimeSlots.forEach((slot) => {
-                const bucket = getTimeBucketForKey(slot.id);
-                if (!timeMapping[bucket]) {
-                    timeMapping[bucket] = slot.id;
-                }
-            });
+            // Map time preferences to actual time keys
+            const timeMapping = {
+                'morning': '10:00-12:20',
+                'afternoon': '13:00-15:20',
+                'evening': '16:00-18:20'
+            };
             // Select first preferred time that's valid
             for (const timePref of prefs.preferredTimes) {
                 const timeKey = timeMapping[timePref];
