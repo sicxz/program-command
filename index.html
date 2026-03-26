@@ -135,70 +135,45 @@
             font-size: 15px;
         }
 
-        .program-shell-catalog {
+        .program-shell-select-wrap {
             display: grid;
-            gap: 10px;
+            gap: 12px;
+            max-width: 520px;
         }
 
-        .program-shell-catalog-heading {
-            font-size: 14px;
+        .program-shell-select-label {
+            font-size: 12px;
             font-weight: 700;
-            color: #334155;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #475569;
         }
 
-        .program-shell-catalog-list,
-        .program-shell-subsection-list {
-            display: grid;
-            gap: 8px;
-        }
-
-        .program-shell-subsection {
-            display: grid;
-            gap: 8px;
-            padding: 12px 0 0;
-            border-top: 1px solid rgba(148, 163, 184, 0.24);
-        }
-
-        .program-shell-subsection-title {
-            font-size: 13px;
-            font-weight: 700;
-            color: #1e293b;
-        }
-
-        .program-shell-program-button {
+        .program-shell-select {
             width: 100%;
-            display: grid;
-            gap: 2px;
-            text-align: left;
-            background: #ffffff;
-            border: 1px solid #d0d7de;
-            border-radius: 14px;
-            padding: 12px 14px;
-            cursor: pointer;
-            transition: border-color 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
-        }
-
-        .program-shell-program-button:hover {
-            border-color: rgba(161, 0, 34, 0.4);
-            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
-            transform: translateY(-1px);
-        }
-
-        .program-shell-program-button.selected {
-            border-color: #8a001d;
-            background: linear-gradient(180deg, #fff8f8, #ffffff);
-            box-shadow: 0 16px 30px rgba(138, 0, 29, 0.12);
-        }
-
-        .program-shell-program-label {
-            font-size: 18px;
-            font-weight: 700;
+            border: 1px solid #cbd5e1;
+            border-radius: 16px;
+            padding: 14px 16px;
+            font-size: 16px;
             color: #0f172a;
+            background: #ffffff;
+        }
+
+        .program-shell-select:focus {
+            outline: 2px solid rgba(138, 0, 29, 0.18);
+            outline-offset: 2px;
+            border-color: #8a001d;
         }
 
         .program-shell-program-meta {
-            font-size: 12px;
-            color: #64748b;
+            margin: 0;
+            padding: 14px 16px;
+            border-radius: 16px;
+            background: #f8fafc;
+            border: 1px solid #dbe4ee;
+            font-size: 13px;
+            line-height: 1.5;
+            color: #475569;
         }
 
         .program-shell-auth-summary {
@@ -371,6 +346,26 @@
         .program-shell-chooser-meta {
             color: #475569;
             font-size: 14px;
+        }
+
+        .program-shell-panel[hidden] {
+            display: none;
+        }
+
+        .program-shell-debug-panel {
+            margin-top: 2px;
+        }
+
+        .program-shell-debug-summary {
+            margin: 0;
+            padding: 12px 14px;
+            border-radius: 14px;
+            border: 1px dashed #cbd5e1;
+            background: #f8fafc;
+            color: #334155;
+            font-size: 12px;
+            line-height: 1.5;
+            white-space: pre-wrap;
         }
 
         .container {
@@ -4716,8 +4711,14 @@
             <section class="program-shell-card hero">
                 <div class="program-shell-eyebrow">Program Command</div>
                 <h1 class="program-shell-title">Welcome to Program Command</h1>
-                <p class="program-shell-copy">Choose your program, clear the account gate, and we will route you into an existing workspace or the right onboarding path for a new program.</p>
-                <div id="programShellProgramList"></div>
+                <p class="program-shell-copy">Choose a program from a simple list, authenticate, and then open the existing workspace or start a new one.</p>
+                <div class="program-shell-select-wrap">
+                    <label class="program-shell-select-label" for="programShellProgramSelect">Program</label>
+                    <select id="programShellProgramSelect" class="program-shell-select">
+                        <option value="">Choose a program</option>
+                    </select>
+                    <p class="program-shell-program-meta" id="programShellProgramMeta">Choose a program to unlock the right workspace path.</p>
+                </div>
             </section>
 
             <section class="program-shell-card">
@@ -4754,9 +4755,18 @@
 
             <section class="program-shell-card program-shell-chooser" id="programShellChooser" hidden>
                 <div class="program-shell-eyebrow">Step 3</div>
-                <h2 style="margin:0; font-size:1.75rem; color:#0f172a;">Start a new program workspace</h2>
+                <h2 style="margin:0; font-size:1.75rem; color:#0f172a;" id="programShellChooserTitle">Choose workspace path</h2>
                 <p class="program-shell-chooser-meta" id="programShellChooserMeta"></p>
-                <div class="program-shell-choice-grid">
+                <article class="program-shell-choice program-shell-panel" id="programShellExistingPanel" hidden>
+                    <span class="program-shell-choice-tag">Existing Workspace</span>
+                    <h3>Open current workspace</h3>
+                    <p id="programShellExistingMeta">An existing program workspace was detected for this selection.</p>
+                    <div class="program-shell-actions">
+                        <button type="button" class="program-shell-button" id="programShellOpenExistingButton">Open existing workspace</button>
+                    </div>
+                </article>
+
+                <div class="program-shell-choice-grid" id="programShellNewWorkspacePanel">
                     <article class="program-shell-choice">
                         <span class="program-shell-choice-tag">MVP Ready</span>
                         <h3>Manual setup</h3>
@@ -4795,8 +4805,20 @@
                         <p class="program-shell-choice-note" id="programShellScreenshotSupportText">Folder upload keeps nested quarter folders when the browser supports directory selection.</p>
                     </article>
                 </div>
+
+                <article class="program-shell-choice program-shell-debug-panel" id="programShellDebugPanel" hidden>
+                    <span class="program-shell-choice-tag">Debug</span>
+                    <h3>Local shell tools</h3>
+                    <p>Use these localhost-only tools to reset a program workspace, clear a pending upload review, or copy the shell state for debugging.</p>
+                    <p class="program-shell-debug-summary" id="programShellDebugSummary">Choose a program to inspect workspace state.</p>
+                    <div class="program-shell-choice-actions">
+                        <button type="button" class="program-shell-button-secondary" id="programShellResetProgramButton">Reset selected workspace</button>
+                        <button type="button" class="program-shell-button-secondary" id="programShellClearPendingImportButton">Clear pending review</button>
+                        <button type="button" class="program-shell-button-secondary" id="programShellCopyDebugButton">Copy debug snapshot</button>
+                    </div>
+                </article>
                 <div class="program-shell-actions">
-                    <button type="button" class="program-shell-button-secondary" id="programShellBackButton" hidden>Back to program selection</button>
+                    <button type="button" class="program-shell-button-secondary" id="programShellBackButton" hidden>Choose another program</button>
                 </div>
             </section>
         </div>
