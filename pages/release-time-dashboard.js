@@ -7,28 +7,158 @@
     'use strict';
 
     // State
-    let currentYear = '2025-26';
+    let currentYear = '';
     let categoryChartInstance = null;
     let quarterChartInstance = null;
     let facultyList = [];
+    let activeDepartmentProfile = null;
+    let workloadData = null;
+    let availableQuarters = ['Fall', 'Winter', 'Spring'];
 
     // Initialize on load
     document.addEventListener('DOMContentLoaded', init);
 
-    function init() {
+    function getCurrentAcademicYear() {
+        const now = new Date();
+        const startYear = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
+        return `${startYear}-${String(startYear + 1).slice(-2)}`;
+    }
+
+    function getDepartmentIdentity() {
+        const identity = activeDepartmentProfile && activeDepartmentProfile.identity
+            ? activeDepartmentProfile.identity
+            : {};
+        return {
+            name: String(identity.name || 'Design').trim() || 'Design',
+            code: String(identity.code || 'DESN').trim().toUpperCase() || 'DESN',
+            displayName: String(identity.displayName || identity.name || 'EWU Design').trim() || 'EWU Design'
+        };
+    }
+
+    function getStorageNamespace() {
+        const scheduler = activeDepartmentProfile && activeDepartmentProfile.scheduler
+            ? activeDepartmentProfile.scheduler
+            : {};
+        return String(scheduler.storageKeyPrefix || activeDepartmentProfile?.id || 'designSchedulerData').trim() || 'designSchedulerData';
+    }
+
+    function getAcademicYearOptions() {
+        const options = typeof WorkloadIntegration !== 'undefined' && typeof WorkloadIntegration.getAcademicYearOptions === 'function'
+            ? WorkloadIntegration.getAcademicYearOptions(workloadData || {})
+            : [];
+        const years = new Set(options);
+        ReleaseTimeManager.getAvailableYears().forEach((year) => years.add(year));
+        years.add(currentYear || getCurrentAcademicYear());
+        return Array.from(years)
+            .filter(Boolean)
+            .sort((a, b) => a.localeCompare(b));
+    }
+
+    function getProfileQuarters() {
+        const quarterKeys = Array.isArray(activeDepartmentProfile?.academic?.quarters)
+            ? activeDepartmentProfile.academic.quarters
+            : ['fall', 'winter', 'spring'];
+        return quarterKeys.map((quarter) => {
+            const normalized = String(quarter || '').trim().toLowerCase();
+            if (!normalized) return null;
+            return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+        }).filter(Boolean);
+    }
+
+    function normalizeFacultyName(name) {
+        const aliases = {
+            'sam mills': 'Simeon Mills'
+        };
+        const trimmed = String(name || '').trim();
+        if (!trimmed) return '';
+        return aliases[trimmed.toLowerCase()] || trimmed;
+    }
+
+    function shouldIncludeFacultyName(name) {
+        const normalized = normalizeFacultyName(name);
+        if (!normalized) return false;
+        const lowered = normalized.toLowerCase();
+        return lowered !== 'tbd' && lowered !== 'adjunct' && lowered !== 'staff';
+    }
+
+    async function initializeDepartmentProfileContext() {
+        const manager = window.DepartmentProfileManager;
+        if (!manager || typeof manager.initialize !== 'function') {
+            currentYear = getCurrentAcademicYear();
+            availableQuarters = ['Fall', 'Winter', 'Spring'];
+            applyDepartmentProfileCopy();
+            return;
+        }
+
+        try {
+            const snapshot = await manager.initialize();
+            activeDepartmentProfile = snapshot && snapshot.profile ? snapshot.profile : null;
+        } catch (error) {
+            console.warn('Could not initialize department profile:', error);
+            activeDepartmentProfile = null;
+        }
+
+        currentYear = String(activeDepartmentProfile?.academic?.defaultSchedulerYear || getCurrentAcademicYear()).trim() || getCurrentAcademicYear();
+        availableQuarters = getProfileQuarters();
+        applyDepartmentProfileCopy();
+    }
+
+    async function loadWorkloadData() {
+        try {
+            const response = await fetch('../workload-data.json', { cache: 'no-store' });
+            if (!response.ok) return null;
+            workloadData = await response.json();
+            return workloadData;
+        } catch (error) {
+            console.warn('Could not load workload data for release-time roster:', error);
+            workloadData = null;
+            return null;
+        }
+    }
+
+    function applyDepartmentProfileCopy() {
+        const identity = getDepartmentIdentity();
+        const titleEl = document.getElementById('releaseTimeTitle');
+        const subtitleEl = document.getElementById('releaseTimeSubtitle');
+
+        document.title = `Release Time - ${identity.displayName}`;
+        if (titleEl) {
+            titleEl.textContent = `📋 ${identity.shortName || identity.name || 'Department'} Release Time`;
+        }
+        if (subtitleEl) {
+            subtitleEl.textContent = `${identity.displayName} release-time planning and allocation tracking.`;
+        }
+    }
+
+    function populateYearDropdown() {
+        const select = document.getElementById('academicYearFilter');
+        const years = getAcademicYearOptions();
+        select.innerHTML = years.map((year) => `<option value="${year}">${year}</option>`).join('');
+
+        if (!years.includes(currentYear)) {
+            currentYear = years[years.length - 1] || getCurrentAcademicYear();
+        }
+        select.value = currentYear;
+    }
+
+    async function init() {
+        await initializeDepartmentProfileContext();
         // Initialize managers
-        ReleaseTimeManager.init();
+        ReleaseTimeManager.init({ storageNamespace: getStorageNamespace() });
         BackupManager.init({
             getState: () => ReleaseTimeManager.exportData(),
             restoreState: (data) => {
                 ReleaseTimeManager.importData(data, true);
                 render();
             },
-            autoSave: true
+            autoSave: true,
+            storageNamespace: getStorageNamespace()
         });
+        await loadWorkloadData();
 
         // Load faculty list
         loadFacultyList();
+        populateYearDropdown();
 
         // Populate form dropdowns
         populateCategoryDropdown();
@@ -47,27 +177,31 @@
             updateUndoRedoButtons();
         });
 
-        // Load sample data if empty
-        loadSampleDataIfEmpty();
-
         // Initial render
         render();
     }
 
     function loadFacultyList() {
-        // EWU Design Department faculty
-        facultyList = [
-            'Melinda Breen',
-            'Sonja Durr',
-            'Sam Mills',
-            'Meg Lybbert',
-            'Ariel Sopu',
-            'Travis Masingale',
-            'Colin Manikoth',
-            'Ginelle Hustrulid'
-        ].sort();
+        const names = new Map();
+        const addName = (name) => {
+            const normalized = normalizeFacultyName(name);
+            if (!shouldIncludeFacultyName(normalized)) return;
+            const key = normalized.toLowerCase();
+            if (!names.has(key)) {
+                names.set(key, normalized);
+            }
+        };
+
+        if (typeof WorkloadIntegration !== 'undefined' && typeof WorkloadIntegration.buildIntegratedWorkloadYearData === 'function') {
+            const integrated = WorkloadIntegration.buildIntegratedWorkloadYearData(workloadData || {}, currentYear);
+            Object.keys(integrated?.all || {}).forEach(addName);
+        }
+
+        ReleaseTimeManager.getAllFacultyWithReleaseTime(currentYear).forEach((faculty) => addName(faculty.name));
+        facultyList = Array.from(names.values()).sort((a, b) => a.localeCompare(b));
 
         const select = document.getElementById('facultySelect');
+        select.innerHTML = '<option value="">Select faculty...</option>';
         facultyList.forEach(name => {
             const option = document.createElement('option');
             option.value = name;
@@ -80,6 +214,8 @@
         const categories = ReleaseTimeManager.getCategories();
         const select = document.getElementById('categorySelect');
         const filterSelect = document.getElementById('categoryFilter');
+        select.innerHTML = '';
+        filterSelect.innerHTML = '<option value="all">All Types</option>';
 
         categories.forEach(cat => {
             const option = document.createElement('option');
@@ -96,7 +232,8 @@
 
     function populateQuarterCheckboxes() {
         const container = document.getElementById('quarterCheckboxes');
-        const quarters = ['Fall', 'Winter', 'Spring'];
+        const quarters = availableQuarters;
+        container.innerHTML = '';
 
         quarters.forEach(q => {
             const label = document.createElement('label');
@@ -130,28 +267,6 @@
 
         document.getElementById('undoBtn').addEventListener('click', handleUndo);
         document.getElementById('redoBtn').addEventListener('click', handleRedo);
-    }
-
-    function loadSampleDataIfEmpty() {
-        const existing = ReleaseTimeManager.getAllFacultyWithReleaseTime(currentYear);
-        if (existing.length === 0) {
-            // Add sample data
-            const sampleData = [
-                { faculty: 'Melinda Breen', category: 'chair', credits: 15, quarters: ['Fall', 'Winter', 'Spring'], description: 'Department Chair duties' },
-                { faculty: 'Sonja Durr', category: 'advising', credits: 5, quarters: ['Fall', 'Winter', 'Spring'], description: 'Program advising' },
-                { faculty: 'Simeon Mills', category: 'committee', credits: 3, quarters: ['Fall', 'Winter'], description: 'Curriculum committee' },
-                { faculty: 'Travis Masingale', category: 'coordinator', credits: 5, quarters: ['Fall', 'Winter', 'Spring'], description: 'UX Certificate Coordinator' }
-            ];
-
-            sampleData.forEach(item => {
-                ReleaseTimeManager.addAllocation(item.faculty, currentYear, {
-                    category: item.category,
-                    credits: item.credits,
-                    quarters: item.quarters,
-                    description: item.description
-                });
-            });
-        }
     }
 
     function render() {
@@ -252,8 +367,9 @@
         const ctx = document.getElementById('quarterChart').getContext('2d');
         const summary = ReleaseTimeManager.getDepartmentSummary(currentYear);
 
-        const quarters = ['Fall', 'Winter', 'Spring'];
+        const quarters = availableQuarters;
         const data = quarters.map(q => Math.round(summary.byQuarter[q] || 0));
+        const palette = ['#f59e0b', '#3b82f6', '#10b981', '#8b5cf6'];
 
         if (quarterChartInstance) {
             quarterChartInstance.destroy();
@@ -266,7 +382,7 @@
                 datasets: [{
                     label: 'Credits',
                     data: data,
-                    backgroundColor: ['#f59e0b', '#3b82f6', '#10b981'],
+                    backgroundColor: quarters.map((_, index) => palette[index % palette.length]),
                     borderRadius: 8
                 }]
             },

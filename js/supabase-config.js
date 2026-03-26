@@ -15,13 +15,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 // Current department code (for multi-department support)
 const CURRENT_DEPARTMENT_CODE = 'DESN';
-
-// Capture the Supabase SDK namespace before we assign the legacy `supabase` client alias
-// in classic-script pages (which would otherwise overwrite `window.supabase`).
-const supabaseSdkNamespace =
-    (typeof window !== 'undefined' && window.supabase && typeof window.supabase.createClient === 'function')
-        ? window.supabase
-        : null;
+const CURRENT_DEPARTMENT_NAME = 'Design';
 
 // Initialize Supabase client (only if credentials are configured)
 let supabaseClient = null;
@@ -38,28 +32,13 @@ function initSupabase() {
         return null;
     }
 
-    const supabaseSdk =
-        (supabaseSdkNamespace && typeof supabaseSdkNamespace.createClient === 'function')
-            ? supabaseSdkNamespace
-            : (window.supabase && typeof window.supabase.createClient === 'function' ? window.supabase : null);
-
-    if (!supabaseSdk) {
+    if (!window.supabase || !window.supabase.createClient) {
         console.error('Supabase JS library not loaded. Add the script tag before this file.');
         return null;
     }
 
-    supabaseClient = supabaseSdk.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        auth: {
-            flowType: 'pkce',
-            detectSessionInUrl: true,
-            persistSession: true,
-            autoRefreshToken: true
-        }
-    });
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     supabase = supabaseClient; // Set global reference
-    // Expose client for module and non-module scripts.
-    window.supabaseClient = supabaseClient;
-    window.getSupabaseClient = getSupabaseClient;
     console.log('Supabase client initialized successfully');
     return supabaseClient;
 }
@@ -71,12 +50,26 @@ function getSupabaseClient() {
     return supabaseClient;
 }
 
+function getActiveDepartmentProfile() {
+    if (typeof globalThis !== 'undefined' && globalThis.__PROGRAM_COMMAND_ACTIVE_PROFILE__) {
+        return globalThis.__PROGRAM_COMMAND_ACTIVE_PROFILE__;
+    }
+    if (typeof window !== 'undefined' && window.activeDepartmentProfile) {
+        return window.activeDepartmentProfile;
+    }
+    return null;
+}
+
+function getActiveDepartmentIdentity() {
+    const identity = getActiveDepartmentProfile()?.identity || {};
+    const code = String(identity.code || CURRENT_DEPARTMENT_CODE).trim().toUpperCase() || CURRENT_DEPARTMENT_CODE;
+    const name = String(identity.name || identity.shortName || CURRENT_DEPARTMENT_NAME).trim() || CURRENT_DEPARTMENT_NAME;
+    const displayName = String(identity.displayName || identity.name || `EWU ${name}`).trim() || `EWU ${name}`;
+
+    return { code, name, displayName };
+}
+
 // Auto-initialize when script loads
 document.addEventListener('DOMContentLoaded', () => {
     initSupabase();
 });
-
-if (typeof window !== 'undefined') {
-    window.getSupabaseClient = getSupabaseClient;
-    window.initSupabase = initSupabase;
-}
