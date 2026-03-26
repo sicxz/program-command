@@ -309,4 +309,132 @@ describe('ProgramCommandShell', () => {
         }));
         expect(manager.loadProfile).toHaveBeenCalledWith('biology-v01');
     });
+
+    test('builds an automatic program profile draft for direct upload review', () => {
+        const program = shell.findProgramById('computer-science');
+        const draft = shell.buildAutomaticProgramProfile({
+            version: 1,
+            id: 'design-v1',
+            identity: {
+                name: 'Design',
+                code: 'DESN',
+                displayName: 'EWU Design',
+                shortName: 'Design'
+            },
+            academic: {
+                defaultSchedulerYear: '2025-26'
+            },
+            scheduler: {
+                allowedRooms: ['CEB 110', 'CEB 210'],
+                roomLabels: {
+                    'CEB 110': 'CEB 110',
+                    'CEB 210': 'CEB 210'
+                }
+            },
+            workload: {
+                dashboardTitle: 'Faculty Workload Dashboard',
+                appliedLearningCourses: {
+                    'DESN 495': { label: 'Capstone' }
+                }
+            },
+            import: {
+                clss: {
+                    facultyAliases: {},
+                    courseAliases: {}
+                }
+            }
+        }, program, { baseProfileId: 'design-v1' });
+
+        expect(draft.baseId).toBe('cscd');
+        expect(draft.profile.identity).toEqual(expect.objectContaining({
+            name: 'Computer Science',
+            code: 'CSCD',
+            displayName: 'EWU Computer Science',
+            shortName: 'Computer Science'
+        }));
+        expect(draft.profile.scheduler.storageKeyPrefix).toBe('cscdSchedulerData_');
+        expect(draft.profile.workload.appliedLearningCourses).toEqual({
+            'CSCD 495': { label: 'Capstone' }
+        });
+        expect(draft.profile.onboardingMeta).toEqual(expect.objectContaining({
+            basedOn: 'design-v1',
+            generatedBy: 'program-shell-direct-import-v1',
+            catalogProgramId: 'computer-science',
+            catalogWorkspaceKind: 'program',
+            previousCode: 'DESN'
+        }));
+    });
+
+    test('auto-provisions a program profile for direct upload review when none exists', async () => {
+        const program = shell.findProgramById('computer-science');
+        const manager = {
+            getStoredProfileId: jest.fn().mockReturnValue('design-v1'),
+            listProfiles: jest.fn().mockResolvedValue({ profiles: [] }),
+            loadProfile: jest.fn().mockResolvedValue({
+                profile: {
+                    version: 1,
+                    id: 'design-v1',
+                    identity: {
+                        name: 'Design',
+                        code: 'DESN',
+                        displayName: 'EWU Design',
+                        shortName: 'Design'
+                    },
+                    academic: {
+                        defaultSchedulerYear: '2025-26'
+                    },
+                    scheduler: {
+                        allowedRooms: ['CEB 110'],
+                        roomLabels: {
+                            'CEB 110': 'CEB 110'
+                        }
+                    },
+                    workload: {
+                        dashboardTitle: 'Faculty Workload Dashboard'
+                    },
+                    import: {
+                        clss: {
+                            facultyAliases: {},
+                            courseAliases: {}
+                        }
+                    }
+                }
+            }),
+            saveCustomProfile: jest.fn().mockResolvedValue({
+                profileId: 'cscd-v01',
+                profile: {
+                    id: 'cscd-v01'
+                }
+            })
+        };
+
+        const result = await shell.ensureProgramProfile(program, {
+            profileManager: manager
+        });
+
+        expect(result).toEqual(expect.objectContaining({
+            profileId: 'cscd-v01',
+            source: 'auto-bootstrap'
+        }));
+        expect(manager.loadProfile).toHaveBeenCalledWith('design-v1');
+        expect(manager.saveCustomProfile).toHaveBeenCalledWith(
+            expect.objectContaining({
+                identity: expect.objectContaining({
+                    code: 'CSCD',
+                    name: 'Computer Science'
+                }),
+                scheduler: expect.objectContaining({
+                    storageKeyPrefix: 'cscdSchedulerData_'
+                }),
+                onboardingMeta: expect.objectContaining({
+                    catalogProgramId: 'computer-science',
+                    generatedBy: 'program-shell-direct-import-v1'
+                })
+            }),
+            expect.objectContaining({
+                baseId: 'cscd',
+                activate: true
+            })
+        );
+    });
 });

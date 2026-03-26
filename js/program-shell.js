@@ -232,6 +232,10 @@
         };
     }
 
+    function cloneJson(value) {
+        return JSON.parse(JSON.stringify(value));
+    }
+
     function sanitizeDepartmentId(value) {
         return String(value || '')
             .trim()
@@ -239,6 +243,41 @@
             .replace(/[^a-z0-9]+/g, '-')
             .replace(/^-+/, '')
             .replace(/-+$/, '');
+    }
+
+    function buildStorageKeyPrefix(identity) {
+        const base = sanitizeDepartmentId(identity?.code || identity?.shortName || identity?.name || 'department');
+        return `${base}SchedulerData_`;
+    }
+
+    function getNextAcademicYearLabel(yearLabel) {
+        const normalized = String(yearLabel || '').trim();
+        const match = normalized.match(/^(\d{4})-(\d{2})$/);
+        if (!match) return '';
+        const startYear = Number(match[1]);
+        if (!Number.isFinite(startYear)) return '';
+        return `${startYear + 1}-${String(startYear + 2).slice(-2)}`;
+    }
+
+    function remapDepartmentCourseCodes(courseMap, nextCode, previousCode) {
+        if (!courseMap || typeof courseMap !== 'object' || Array.isArray(courseMap)) {
+            return courseMap;
+        }
+
+        const nextPrefix = String(nextCode || '').trim().toUpperCase();
+        const previousPrefix = String(previousCode || '').trim().toUpperCase();
+        if (!nextPrefix) return cloneJson(courseMap);
+
+        return Object.entries(courseMap).reduce((result, [courseCode, details]) => {
+            const normalizedCode = String(courseCode || '').trim();
+            let nextCourseCode = normalizedCode;
+            if (previousPrefix) {
+                const previousPattern = new RegExp(`^${previousPrefix}(\\s+\\d)`, 'i');
+                nextCourseCode = normalizedCode.replace(previousPattern, `${nextPrefix}$1`);
+            }
+            result[nextCourseCode] = cloneJson(details);
+            return result;
+        }, {});
     }
 
     function createProgramSelection(program) {
@@ -446,6 +485,104 @@
         };
     }
 
+    function buildAutomaticProgramProfile(baseProfile, program, options = {}) {
+        const draft = cloneJson(baseProfile && typeof baseProfile === 'object' ? baseProfile : {});
+        const identity = buildSuggestedIdentity(program);
+        const previousCode = String(draft.identity?.code || '').trim();
+
+        draft.id = sanitizeDepartmentId(identity.code || identity.name || program?.id || 'program');
+        draft.version = Number(draft.version) || 1;
+        draft.identity = {
+            ...draft.identity,
+            name: String(identity.name || program?.label || draft.identity?.name || 'Program').trim(),
+            code: String(identity.code || draft.identity?.code || '').trim().toUpperCase(),
+            displayName: String(identity.displayName || draft.identity?.displayName || identity.name || program?.label || 'Program Command').trim(),
+            shortName: String(identity.shortName || identity.name || program?.label || draft.identity?.shortName || 'Program').trim()
+        };
+
+        draft.branding = draft.branding || {};
+        draft.branding.appTitle = `Program Command - ${draft.identity.displayName}`;
+        draft.branding.headerEyebrow = `${String(draft.identity.displayName || '').trim().toUpperCase()} · PROGRAM COMMAND`;
+        draft.branding.headerSubtitle = `${draft.identity.shortName} Program Planning and Schedule Operations`;
+
+        draft.scheduler = draft.scheduler || {};
+        draft.scheduler.storageKeyPrefix = buildStorageKeyPrefix(draft.identity);
+        const allowedRooms = Array.isArray(draft.scheduler.allowedRooms)
+            ? draft.scheduler.allowedRooms.map((room) => String(room || '').trim()).filter(Boolean)
+            : [];
+        draft.scheduler.allowedRooms = allowedRooms;
+        const roomLabels = draft.scheduler.roomLabels && typeof draft.scheduler.roomLabels === 'object'
+            ? draft.scheduler.roomLabels
+            : {};
+        const nextRoomLabels = {};
+        allowedRooms.forEach((room) => {
+            nextRoomLabels[room] = String(roomLabels[room] || room).trim() || room;
+        });
+        draft.scheduler.roomLabels = nextRoomLabels;
+
+        draft.import = draft.import || {};
+        draft.import.clss = draft.import.clss || {};
+        if (!Array.isArray(draft.import.clss.roomMatchPriority) || !draft.import.clss.roomMatchPriority.length) {
+            draft.import.clss.roomMatchPriority = allowedRooms.slice();
+        }
+        if (!draft.import.clss.facultyAliases || typeof draft.import.clss.facultyAliases !== 'object') {
+            draft.import.clss.facultyAliases = {};
+        }
+        if (!draft.import.clss.courseAliases || typeof draft.import.clss.courseAliases !== 'object') {
+            draft.import.clss.courseAliases = {};
+        }
+
+        draft.workload = draft.workload || {};
+        draft.workload.dashboardTitle = String(draft.workload.dashboardTitle || 'Faculty Workload Dashboard').trim() || 'Faculty Workload Dashboard';
+        draft.workload.dashboardSubtitleBase = `${draft.identity.displayName} Department - Academic Workload Analysis`;
+        const resetYear = getNextAcademicYearLabel(draft.academic?.defaultSchedulerYear);
+        if (resetYear) {
+            draft.workload.productionResetDefaultScheduleYear = resetYear;
+        }
+        if (draft.workload.appliedLearningCourses && typeof draft.workload.appliedLearningCourses === 'object' && !Array.isArray(draft.workload.appliedLearningCourses)) {
+            draft.workload.appliedLearningCourses = remapDepartmentCourseCodes(
+                draft.workload.appliedLearningCourses,
+                draft.identity.code,
+                previousCode
+            );
+        }
+
+        draft.onboardingMeta = {
+            ...(draft.onboardingMeta && typeof draft.onboardingMeta === 'object' ? draft.onboardingMeta : {}),
+            basedOn: String(options.baseProfileId || '').trim() || null,
+            generatedAt: new Date().toISOString(),
+            generatedBy: 'program-shell-direct-import-v1',
+            catalogProgramId: String(program?.id || '').trim() || null,
+            catalogProgramLabel: String(program?.label || '').trim() || null,
+            catalogDepartmentId: String(program?.departmentId || '').trim() || null,
+            catalogDepartmentLabel: String(program?.departmentLabel || '').trim() || null,
+            catalogWorkspaceKind: String(program?.workspaceKind || 'program').trim() || 'program',
+            catalogMemberProgramIds: Array.isArray(program?.memberProgramIds)
+                ? program.memberProgramIds.map((id) => String(id || '').trim()).filter(Boolean)
+                : [],
+            previousCode: previousCode || null
+        };
+
+        return {
+            profile: draft,
+            baseId: sanitizeDepartmentId(draft.identity?.code || draft.identity?.name || program?.id || 'program')
+        };
+    }
+
+    function createPendingImportPayload(source, program, profileId, intake = {}) {
+        return {
+            source: String(source || '').trim() || 'spreadsheet',
+            programId: String(program?.id || '').trim() || null,
+            label: String(program?.label || '').trim() || null,
+            profileId: String(profileId || program?.profileId || '').trim() || null,
+            artifact: intake.artifact || null,
+            artifactBatch: intake.artifactBatch || null,
+            spreadsheetImport: intake.spreadsheetImport || null,
+            screenshotImport: intake.screenshotImport || null,
+            createdAt: new Date().toISOString()
+        };
+    }
+
     function persistOnboardingContext(context) {
         writeJsonStorage(ONBOARDING_CONTEXT_STORAGE_KEY, context);
     }
@@ -648,6 +785,57 @@
         }
 
         return { hasData: false, source: 'none' };
+    }
+
+    async function ensureProgramProfile(program, options = {}) {
+        if (!program || typeof program !== 'object') {
+            throw new Error('Choose a program before starting import.');
+        }
+        if (!canImportIntoProgram(program)) {
+            throw new Error(getImportRestrictionMessage(program));
+        }
+
+        const manager = options.profileManager || global.DepartmentProfileManager || null;
+        if (!manager || typeof manager.loadProfile !== 'function' || typeof manager.saveCustomProfile !== 'function') {
+            throw new Error('Department profile manager is unavailable for import setup.');
+        }
+
+        const existing = await findExistingProgramProfile(program, { profileManager: manager });
+        if (existing?.profileId) {
+            if (typeof manager.setActiveProfile === 'function') {
+                await manager.setActiveProfile(existing.profileId);
+            }
+            return {
+                profileId: existing.profileId,
+                profile: existing.profile,
+                source: existing.source || 'existing-profile'
+            };
+        }
+
+        const baseProfileId = String(
+            options.baseProfileId
+            || program.baseProfileId
+            || program.profileId
+            || manager.getStoredProfileId?.()
+            || 'design-v1'
+        ).trim() || 'design-v1';
+        const loadedBase = await manager.loadProfile(baseProfileId);
+        const baseProfile = loadedBase?.profile || manager.getDefaultProfile?.();
+        if (!baseProfile || typeof baseProfile !== 'object') {
+            throw new Error(`Could not load base profile ${baseProfileId} for import setup.`);
+        }
+
+        const draft = buildAutomaticProgramProfile(baseProfile, program, { baseProfileId });
+        const saved = await manager.saveCustomProfile(draft.profile, {
+            baseId: draft.baseId,
+            activate: true
+        });
+
+        return {
+            profileId: saved.profileId,
+            profile: saved.profile,
+            source: 'auto-bootstrap'
+        };
     }
 
     function bootstrap(options = {}) {
@@ -1034,13 +1222,13 @@
             state.chooserVisible = true;
             if (elements.chooserMeta) {
                 elements.chooserMeta.textContent = canImportIntoProgram(state.selectedProgram)
-                    ? `${formatProgramLabel(state.selectedProgram)} does not have seeded data yet. Start with manual setup or capture the import artifacts to continue into onboarding and CLSS review.`
+                    ? `${formatProgramLabel(state.selectedProgram)} does not have seeded data yet. Start with manual setup or upload EagleNET screenshots/spreadsheets so we can ask for any missing clarification before building the grid.`
                     : `${getImportRestrictionMessage(state.selectedProgram)} Choose a specific program like Computer Science or Cybersecurity to import onboarding data.`;
             }
             setStatus(
                 canImportIntoProgram(state.selectedProgram) ? 'info' : 'warn',
                 canImportIntoProgram(state.selectedProgram)
-                    ? `${formatProgramLabel(state.selectedProgram)} is empty. Choose how you want to start onboarding.`
+                    ? `${formatProgramLabel(state.selectedProgram)} is empty. Choose manual setup or upload data to start the first grid build.`
                     : `${formatProgramLabel(state.selectedProgram)} is empty, but imports currently start from a single program workspace.`
             );
             updateUi();
@@ -1072,6 +1260,56 @@
             setStatus('info', `Resuming ${formatProgramLabel(resumedProgram)} import handoff...`);
             await handleContinue();
             return true;
+        }
+
+        async function launchPendingImportReview(source, intake = {}) {
+            if (!state.selectedProgram) {
+                setStatus('error', 'Choose a program before starting an upload review.');
+                return;
+            }
+            if (!authSatisfied()) {
+                setStatus('error', 'Authenticate before opening the upload review.');
+                return;
+            }
+            if (!state.chooserVisible) {
+                setStatus('error', 'Continue into the selected program before choosing an upload path.');
+                return;
+            }
+            if (!canImportIntoProgram(state.selectedProgram)) {
+                handleImportRestriction();
+                return;
+            }
+
+            if (!importApi || typeof importApi.writePendingOnboardingImport !== 'function') {
+                setStatus('error', 'Import review handoff is unavailable on this page.');
+                return;
+            }
+
+            try {
+                const sourceLabel = source === 'screenshot' ? 'screenshot' : 'spreadsheet';
+                setStatus('info', `Preparing ${formatProgramLabel(state.selectedProgram)} ${sourceLabel} review...`);
+
+                const ensuredProfile = await ensureProgramProfile(state.selectedProgram, {
+                    profileManager: manager
+                });
+                const nextProfileId = String(ensuredProfile?.profileId || '').trim();
+                if (!nextProfileId) {
+                    throw new Error('Could not activate a program profile for this import.');
+                }
+
+                persistSelectedProgram(state.selectedProgram, {
+                    profileId: nextProfileId,
+                    seededDefault: false
+                });
+
+                importApi.writePendingOnboardingImport(
+                    createPendingImportPayload(source, state.selectedProgram, nextProfileId, intake)
+                );
+                clearOnboardingContext();
+                global.location.href = global.location.pathname;
+            } catch (error) {
+                setStatus('error', error?.message || 'Could not open the upload review.');
+            }
         }
 
         function navigateToOnboarding(source, intake = {}) {
@@ -1124,7 +1362,7 @@
                 return;
             }
 
-            setStatus('info', `Running OCR on ${artifactBatch.count} EagleNET screenshot file${artifactBatch.count === 1 ? '' : 's'} before onboarding...`);
+            setStatus('info', `Running OCR on ${artifactBatch.count} EagleNET screenshot file${artifactBatch.count === 1 ? '' : 's'} before review...`);
             importApi.readScreenshotTextImportFromFiles(files, {
                 onProgress: ({ index, total, fileName }) => {
                     setStatus('info', `OCR ${index + 1}/${total}: ${fileName}`);
@@ -1132,11 +1370,11 @@
             })
                 .then((screenshotImport) => {
                     if (!screenshotImport?.meta?.extractedTextCount) {
-                        setStatus('error', 'OCR did not detect any CLSS text in the selected EagleNET screenshots.');
+                        setStatus('error', 'OCR did not detect any readable source text in the selected EagleNET screenshots.');
                         return;
                     }
 
-                    navigateToOnboarding('screenshot', {
+                    launchPendingImportReview('screenshot', {
                         artifactBatch,
                         screenshotImport
                     });
@@ -1173,7 +1411,7 @@
         elements.continueButton?.addEventListener('click', handleContinue);
         elements.backButton?.addEventListener('click', () => {
             resetChooserDetails();
-            setStatus('info', 'Choose a different program or continue into onboarding when ready.');
+            setStatus('info', 'Choose a different program or select manual setup, spreadsheet upload, or screenshot upload when ready.');
             updateUi();
         });
         elements.manualButton?.addEventListener('click', () => {
@@ -1223,7 +1461,7 @@
                 return;
             }
 
-            setStatus('info', `Parsing ${file.name} before onboarding...`);
+            setStatus('info', `Parsing ${file.name} before review...`);
             importApi.readTabularRowsFromFile(file)
                 .then((spreadsheetImport) => {
                     if (!spreadsheetImport?.rows?.length) {
@@ -1234,7 +1472,7 @@
                         return;
                     }
 
-                    navigateToOnboarding('spreadsheet', {
+                    launchPendingImportReview('spreadsheet', {
                         artifact,
                         spreadsheetImport
                     });
@@ -1287,6 +1525,9 @@
         createProgramSelection,
         buildScreenshotArtifactBatch,
         createOnboardingContext,
+        buildAutomaticProgramProfile,
+        createPendingImportPayload,
+        ensureProgramProfile,
         canImportIntoProgram,
         detectProgramData,
         readSelection,
