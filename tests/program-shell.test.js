@@ -64,6 +64,13 @@ describe('ProgramCommandShell', () => {
         }));
     });
 
+    test('allows imports only for single-program workspaces', () => {
+        expect(shell.canImportIntoProgram(shell.findProgramById('computer-science'))).toBe(true);
+        expect(shell.canImportIntoProgram(shell.findProgramById('cybersecurity'))).toBe(true);
+        expect(shell.canImportIntoProgram(shell.findProgramById('computer-science-cybersecurity'))).toBe(false);
+        expect(shell.canImportIntoProgram(shell.findProgramById('csee-department'))).toBe(false);
+    });
+
     test('creates onboarding handoff context with selection and artifact metadata', () => {
         const program = shell.findProgramById('biology');
         const context = shell.createOnboardingContext(program, {
@@ -92,6 +99,40 @@ describe('ProgramCommandShell', () => {
                 size: 2048,
                 type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                 capturedAt: '2026-03-26T16:00:00.000Z'
+            }
+        });
+    });
+
+    test('stores parsed spreadsheet import rows in onboarding context', () => {
+        const program = shell.findProgramById('biology');
+        const context = shell.createOnboardingContext(program, {
+            source: 'spreadsheet',
+            artifact: {
+                name: 'biology-seed.csv',
+                size: 512,
+                type: 'text/csv',
+                capturedAt: '2026-03-26T18:00:00.000Z'
+            },
+            spreadsheetImport: {
+                rows: [
+                    { term: 'Fall', subject: 'BIOL', catalogNumber: '101', title: 'Intro Biology' }
+                ],
+                meta: {
+                    format: 'csv',
+                    fileName: 'biology-seed.csv',
+                    rowCount: 1
+                }
+            }
+        });
+
+        expect(context.spreadsheetImport).toEqual({
+            rows: [
+                { term: 'Fall', subject: 'BIOL', catalogNumber: '101', title: 'Intro Biology' }
+            ],
+            meta: {
+                format: 'csv',
+                fileName: 'biology-seed.csv',
+                rowCount: 1
             }
         });
     });
@@ -190,13 +231,32 @@ describe('ProgramCommandShell', () => {
 
         const context = shell.createOnboardingContext(program, {
             source: 'screenshot',
-            artifactBatch
+            artifactBatch,
+            screenshotImport: {
+                scope: 'all',
+                quarterTexts: {
+                    fall: '===== fall =====\nCSCD 101 - Intro',
+                    winter: '',
+                    spring: '===== spring =====\nCYBR 310 - Ops'
+                },
+                meta: {
+                    extractedTextCount: 2,
+                    shouldAutoParse: true
+                }
+            }
         });
 
         expect(context).toMatchObject({
             id: 'cybersecurity',
             label: 'Cybersecurity',
             source: 'screenshot',
+            screenshotImport: expect.objectContaining({
+                scope: 'all',
+                meta: expect.objectContaining({
+                    extractedTextCount: 2,
+                    shouldAutoParse: true
+                })
+            }),
             artifactBatch: expect.objectContaining({
                 mode: 'directory',
                 rootFolderName: 'cscd-cyber AY2025-26',
@@ -248,5 +308,316 @@ describe('ProgramCommandShell', () => {
             profileId: 'biology-v01'
         }));
         expect(manager.loadProfile).toHaveBeenCalledWith('biology-v01');
+    });
+
+    test('matches a program against onboarding metadata or identity fallback', () => {
+        const program = shell.findProgramById('computer-science');
+
+        expect(shell.profileMatchesProgram({
+            onboardingMeta: {
+                catalogProgramId: 'computer-science'
+            },
+            identity: {
+                code: 'DESN'
+            }
+        }, program)).toBe(true);
+
+        expect(shell.profileMatchesProgram({
+            identity: {
+                code: 'CSCD',
+                name: 'Computer Science',
+                shortName: 'Computer Science'
+            }
+        }, program)).toBe(true);
+
+        expect(shell.profileMatchesProgram({
+            identity: {
+                code: 'CYBR',
+                name: 'Cybersecurity'
+            }
+        }, program)).toBe(false);
+    });
+
+    test('collects a debug snapshot for the selected program workspace', async () => {
+        const program = shell.findProgramById('computer-science');
+        localStorage.setItem('programCommandShellSelectionV1', JSON.stringify(shell.createProgramSelection(program)));
+        localStorage.setItem('cscdSchedulerData_courses', '{}');
+
+        const manager = {
+            getStoredProfileId: jest.fn().mockReturnValue('cscd-v01'),
+            listProfiles: jest.fn().mockResolvedValue({
+                profiles: [
+                    { id: 'cscd-v01', source: 'custom-local', savedAt: '2026-03-26T16:05:00.000Z' }
+                ]
+            }),
+            loadProfile: jest.fn().mockResolvedValue({
+                profile: {
+                    identity: {
+                        name: 'Computer Science',
+                        code: 'CSCD',
+                        shortName: 'Computer Science'
+                    },
+                    scheduler: {
+                        storageKeyPrefix: 'cscdSchedulerData_'
+                    },
+                    onboardingMeta: {
+                        catalogProgramId: 'computer-science'
+                    }
+                }
+            })
+        };
+        const importApi = {
+            readPendingOnboardingImport: jest.fn().mockReturnValue({
+                source: 'screenshot',
+                programId: 'computer-science',
+                profileId: 'cscd-v01'
+            })
+        };
+
+        const snapshot = await shell.collectProgramWorkspaceDebug(program, {
+            profileManager: manager,
+            importApi
+        });
+
+        expect(snapshot.program).toEqual(expect.objectContaining({
+            id: 'computer-science',
+            label: 'Computer Science'
+        }));
+        expect(snapshot.existingWorkspace).toEqual(expect.objectContaining({
+            profileId: 'cscd-v01',
+            source: 'active-profile',
+            storageKeyPrefix: 'cscdSchedulerData_'
+        }));
+        expect(snapshot.pendingImport).toEqual(expect.objectContaining({
+            source: 'screenshot',
+            programId: 'computer-science',
+            profileId: 'cscd-v01'
+        }));
+        expect(snapshot.storageKeys).toEqual(expect.arrayContaining([
+            'cscdSchedulerData_courses',
+            'programCommandShellSelectionV1'
+        ]));
+    });
+
+    test('builds an automatic program profile draft for direct upload review', () => {
+        const program = shell.findProgramById('computer-science');
+        const draft = shell.buildAutomaticProgramProfile({
+            version: 1,
+            id: 'design-v1',
+            identity: {
+                name: 'Design',
+                code: 'DESN',
+                displayName: 'EWU Design',
+                shortName: 'Design'
+            },
+            academic: {
+                defaultSchedulerYear: '2025-26'
+            },
+            scheduler: {
+                allowedRooms: ['CEB 110', 'CEB 210'],
+                roomLabels: {
+                    'CEB 110': 'CEB 110',
+                    'CEB 210': 'CEB 210'
+                }
+            },
+            workload: {
+                dashboardTitle: 'Faculty Workload Dashboard',
+                appliedLearningCourses: {
+                    'DESN 495': { label: 'Capstone' }
+                }
+            },
+            import: {
+                clss: {
+                    facultyAliases: {},
+                    courseAliases: {}
+                }
+            }
+        }, program, { baseProfileId: 'design-v1' });
+
+        expect(draft.baseId).toBe('cscd');
+        expect(draft.profile.identity).toEqual(expect.objectContaining({
+            name: 'Computer Science',
+            code: 'CSCD',
+            displayName: 'EWU Computer Science',
+            shortName: 'Computer Science'
+        }));
+        expect(draft.profile.scheduler.storageKeyPrefix).toBe('cscdSchedulerData_');
+        expect(draft.profile.workload.appliedLearningCourses).toEqual({
+            'CSCD 495': { label: 'Capstone' }
+        });
+        expect(draft.profile.onboardingMeta).toEqual(expect.objectContaining({
+            basedOn: 'design-v1',
+            generatedBy: 'program-shell-direct-import-v1',
+            catalogProgramId: 'computer-science',
+            catalogWorkspaceKind: 'program',
+            previousCode: 'DESN'
+        }));
+    });
+
+    test('auto-provisions a program profile for direct upload review when none exists', async () => {
+        const program = shell.findProgramById('computer-science');
+        const manager = {
+            getStoredProfileId: jest.fn().mockReturnValue('design-v1'),
+            listProfiles: jest.fn().mockResolvedValue({ profiles: [] }),
+            loadProfile: jest.fn().mockResolvedValue({
+                profile: {
+                    version: 1,
+                    id: 'design-v1',
+                    identity: {
+                        name: 'Design',
+                        code: 'DESN',
+                        displayName: 'EWU Design',
+                        shortName: 'Design'
+                    },
+                    academic: {
+                        defaultSchedulerYear: '2025-26'
+                    },
+                    scheduler: {
+                        allowedRooms: ['CEB 110'],
+                        roomLabels: {
+                            'CEB 110': 'CEB 110'
+                        }
+                    },
+                    workload: {
+                        dashboardTitle: 'Faculty Workload Dashboard'
+                    },
+                    import: {
+                        clss: {
+                            facultyAliases: {},
+                            courseAliases: {}
+                        }
+                    }
+                }
+            }),
+            saveCustomProfile: jest.fn().mockResolvedValue({
+                profileId: 'cscd-v01',
+                profile: {
+                    id: 'cscd-v01'
+                }
+            })
+        };
+
+        const result = await shell.ensureProgramProfile(program, {
+            profileManager: manager
+        });
+
+        expect(result).toEqual(expect.objectContaining({
+            profileId: 'cscd-v01',
+            source: 'auto-bootstrap'
+        }));
+        expect(manager.loadProfile).toHaveBeenCalledWith('design-v1');
+        expect(manager.saveCustomProfile).toHaveBeenCalledWith(
+            expect.objectContaining({
+                identity: expect.objectContaining({
+                    code: 'CSCD',
+                    name: 'Computer Science'
+                }),
+                scheduler: expect.objectContaining({
+                    storageKeyPrefix: 'cscdSchedulerData_'
+                }),
+                onboardingMeta: expect.objectContaining({
+                    catalogProgramId: 'computer-science',
+                    generatedBy: 'program-shell-direct-import-v1'
+                })
+            }),
+            expect.objectContaining({
+                baseId: 'cscd',
+                activate: true
+            })
+        );
+    });
+
+    test('resets a selected program workspace without touching other program profiles', async () => {
+        const program = shell.findProgramById('computer-science');
+        localStorage.setItem('programCommandCustomDepartmentProfilesV1', JSON.stringify({
+            'cscd-v01': {
+                id: 'cscd-v01'
+            },
+            'cybr-v01': {
+                id: 'cybr-v01'
+            }
+        }));
+        localStorage.setItem('programCommandActiveDepartmentProfileId', 'cscd-v01');
+        localStorage.setItem('cscdSchedulerData_courses', '{}');
+        localStorage.setItem('cybrSchedulerData_courses', '{}');
+
+        const manager = {
+            CUSTOM_PROFILES_STORAGE_KEY: 'programCommandCustomDepartmentProfilesV1',
+            ACTIVE_PROFILE_STORAGE_KEY: 'programCommandActiveDepartmentProfileId',
+            DEFAULT_PROFILE_ID: 'design-v1',
+            getStoredProfileId: jest.fn().mockReturnValue('cscd-v01'),
+            listProfiles: jest.fn().mockResolvedValue({
+                profiles: [
+                    { id: 'cscd-v01', source: 'custom-local', savedAt: '2026-03-26T16:05:00.000Z' },
+                    { id: 'cybr-v01', source: 'custom-local', savedAt: '2026-03-26T16:10:00.000Z' }
+                ]
+            }),
+            loadProfile: jest.fn((profileId) => {
+                if (profileId === 'cscd-v01') {
+                    return Promise.resolve({
+                        profile: {
+                            identity: {
+                                name: 'Computer Science',
+                                code: 'CSCD',
+                                shortName: 'Computer Science'
+                            },
+                            scheduler: {
+                                storageKeyPrefix: 'cscdSchedulerData_'
+                            },
+                            onboardingMeta: {
+                                catalogProgramId: 'computer-science'
+                            }
+                        }
+                    });
+                }
+
+                return Promise.resolve({
+                    profile: {
+                        identity: {
+                            name: 'Cybersecurity',
+                            code: 'CYBR',
+                            shortName: 'Cybersecurity'
+                        },
+                        scheduler: {
+                            storageKeyPrefix: 'cybrSchedulerData_'
+                        },
+                        onboardingMeta: {
+                            catalogProgramId: 'cybersecurity'
+                        }
+                    }
+                });
+            })
+        };
+        const importApi = {
+            readPendingOnboardingImport: jest.fn().mockReturnValue({
+                source: 'spreadsheet',
+                programId: 'computer-science',
+                profileId: 'cscd-v01'
+            }),
+            clearPendingOnboardingImport: jest.fn()
+        };
+
+        const result = await shell.resetProgramWorkspace(program, {
+            profileManager: manager,
+            importApi
+        });
+
+        expect(result).toEqual({
+            removedProfileIds: ['cscd-v01'],
+            removedScheduleKeys: ['cscdSchedulerData_courses']
+        });
+        expect(JSON.parse(localStorage.getItem('programCommandCustomDepartmentProfilesV1'))).toEqual({
+            'cybr-v01': {
+                id: 'cybr-v01'
+            }
+        });
+        expect(localStorage.getItem('programCommandActiveDepartmentProfileId')).toBe('design-v1');
+        expect(localStorage.getItem('cscdSchedulerData_courses')).toBeNull();
+        expect(localStorage.getItem('cybrSchedulerData_courses')).toBe('{}');
+        expect(importApi.clearPendingOnboardingImport).toHaveBeenCalled();
+        expect(shell.readSelection()).toEqual(expect.objectContaining({
+            id: 'computer-science',
+            profileId: null
+        }));
     });
 });
