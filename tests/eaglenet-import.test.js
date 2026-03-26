@@ -136,4 +136,112 @@ describe('ProgramCommandImport', () => {
         ProgramCommandImport.clearPendingOnboardingImport();
         expect(ProgramCommandImport.readPendingOnboardingImport()).toBeNull();
     });
+
+    test('groups screenshot OCR text by inferred quarter for onboarding handoff', async () => {
+        const files = [
+            {
+                name: 'cscd fall 2025 1.png',
+                type: 'image/png',
+                webkitRelativePath: 'cscd-cyber AY2025-26/cscd fall 2025/cscd fall 2025 1.png'
+            },
+            {
+                name: 'cscd winter 2026 1.png',
+                type: 'image/png',
+                webkitRelativePath: 'cscd-cyber AY2025-26/cscd winter 2026/cscd winter 2026 1.png'
+            }
+        ];
+        const textByName = {
+            'cscd fall 2025 1.png': 'CSCD 101 - Intro to CS 001 Doe, Jane TR 1:00 PM - 3:00 PM CEB 210',
+            'cscd winter 2026 1.png': 'CSCD 202 - Data Structures 001 Roe, Jamie MW 10:00 AM - 12:00 PM CEB 215'
+        };
+
+        const result = await ProgramCommandImport.readScreenshotTextImportFromFiles(files, {
+            recognize: async (file) => ({
+                data: {
+                    text: textByName[file.name] || ''
+                }
+            })
+        });
+
+        expect(result).toMatchObject({
+            scope: 'all',
+            meta: {
+                fileCount: 2,
+                extractedTextCount: 2,
+                assignedQuarterCount: 2,
+                shouldAutoParse: true,
+                quarterFileCounts: {
+                    fall: 1,
+                    winter: 1,
+                    spring: 0
+                }
+            }
+        });
+        expect(result.quarterTexts.fall).toContain('===== cscd-cyber AY2025-26/cscd fall 2025/cscd fall 2025 1.png =====');
+        expect(result.quarterTexts.winter).toContain('===== cscd-cyber AY2025-26/cscd winter 2026/cscd winter 2026 1.png =====');
+    });
+
+    test('falls back to single-quarter review when OCR text has no quarter signal', async () => {
+        const files = [
+            {
+                name: 'screen1.png',
+                type: 'image/png'
+            }
+        ];
+
+        const result = await ProgramCommandImport.readScreenshotTextImportFromFiles(files, {
+            defaultQuarter: 'winter',
+            recognize: async () => ({
+                data: {
+                    text: 'CSCD 460 - Software Engineering 001 Staff ONLINE'
+                }
+            })
+        });
+
+        expect(result.scope).toBe('single');
+        expect(result.targetQuarter).toBe('winter');
+        expect(result.singleText).toContain('===== screen1.png =====');
+        expect(result.meta.shouldAutoParse).toBe(false);
+        expect(result.meta.warnings.join(' ')).toMatch(/Quarter inference failed/i);
+    });
+
+    test('builds screenshot OCR preview rows and filters to the selected program code', () => {
+        const payload = {
+            scope: 'single',
+            targetQuarter: 'fall',
+            singleText: [
+                '===== sample.png =====',
+                'INTRODUCTION TO PROGR... Computer Sci... 110 001 5 40668 FallQ.. Lemelin, Rob (Primary) 09:00 AM - 09:50 AM Type: Class Cheney',
+                'CYBER DEFENSE Cybersecurity 410 040 3 21086 FallQ.. Espinoza, Antonio (Primary) 08:00 AM - 08:50 AM Type: Class Spokane'
+            ].join('\n'),
+            meta: {
+                fileCount: 1,
+                extractedTextCount: 1,
+                warnings: []
+            }
+        };
+
+        const result = ProgramCommandImport.buildClssPreviewRowsFromScreenshotImport(payload, {
+            dayPatterns: [
+                { id: 'MW', aliases: ['MW'] },
+                { id: 'TR', aliases: ['TR', 'TTH'] }
+            ],
+            timeSlots: [
+                { id: '10:00-12:20', aliases: ['10:00-12:00'], startMinutes: 600, endMinutes: 740 },
+                { id: '13:00-15:20', aliases: ['13:00-15:00'], startMinutes: 780, endMinutes: 920 }
+            ],
+            roomOptions: ['Cheney', 'Spokane'],
+            resolveCourseCode: (value) => value,
+            resolveFacultyName: (value) => value,
+            allowedCoursePrefixes: ['CSCD']
+        });
+
+        expect(result.rows).toHaveLength(1);
+        expect(result.rows[0]).toMatchObject({
+            code: 'CSCD 110',
+            targetQuarter: 'fall'
+        });
+        expect(result.meta.omittedCount).toBe(1);
+        expect(result.meta.warnings.join(' ')).toMatch(/outside the selected program code/i);
+    });
 });

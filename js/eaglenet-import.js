@@ -3,6 +3,8 @@
 
     const PENDING_ONBOARDING_IMPORT_STORAGE_KEY = 'programCommandOnboardingImportV1';
     const EXCELJS_CDN_URL = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+    const TESSERACT_CDN_URL = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+    const CLSS_IMPORT_QUARTERS = Object.freeze(['fall', 'winter', 'spring']);
     const ENROLLMENT_FIELD_ALIASES = [
         'enrollment',
         'enrolled',
@@ -17,6 +19,7 @@
     ];
 
     let excelJsLoadPromise = null;
+    let tesseractLoadPromise = null;
 
     function getCompareApi() {
         if (globalScope.EagleNetCompare) {
@@ -87,6 +90,16 @@
 
         const parts = cleaned.split(' ');
         return parts[0] + parts.slice(1).map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join('');
+    }
+
+    function isScreenshotFile(file) {
+        const name = String(file?.name || '').trim().toLowerCase();
+        const type = String(file?.type || '').trim().toLowerCase();
+        return Boolean(
+            name
+            && !name.startsWith('.')
+            && (type.startsWith('image/') || /\.(png|jpe?g|webp)$/i.test(name))
+        );
     }
 
     function parseCsvRows(text) {
@@ -261,6 +274,48 @@
         return excelJsLoadPromise;
     }
 
+    async function ensureTesseractLoaded(options = {}) {
+        if (options.Tesseract?.recognize) {
+            return options.Tesseract;
+        }
+        if (globalScope.Tesseract?.recognize) {
+            return globalScope.Tesseract;
+        }
+        if (!globalScope.document) {
+            throw new Error('Tesseract OCR is required to parse screenshot uploads in this environment.');
+        }
+
+        if (!tesseractLoadPromise) {
+            tesseractLoadPromise = new Promise((resolve, reject) => {
+                const existing = globalScope.document.querySelector('script[data-program-command-tesseract="import"]');
+                if (existing) {
+                    existing.addEventListener('load', () => resolve(globalScope.Tesseract), { once: true });
+                    existing.addEventListener('error', () => reject(new Error('Failed to load Tesseract OCR library.')), { once: true });
+                    return;
+                }
+
+                const script = globalScope.document.createElement('script');
+                script.src = TESSERACT_CDN_URL;
+                script.async = true;
+                script.dataset.programCommandTesseract = 'import';
+                script.onload = () => {
+                    if (globalScope.Tesseract?.recognize) {
+                        resolve(globalScope.Tesseract);
+                        return;
+                    }
+                    reject(new Error('Tesseract OCR loaded without a browser recognize API.'));
+                };
+                script.onerror = () => reject(new Error('Failed to load Tesseract OCR library from CDN.'));
+                globalScope.document.head.appendChild(script);
+            }).catch((error) => {
+                tesseractLoadPromise = null;
+                throw error;
+            });
+        }
+
+        return tesseractLoadPromise;
+    }
+
     function extractWorkbookRows(workbook, options = {}) {
         const compareApi = getCompareApi();
         const recognizedHeaders = buildRecognizedHeaderKeySet(compareApi);
@@ -404,6 +459,21 @@
         return '';
     }
 
+    function detectClssQuarterKeyword(value) {
+        const normalized = String(value || '').toLowerCase();
+        const hits = [];
+
+        if (/\bfall\b|\bautumn\b|\bfa(?:ll)?[-_\s]?\d{2,4}\b/.test(normalized)) hits.push('fall');
+        if (/\bwinter\b|\bwi(?:nter)?[-_\s]?\d{2,4}\b/.test(normalized)) hits.push('winter');
+        if (/\bspring\b|\bsp(?:ring)?[-_\s]?\d{2,4}\b/.test(normalized)) hits.push('spring');
+
+        return hits.length === 1 ? hits[0] : '';
+    }
+
+    function inferClssQuarterFromOcrPayload(fileName, text) {
+        return detectClssQuarterKeyword(fileName) || detectClssQuarterKeyword(String(text || '').slice(0, 1200));
+    }
+
     function pickFirstPresentValue(row, keys) {
         const source = row && typeof row === 'object' ? row : {};
         for (const key of Array.isArray(keys) ? keys : []) {
@@ -545,6 +615,146 @@
         return String(rawMeeting || '').trim() || '—';
     }
 
+    function normalizeAllowedCoursePrefixes(values) {
+        return dedupe((Array.isArray(values) ? values : [])
+            .map((value) => String(value || '').trim().toUpperCase())
+            .filter(Boolean));
+    }
+
+    function courseCodeMatchesAllowedPrefixes(courseCode, allowedPrefixes) {
+        const normalizedCode = String(courseCode || '').trim().toUpperCase();
+        const prefixes = normalizeAllowedCoursePrefixes(allowedPrefixes);
+        if (!prefixes.length) return true;
+        if (!normalizedCode) return false;
+        return prefixes.some((prefix) => normalizedCode.startsWith(`${prefix} `) || normalizedCode === prefix);
+    }
+
+    function splitScreenshotOcrBlocks(rawText) {
+        const input = String(rawText || '');
+        const headerRegex = /^===== (.+?) =====$/gm;
+        const blocks = [];
+        let match = headerRegex.exec(input);
+
+        if (!match) {
+            const text = input.trim();
+            return text ? [{ name: null, text }] : [];
+        }
+
+        while (match) {
+            const name = String(match[1] || '').trim() || null;
+            const start = match.index + match[0].length;
+            const nextMatch = headerRegex.exec(input);
+            const end = nextMatch ? nextMatch.index : input.length;
+            const text = input.slice(start, end).trim();
+            if (text) {
+                blocks.push({ name, text });
+            }
+            match = nextMatch;
+        }
+
+        return blocks;
+    }
+
+    function cleanScreenshotCourseTitle(value) {
+        return String(value || '')
+            .replace(/Search Results[^A-Z]*/gi, ' ')
+            .replace(/Term:\s+(Fall|Winter|Spring)[^A-Z]*/gi, ' ')
+            .replace(/Title\s+[^A-Z]+Attribute/gi, ' ')
+            .replace(/State Support Funding/gi, ' ')
+            .replace(/\b\d+\s+of\s+\d+\s+(?:seats|waitlist)[^A-Z]*/gi, ' ')
+            .replace(/\bFULL:\s*0\s*of\s*\d+[^A-Z]*/gi, ' ')
+            .replace(/Page\s+\w+\s+of\s+\w+[^A-Z]*/gi, ' ')
+            .replace(/[|~]+/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    function inferSubjectCodeFromDescriptor(value) {
+        const source = String(value || '').toLowerCase();
+        if (source.includes('cyber')) return 'CYBR';
+        if (source.includes('computer')) return 'CSCD';
+        return '';
+    }
+
+    function extractInstructorFromOcrRemainder(value) {
+        const source = String(value || '').replace(/\([^)]*\)/g, ' ');
+        const match = source.match(/([A-Z][A-Za-z'`.\-]+,\s*[A-Z][A-Za-z'`.\-]+(?:\s+[A-Z][A-Za-z'`.\-]+)?)/);
+        return match ? match[1].replace(/\s+/g, ' ').trim() : '';
+    }
+
+    function extractCampusFromOcrRemainder(value) {
+        const source = String(value || '');
+        if (/\bCheney\b/i.test(source)) return 'Cheney';
+        if (/\bSpoka(?:ne)?\.{0,3}\b/i.test(source)) return 'Spokane';
+        return '';
+    }
+
+    function normalizeOcrClockToken(value) {
+        const match = String(value || '')
+            .replace(/\./g, '')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .match(/^(\d{1,2}:\d{2})\s*([AP]M)$/i);
+        if (!match) return '';
+        return `${match[1]} ${match[2].toUpperCase()}`;
+    }
+
+    function buildScreenshotTabularRowsFromOcrText(rawText, options = {}) {
+        const screenshotRows = [];
+        const blocks = splitScreenshotOcrBlocks(rawText);
+        const rowRegex = /([A-Z0-9/&+',().\- ]{4,}?)\s+(Computer\s+Sci\.\.\.|Cybersecurity)\s+(\d{3}L?)\s+(\d{3})\s+(\d{1,2})\s+(\d{5})\s+(Fall|Winter|Spring)[A-Za-z.]*\s+(.+?)(?=(?:[A-Z0-9/&+',().\- ]{4,}?\s+(?:Computer\s+Sci\.\.\.|Cybersecurity)\s+\d{3}L?\s+\d{3}\s+\d{1,2}\s+\d{5}\s+(?:Fall|Winter|Spring)|$))/gis;
+
+        blocks.forEach((block, blockIndex) => {
+            const compact = String(block.text || '')
+                .replace(/\u00a0/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+            if (!compact) return;
+
+            let match;
+            while ((match = rowRegex.exec(compact)) !== null) {
+                const rawTitle = cleanScreenshotCourseTitle(match[1]);
+                const subjectCode = inferSubjectCodeFromDescriptor(match[2]);
+                const catalogNumber = String(match[3] || '').trim().toUpperCase();
+                const section = String(match[4] || '').trim().padStart(3, '0');
+                const credits = String(match[5] || '').trim();
+                const quarter = inferQuarterKey(match[7], options.defaultQuarter) || 'spring';
+                const remainder = String(match[8] || '').replace(/\s+/g, ' ').trim();
+                const instructor = extractInstructorFromOcrRemainder(remainder);
+                const timeMatch = remainder.match(/(\d{1,2}:\d{2}\s*[AP]M)\s*-\s*(\d{1,2}:\d{2}\s*[AP]M)/i);
+                const arranged = /Building:\s*Arrang|Type:\s*Class\s+Building:\s*Arrang|\bIndependent\b/i.test(remainder);
+                const online = /\b(online|async|asynchronous|web)\b/i.test(remainder);
+
+                if (!rawTitle || !subjectCode || !catalogNumber || !section) {
+                    continue;
+                }
+
+                screenshotRows.push({
+                    term: quarter,
+                    quarter,
+                    subject: subjectCode,
+                    catalogNumber,
+                    section,
+                    credits,
+                    courseTitle: rawTitle,
+                    faculty: instructor,
+                    meetingDays: '',
+                    startTime: timeMatch ? normalizeOcrClockToken(timeMatch[1]) : '',
+                    endTime: timeMatch ? normalizeOcrClockToken(timeMatch[2]) : '',
+                    meetingTime: timeMatch ? `${normalizeOcrClockToken(timeMatch[1])}-${normalizeOcrClockToken(timeMatch[2])}` : '',
+                    meetingPattern: arranged ? 'Arranged' : (online ? 'Online' : ''),
+                    location: arranged ? 'ARRANGED' : extractCampusFromOcrRemainder(remainder),
+                    comments: remainder,
+                    instructionMode: arranged ? 'Arranged' : (online ? 'Online' : ''),
+                    __sheetName: `${CLSS_IMPORT_QUARTERS.includes(quarter) ? `${quarter.charAt(0).toUpperCase()}${quarter.slice(1)}` : 'Screenshot'} OCR`,
+                    __sourceBlock: block.name || `Screenshot ${blockIndex + 1}`
+                });
+            }
+        });
+
+        return screenshotRows;
+    }
+
     function buildClssPreviewRowsFromTabularRows(rows, options = {}) {
         const compareApi = getCompareApi();
         if (!compareApi || typeof compareApi.createNormalizedScheduleRecord !== 'function') {
@@ -561,6 +771,7 @@
             ? options.resolveFacultyName
             : (value) => String(value || '').trim() || 'TBD';
         const defaultQuarter = inferQuarterKey(options.defaultQuarter) || 'spring';
+        const allowedCoursePrefixes = normalizeAllowedCoursePrefixes(options.allowedCoursePrefixes);
 
         const warnings = [];
         const quarterCounts = {
@@ -708,19 +919,190 @@
             };
         });
 
-        if (!previewRows.length) {
+        const filteredPreviewRows = allowedCoursePrefixes.length
+            ? previewRows.filter((row) => courseCodeMatchesAllowedPrefixes(row.code, allowedCoursePrefixes))
+            : previewRows;
+        const omittedCount = previewRows.length - filteredPreviewRows.length;
+        if (omittedCount > 0) {
+            warnings.push(`Omitted ${omittedCount} row${omittedCount === 1 ? '' : 's'} outside the selected program code (${allowedCoursePrefixes.join(', ')}).`);
+        }
+
+        if (!filteredPreviewRows.length) {
             warnings.push('No importable rows were found in the spreadsheet.');
         }
 
         return {
-            rows: previewRows,
+            rows: filteredPreviewRows,
             meta: {
                 source: 'spreadsheet',
                 fileName: String(options.fileName || '').trim() || null,
-                rowCount: previewRows.length,
+                rowCount: filteredPreviewRows.length,
                 quarterCounts,
+                omittedCount,
                 warnings
             }
+        };
+    }
+
+    function buildClssPreviewRowsFromScreenshotImport(payload, options = {}) {
+        const screenshotImport = payload && typeof payload === 'object' ? payload : {};
+        const scope = screenshotImport.scope === 'single' ? 'single' : 'all';
+        const blocks = [];
+
+        if (scope === 'single') {
+            const singleText = String(screenshotImport.singleText || '').trim();
+            if (singleText) {
+                blocks.push({
+                    quarter: inferQuarterKey(screenshotImport.targetQuarter, options.defaultQuarter) || inferQuarterKey(options.defaultQuarter) || 'spring',
+                    text: singleText
+                });
+            }
+        } else {
+            const quarterTexts = screenshotImport.quarterTexts && typeof screenshotImport.quarterTexts === 'object'
+                ? screenshotImport.quarterTexts
+                : {};
+            CLSS_IMPORT_QUARTERS.forEach((quarter) => {
+                const text = String(quarterTexts[quarter] || '').trim();
+                if (text) {
+                    blocks.push({ quarter, text });
+                }
+            });
+        }
+
+        const rows = blocks.flatMap((block) => buildScreenshotTabularRowsFromOcrText(block.text, {
+            defaultQuarter: block.quarter
+        }));
+
+        const preview = buildClssPreviewRowsFromTabularRows(rows, {
+            ...options,
+            fileName: String(options.fileName || screenshotImport?.meta?.fileName || '').trim() || null
+        });
+        const warnings = Array.isArray(screenshotImport?.meta?.warnings)
+            ? screenshotImport.meta.warnings.slice()
+            : [];
+        return {
+            rows: preview.rows,
+            meta: {
+                ...preview.meta,
+                source: 'screenshot',
+                warnings: dedupe([...(preview.meta?.warnings || []), ...warnings]),
+                ocrFileCount: Number(screenshotImport?.meta?.fileCount) || 0,
+                extractedTextCount: Number(screenshotImport?.meta?.extractedTextCount) || 0
+            }
+        };
+    }
+
+    async function readScreenshotTextImportFromFiles(files, options = {}) {
+        const screenshotFiles = Array.from(files || []).filter((file) => isScreenshotFile(file));
+        if (!screenshotFiles.length) {
+            throw new Error('Choose one or more screenshot files first.');
+        }
+
+        const recognize = typeof options.recognize === 'function'
+            ? options.recognize
+            : null;
+        const Tesseract = recognize ? null : await ensureTesseractLoaded(options);
+        const runRecognize = recognize || ((file) => Tesseract.recognize(file, 'eng'));
+
+        const quarterTexts = {
+            fall: '',
+            winter: '',
+            spring: ''
+        };
+        const quarterFileCounts = {
+            fall: 0,
+            winter: 0,
+            spring: 0
+        };
+        const warnings = [];
+        const unassignedFiles = [];
+        const ocrResults = [];
+        const textByPath = new Map();
+
+        for (let index = 0; index < screenshotFiles.length; index += 1) {
+            const file = screenshotFiles[index];
+            const relativePath = String(file.webkitRelativePath || file.relativePath || file.name || `screenshot-${index + 1}`).trim()
+                || `screenshot-${index + 1}`;
+            if (typeof options.onProgress === 'function') {
+                options.onProgress({
+                    index,
+                    total: screenshotFiles.length,
+                    fileName: relativePath
+                });
+            }
+
+            const result = await runRecognize(file);
+            const text = String(result?.data?.text || result?.text || '').trim();
+            const inferredQuarter = inferClssQuarterFromOcrPayload(relativePath, text);
+            textByPath.set(relativePath, text);
+
+            ocrResults.push({
+                name: String(file.name || relativePath).trim() || relativePath,
+                relativePath,
+                quarter: inferredQuarter || '',
+                textLength: text.length,
+                hasText: Boolean(text)
+            });
+
+            if (!text) {
+                warnings.push(`${relativePath}: OCR did not detect any text.`);
+                unassignedFiles.push(relativePath);
+                continue;
+            }
+
+            if (CLSS_IMPORT_QUARTERS.includes(inferredQuarter)) {
+                const header = `===== ${relativePath} =====\n${text}`;
+                quarterTexts[inferredQuarter] = quarterTexts[inferredQuarter]
+                    ? `${quarterTexts[inferredQuarter]}\n\n${header}`
+                    : header;
+                quarterFileCounts[inferredQuarter] += 1;
+                continue;
+            }
+
+            warnings.push(`${relativePath}: OCR text could not be assigned to Fall/Winter/Spring automatically.`);
+            unassignedFiles.push(relativePath);
+        }
+
+        const assignedQuarters = CLSS_IMPORT_QUARTERS.filter((quarter) => quarterTexts[quarter]);
+        const extractedTextCount = ocrResults.filter((entry) => entry.hasText).length;
+        const defaultQuarter = inferQuarterKey(options.defaultQuarter) || 'spring';
+        let scope = 'all';
+        let targetQuarter = assignedQuarters[0] || defaultQuarter;
+        let singleText = '';
+        let shouldAutoParse = assignedQuarters.length > 0;
+
+        if (assignedQuarters.length === 1 && unassignedFiles.length === 0) {
+            scope = 'single';
+            targetQuarter = assignedQuarters[0];
+            singleText = quarterTexts[targetQuarter];
+        } else if (!assignedQuarters.length && extractedTextCount > 0) {
+            scope = 'single';
+            targetQuarter = defaultQuarter;
+            singleText = ocrResults
+                .filter((entry) => entry.hasText)
+                .map((entry) => `===== ${entry.relativePath} =====\n${textByPath.get(entry.relativePath) || ''}`)
+                .filter(Boolean)
+                .join('\n\n');
+            shouldAutoParse = false;
+            warnings.push(`Quarter inference failed for the screenshot batch. Review the default quarter (${targetQuarter}) before building.`);
+        }
+
+        return {
+            scope,
+            targetQuarter,
+            singleText,
+            quarterTexts,
+            meta: {
+                source: 'screenshot',
+                fileCount: screenshotFiles.length,
+                extractedTextCount,
+                quarterFileCounts,
+                assignedQuarterCount: assignedQuarters.length,
+                unassignedFiles,
+                warnings,
+                shouldAutoParse
+            },
+            ocrResults
         };
     }
 
@@ -741,8 +1123,13 @@
         normalizeHeaderKey,
         parseCsvRows,
         ensureExcelJsLoaded,
+        ensureTesseractLoaded,
         readTabularRowsFromFile,
+        detectClssQuarterKeyword,
+        inferClssQuarterFromOcrPayload,
+        readScreenshotTextImportFromFiles,
         buildClssPreviewRowsFromTabularRows,
+        buildClssPreviewRowsFromScreenshotImport,
         writePendingOnboardingImport,
         readPendingOnboardingImport,
         clearPendingOnboardingImport

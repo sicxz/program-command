@@ -64,6 +64,13 @@ describe('ProgramCommandShell', () => {
         }));
     });
 
+    test('allows imports only for single-program workspaces', () => {
+        expect(shell.canImportIntoProgram(shell.findProgramById('computer-science'))).toBe(true);
+        expect(shell.canImportIntoProgram(shell.findProgramById('cybersecurity'))).toBe(true);
+        expect(shell.canImportIntoProgram(shell.findProgramById('computer-science-cybersecurity'))).toBe(false);
+        expect(shell.canImportIntoProgram(shell.findProgramById('csee-department'))).toBe(false);
+    });
+
     test('creates onboarding handoff context with selection and artifact metadata', () => {
         const program = shell.findProgramById('biology');
         const context = shell.createOnboardingContext(program, {
@@ -224,13 +231,32 @@ describe('ProgramCommandShell', () => {
 
         const context = shell.createOnboardingContext(program, {
             source: 'screenshot',
-            artifactBatch
+            artifactBatch,
+            screenshotImport: {
+                scope: 'all',
+                quarterTexts: {
+                    fall: '===== fall =====\nCSCD 101 - Intro',
+                    winter: '',
+                    spring: '===== spring =====\nCYBR 310 - Ops'
+                },
+                meta: {
+                    extractedTextCount: 2,
+                    shouldAutoParse: true
+                }
+            }
         });
 
         expect(context).toMatchObject({
             id: 'cybersecurity',
             label: 'Cybersecurity',
             source: 'screenshot',
+            screenshotImport: expect.objectContaining({
+                scope: 'all',
+                meta: expect.objectContaining({
+                    extractedTextCount: 2,
+                    shouldAutoParse: true
+                })
+            }),
             artifactBatch: expect.objectContaining({
                 mode: 'directory',
                 rootFolderName: 'cscd-cyber AY2025-26',

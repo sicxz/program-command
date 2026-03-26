@@ -430,6 +430,9 @@
         const spreadsheetImport = options.spreadsheetImport && typeof options.spreadsheetImport === 'object'
             ? JSON.parse(JSON.stringify(options.spreadsheetImport))
             : null;
+        const screenshotImport = options.screenshotImport && typeof options.screenshotImport === 'object'
+            ? JSON.parse(JSON.stringify(options.screenshotImport))
+            : null;
 
         return {
             ...(selection || {}),
@@ -438,6 +441,7 @@
             artifact,
             artifactBatch,
             spreadsheetImport,
+            screenshotImport,
             createdAt: new Date().toISOString()
         };
     }
@@ -464,6 +468,15 @@
         const label = String(program.label || '').trim();
         const parentLabel = String(program.parentLabel || '').trim();
         return parentLabel ? `${parentLabel} / ${label}` : label;
+    }
+
+    function canImportIntoProgram(program) {
+        return Boolean(program && String(program.workspaceKind || 'program').trim() === 'program');
+    }
+
+    function getImportRestrictionMessage(program) {
+        const label = formatProgramLabel(program);
+        return `${label} is a shared workspace. Import one program at a time, then use department or combined views to see programs together in the grid.`;
     }
 
     function normalizeProgramMatchValue(value) {
@@ -848,6 +861,7 @@
 
         function updateUi() {
             renderProgramList();
+            const canImportSelection = canImportIntoProgram(state.selectedProgram);
 
             if (elements.summary) {
                 elements.summary.textContent = state.selectedProgram
@@ -880,18 +894,36 @@
                 elements.continueButton.disabled = !state.selectedProgram || !authSatisfied();
             }
 
+            if (elements.spreadsheetButton) {
+                elements.spreadsheetButton.disabled = !canImportSelection;
+                elements.spreadsheetButton.title = canImportSelection
+                    ? 'Import this program from an EagleNET spreadsheet'
+                    : getImportRestrictionMessage(state.selectedProgram);
+            }
+
             if (elements.screenshotDirectoryButton) {
                 elements.screenshotDirectoryButton.hidden = !state.directoryUploadSupported;
+                elements.screenshotDirectoryButton.disabled = !canImportSelection;
+                elements.screenshotDirectoryButton.title = canImportSelection
+                    ? 'Choose a screenshot folder for this program'
+                    : getImportRestrictionMessage(state.selectedProgram);
             }
             if (elements.screenshotSupportText) {
-                elements.screenshotSupportText.textContent = state.directoryUploadSupported
+                const supportText = state.directoryUploadSupported
                     ? 'Folder upload keeps nested quarter folders when the browser supports directory selection.'
                     : 'This browser does not expose directory selection here, so use multiple screenshot files instead.';
+                elements.screenshotSupportText.textContent = canImportSelection
+                    ? supportText
+                    : `${supportText} Import stays disabled until you choose a single program workspace.`;
             }
             if (elements.screenshotButton) {
                 elements.screenshotButton.textContent = state.directoryUploadSupported
                     ? 'Choose screenshot files'
                     : 'Choose screenshots';
+                elements.screenshotButton.disabled = !canImportSelection;
+                elements.screenshotButton.title = canImportSelection
+                    ? 'Choose screenshots for this program'
+                    : getImportRestrictionMessage(state.selectedProgram);
             }
 
             if (elements.chooser) {
@@ -1001,9 +1033,16 @@
 
             state.chooserVisible = true;
             if (elements.chooserMeta) {
-                elements.chooserMeta.textContent = `${formatProgramLabel(state.selectedProgram)} does not have seeded data yet. Start with manual setup or capture the import artifacts to continue into onboarding and CLSS review.`;
+                elements.chooserMeta.textContent = canImportIntoProgram(state.selectedProgram)
+                    ? `${formatProgramLabel(state.selectedProgram)} does not have seeded data yet. Start with manual setup or capture the import artifacts to continue into onboarding and CLSS review.`
+                    : `${getImportRestrictionMessage(state.selectedProgram)} Choose a specific program like Computer Science or Cybersecurity to import onboarding data.`;
             }
-            setStatus('info', `${formatProgramLabel(state.selectedProgram)} is empty. Choose how you want to start onboarding.`);
+            setStatus(
+                canImportIntoProgram(state.selectedProgram) ? 'info' : 'warn',
+                canImportIntoProgram(state.selectedProgram)
+                    ? `${formatProgramLabel(state.selectedProgram)} is empty. Choose how you want to start onboarding.`
+                    : `${formatProgramLabel(state.selectedProgram)} is empty, but imports currently start from a single program workspace.`
+            );
             updateUi();
         }
 
@@ -1053,10 +1092,15 @@
                 source,
                 artifact: intake.artifact || null,
                 artifactBatch: intake.artifactBatch || null,
-                spreadsheetImport: intake.spreadsheetImport || null
+                spreadsheetImport: intake.spreadsheetImport || null,
+                screenshotImport: intake.screenshotImport || null
             });
             persistOnboardingContext(context);
             global.location.href = `${onboardingUrl}?source=${encodeURIComponent(source)}&program=${encodeURIComponent(context.id || '')}`;
+        }
+
+        function handleImportRestriction() {
+            setStatus('warn', getImportRestrictionMessage(state.selectedProgram));
         }
 
         function handleScreenshotSelection(files, mode) {
@@ -1069,7 +1113,37 @@
                 return;
             }
 
-            navigateToOnboarding('screenshot', { artifactBatch });
+            if (!canImportIntoProgram(state.selectedProgram)) {
+                handleImportRestriction();
+                return;
+            }
+
+            const importApi = global.ProgramCommandImport;
+            if (!importApi || typeof importApi.readScreenshotTextImportFromFiles !== 'function') {
+                setStatus('error', 'Screenshot OCR import runtime is unavailable on this page.');
+                return;
+            }
+
+            setStatus('info', `Running OCR on ${artifactBatch.count} screenshot file${artifactBatch.count === 1 ? '' : 's'} before onboarding...`);
+            importApi.readScreenshotTextImportFromFiles(files, {
+                onProgress: ({ index, total, fileName }) => {
+                    setStatus('info', `OCR ${index + 1}/${total}: ${fileName}`);
+                }
+            })
+                .then((screenshotImport) => {
+                    if (!screenshotImport?.meta?.extractedTextCount) {
+                        setStatus('error', 'OCR did not detect any CLSS text in the selected screenshots.');
+                        return;
+                    }
+
+                    navigateToOnboarding('screenshot', {
+                        artifactBatch,
+                        screenshotImport
+                    });
+                })
+                .catch((error) => {
+                    setStatus('error', error?.message || 'Could not OCR the selected screenshots.');
+                });
         }
 
         renderProgramList();
@@ -1106,17 +1180,35 @@
             navigateToOnboarding('manual', null);
         });
         elements.spreadsheetButton?.addEventListener('click', () => {
+            if (!canImportIntoProgram(state.selectedProgram)) {
+                handleImportRestriction();
+                return;
+            }
             elements.spreadsheetInput?.click();
         });
         elements.screenshotDirectoryButton?.addEventListener('click', () => {
+            if (!canImportIntoProgram(state.selectedProgram)) {
+                handleImportRestriction();
+                return;
+            }
             elements.screenshotDirectoryInput?.click();
         });
         elements.screenshotButton?.addEventListener('click', () => {
+            if (!canImportIntoProgram(state.selectedProgram)) {
+                handleImportRestriction();
+                return;
+            }
             elements.screenshotInput?.click();
         });
         elements.spreadsheetInput?.addEventListener('change', (event) => {
             const file = event.target?.files?.[0];
             if (!file) return;
+
+            if (!canImportIntoProgram(state.selectedProgram)) {
+                event.target.value = '';
+                handleImportRestriction();
+                return;
+            }
             const artifact = {
                 name: file.name,
                 size: file.size,
@@ -1158,11 +1250,13 @@
             const files = Array.from(event.target?.files || []);
             if (!files.length) return;
             handleScreenshotSelection(files, 'directory');
+            event.target.value = '';
         });
         elements.screenshotInput?.addEventListener('change', (event) => {
             const files = Array.from(event.target?.files || []);
             if (!files.length) return;
             handleScreenshotSelection(files, 'files');
+            event.target.value = '';
         });
 
         if (authService && typeof authService.onAuthStateChange === 'function') {
@@ -1183,7 +1277,7 @@
         return refreshSessionFromAuth().then(() => maybeResumePendingOnboardingImport());
     }
 
-    const api = {
+        const api = {
         SHELL_SELECTION_STORAGE_KEY,
         ONBOARDING_CONTEXT_STORAGE_KEY,
         DEFAULT_PROGRAM_GROUPS,
@@ -1193,6 +1287,7 @@
         createProgramSelection,
         buildScreenshotArtifactBatch,
         createOnboardingContext,
+        canImportIntoProgram,
         detectProgramData,
         readSelection,
         persistSelection,

@@ -112,6 +112,9 @@
         const spreadsheetImport = context.spreadsheetImport && typeof context.spreadsheetImport === 'object'
             ? context.spreadsheetImport
             : null;
+        const screenshotImport = context.screenshotImport && typeof context.screenshotImport === 'object'
+            ? context.screenshotImport
+            : null;
         const spreadsheetRowCount = Number(spreadsheetImport?.meta?.rowCount) || Number(Array.isArray(spreadsheetImport?.rows) ? spreadsheetImport.rows.length : 0) || 0;
         const spreadsheetQuarterCounts = spreadsheetImport?.meta?.quarterCounts && typeof spreadsheetImport.meta.quarterCounts === 'object'
             ? spreadsheetImport.meta.quarterCounts
@@ -158,13 +161,21 @@
                 const groupedCount = Array.isArray(artifactBatch.groups)
                     ? artifactBatch.groups.filter((group) => String(group.key || '') !== 'unassigned').length
                     : 0;
+                const extractedTextCount = Number(screenshotImport?.meta?.extractedTextCount) || 0;
+                const warningCount = Array.isArray(screenshotImport?.meta?.warnings) ? screenshotImport.meta.warnings.length : 0;
                 const intro = rootFolderName
                     ? `Captured ${artifactBatch.count} screenshot files from ${rootFolderName}.`
                     : `Captured ${artifactBatch.count} screenshot files for this onboarding handoff.`;
                 const grouping = groupedCount
                     ? ` The shell inferred ${groupedCount} term group${groupedCount === 1 ? '' : 's'} for downstream parsing.`
                     : ' The shell preserved the files, but term grouping still needs manual review before parsing.';
-                artifact.textContent = `${intro}${grouping}`;
+                const ocrSummary = extractedTextCount
+                    ? ` OCR extracted text from ${extractedTextCount} file${extractedTextCount === 1 ? '' : 's'}.`
+                    : ' OCR did not detect text yet.';
+                const warningSummary = warningCount
+                    ? ` ${warningCount} OCR warning${warningCount === 1 ? '' : 's'} will carry into CLSS review.`
+                    : '';
+                artifact.textContent = `${intro}${grouping}${ocrSummary}${warningSummary}`;
             } else {
                 artifact.textContent = artifactName
                     ? `Captured artifact: ${artifactName}. Parsing and seeded schedule generation continue in the follow-on import slice.`
@@ -234,10 +245,11 @@
             const groupedCount = Array.isArray(context.artifactBatch?.groups)
                 ? context.artifactBatch.groups.filter((group) => String(group.key || '') !== 'unassigned').length
                 : 0;
+            const extractedTextCount = Number(context.screenshotImport?.meta?.extractedTextCount) || 0;
             const screenshotSummary = screenshotCount
                 ? `${screenshotCount} file${screenshotCount === 1 ? '' : 's'}${groupedCount ? ` across ${groupedCount} inferred term group${groupedCount === 1 ? '' : 's'}` : ''}`
                 : 'the captured screenshot set';
-            setStatus('warn', `Screenshot handoff ready for ${label}: ${screenshotSummary}. OCR/import parsing is staged after the spreadsheet path, but program context is preserved here.`);
+            setStatus('info', `Screenshot handoff ready for ${label}: ${screenshotSummary}${extractedTextCount ? `, OCR text from ${extractedTextCount} screenshot${extractedTextCount === 1 ? '' : 's'}` : ''}. Save + activate this profile to continue into CLSS review.`);
         } else {
             setStatus('info', `Manual setup handoff ready for ${label}.`);
         }
@@ -644,6 +656,13 @@
                     && importApi
                     && typeof importApi.writePendingOnboardingImport === 'function'
                 );
+                const shouldResumeScreenshotImport = Boolean(
+                    handoffContext
+                    && handoffContext.source === 'screenshot'
+                    && handoffContext.screenshotImport
+                    && importApi
+                    && typeof importApi.writePendingOnboardingImport === 'function'
+                );
 
                 if (shellApi && typeof shellApi.persistSelection === 'function') {
                     const nextSelection = shellApi.readSelection && typeof shellApi.readSelection === 'function'
@@ -679,6 +698,16 @@
                         spreadsheetImport: handoffContext.spreadsheetImport,
                         createdAt: new Date().toISOString()
                     });
+                } else if (shouldResumeScreenshotImport) {
+                    importApi.writePendingOnboardingImport({
+                        source: 'screenshot',
+                        programId: String(handoffContext.id || '').trim() || null,
+                        label: String(handoffContext.label || '').trim() || null,
+                        profileId: saved.profileId,
+                        artifactBatch: handoffContext.artifactBatch || null,
+                        screenshotImport: handoffContext.screenshotImport,
+                        createdAt: new Date().toISOString()
+                    });
                 }
 
                 clearHandoffContext();
@@ -687,9 +716,9 @@
                 await populateProfileSelect();
                 qs('baseProfileSelect').value = saved.profileId;
 
-                if (shouldResumeSpreadsheetImport) {
-                    setStatus('info', `Profile ${saved.profileId} activated. Opening the spreadsheet import review...`);
-                    window.location.href = '../index.html?onboardingImport=spreadsheet';
+                if (shouldResumeSpreadsheetImport || shouldResumeScreenshotImport) {
+                    setStatus('info', `Profile ${saved.profileId} activated. Opening the ${shouldResumeSpreadsheetImport ? 'spreadsheet' : 'screenshot'} import review...`);
+                    window.location.href = `../index.html?onboardingImport=${encodeURIComponent(shouldResumeSpreadsheetImport ? 'spreadsheet' : 'screenshot')}`;
                 }
             } catch (error) {
                 setStatus('error', error?.message || 'Could not save profile.');

@@ -4780,13 +4780,13 @@
                     </article>
 
                     <article class="program-shell-choice">
-                        <span class="program-shell-choice-tag">Follow-on</span>
+                        <span class="program-shell-choice-tag">Pilot</span>
                         <h3>Screenshot upload</h3>
-                        <p>Capture screenshots from class search with the enrollment view and preserve the handoff context now.</p>
+                        <p>Upload class-search screenshots with enrollment view and carry OCR text into CLSS review after onboarding.</p>
                         <ul>
                             <li>Accept a screenshot folder when your browser can preserve nested quarter folders.</li>
                             <li>Fall back to choosing multiple screenshot files when folder upload is not available.</li>
-                            <li>Parsing and schedule seeding remain staged after the spreadsheet path.</li>
+                            <li>Runs OCR before onboarding so the review table can resume with parsed screenshot text.</li>
                         </ul>
                         <div class="program-shell-choice-actions">
                             <button type="button" class="program-shell-button-secondary" id="programShellScreenshotDirectoryButton">Choose screenshot folder</button>
@@ -6411,7 +6411,7 @@
             }
 
             const pendingImport = importApi.readPendingOnboardingImport();
-            if (!pendingImport || pendingImport.source !== 'spreadsheet') {
+            if (!pendingImport || !['spreadsheet', 'screenshot'].includes(String(pendingImport.source || '').trim())) {
                 return false;
             }
 
@@ -6422,18 +6422,23 @@
 
             try {
                 openClssImportModal();
-                applyClssSpreadsheetPayload(pendingImport, { announce: false });
+                if (pendingImport.source === 'screenshot') {
+                    await applyClssScreenshotPayload(pendingImport, { announce: false });
+                } else {
+                    applyClssSpreadsheetPayload(pendingImport, { announce: false });
+                }
                 if (typeof importApi.clearPendingOnboardingImport === 'function') {
                     importApi.clearPendingOnboardingImport();
                 }
-                const fileName = String(pendingImport?.artifact?.name || '').trim();
+                const fileName = String(pendingImport?.artifact?.name || pendingImport?.artifactBatch?.rootFolderName || '').trim();
+                const sourceLabel = pendingImport.source === 'screenshot' ? 'screenshot' : 'spreadsheet';
                 showToast(fileName
-                    ? `Resumed onboarding spreadsheet import from ${fileName}`
-                    : 'Resumed onboarding spreadsheet import');
+                    ? `Resumed onboarding ${sourceLabel} import from ${fileName}`
+                    : `Resumed onboarding ${sourceLabel} import`);
                 return true;
             } catch (error) {
                 console.error('Could not resume onboarding import handoff:', error);
-                showToast(error?.message || 'Could not resume the onboarding spreadsheet import.', 'error');
+                showToast(error?.message || `Could not resume the onboarding ${pendingImport.source || 'import'}.`, 'error');
                 return false;
             }
         }
@@ -9419,6 +9424,12 @@
             summaryEl.textContent = String(message || 'No spreadsheet selected.');
         }
 
+        function setClssImportScreenshotSummary(message) {
+            const summaryEl = document.getElementById('clssImportPngSummary');
+            if (!summaryEl) return;
+            summaryEl.textContent = String(message || 'No screenshots selected.');
+        }
+
         function clearClssImportSpreadsheetPayload(options = {}) {
             clssImportSpreadsheetPayload = null;
             setClssImportSpreadsheetSummary('No spreadsheet selected.');
@@ -9426,6 +9437,26 @@
                 const input = document.getElementById('clssImportSpreadsheetInput');
                 if (input) input.value = '';
             }
+        }
+
+        function clearClssImportTextInputs() {
+            const singleText = document.getElementById('clssImportText');
+            const fallText = document.getElementById('clssImportTextFall');
+            const winterText = document.getElementById('clssImportTextWinter');
+            const springText = document.getElementById('clssImportTextSpring');
+            if (singleText) singleText.value = '';
+            if (fallText) fallText.value = '';
+            if (winterText) winterText.value = '';
+            if (springText) springText.value = '';
+        }
+
+        function getClssImportAllowedCoursePrefixes() {
+            const prefixes = [];
+            const shellSelection = window.ProgramCommandShell?.readSelection?.();
+            if (shellSelection?.workspaceKind === 'program' && shellSelection?.suggestedCode) {
+                prefixes.push(String(shellSelection.suggestedCode || '').trim().toUpperCase());
+            }
+            return [...new Set(prefixes.filter(Boolean))];
         }
 
         function primeClssImportScopeFromRows(rows) {
@@ -9458,6 +9489,11 @@
                 throw new Error('Spreadsheet import did not contain any rows.');
             }
 
+            const pngInput = document.getElementById('clssImportPngInput');
+            if (pngInput) pngInput.value = '';
+            clearClssImportTextInputs();
+            setClssImportScreenshotSummary('No screenshots selected.');
+
             const preview = importApi.buildClssPreviewRowsFromTabularRows(rows, {
                 fileName: String(spreadsheetImport?.meta?.fileName || payload?.artifact?.name || '').trim() || null,
                 defaultQuarter: (window.StateManager?.get('currentQuarter')) || 'spring',
@@ -9465,7 +9501,8 @@
                 timeSlots: getSchedulerTimeSlots(),
                 roomOptions: getClssImportRoomOptionList(),
                 resolveCourseCode: resolveClssImportCourseCode,
-                resolveFacultyName: getCanonicalFacultyName
+                resolveFacultyName: getCanonicalFacultyName,
+                allowedCoursePrefixes: getClssImportAllowedCoursePrefixes()
             });
 
             clssImportSpreadsheetPayload = {
@@ -9493,6 +9530,96 @@
 
             if (options?.announce !== false) {
                 showToast(`Loaded ${preview.rows.length} spreadsheet row${preview.rows.length === 1 ? '' : 's'} for CLSS review`);
+            }
+
+            return preview;
+        }
+
+        async function applyClssScreenshotPayload(payload, options = {}) {
+            const importApi = window.ProgramCommandImport;
+            if (!importApi || typeof importApi.buildClssPreviewRowsFromScreenshotImport !== 'function') {
+                throw new Error('Screenshot OCR import runtime is unavailable.');
+            }
+
+            const screenshotImport = payload?.screenshotImport && typeof payload.screenshotImport === 'object'
+                ? payload.screenshotImport
+                : payload;
+            const quarterTexts = screenshotImport?.quarterTexts && typeof screenshotImport.quarterTexts === 'object'
+                ? screenshotImport.quarterTexts
+                : {};
+            const scope = screenshotImport?.scope === 'single' ? 'single' : 'all';
+            const targetQuarter = CLSS_IMPORT_QUARTERS.includes(screenshotImport?.targetQuarter)
+                ? screenshotImport.targetQuarter
+                : ((window.StateManager?.get('currentQuarter')) || 'spring');
+            const singleText = String(screenshotImport?.singleText || '').trim();
+            const hasQuarterText = CLSS_IMPORT_QUARTERS.some((quarter) => String(quarterTexts?.[quarter] || '').trim());
+            if (!singleText && !hasQuarterText) {
+                throw new Error('Screenshot OCR import did not yield any CLSS text.');
+            }
+
+            const scopeSelect = document.getElementById('clssImportScope');
+            const quarterSelect = document.getElementById('clssImportQuarter');
+            const singleTextInput = document.getElementById('clssImportText');
+            const fallText = document.getElementById('clssImportTextFall');
+            const winterText = document.getElementById('clssImportTextWinter');
+            const springText = document.getElementById('clssImportTextSpring');
+            const pngInput = document.getElementById('clssImportPngInput');
+            const artifactBatch = payload?.artifactBatch && typeof payload.artifactBatch === 'object'
+                ? payload.artifactBatch
+                : null;
+
+            clearClssImportSpreadsheetPayload();
+            if (pngInput) pngInput.value = '';
+            clearClssImportTextInputs();
+
+            if (scopeSelect) {
+                scopeSelect.value = scope;
+            }
+            if (quarterSelect) {
+                quarterSelect.value = targetQuarter;
+            }
+            toggleClssImportInputMode();
+
+            if (scope === 'single') {
+                if (singleTextInput) singleTextInput.value = singleText;
+            } else {
+                if (fallText) fallText.value = String(quarterTexts.fall || '').trim();
+                if (winterText) winterText.value = String(quarterTexts.winter || '').trim();
+                if (springText) springText.value = String(quarterTexts.spring || '').trim();
+            }
+
+            const rootFolderName = String(artifactBatch?.rootFolderName || '').trim();
+            const extractedTextCount = Number(screenshotImport?.meta?.extractedTextCount) || 0;
+            const warningCount = Array.isArray(screenshotImport?.meta?.warnings) ? screenshotImport.meta.warnings.length : 0;
+            setClssImportScreenshotSummary(
+                rootFolderName
+                    ? `${rootFolderName}: OCR extracted text from ${extractedTextCount || 0} screenshot${extractedTextCount === 1 ? '' : 's'}${warningCount ? ` (${warningCount} warning${warningCount === 1 ? '' : 's'})` : ''}.`
+                    : `Resumed screenshot OCR import${extractedTextCount ? ` from ${extractedTextCount} screenshot${extractedTextCount === 1 ? '' : 's'}` : ''}${warningCount ? ` (${warningCount} warning${warningCount === 1 ? '' : 's'})` : ''}.`
+            );
+
+            invalidateClssImportPreview();
+
+            const preview = importApi.buildClssPreviewRowsFromScreenshotImport(screenshotImport, {
+                defaultQuarter: (window.StateManager?.get('currentQuarter')) || 'spring',
+                dayPatterns: getSchedulerDayPatterns(),
+                timeSlots: getSchedulerTimeSlots(),
+                roomOptions: getClssImportRoomOptionList(),
+                resolveCourseCode: resolveClssImportCourseCode,
+                resolveFacultyName: getCanonicalFacultyName,
+                allowedCoursePrefixes: getClssImportAllowedCoursePrefixes()
+            });
+
+            primeClssImportScopeFromRows(preview.rows);
+            applyClssPriorYearAutoSuggestionsToRows(preview.rows, getClssImportTargetAcademicYear());
+            clssImportPreviewRows = preview.rows;
+            renderClssImportReview(clssImportPreviewRows, preview.meta);
+
+            if (options?.announce !== false) {
+                if (preview.rows.length) {
+                    showToast(`Loaded ${preview.rows.length} screenshot OCR row${preview.rows.length === 1 ? '' : 's'} for CLSS review`);
+                } else {
+                    showToast('Screenshot OCR resumed, but no review rows could be extracted automatically.', 'error');
+                }
             }
 
             return preview;
