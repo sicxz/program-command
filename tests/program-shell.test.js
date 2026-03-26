@@ -13,15 +13,18 @@ describe('ProgramCommandShell', () => {
         delete window.ProgramCommandShell;
     });
 
-    test('flattens the approved onboarding catalog including education sub-programs', () => {
+    test('flattens the approved onboarding catalog including department workspaces and education sub-programs', () => {
         const labels = shell.flattenPrograms().map((program) => program.label);
 
-        expect(labels).toHaveLength(12);
+        expect(labels).toHaveLength(15);
         expect(labels).toEqual(expect.arrayContaining([
             'Biology',
             'Chemistry & Biochemistry',
-            'Computer Science & Electrical Engineering',
+            'Department view',
+            'Computer Science + Cybersecurity',
+            'Computer Science',
             'Cybersecurity',
+            'Electrical Engineering',
             'Design',
             'Science Education',
             'Mathematics Education',
@@ -40,6 +43,25 @@ describe('ProgramCommandShell', () => {
         expect(design.label).toBe('Design');
         expect(design.profileId).toBe('design-v1');
         expect(design.seededDefault).toBe(true);
+    });
+
+    test('models the CSEE department with department-wide and combined workspace entries', () => {
+        const department = shell.findProgramById('csee-department');
+        const combined = shell.findProgramById('computer-science-cybersecurity');
+
+        expect(department).toEqual(expect.objectContaining({
+            label: 'Department view',
+            departmentId: 'csee',
+            departmentLabel: 'Computer Science, Cybersecurity & Electrical Engineering',
+            workspaceKind: 'department',
+            suggestedCode: 'CSEE'
+        }));
+        expect(combined).toEqual(expect.objectContaining({
+            label: 'Computer Science + Cybersecurity',
+            workspaceKind: 'combined-programs',
+            memberProgramIds: ['computer-science', 'cybersecurity'],
+            suggestedCode: 'CSCY'
+        }));
     });
 
     test('creates onboarding handoff context with selection and artifact metadata', () => {
@@ -70,6 +92,28 @@ describe('ProgramCommandShell', () => {
                 size: 2048,
                 type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                 capturedAt: '2026-03-26T16:00:00.000Z'
+            }
+        });
+    });
+
+    test('creates department-aware onboarding context for combined workspaces', () => {
+        const program = shell.findProgramById('computer-science-cybersecurity');
+        const context = shell.createOnboardingContext(program, {
+            source: 'manual'
+        });
+
+        expect(context).toMatchObject({
+            id: 'computer-science-cybersecurity',
+            label: 'Computer Science + Cybersecurity',
+            departmentId: 'csee',
+            departmentLabel: 'Computer Science, Cybersecurity & Electrical Engineering',
+            workspaceKind: 'combined-programs',
+            memberProgramIds: ['computer-science', 'cybersecurity'],
+            suggestedIdentity: {
+                name: 'Computer Science + Cybersecurity',
+                code: 'CSCY',
+                displayName: 'EWU Computer Science + Cybersecurity',
+                shortName: 'CS + Cyber'
             }
         });
     });

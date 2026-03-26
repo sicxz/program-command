@@ -101,6 +101,8 @@
 
         const label = String(context.label || 'Selected program').trim() || 'Selected program';
         const parentLabel = String(context.parentLabel || '').trim();
+        const departmentLabel = String(context.departmentLabel || parentLabel || '').trim();
+        const workspaceKind = String(context.workspaceKind || 'program').trim() || 'program';
         const source = String(context.source || 'manual').trim() || 'manual';
         const artifactName = String(context.artifact?.name || '').trim();
         const sourceLabel = source === 'spreadsheet'
@@ -116,9 +118,15 @@
             title.textContent = `${label} onboarding handoff`;
         }
         if (summary) {
-            summary.textContent = parentLabel
-                ? `${parentLabel} / ${label} came from the Program Command start shell. Use this page to shape the first versioned profile and keep the selected program context intact.`
-                : `${label} came from the Program Command start shell. Use this page to shape the first versioned profile and keep the selected program context intact.`;
+            if (workspaceKind === 'department' && departmentLabel) {
+                summary.textContent = `${departmentLabel} department view came from the Program Command start shell. Use this page to shape the first versioned profile and keep the selected department context intact.`;
+            } else if (workspaceKind === 'combined-programs' && departmentLabel) {
+                summary.textContent = `${label} came from the ${departmentLabel} department selection in Program Command. Use this page to shape the first versioned profile and keep the shared program context intact.`;
+            } else {
+                summary.textContent = parentLabel
+                    ? `${parentLabel} / ${label} came from the Program Command start shell. Use this page to shape the first versioned profile and keep the selected program context intact.`
+                    : `${label} came from the Program Command start shell. Use this page to shape the first versioned profile and keep the selected program context intact.`;
+            }
         }
         if (artifact) {
             artifact.textContent = artifactName
@@ -340,6 +348,12 @@
             generatedBy: 'department-onboarding-shell-v1',
             catalogProgramId: String(state.handoffContext?.id || '').trim() || null,
             catalogProgramLabel: String(state.handoffContext?.label || '').trim() || null,
+            catalogDepartmentId: String(state.handoffContext?.departmentId || '').trim() || null,
+            catalogDepartmentLabel: String(state.handoffContext?.departmentLabel || '').trim() || null,
+            catalogWorkspaceKind: String(state.handoffContext?.workspaceKind || '').trim() || 'program',
+            catalogMemberProgramIds: Array.isArray(state.handoffContext?.memberProgramIds)
+                ? state.handoffContext.memberProgramIds.map((id) => String(id || '').trim()).filter(Boolean)
+                : [],
             previousCode: previousCode || null
         };
 
