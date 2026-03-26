@@ -427,6 +427,9 @@
         const artifactBatch = options.artifactBatch && typeof options.artifactBatch === 'object'
             ? buildScreenshotArtifactBatch(options.artifactBatch.files || [], options.artifactBatch)
             : null;
+        const spreadsheetImport = options.spreadsheetImport && typeof options.spreadsheetImport === 'object'
+            ? JSON.parse(JSON.stringify(options.spreadsheetImport))
+            : null;
 
         return {
             ...(selection || {}),
@@ -434,6 +437,7 @@
             suggestedIdentity: buildSuggestedIdentity(program),
             artifact,
             artifactBatch,
+            spreadsheetImport,
             createdAt: new Date().toISOString()
         };
     }
@@ -652,6 +656,11 @@
         const manager = options.profileManager || global.DepartmentProfileManager || null;
         const onboardingUrl = String(options.onboardingUrl || 'pages/department-onboarding.html').trim() || 'pages/department-onboarding.html';
         const groups = Array.isArray(options.programGroups) ? options.programGroups : DEFAULT_PROGRAM_GROUPS;
+        const importApi = global.ProgramCommandImport || null;
+        const pendingOnboardingImport = importApi && typeof importApi.readPendingOnboardingImport === 'function'
+            ? importApi.readPendingOnboardingImport()
+            : null;
+        const pendingProgram = findProgramById(pendingOnboardingImport?.programId, groups);
 
         const elements = {
             overlay,
@@ -680,13 +689,21 @@
         };
 
         const state = {
-            selectedProgram: resolveStoredSelection(groups),
+            selectedProgram: pendingProgram || resolveStoredSelection(groups),
             session: null,
             previewMode: false,
             chooserVisible: false,
             runtimeLaunched: false,
+            pendingOnboardingImport,
             directoryUploadSupported: Boolean(elements.screenshotDirectoryInput && ('webkitdirectory' in elements.screenshotDirectoryInput))
         };
+
+        if (pendingProgram && pendingOnboardingImport?.profileId) {
+            persistSelection(createProgramSelection({
+                ...pendingProgram,
+                profileId: String(pendingOnboardingImport.profileId || '').trim() || null
+            }));
+        }
 
         function authSatisfied() {
             return Boolean(state.session || state.previewMode);
@@ -984,10 +1001,38 @@
 
             state.chooserVisible = true;
             if (elements.chooserMeta) {
-                elements.chooserMeta.textContent = `${formatProgramLabel(state.selectedProgram)} does not have seeded data yet. Start with manual setup or capture the import artifacts for the follow-on import slice.`;
+                elements.chooserMeta.textContent = `${formatProgramLabel(state.selectedProgram)} does not have seeded data yet. Start with manual setup or capture the import artifacts to continue into onboarding and CLSS review.`;
             }
             setStatus('info', `${formatProgramLabel(state.selectedProgram)} is empty. Choose how you want to start onboarding.`);
             updateUi();
+        }
+
+        async function maybeResumePendingOnboardingImport() {
+            if (!state.pendingOnboardingImport || state.runtimeLaunched) {
+                return false;
+            }
+
+            const resumedProgram = findProgramById(state.pendingOnboardingImport.programId, groups);
+            if (!resumedProgram) {
+                return false;
+            }
+
+            persistSelectedProgram(resumedProgram, {
+                profileId: String(state.pendingOnboardingImport.profileId || resumedProgram.profileId || '').trim() || null
+            });
+
+            if (!authSatisfied()) {
+                if (isLocalPreviewHost()) {
+                    activatePreviewMode();
+                } else {
+                    setStatus('info', `${formatProgramLabel(resumedProgram)} is ready. Sign in to resume the pending import handoff.`);
+                    return false;
+                }
+            }
+
+            setStatus('info', `Resuming ${formatProgramLabel(resumedProgram)} import handoff...`);
+            await handleContinue();
+            return true;
         }
 
         function navigateToOnboarding(source, intake = {}) {
@@ -1007,7 +1052,8 @@
             const context = createOnboardingContext(state.selectedProgram, {
                 source,
                 artifact: intake.artifact || null,
-                artifactBatch: intake.artifactBatch || null
+                artifactBatch: intake.artifactBatch || null,
+                spreadsheetImport: intake.spreadsheetImport || null
             });
             persistOnboardingContext(context);
             global.location.href = `${onboardingUrl}?source=${encodeURIComponent(source)}&program=${encodeURIComponent(context.id || '')}`;
@@ -1071,14 +1117,42 @@
         elements.spreadsheetInput?.addEventListener('change', (event) => {
             const file = event.target?.files?.[0];
             if (!file) return;
-            navigateToOnboarding('spreadsheet', {
-                artifact: {
-                    name: file.name,
-                    size: file.size,
-                    type: file.type,
-                    capturedAt: new Date().toISOString()
-                }
-            });
+            const artifact = {
+                name: file.name,
+                size: file.size,
+                type: file.type,
+                capturedAt: new Date().toISOString()
+            };
+
+            const importApi = global.ProgramCommandImport;
+            if (!importApi || typeof importApi.readTabularRowsFromFile !== 'function') {
+                setStatus('error', 'Spreadsheet import runtime is unavailable on this page.');
+                event.target.value = '';
+                return;
+            }
+
+            setStatus('info', `Parsing ${file.name} before onboarding...`);
+            importApi.readTabularRowsFromFile(file)
+                .then((spreadsheetImport) => {
+                    if (!spreadsheetImport?.rows?.length) {
+                        const warning = Array.isArray(spreadsheetImport?.meta?.warnings) && spreadsheetImport.meta.warnings.length
+                            ? spreadsheetImport.meta.warnings[0]
+                            : 'Spreadsheet did not contain any importable rows.';
+                        setStatus('error', warning);
+                        return;
+                    }
+
+                    navigateToOnboarding('spreadsheet', {
+                        artifact,
+                        spreadsheetImport
+                    });
+                })
+                .catch((error) => {
+                    setStatus('error', error?.message || 'Could not parse the selected spreadsheet.');
+                })
+                .finally(() => {
+                    event.target.value = '';
+                });
         });
         elements.screenshotDirectoryInput?.addEventListener('change', (event) => {
             const files = Array.from(event.target?.files || []);
@@ -1106,7 +1180,7 @@
             ? `${formatProgramLabel(state.selectedProgram)} selected. Authenticate to continue.`
             : 'Welcome to Program Command. Choose a program to begin.');
 
-        return refreshSessionFromAuth();
+        return refreshSessionFromAuth().then(() => maybeResumePendingOnboardingImport());
     }
 
     const api = {
