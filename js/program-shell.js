@@ -24,18 +24,65 @@
                     baseProfileId: 'design-v1'
                 },
                 {
-                    type: 'program',
-                    id: 'computer-science-electrical-engineering',
-                    label: 'Computer Science & Electrical Engineering',
-                    suggestedCode: 'CSEE',
-                    baseProfileId: 'design-v1'
-                },
-                {
-                    type: 'program',
-                    id: 'cybersecurity',
-                    label: 'Cybersecurity',
-                    suggestedCode: 'CYBR',
-                    baseProfileId: 'design-v1'
+                    type: 'department',
+                    title: 'Computer Science, Cybersecurity & Electrical Engineering',
+                    items: [
+                        {
+                            id: 'csee-department',
+                            label: 'Department view',
+                            identityName: 'Computer Science, Cybersecurity & Electrical Engineering',
+                            identityShortName: 'CSEE Department',
+                            suggestedCode: 'CSEE',
+                            departmentId: 'csee',
+                            departmentLabel: 'Computer Science, Cybersecurity & Electrical Engineering',
+                            workspaceKind: 'department',
+                            workspaceSummary: 'Master department view',
+                            baseProfileId: 'design-v1'
+                        },
+                        {
+                            id: 'computer-science-cybersecurity',
+                            label: 'Computer Science + Cybersecurity',
+                            identityName: 'Computer Science + Cybersecurity',
+                            identityShortName: 'CS + Cyber',
+                            suggestedCode: 'CSCY',
+                            departmentId: 'csee',
+                            departmentLabel: 'Computer Science, Cybersecurity & Electrical Engineering',
+                            workspaceKind: 'combined-programs',
+                            workspaceSummary: 'Shared multi-program workspace',
+                            memberProgramIds: ['computer-science', 'cybersecurity'],
+                            baseProfileId: 'design-v1'
+                        },
+                        {
+                            id: 'computer-science',
+                            label: 'Computer Science',
+                            suggestedCode: 'CSCD',
+                            departmentId: 'csee',
+                            departmentLabel: 'Computer Science, Cybersecurity & Electrical Engineering',
+                            workspaceKind: 'program',
+                            workspaceSummary: 'Program workspace',
+                            baseProfileId: 'design-v1'
+                        },
+                        {
+                            id: 'cybersecurity',
+                            label: 'Cybersecurity',
+                            suggestedCode: 'CYBR',
+                            departmentId: 'csee',
+                            departmentLabel: 'Computer Science, Cybersecurity & Electrical Engineering',
+                            workspaceKind: 'program',
+                            workspaceSummary: 'Program workspace',
+                            baseProfileId: 'design-v1'
+                        },
+                        {
+                            id: 'electrical-engineering',
+                            label: 'Electrical Engineering',
+                            suggestedCode: 'EE',
+                            departmentId: 'csee',
+                            departmentLabel: 'Computer Science, Cybersecurity & Electrical Engineering',
+                            workspaceKind: 'program',
+                            workspaceSummary: 'Program workspace',
+                            baseProfileId: 'design-v1'
+                        }
+                    ]
                 },
                 {
                     type: 'program',
@@ -155,6 +202,14 @@
                         parentLabel: String(item?.parentLabel || entry.title || '').trim() || null
                     }));
                 }
+                if (entry.type === 'department') {
+                    return (Array.isArray(entry.items) ? entry.items : []).map((item) => ({
+                        ...item,
+                        parentLabel: String(item?.parentLabel || entry.title || '').trim() || null,
+                        departmentId: String(item?.departmentId || sanitizeDepartmentId(entry.title || entry.id || '')).trim() || null,
+                        departmentLabel: String(item?.departmentLabel || entry.title || '').trim() || null
+                    }));
+                }
                 return [entry];
             });
         });
@@ -167,14 +222,23 @@
     }
 
     function buildSuggestedIdentity(program) {
-        const label = String(program?.label || '').trim();
+        const label = String(program?.identityName || program?.label || '').trim();
         const suggestedCode = String(program?.suggestedCode || '').trim().toUpperCase();
         return {
             name: label,
             code: suggestedCode,
-            displayName: label ? `EWU ${label}` : '',
-            shortName: label
+            displayName: String(program?.identityDisplayName || (label ? `EWU ${label}` : '')).trim(),
+            shortName: String(program?.identityShortName || program?.label || label).trim()
         };
+    }
+
+    function sanitizeDepartmentId(value) {
+        return String(value || '')
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+/, '')
+            .replace(/-+$/, '');
     }
 
     function createProgramSelection(program) {
@@ -183,9 +247,19 @@
             id: String(program.id || '').trim(),
             label: String(program.label || '').trim(),
             parentLabel: String(program.parentLabel || '').trim() || null,
+            departmentId: String(program.departmentId || '').trim() || null,
+            departmentLabel: String(program.departmentLabel || '').trim() || null,
             profileId: String(program.profileId || '').trim() || null,
             baseProfileId: String(program.baseProfileId || program.profileId || 'design-v1').trim() || 'design-v1',
             suggestedCode: String(program.suggestedCode || '').trim() || null,
+            workspaceKind: String(program.workspaceKind || 'program').trim() || 'program',
+            workspaceSummary: String(program.workspaceSummary || '').trim() || null,
+            memberProgramIds: Array.isArray(program.memberProgramIds)
+                ? program.memberProgramIds.map((id) => String(id || '').trim()).filter(Boolean)
+                : [],
+            identityName: String(program.identityName || '').trim() || null,
+            identityShortName: String(program.identityShortName || '').trim() || null,
+            identityDisplayName: String(program.identityDisplayName || '').trim() || null,
             seededDefault: Boolean(program.seededDefault),
             selectedAt: new Date().toISOString()
         };
@@ -683,6 +757,32 @@
                         entryWrap.appendChild(section);
                         return;
                     }
+                    if (entry.type === 'department') {
+                        const section = global.document.createElement('div');
+                        section.className = 'program-shell-subsection';
+
+                        const sectionTitle = global.document.createElement('div');
+                        sectionTitle.className = 'program-shell-subsection-title';
+                        sectionTitle.textContent = String(entry.title || '').trim() || 'Department';
+                        section.appendChild(sectionTitle);
+
+                        const sectionList = global.document.createElement('div');
+                        sectionList.className = 'program-shell-subsection-list';
+
+                        (Array.isArray(entry.items) ? entry.items : []).forEach((item) => {
+                            const itemButton = buildProgramButton({
+                                ...item,
+                                parentLabel: String(item?.parentLabel || entry.title || '').trim() || null,
+                                departmentId: String(item?.departmentId || sanitizeDepartmentId(entry.title || entry.id || '')).trim() || null,
+                                departmentLabel: String(item?.departmentLabel || entry.title || '').trim() || null
+                            });
+                            sectionList.appendChild(itemButton);
+                        });
+
+                        section.appendChild(sectionList);
+                        entryWrap.appendChild(section);
+                        return;
+                    }
 
                     entryWrap.appendChild(buildProgramButton(entry));
                 });
@@ -710,7 +810,9 @@
 
             const meta = global.document.createElement('span');
             meta.className = 'program-shell-program-meta';
-            meta.textContent = program.seededDefault ? 'Seeded workspace available' : 'Start with onboarding';
+            meta.textContent = program.seededDefault
+                ? 'Seeded workspace available'
+                : String(program.workspaceSummary || '').trim() || 'Start with onboarding';
             button.appendChild(meta);
 
             button.addEventListener('click', () => {
