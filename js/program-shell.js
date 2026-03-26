@@ -905,7 +905,7 @@
                 elements.screenshotDirectoryButton.hidden = !state.directoryUploadSupported;
                 elements.screenshotDirectoryButton.disabled = !canImportSelection;
                 elements.screenshotDirectoryButton.title = canImportSelection
-                    ? 'Choose a screenshot folder for this program'
+                    ? 'Choose an EagleNET screenshot folder for this program'
                     : getImportRestrictionMessage(state.selectedProgram);
             }
             if (elements.screenshotSupportText) {
@@ -918,11 +918,11 @@
             }
             if (elements.screenshotButton) {
                 elements.screenshotButton.textContent = state.directoryUploadSupported
-                    ? 'Choose screenshot files'
-                    : 'Choose screenshots';
+                    ? 'Choose EagleNET screenshot files'
+                    : 'Choose EagleNET screenshots';
                 elements.screenshotButton.disabled = !canImportSelection;
                 elements.screenshotButton.title = canImportSelection
-                    ? 'Choose screenshots for this program'
+                    ? 'Choose EagleNET screenshots for this program'
                     : getImportRestrictionMessage(state.selectedProgram);
             }
 
@@ -1109,7 +1109,7 @@
             });
 
             if (!artifactBatch.count) {
-                setStatus('error', 'Choose one or more screenshot files to continue.');
+                setStatus('error', 'Choose one or more EagleNET screenshot files to continue.');
                 return;
             }
 
@@ -1124,7 +1124,7 @@
                 return;
             }
 
-            setStatus('info', `Running OCR on ${artifactBatch.count} screenshot file${artifactBatch.count === 1 ? '' : 's'} before onboarding...`);
+            setStatus('info', `Running OCR on ${artifactBatch.count} EagleNET screenshot file${artifactBatch.count === 1 ? '' : 's'} before onboarding...`);
             importApi.readScreenshotTextImportFromFiles(files, {
                 onProgress: ({ index, total, fileName }) => {
                     setStatus('info', `OCR ${index + 1}/${total}: ${fileName}`);
@@ -1132,7 +1132,7 @@
             })
                 .then((screenshotImport) => {
                     if (!screenshotImport?.meta?.extractedTextCount) {
-                        setStatus('error', 'OCR did not detect any CLSS text in the selected screenshots.');
+                        setStatus('error', 'OCR did not detect any CLSS text in the selected EagleNET screenshots.');
                         return;
                     }
 
@@ -1142,7 +1142,7 @@
                     });
                 })
                 .catch((error) => {
-                    setStatus('error', error?.message || 'Could not OCR the selected screenshots.');
+                    setStatus('error', error?.message || 'Could not OCR the selected EagleNET screenshots.');
                 });
         }
 

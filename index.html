@@ -4782,15 +4782,15 @@
                     <article class="program-shell-choice">
                         <span class="program-shell-choice-tag">Pilot</span>
                         <h3>Screenshot upload</h3>
-                        <p>Upload class-search screenshots with enrollment view and carry OCR text into CLSS review after onboarding.</p>
+                        <p>Upload EagleNET classroom view screenshots with enrollments and carry OCR text into CLSS review after onboarding.</p>
                         <ul>
                             <li>Accept a screenshot folder when your browser can preserve nested quarter folders.</li>
                             <li>Fall back to choosing multiple screenshot files when folder upload is not available.</li>
                             <li>Runs OCR before onboarding so the review table can resume with parsed screenshot text.</li>
                         </ul>
                         <div class="program-shell-choice-actions">
-                            <button type="button" class="program-shell-button-secondary" id="programShellScreenshotDirectoryButton">Choose screenshot folder</button>
-                            <button type="button" class="program-shell-button-secondary" id="programShellScreenshotButton">Choose screenshot files</button>
+                            <button type="button" class="program-shell-button-secondary" id="programShellScreenshotDirectoryButton">Choose EagleNET screenshot folder</button>
+                            <button type="button" class="program-shell-button-secondary" id="programShellScreenshotButton">Choose EagleNET screenshot files</button>
                         </div>
                         <p class="program-shell-choice-note" id="programShellScreenshotSupportText">Folder upload keeps nested quarter folders when the browser supports directory selection.</p>
                     </article>
@@ -9427,7 +9427,7 @@
         function setClssImportScreenshotSummary(message) {
             const summaryEl = document.getElementById('clssImportPngSummary');
             if (!summaryEl) return;
-            summaryEl.textContent = String(message || 'No screenshots selected.');
+            summaryEl.textContent = String(message || 'No EagleNET screenshots selected.');
         }
 
         function clearClssImportSpreadsheetPayload(options = {}) {
@@ -9492,7 +9492,7 @@
             const pngInput = document.getElementById('clssImportPngInput');
             if (pngInput) pngInput.value = '';
             clearClssImportTextInputs();
-            setClssImportScreenshotSummary('No screenshots selected.');
+            setClssImportScreenshotSummary('No EagleNET screenshots selected.');
 
             const preview = importApi.buildClssPreviewRowsFromTabularRows(rows, {
                 fileName: String(spreadsheetImport?.meta?.fileName || payload?.artifact?.name || '').trim() || null,
@@ -9900,21 +9900,21 @@
 
             const files = Array.from(input?.files || []);
             if (!files.length) {
-                summaryEl.textContent = 'No screenshots selected.';
+                summaryEl.textContent = 'No EagleNET screenshots selected.';
                 return;
             }
 
             const previewNames = files.slice(0, 4).map((file) => file.name);
             const remaining = files.length - previewNames.length;
             const suffix = remaining > 0 ? ` (+${remaining} more)` : '';
-            summaryEl.textContent = `${files.length} PNG screenshot${files.length === 1 ? '' : 's'} selected: ${previewNames.join(', ')}${suffix}. If the CLSS text boxes are empty, Parse Preview will OCR these screenshots automatically.`;
+            summaryEl.textContent = `${files.length} EagleNET PNG screenshot${files.length === 1 ? '' : 's'} selected: ${previewNames.join(', ')}${suffix}. If the CLSS text boxes are empty, Parse Preview will OCR these screenshots automatically.`;
 
             invalidateClssImportPreview();
         }
 
         async function parseClssImportPreview() {
             if (clssImportOcrInProgress) {
-                showToast('OCR is already running for uploaded screenshots. Please wait...', 'error');
+                showToast('OCR is already running for uploaded EagleNET screenshots. Please wait...', 'error');
                 return;
             }
             refreshFacultyAliasMap();
@@ -9944,7 +9944,7 @@
                 const ocrResult = await populateClssImportTextFromPngs();
                 if (!ocrResult.ok) {
                     renderClssImportReview([]);
-                    showToast(ocrResult.message || 'Could not extract text from PNG screenshots', 'error');
+                    showToast(ocrResult.message || 'Could not extract text from EagleNET PNG screenshots', 'error');
                     return;
                 }
 
@@ -9985,7 +9985,7 @@
             const scope = getClssImportScope();
 
             if (!files.length) {
-                return { ok: false, message: 'No PNG screenshots selected.' };
+                return { ok: false, message: 'No EagleNET PNG screenshots selected.' };
             }
 
             clssImportOcrInProgress = true;
@@ -10014,7 +10014,7 @@
                     if (applied.ok) {
                         summaryEl.textContent = `OCR complete for ${files.length} screenshot${files.length === 1 ? '' : 's'}. Review/parse the extracted text below.`;
                     } else {
-                        summaryEl.textContent = `OCR finished, but some screenshots need manual quarter routing.`;
+                        summaryEl.textContent = 'OCR finished, but some EagleNET screenshots need manual quarter routing.';
                     }
                 }
 
@@ -10035,7 +10035,7 @@
 
         function applyClssOcrResultsToImportInputs(ocrResults, scope) {
             if (!Array.isArray(ocrResults) || !ocrResults.length) {
-                return { ok: false, message: 'No OCR output returned from screenshots.' };
+                return { ok: false, message: 'No OCR output returned from the EagleNET screenshots.' };
             }
 
             if (scope !== 'all') {
@@ -10098,7 +10098,7 @@
             if (assignedCount === 0) {
                 return {
                     ok: false,
-                    message: 'OCR text was extracted, but batch mode could not determine which screenshots are Fall/Winter/Spring. Include quarter names in filenames or paste text into the quarter boxes.'
+                    message: 'OCR text was extracted, but batch mode could not determine which EagleNET screenshots are Fall/Winter/Spring. Include quarter names in filenames or paste text into the quarter boxes.'
                 };
             }
 
@@ -13494,8 +13494,8 @@
             <div class="modal-body">
                 <div class="clss-import-layout">
                     <div class="api-help">
-                        <strong>Chair-friendly CLSS import (screenshots or pasted text)</strong>
-                        This flow lets you preview and review courses first, then build either a <strong>schedule draft</strong> or <strong>workload draft</strong>. The app can read PNG screenshots automatically when you preview.
+                        <strong>Chair-friendly CLSS import (EagleNET screenshots or pasted text)</strong>
+                        This flow lets you preview and review courses first, then build either a <strong>schedule draft</strong> or <strong>workload draft</strong>. The app can read EagleNET classroom view PNG screenshots with enrollments automatically when you preview.
                         PDF import is intentionally deferred for now.
                     </div>
 
@@ -13506,7 +13506,7 @@
                         </div>
                         <div class="clss-import-step">
                             <span class="clss-import-step-number">2</span>
-                            <div><strong>Add CLSS pages</strong> Upload screenshots, paste CLSS text, or both.</div>
+                            <div><strong>Add source pages</strong> Upload EagleNET screenshots, paste CLSS text, or both.</div>
                         </div>
                         <div class="clss-import-step">
                             <span class="clss-import-step-number">3</span>
@@ -13520,14 +13520,14 @@
 
                     <div class="clss-import-top-row">
                         <div class="clss-import-panel" id="clssImportSourcePanel">
-                            <h4>Step 2: Add CLSS Screenshots or Text</h4>
+                            <h4>Step 2: Add EagleNET Screenshots or Text</h4>
                             <div class="clss-import-panel-intro">
-                                Upload screenshots first if you have them. You can also paste copied CLSS rows. The preview step will read screenshots automatically when the text boxes are blank.
+                                Upload EagleNET classroom view screenshots with enrollments first if you have them. You can also paste copied CLSS rows. The preview step will read those screenshots automatically when the text boxes are blank.
                             </div>
                             <div class="clss-import-field">
-                                <label for="clssImportPngInput">Upload CLSS screenshots (PNG, optional, multiple)</label>
+                                <label for="clssImportPngInput">Upload EagleNET classroom view screenshots with enrollments (PNG, optional, multiple)</label>
                                 <input type="file" id="clssImportPngInput" accept=".png,image/png" multiple onchange="handleClssImportPngSelection()">
-                                <div class="clss-import-file-list" id="clssImportPngSummary">No screenshots selected.</div>
+                                <div class="clss-import-file-list" id="clssImportPngSummary">No EagleNET screenshots selected.</div>
                             </div>
                             <div class="clss-import-field">
                                 <label for="clssImportSpreadsheetInput">Upload EagleNET spreadsheet (.csv, .xlsx, .xls)</label>
@@ -13536,7 +13536,7 @@
                             </div>
                             <div class="clss-import-field" id="clssImportSingleTextField">
                                 <label for="clssImportText">Paste copied CLSS text (optional)</label>
-                                <textarea id="clssImportText" placeholder="Paste CLSS rows here if you are not using screenshots, or to correct screenshot reading results..." oninput="invalidateClssImportPreview()"></textarea>
+                                <textarea id="clssImportText" placeholder="Paste CLSS rows here if you are not using EagleNET screenshots, or to correct OCR results..." oninput="invalidateClssImportPreview()"></textarea>
                             </div>
                             <div class="clss-import-field clss-import-hidden" id="clssImportBatchTextFields">
                                 <label>Paste CLSS text for all three quarters (one box per quarter)</label>
