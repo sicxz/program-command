@@ -135,70 +135,45 @@
             font-size: 15px;
         }
 
-        .program-shell-catalog {
+        .program-shell-select-wrap {
             display: grid;
-            gap: 10px;
+            gap: 12px;
+            max-width: 520px;
         }
 
-        .program-shell-catalog-heading {
-            font-size: 14px;
+        .program-shell-select-label {
+            font-size: 12px;
             font-weight: 700;
-            color: #334155;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #475569;
         }
 
-        .program-shell-catalog-list,
-        .program-shell-subsection-list {
-            display: grid;
-            gap: 8px;
-        }
-
-        .program-shell-subsection {
-            display: grid;
-            gap: 8px;
-            padding: 12px 0 0;
-            border-top: 1px solid rgba(148, 163, 184, 0.24);
-        }
-
-        .program-shell-subsection-title {
-            font-size: 13px;
-            font-weight: 700;
-            color: #1e293b;
-        }
-
-        .program-shell-program-button {
+        .program-shell-select {
             width: 100%;
-            display: grid;
-            gap: 2px;
-            text-align: left;
-            background: #ffffff;
-            border: 1px solid #d0d7de;
-            border-radius: 14px;
-            padding: 12px 14px;
-            cursor: pointer;
-            transition: border-color 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
-        }
-
-        .program-shell-program-button:hover {
-            border-color: rgba(161, 0, 34, 0.4);
-            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
-            transform: translateY(-1px);
-        }
-
-        .program-shell-program-button.selected {
-            border-color: #8a001d;
-            background: linear-gradient(180deg, #fff8f8, #ffffff);
-            box-shadow: 0 16px 30px rgba(138, 0, 29, 0.12);
-        }
-
-        .program-shell-program-label {
-            font-size: 18px;
-            font-weight: 700;
+            border: 1px solid #cbd5e1;
+            border-radius: 16px;
+            padding: 14px 16px;
+            font-size: 16px;
             color: #0f172a;
+            background: #ffffff;
+        }
+
+        .program-shell-select:focus {
+            outline: 2px solid rgba(138, 0, 29, 0.18);
+            outline-offset: 2px;
+            border-color: #8a001d;
         }
 
         .program-shell-program-meta {
-            font-size: 12px;
-            color: #64748b;
+            margin: 0;
+            padding: 14px 16px;
+            border-radius: 16px;
+            background: #f8fafc;
+            border: 1px solid #dbe4ee;
+            font-size: 13px;
+            line-height: 1.5;
+            color: #475569;
         }
 
         .program-shell-auth-summary {
@@ -371,6 +346,26 @@
         .program-shell-chooser-meta {
             color: #475569;
             font-size: 14px;
+        }
+
+        .program-shell-panel[hidden] {
+            display: none;
+        }
+
+        .program-shell-debug-panel {
+            margin-top: 2px;
+        }
+
+        .program-shell-debug-summary {
+            margin: 0;
+            padding: 12px 14px;
+            border-radius: 14px;
+            border: 1px dashed #cbd5e1;
+            background: #f8fafc;
+            color: #334155;
+            font-size: 12px;
+            line-height: 1.5;
+            white-space: pre-wrap;
         }
 
         .container {
@@ -4687,6 +4682,8 @@
     <script src="js/department-profile.js"></script>
     <script type="module" src="js/supabase-config.js"></script>
     <script src="js/auth-service.js"></script>
+    <script src="js/eaglenet-compare.js"></script>
+    <script src="js/eaglenet-import.js"></script>
     <script src="js/program-shell.js"></script>
     <script src="js/auth-guard.js"></script>
     <script src="js/dirty-state-tracker.js"></script>
@@ -4714,8 +4711,14 @@
             <section class="program-shell-card hero">
                 <div class="program-shell-eyebrow">Program Command</div>
                 <h1 class="program-shell-title">Welcome to Program Command</h1>
-                <p class="program-shell-copy">Choose your program, clear the account gate, and we will route you into an existing workspace or the right onboarding path for a new program.</p>
-                <div id="programShellProgramList"></div>
+                <p class="program-shell-copy">Choose a program from a simple list, authenticate, and then open the existing workspace or start a new one.</p>
+                <div class="program-shell-select-wrap">
+                    <label class="program-shell-select-label" for="programShellProgramSelect">Program</label>
+                    <select id="programShellProgramSelect" class="program-shell-select">
+                        <option value="">Choose a program</option>
+                    </select>
+                    <p class="program-shell-program-meta" id="programShellProgramMeta">Choose a program to unlock the right workspace path.</p>
+                </div>
             </section>
 
             <section class="program-shell-card">
@@ -4752,9 +4755,18 @@
 
             <section class="program-shell-card program-shell-chooser" id="programShellChooser" hidden>
                 <div class="program-shell-eyebrow">Step 3</div>
-                <h2 style="margin:0; font-size:1.75rem; color:#0f172a;">Start a new program workspace</h2>
+                <h2 style="margin:0; font-size:1.75rem; color:#0f172a;" id="programShellChooserTitle">Choose workspace path</h2>
                 <p class="program-shell-chooser-meta" id="programShellChooserMeta"></p>
-                <div class="program-shell-choice-grid">
+                <article class="program-shell-choice program-shell-panel" id="programShellExistingPanel" hidden>
+                    <span class="program-shell-choice-tag">Existing Workspace</span>
+                    <h3>Open current workspace</h3>
+                    <p id="programShellExistingMeta">An existing program workspace was detected for this selection.</p>
+                    <div class="program-shell-actions">
+                        <button type="button" class="program-shell-button" id="programShellOpenExistingButton">Open existing workspace</button>
+                    </div>
+                </article>
+
+                <div class="program-shell-choice-grid" id="programShellNewWorkspacePanel">
                     <article class="program-shell-choice">
                         <span class="program-shell-choice-tag">MVP Ready</span>
                         <h3>Manual setup</h3>
@@ -4769,32 +4781,44 @@
                     <article class="program-shell-choice">
                         <span class="program-shell-choice-tag">MVP Ready</span>
                         <h3>Spreadsheet upload</h3>
-                        <p>Capture the current course listing export and carry that program context into onboarding.</p>
+                        <p>Capture the current EagleNET export, review the parsed rows, and build the first grid for this program.</p>
                         <ul>
                             <li>Use a `.csv`, `.xlsx`, or `.xls` export from EagleNET or a department workbook.</li>
-                            <li>Import mapping and seeded schedule generation stay in issue #210.</li>
+                            <li>We parse the sheet first, then ask for any missing clarification before the draft is built.</li>
                         </ul>
                         <button type="button" class="program-shell-button" id="programShellSpreadsheetButton">Choose spreadsheet</button>
                     </article>
 
                     <article class="program-shell-choice">
-                        <span class="program-shell-choice-tag">Follow-on</span>
+                        <span class="program-shell-choice-tag">Pilot</span>
                         <h3>Screenshot upload</h3>
-                        <p>Capture screenshots from class search with the enrollment view and preserve the handoff context now.</p>
+                        <p>Upload EagleNET classroom view screenshots with enrollments, review anything unclear, and then build the first grid for this program.</p>
                         <ul>
                             <li>Accept a screenshot folder when your browser can preserve nested quarter folders.</li>
                             <li>Fall back to choosing multiple screenshot files when folder upload is not available.</li>
-                            <li>Parsing and schedule seeding remain staged after the spreadsheet path.</li>
+                            <li>Runs OCR immediately, then asks for any missing clarification before the grid is built.</li>
                         </ul>
                         <div class="program-shell-choice-actions">
-                            <button type="button" class="program-shell-button-secondary" id="programShellScreenshotDirectoryButton">Choose screenshot folder</button>
-                            <button type="button" class="program-shell-button-secondary" id="programShellScreenshotButton">Choose screenshot files</button>
+                            <button type="button" class="program-shell-button-secondary" id="programShellScreenshotDirectoryButton">Choose EagleNET screenshot folder</button>
+                            <button type="button" class="program-shell-button-secondary" id="programShellScreenshotButton">Choose EagleNET screenshot files</button>
                         </div>
                         <p class="program-shell-choice-note" id="programShellScreenshotSupportText">Folder upload keeps nested quarter folders when the browser supports directory selection.</p>
                     </article>
                 </div>
+
+                <article class="program-shell-choice program-shell-debug-panel" id="programShellDebugPanel" hidden>
+                    <span class="program-shell-choice-tag">Debug</span>
+                    <h3>Local shell tools</h3>
+                    <p>Use these localhost-only tools to reset a program workspace, clear a pending upload review, or copy the shell state for debugging.</p>
+                    <p class="program-shell-debug-summary" id="programShellDebugSummary">Choose a program to inspect workspace state.</p>
+                    <div class="program-shell-choice-actions">
+                        <button type="button" class="program-shell-button-secondary" id="programShellResetProgramButton">Reset selected workspace</button>
+                        <button type="button" class="program-shell-button-secondary" id="programShellClearPendingImportButton">Clear pending review</button>
+                        <button type="button" class="program-shell-button-secondary" id="programShellCopyDebugButton">Copy debug snapshot</button>
+                    </div>
+                </article>
                 <div class="program-shell-actions">
-                    <button type="button" class="program-shell-button-secondary" id="programShellBackButton" hidden>Back to program selection</button>
+                    <button type="button" class="program-shell-button-secondary" id="programShellBackButton" hidden>Choose another program</button>
                 </div>
             </section>
         </div>
@@ -4956,7 +4980,7 @@
                         <span class="btn-add-icon">+</span> Add Course
                     </button>
                     <button class="btn-ewu-accent btn-add-course-main" onclick="openClssImportModal()">
-                        📥 Import CLSS
+                        📥 Upload Data
                     </button>
                     <button class="btn-ewu-accent btn-add-course-main" onclick="openWorkloadReviewFromScheduler()">
                         👥 Make Workloads
@@ -5060,6 +5084,8 @@
 
         const AY_SETUP_STORAGE_KEY = 'programCommandAySetup';
         let activeDepartmentProfile = null;
+        let activeDepartmentProfileId = 'design-v1';
+        let activeDepartmentProfileSource = 'embedded-default';
         let scheduleStorageKeyPrefix = 'designSchedulerData_';
         const DEFAULT_CLSS_IMPORT_MATCHING_ORDER = [
             'course+section+instructor+quarter',
@@ -5442,6 +5468,8 @@
             try {
                 const snapshot = await manager.initialize();
                 activeDepartmentProfile = snapshot?.profile || manager.getDefaultProfile?.() || null;
+                activeDepartmentProfileId = String(snapshot?.activeProfileId || activeDepartmentProfile?.id || 'design-v1').trim() || 'design-v1';
+                activeDepartmentProfileSource = String(snapshot?.source || '').trim() || 'embedded-default';
                 window.activeDepartmentProfile = activeDepartmentProfile;
                 if (window.StateManager?.set) {
                     window.StateManager.set('departmentProfile', activeDepartmentProfile);
@@ -5468,6 +5496,12 @@
                 console.warn('Could not initialize department profile context:', error);
                 return null;
             }
+        }
+
+        function resetScheduleDataToEmpty() {
+            scheduleData.fall = {};
+            scheduleData.winter = {};
+            scheduleData.spring = {};
         }
 
         function normalizeFacultyAliasArtifacts(name) {
@@ -6400,6 +6434,45 @@
 
             // Auto-remove after 5 seconds
             setTimeout(() => notification.remove(), 5000);
+        }
+
+        async function resumePendingOnboardingImport() {
+            const importApi = window.ProgramCommandImport;
+            if (!importApi || typeof importApi.readPendingOnboardingImport !== 'function') {
+                return false;
+            }
+
+            const pendingImport = importApi.readPendingOnboardingImport();
+            if (!pendingImport || !['spreadsheet', 'screenshot'].includes(String(pendingImport.source || '').trim())) {
+                return false;
+            }
+
+            const currentProfileId = window.DepartmentProfileManager?.getStoredProfileId?.();
+            if (pendingImport.profileId && currentProfileId && String(pendingImport.profileId) !== String(currentProfileId)) {
+                return false;
+            }
+
+            try {
+                openClssImportModal();
+                if (pendingImport.source === 'screenshot') {
+                    await applyClssScreenshotPayload(pendingImport, { announce: false });
+                } else {
+                    applyClssSpreadsheetPayload(pendingImport, { announce: false });
+                }
+                if (typeof importApi.clearPendingOnboardingImport === 'function') {
+                    importApi.clearPendingOnboardingImport();
+                }
+                const fileName = String(pendingImport?.artifact?.name || pendingImport?.artifactBatch?.rootFolderName || '').trim();
+                const sourceLabel = pendingImport.source === 'screenshot' ? 'screenshot' : 'spreadsheet';
+                showToast(fileName
+                    ? `Opened ${sourceLabel} review from ${fileName}`
+                    : `Opened ${sourceLabel} review`);
+                return true;
+            } catch (error) {
+                console.error('Could not resume onboarding import handoff:', error);
+                showToast(error?.message || `Could not resume the onboarding ${pendingImport.source || 'import'}.`, 'error');
+                return false;
+            }
         }
 
         function renderSchedule(quarter) {
@@ -9371,9 +9444,250 @@
         let clssImportOcrLibraryPromise = null;
         let clssImportPriorYearPlacementIndexCache = new Map();
         let clssImportLastApplyReport = null;
+        let clssImportSpreadsheetPayload = null;
 
         function getClssImportRoomOptionList() {
             return getSchedulerRoomOptionList();
+        }
+
+        function setClssImportSpreadsheetSummary(message) {
+            const summaryEl = document.getElementById('clssImportSpreadsheetSummary');
+            if (!summaryEl) return;
+            summaryEl.textContent = String(message || 'No spreadsheet selected.');
+        }
+
+        function setClssImportScreenshotSummary(message) {
+            const summaryEl = document.getElementById('clssImportPngSummary');
+            if (!summaryEl) return;
+            summaryEl.textContent = String(message || 'No EagleNET screenshots selected.');
+        }
+
+        function clearClssImportSpreadsheetPayload(options = {}) {
+            clssImportSpreadsheetPayload = null;
+            setClssImportSpreadsheetSummary('No spreadsheet selected.');
+            if (options?.clearInput) {
+                const input = document.getElementById('clssImportSpreadsheetInput');
+                if (input) input.value = '';
+            }
+        }
+
+        function clearClssImportTextInputs() {
+            const singleText = document.getElementById('clssImportText');
+            const fallText = document.getElementById('clssImportTextFall');
+            const winterText = document.getElementById('clssImportTextWinter');
+            const springText = document.getElementById('clssImportTextSpring');
+            if (singleText) singleText.value = '';
+            if (fallText) fallText.value = '';
+            if (winterText) winterText.value = '';
+            if (springText) springText.value = '';
+        }
+
+        function getClssImportAllowedCoursePrefixes() {
+            const prefixes = [];
+            const shellSelection = window.ProgramCommandShell?.readSelection?.();
+            if (shellSelection?.workspaceKind === 'program' && shellSelection?.suggestedCode) {
+                prefixes.push(String(shellSelection.suggestedCode || '').trim().toUpperCase());
+            }
+            return [...new Set(prefixes.filter(Boolean))];
+        }
+
+        function primeClssImportScopeFromRows(rows) {
+            const quarters = [...new Set((Array.isArray(rows) ? rows : [])
+                .map((row) => String(row?.targetQuarter || row?.reviewQuarter || '').trim().toLowerCase())
+                .filter((value) => CLSS_IMPORT_QUARTERS.includes(value)))];
+
+            const scopeSelect = document.getElementById('clssImportScope');
+            const quarterSelect = document.getElementById('clssImportQuarter');
+            if (scopeSelect) {
+                scopeSelect.value = quarters.length > 1 ? 'all' : 'single';
+            }
+            if (quarterSelect && quarters.length === 1) {
+                quarterSelect.value = quarters[0];
+            }
+            toggleClssImportInputMode();
+        }
+
+        function applyClssSpreadsheetPayload(payload, options = {}) {
+            const importApi = window.ProgramCommandImport;
+            if (!importApi || typeof importApi.buildClssPreviewRowsFromTabularRows !== 'function') {
+                throw new Error('Spreadsheet import runtime is unavailable.');
+            }
+
+            const spreadsheetImport = payload?.spreadsheetImport && typeof payload.spreadsheetImport === 'object'
+                ? payload.spreadsheetImport
+                : payload;
+            const rows = Array.isArray(spreadsheetImport?.rows) ? spreadsheetImport.rows : [];
+            if (!rows.length) {
+                throw new Error('Spreadsheet import did not contain any rows.');
+            }
+
+            const pngInput = document.getElementById('clssImportPngInput');
+            if (pngInput) pngInput.value = '';
+            clearClssImportTextInputs();
+            setClssImportScreenshotSummary('No EagleNET screenshots selected.');
+
+            const preview = importApi.buildClssPreviewRowsFromTabularRows(rows, {
+                fileName: String(spreadsheetImport?.meta?.fileName || payload?.artifact?.name || '').trim() || null,
+                defaultQuarter: (window.StateManager?.get('currentQuarter')) || 'spring',
+                dayPatterns: getSchedulerDayPatterns(),
+                timeSlots: getSchedulerTimeSlots(),
+                roomOptions: getClssImportRoomOptionList(),
+                resolveCourseCode: resolveClssImportCourseCode,
+                resolveFacultyName: getCanonicalFacultyName,
+                allowedCoursePrefixes: getClssImportAllowedCoursePrefixes()
+            });
+
+            clssImportSpreadsheetPayload = {
+                artifact: payload?.artifact || null,
+                spreadsheetImport,
+                meta: preview.meta
+            };
+            primeClssImportScopeFromRows(preview.rows);
+            applyClssPriorYearAutoSuggestionsToRows(preview.rows, getClssImportTargetAcademicYear());
+            clssImportPreviewRows = preview.rows;
+            renderClssImportReview(clssImportPreviewRows, preview.meta);
+
+            const fileName = String(spreadsheetImport?.meta?.fileName || payload?.artifact?.name || '').trim();
+            const quarterCounts = preview.meta?.quarterCounts && typeof preview.meta.quarterCounts === 'object'
+                ? Object.entries(preview.meta.quarterCounts)
+                    .filter(([, count]) => Number(count) > 0)
+                    .map(([quarter, count]) => `${quarter.charAt(0).toUpperCase() + quarter.slice(1)} ${count}`)
+                    .join(', ')
+                : '';
+            setClssImportSpreadsheetSummary(
+                fileName
+                    ? `${fileName}: ${preview.rows.length} parsed row${preview.rows.length === 1 ? '' : 's'}${quarterCounts ? ` (${quarterCounts})` : ''}.`
+                    : `${preview.rows.length} parsed spreadsheet row${preview.rows.length === 1 ? '' : 's'}${quarterCounts ? ` (${quarterCounts})` : ''}.`
+            );
+
+            if (options?.announce !== false) {
+                    showToast(`Loaded ${preview.rows.length} spreadsheet row${preview.rows.length === 1 ? '' : 's'} for upload review`);
+            }
+
+            return preview;
+        }
+
+        async function applyClssScreenshotPayload(payload, options = {}) {
+            const importApi = window.ProgramCommandImport;
+            if (!importApi || typeof importApi.buildClssPreviewRowsFromScreenshotImport !== 'function') {
+                throw new Error('Screenshot OCR import runtime is unavailable.');
+            }
+
+            const screenshotImport = payload?.screenshotImport && typeof payload.screenshotImport === 'object'
+                ? payload.screenshotImport
+                : payload;
+            const quarterTexts = screenshotImport?.quarterTexts && typeof screenshotImport.quarterTexts === 'object'
+                ? screenshotImport.quarterTexts
+                : {};
+            const scope = screenshotImport?.scope === 'single' ? 'single' : 'all';
+            const targetQuarter = CLSS_IMPORT_QUARTERS.includes(screenshotImport?.targetQuarter)
+                ? screenshotImport.targetQuarter
+                : ((window.StateManager?.get('currentQuarter')) || 'spring');
+            const singleText = String(screenshotImport?.singleText || '').trim();
+            const hasQuarterText = CLSS_IMPORT_QUARTERS.some((quarter) => String(quarterTexts?.[quarter] || '').trim());
+            if (!singleText && !hasQuarterText) {
+                throw new Error('Screenshot OCR import did not yield any readable source text.');
+            }
+
+            const scopeSelect = document.getElementById('clssImportScope');
+            const quarterSelect = document.getElementById('clssImportQuarter');
+            const singleTextInput = document.getElementById('clssImportText');
+            const fallText = document.getElementById('clssImportTextFall');
+            const winterText = document.getElementById('clssImportTextWinter');
+            const springText = document.getElementById('clssImportTextSpring');
+            const pngInput = document.getElementById('clssImportPngInput');
+            const artifactBatch = payload?.artifactBatch && typeof payload.artifactBatch === 'object'
+                ? payload.artifactBatch
+                : null;
+
+            clearClssImportSpreadsheetPayload();
+            if (pngInput) pngInput.value = '';
+            clearClssImportTextInputs();
+
+            if (scopeSelect) {
+                scopeSelect.value = scope;
+            }
+            if (quarterSelect) {
+                quarterSelect.value = targetQuarter;
+            }
+            toggleClssImportInputMode();
+
+            if (scope === 'single') {
+                if (singleTextInput) singleTextInput.value = singleText;
+            } else {
+                if (fallText) fallText.value = String(quarterTexts.fall || '').trim();
+                if (winterText) winterText.value = String(quarterTexts.winter || '').trim();
+                if (springText) springText.value = String(quarterTexts.spring || '').trim();
+            }
+
+            const rootFolderName = String(artifactBatch?.rootFolderName || '').trim();
+            const extractedTextCount = Number(screenshotImport?.meta?.extractedTextCount) || 0;
+            const warningCount = Array.isArray(screenshotImport?.meta?.warnings) ? screenshotImport.meta.warnings.length : 0;
+            setClssImportScreenshotSummary(
+                rootFolderName
+                    ? `${rootFolderName}: OCR extracted text from ${extractedTextCount || 0} screenshot${extractedTextCount === 1 ? '' : 's'}${warningCount ? ` (${warningCount} warning${warningCount === 1 ? '' : 's'})` : ''}.`
+                    : `Resumed screenshot OCR import${extractedTextCount ? ` from ${extractedTextCount} screenshot${extractedTextCount === 1 ? '' : 's'}` : ''}${warningCount ? ` (${warningCount} warning${warningCount === 1 ? '' : 's'})` : ''}.`
+            );
+
+            invalidateClssImportPreview();
+
+            const preview = importApi.buildClssPreviewRowsFromScreenshotImport(screenshotImport, {
+                defaultQuarter: (window.StateManager?.get('currentQuarter')) || 'spring',
+                dayPatterns: getSchedulerDayPatterns(),
+                timeSlots: getSchedulerTimeSlots(),
+                roomOptions: getClssImportRoomOptionList(),
+                resolveCourseCode: resolveClssImportCourseCode,
+                resolveFacultyName: getCanonicalFacultyName,
+                allowedCoursePrefixes: getClssImportAllowedCoursePrefixes()
+            });
+
+            primeClssImportScopeFromRows(preview.rows);
+            applyClssPriorYearAutoSuggestionsToRows(preview.rows, getClssImportTargetAcademicYear());
+            clssImportPreviewRows = preview.rows;
+            renderClssImportReview(clssImportPreviewRows, preview.meta);
+
+            if (options?.announce !== false) {
+                if (preview.rows.length) {
+                    showToast(`Loaded ${preview.rows.length} screenshot OCR row${preview.rows.length === 1 ? '' : 's'} for upload review`);
+                } else {
+                    showToast('Screenshot OCR resumed, but no review rows could be extracted automatically.', 'error');
+                }
+            }
+
+            return preview;
+        }
+
+        async function handleClssImportSpreadsheetSelection(event) {
+            const file = event?.target?.files?.[0];
+            if (!file) {
+                clearClssImportSpreadsheetPayload();
+                return;
+            }
+
+            const importApi = window.ProgramCommandImport;
+            if (!importApi || typeof importApi.readTabularRowsFromFile !== 'function') {
+                setClssImportSpreadsheetSummary('Spreadsheet import runtime is unavailable.');
+                showToast('Spreadsheet import runtime is unavailable.', 'error');
+                return;
+            }
+
+            setClssImportSpreadsheetSummary(`Parsing ${file.name}...`);
+            try {
+                const spreadsheetImport = await importApi.readTabularRowsFromFile(file);
+                applyClssSpreadsheetPayload({
+                    artifact: {
+                        name: file.name,
+                        size: file.size,
+                        type: file.type,
+                        capturedAt: new Date().toISOString()
+                    },
+                    spreadsheetImport
+                });
+            } catch (error) {
+                clearClssImportSpreadsheetPayload();
+                setClssImportSpreadsheetSummary(error?.message || 'Could not parse the selected spreadsheet.');
+                showToast(error?.message || 'Could not parse the selected spreadsheet.', 'error');
+            }
         }
 
         function openClssImportModal() {
@@ -9386,6 +9700,9 @@
             refreshClssImportModeUi();
             toggleClssImportInputMode();
             handleClssImportPngSelection();
+            if (!clssImportSpreadsheetPayload) {
+                setClssImportSpreadsheetSummary('No spreadsheet selected.');
+            }
             renderClssImportResultsPanel(readClssImportLastReport());
             modal?.classList.add('active');
         }
@@ -9437,19 +9754,19 @@
             const isWorkloadsMode = mode === 'workloads';
 
             if (applyBtn) {
-                applyBtn.textContent = isWorkloadsMode ? 'Build Workloads' : 'Build Schedule Draft';
+                applyBtn.textContent = isWorkloadsMode ? 'Build Workloads' : 'Build Grid Draft';
             }
 
             if (previewBtn) {
                 previewBtn.textContent = isWorkloadsMode
                     ? 'Preview Workload Rows'
-                    : 'Preview Courses';
+                    : 'Review Parsed Rows';
             }
 
             if (helpEl) {
                 helpEl.textContent = isWorkloadsMode
                     ? 'Creates a chair review list for workload setup. It will not place courses into rooms/times in the scheduler.'
-                    : 'Creates a draft schedule from CLSS rows (grid, online, and arranged sections) after you review the rows.';
+                    : 'Creates a draft grid from uploaded program rows (grid, online, and arranged sections) after you review the rows.';
             }
 
             if (resolveColHeader) {
@@ -9476,13 +9793,13 @@
             if (reviewGuide) {
                 reviewGuide.textContent = isWorkloadsMode
                     ? 'Step 3: Check course names, instructors, quarters, and placement type (in-person / online / arranged). You do not need rooms or times for workloads mode.'
-                    : 'Step 3: Review the rows before building a schedule draft. Ready rows will place automatically. Rows that still need help can be adjusted here or sent to the displaced tray.';
+                    : 'Step 3: Answer any missing placement questions before building the grid draft. Ready rows will place automatically. Rows that still need help can be adjusted here or sent to the displaced tray.';
             }
 
             if (actionHelp) {
                 actionHelp.textContent = isWorkloadsMode
                     ? 'Step 4: Click Build Workloads to open the workload review workflow for the selected academic year.'
-                    : 'Step 4: Click Build Schedule Draft to write reviewed rows into the scheduler draft. Nothing changes until you click that button.';
+                    : 'Step 4: Click Build Grid Draft to write reviewed rows into the scheduler draft. Nothing changes until you click that button.';
             }
 
             refreshClssImportPreviewReview();
@@ -9615,21 +9932,21 @@
 
             const files = Array.from(input?.files || []);
             if (!files.length) {
-                summaryEl.textContent = 'No screenshots selected.';
+                summaryEl.textContent = 'No EagleNET screenshots selected.';
                 return;
             }
 
             const previewNames = files.slice(0, 4).map((file) => file.name);
             const remaining = files.length - previewNames.length;
             const suffix = remaining > 0 ? ` (+${remaining} more)` : '';
-            summaryEl.textContent = `${files.length} PNG screenshot${files.length === 1 ? '' : 's'} selected: ${previewNames.join(', ')}${suffix}. If the CLSS text boxes are empty, Parse Preview will OCR these screenshots automatically.`;
+            summaryEl.textContent = `${files.length} EagleNET PNG screenshot${files.length === 1 ? '' : 's'} selected: ${previewNames.join(', ')}${suffix}. If the source text boxes are empty, Review Parsed Rows will OCR these screenshots automatically.`;
 
             invalidateClssImportPreview();
         }
 
         async function parseClssImportPreview() {
             if (clssImportOcrInProgress) {
-                showToast('OCR is already running for uploaded screenshots. Please wait...', 'error');
+                showToast('OCR is already running for uploaded EagleNET screenshots. Please wait...', 'error');
                 return;
             }
             refreshFacultyAliasMap();
@@ -9637,12 +9954,29 @@
             const pngCount = (document.getElementById('clssImportPngInput')?.files || []).length;
             let parseSources = getClssImportParseSources();
             let hasAnyText = parseSources.some((source) => source.text);
+            const hasSpreadsheetRows = Array.isArray(clssImportSpreadsheetPayload?.spreadsheetImport?.rows)
+                && clssImportSpreadsheetPayload.spreadsheetImport.rows.length > 0;
+
+            if (!hasAnyText && pngCount === 0 && hasSpreadsheetRows) {
+                const preview = applyClssSpreadsheetPayload(clssImportSpreadsheetPayload, { announce: false });
+                if (!preview.rows.length) {
+                    renderClssImportReview([]);
+                    showToast('Spreadsheet import did not yield any review rows.', 'error');
+                    return;
+                }
+
+                const effectiveRows = clssImportPreviewRows.map((row) => getClssImportRowEffectiveState(row));
+                const readyCount = effectiveRows.filter((row) => row.effectiveStatus === 'ready').length;
+                const needsReviewCount = effectiveRows.filter((row) => row.effectiveStatus === 'needs-review').length;
+                showToast(`Loaded ${clssImportPreviewRows.length} spreadsheet row${clssImportPreviewRows.length === 1 ? '' : 's'} (${readyCount} ready${needsReviewCount ? `, ${needsReviewCount} needs review` : ''})`);
+                return;
+            }
 
             if (!hasAnyText && pngCount > 0) {
                 const ocrResult = await populateClssImportTextFromPngs();
                 if (!ocrResult.ok) {
                     renderClssImportReview([]);
-                    showToast(ocrResult.message || 'Could not extract text from PNG screenshots', 'error');
+                    showToast(ocrResult.message || 'Could not extract text from EagleNET PNG screenshots', 'error');
                     return;
                 }
 
@@ -9653,9 +9987,9 @@
             if (!hasAnyText) {
                 renderClssImportReview([]);
                 if (pngCount > 0) {
-                    showToast('PNG selected, but no OCR text was produced. Try a clearer screenshot or paste CLSS text.', 'error');
+                    showToast('PNG selected, but no OCR text was produced. Try a clearer screenshot or paste source text.', 'error');
                 } else {
-                    showToast('Paste CLSS/OCR text to parse a review preview', 'error');
+                    showToast('Paste source/OCR text to review parsed rows', 'error');
                 }
                 return;
             }
@@ -9666,7 +10000,7 @@
             renderClssImportReview(clssImportPreviewRows, parseResult.meta);
 
             if (!clssImportPreviewRows.length) {
-                showToast('No CLSS-style rows detected. Check pasted text formatting.', 'error');
+                showToast('No recognizable course rows were detected. Check the OCR or pasted text formatting.', 'error');
                 return;
             }
 
@@ -9683,7 +10017,7 @@
             const scope = getClssImportScope();
 
             if (!files.length) {
-                return { ok: false, message: 'No PNG screenshots selected.' };
+                return { ok: false, message: 'No EagleNET PNG screenshots selected.' };
             }
 
             clssImportOcrInProgress = true;
@@ -9712,7 +10046,7 @@
                     if (applied.ok) {
                         summaryEl.textContent = `OCR complete for ${files.length} screenshot${files.length === 1 ? '' : 's'}. Review/parse the extracted text below.`;
                     } else {
-                        summaryEl.textContent = `OCR finished, but some screenshots need manual quarter routing.`;
+                        summaryEl.textContent = 'OCR finished, but some EagleNET screenshots need manual quarter routing.';
                     }
                 }
 
@@ -9720,7 +10054,7 @@
             } catch (error) {
                 console.error('CLSS OCR failed:', error);
                 if (summaryEl) {
-                    summaryEl.textContent = 'OCR failed. You can still paste OCR/CLSS text manually.';
+                    summaryEl.textContent = 'OCR failed. You can still paste source text manually.';
                 }
                 return {
                     ok: false,
@@ -9733,13 +10067,13 @@
 
         function applyClssOcrResultsToImportInputs(ocrResults, scope) {
             if (!Array.isArray(ocrResults) || !ocrResults.length) {
-                return { ok: false, message: 'No OCR output returned from screenshots.' };
+                return { ok: false, message: 'No OCR output returned from the EagleNET screenshots.' };
             }
 
             if (scope !== 'all') {
                 const singleTextEl = document.getElementById('clssImportText');
                 if (!singleTextEl) {
-                    return { ok: false, message: 'CLSS import text input not found.' };
+                    return { ok: false, message: 'Upload review text input not found.' };
                 }
 
                 const combinedText = ocrResults
@@ -9796,7 +10130,7 @@
             if (assignedCount === 0) {
                 return {
                     ok: false,
-                    message: 'OCR text was extracted, but batch mode could not determine which screenshots are Fall/Winter/Spring. Include quarter names in filenames or paste text into the quarter boxes.'
+                    message: 'OCR text was extracted, but batch mode could not determine which EagleNET screenshots are Fall/Winter/Spring. Include quarter names in filenames or paste text into the quarter boxes.'
                 };
             }
 
@@ -12908,8 +13242,12 @@
             // Migrate old schedule data format to year-aware format
             migrateOldScheduleData();
 
-            // Load saved schedule data from localStorage
-            loadScheduleData();
+            // Load saved schedule data from localStorage. Non-seeded program
+            // profiles should start empty until the user builds their first grid.
+            const hasSavedScheduleData = loadScheduleData();
+            if (!hasSavedScheduleData && activeDepartmentProfileId !== 'design-v1') {
+                resetScheduleDataToEmpty();
+            }
 
             // Check for imported schedule from schedule builder
             checkForImportedSchedule();
@@ -12948,6 +13286,7 @@
             renderConflictSolver(initialQuarter);
             renderRecommendations(initialQuarter);
             updateStats(initialQuarter);
+            await resumePendingOnboardingImport();
         }
 
         // Bridge module-scoped state/functions for legacy inline handlers and
@@ -12976,6 +13315,7 @@
             openClssImportModal,
             closeClssImportModal,
             handleClssImportPngSelection,
+            handleClssImportSpreadsheetSelection,
             invalidateClssImportPreview,
             invalidateClssImportPriorYearPlacementCache,
             refreshClssImportPreviewReview,
@@ -13180,33 +13520,33 @@
         </div>
     </div>
 
-    <!-- CLSS Import Modal -->
+    <!-- Upload Review Modal -->
     <div class="modal-overlay" id="clssImportModal" onclick="closeClssImportModal(event)">
         <div class="modal-content clss-import-modal" onclick="event.stopPropagation()">
             <div class="modal-header">
-                <h2 class="modal-title">Import CLSS Courses</h2>
+                <h2 class="modal-title">Review Uploaded Program Data</h2>
                 <button class="modal-close" onclick="closeClssImportModal()">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="clss-import-layout">
                     <div class="api-help">
-                        <strong>Chair-friendly CLSS import (screenshots or pasted text)</strong>
-                        This flow lets you preview and review courses first, then build either a <strong>schedule draft</strong> or <strong>workload draft</strong>. The app can read PNG screenshots automatically when you preview.
+                        <strong>Chair-friendly upload review (EagleNET screenshots, spreadsheets, or pasted text)</strong>
+                        This flow lets you review parsed rows first, answer any missing placement questions, then build either a <strong>grid draft</strong> or <strong>workload draft</strong>. The app can read EagleNET classroom view PNG screenshots with enrollments automatically when you preview.
                         PDF import is intentionally deferred for now.
                     </div>
 
-                    <div class="clss-import-steps" aria-label="CLSS import steps">
+                    <div class="clss-import-steps" aria-label="Upload review steps">
                         <div class="clss-import-step">
                             <span class="clss-import-step-number">1</span>
                             <div><strong>Choose goal</strong> Pick Schedule or Workloads, then choose academic year and scope.</div>
                         </div>
                         <div class="clss-import-step">
                             <span class="clss-import-step-number">2</span>
-                            <div><strong>Add CLSS pages</strong> Upload screenshots, paste CLSS text, or both.</div>
+                            <div><strong>Add source pages</strong> Upload EagleNET screenshots, spreadsheets, or pasted text.</div>
                         </div>
                         <div class="clss-import-step">
                             <span class="clss-import-step-number">3</span>
-                            <div><strong>Review courses</strong> Confirm what will be built before anything is written.</div>
+                            <div><strong>Clarify rows</strong> Confirm what will be built before anything is written.</div>
                         </div>
                         <div class="clss-import-step">
                             <span class="clss-import-step-number">4</span>
@@ -13216,33 +13556,38 @@
 
                     <div class="clss-import-top-row">
                         <div class="clss-import-panel" id="clssImportSourcePanel">
-                            <h4>Step 2: Add CLSS Screenshots or Text</h4>
+                            <h4>Step 2: Add EagleNET Uploads or Text</h4>
                             <div class="clss-import-panel-intro">
-                                Upload screenshots first if you have them. You can also paste copied CLSS rows. The preview step will read screenshots automatically when the text boxes are blank.
+                                Upload EagleNET classroom view screenshots with enrollments, an EagleNET spreadsheet export, or pasted source text. The review step will ask for any missing clarification before the grid is built.
                             </div>
                             <div class="clss-import-field">
-                                <label for="clssImportPngInput">Upload CLSS screenshots (PNG, optional, multiple)</label>
+                                <label for="clssImportPngInput">Upload EagleNET classroom view screenshots with enrollments (PNG, optional, multiple)</label>
                                 <input type="file" id="clssImportPngInput" accept=".png,image/png" multiple onchange="handleClssImportPngSelection()">
-                                <div class="clss-import-file-list" id="clssImportPngSummary">No screenshots selected.</div>
+                                <div class="clss-import-file-list" id="clssImportPngSummary">No EagleNET screenshots selected.</div>
+                            </div>
+                            <div class="clss-import-field">
+                                <label for="clssImportSpreadsheetInput">Upload EagleNET spreadsheet (.csv, .xlsx, .xls)</label>
+                                <input type="file" id="clssImportSpreadsheetInput" accept=".csv,.xlsx,.xls" onchange="handleClssImportSpreadsheetSelection(event)">
+                                <div class="clss-import-file-list" id="clssImportSpreadsheetSummary">No spreadsheet selected.</div>
                             </div>
                             <div class="clss-import-field" id="clssImportSingleTextField">
-                                <label for="clssImportText">Paste copied CLSS text (optional)</label>
-                                <textarea id="clssImportText" placeholder="Paste CLSS rows here if you are not using screenshots, or to correct screenshot reading results..." oninput="invalidateClssImportPreview()"></textarea>
+                                <label for="clssImportText">Paste copied source text (optional)</label>
+                                <textarea id="clssImportText" placeholder="Paste copied EagleNET rows here if you are not using uploads, or to correct OCR results..." oninput="invalidateClssImportPreview()"></textarea>
                             </div>
                             <div class="clss-import-field clss-import-hidden" id="clssImportBatchTextFields">
-                                <label>Paste CLSS text for all three quarters (one box per quarter)</label>
+                                <label>Paste source text for all three quarters (one box per quarter)</label>
                                 <div class="clss-import-batch-grid">
                                     <div class="clss-import-batch-panel">
                                         <h5>Fall</h5>
-                                        <textarea id="clssImportTextFall" placeholder="Paste Fall CLSS rows..." oninput="invalidateClssImportPreview()"></textarea>
+                                        <textarea id="clssImportTextFall" placeholder="Paste Fall source rows..." oninput="invalidateClssImportPreview()"></textarea>
                                     </div>
                                     <div class="clss-import-batch-panel">
                                         <h5>Winter</h5>
-                                        <textarea id="clssImportTextWinter" placeholder="Paste Winter CLSS rows..." oninput="invalidateClssImportPreview()"></textarea>
+                                        <textarea id="clssImportTextWinter" placeholder="Paste Winter source rows..." oninput="invalidateClssImportPreview()"></textarea>
                                     </div>
                                     <div class="clss-import-batch-panel">
                                         <h5>Spring</h5>
-                                        <textarea id="clssImportTextSpring" placeholder="Paste Spring CLSS rows..." oninput="invalidateClssImportPreview()"></textarea>
+                                        <textarea id="clssImportTextSpring" placeholder="Paste Spring source rows..." oninput="invalidateClssImportPreview()"></textarea>
                                     </div>
                                 </div>
                             </div>
