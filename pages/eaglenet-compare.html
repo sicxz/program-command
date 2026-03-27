@@ -128,6 +128,45 @@
             color: #0f172a;
         }
 
+        .catalog-grid {
+            display: grid;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .catalog-card {
+            border: 1px solid #dbe3eb;
+            border-radius: 12px;
+            padding: 12px;
+            background: #f8fafc;
+        }
+
+        .catalog-card h3 {
+            margin: 0 0 6px;
+            font-size: 1rem;
+        }
+
+        .catalog-meta {
+            color: #475569;
+            font-size: 0.92rem;
+            margin: 0 0 10px;
+        }
+
+        .catalog-inventory {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .catalog-chip {
+            border-radius: 999px;
+            border: 1px solid #cbd5e1;
+            background: #fff;
+            padding: 6px 10px;
+            font-size: 0.84rem;
+            color: #0f172a;
+        }
+
         .report-table {
             width: 100%;
             border-collapse: collapse;
@@ -208,6 +247,11 @@
         </section>
 
         <section class="panel">
+            <h2>EECS Catalog</h2>
+            <div id="catalogOutput" class="empty">Loading EECS catalog...</div>
+        </section>
+
+        <section class="panel">
             <h2>Discrepancy Report</h2>
             <div id="reportOutput" class="empty">Run comparison to view categorized differences.</div>
         </section>
@@ -215,6 +259,7 @@
 
     <script type="module" src="../js/components/app-header.js"></script>
     <script src="../js/department-profile.js"></script>
+    <script src="../js/eecs-department-catalog.js"></script>
     <script src="../js/workload-integration.js"></script>
     <script src="../js/eaglenet-compare.js"></script>
     <script src="eaglenet-compare.js"></script>
