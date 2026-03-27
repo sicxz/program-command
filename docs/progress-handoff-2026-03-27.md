@@ -6,7 +6,8 @@
 - Current clean worktree for this slice is `/Users/tmasingale/Documents/GitHub/scheduler-v2-codex-224`.
 - Active branch in that worktree: `codex/issue-224`
 - Branch status: clean and pushed
-- Latest commit on `codex/issue-224`: `93191a2 Add EagleNET vision bakeoff endpoint`
+- Current branch head after this handoff doc: `6fa94dd Add 2026-03-27 progress handoff`
+- Latest functional bakeoff commit before this doc: `962a77f feat: add EagleNET vision bakeoff endpoint`
 
 ## Relevant GitHub Items
 
