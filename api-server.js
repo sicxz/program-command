@@ -4,10 +4,23 @@ import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { createRequire } from 'module';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT_DIR = __dirname;
+const require = createRequire(import.meta.url);
+const {
+  DEFAULT_GEMINI_VISION_MODEL,
+  DEFAULT_OPENAI_VISION_MODEL,
+  buildBakeoffPlan,
+  buildGeminiRequestPreview,
+  buildOpenAiRequestPreview,
+  extractGeminiOutputText,
+  extractOpenAiOutputText,
+  parseStructuredJson,
+  summarizeBatchExtraction
+} = require('./server/eaglenet-vision-bakeoff.cjs');
 
 // Load environment variables
 dotenv.config({ path: path.join(ROOT_DIR, '.env') });
@@ -19,7 +32,9 @@ const HOST = process.env.HOST || '0.0.0.0';
 
 // Constants
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
+const OPENAI_RESPONSES_API_URL = 'https://api.openai.com/v1/responses';
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
+const GEMINI_API_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
 const ANTHROPIC_VERSION = '2023-06-01';
 const DEFAULT_OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 const DEFAULT_ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5';
@@ -64,6 +79,45 @@ function getApiCredential(req, preferredProvider = null) {
   }
 
   return null;
+}
+
+function getVisionApiCredential(req, provider, options = {}) {
+  const bodyKeys = req.body?.apiKeys && typeof req.body.apiKeys === 'object'
+    ? req.body.apiKeys
+    : {};
+  const allowGenericHeader = options.allowGenericHeader === true;
+  const genericHeaderKey = allowGenericHeader
+    ? (
+      req.header('x-ai-api-key') ||
+      req.header('x-api-key')
+    )
+    : null;
+
+  if (provider === 'openai') {
+    const key =
+      normalizeHeaderCredential(bodyKeys.openai) ||
+      normalizeHeaderCredential(req.header('x-openai-api-key')) ||
+      normalizeHeaderCredential(genericHeaderKey) ||
+      normalizeHeaderCredential(process.env.OPENAI_API_KEY);
+    return key ? { key, provider } : null;
+  }
+
+  if (provider === 'gemini') {
+    const key =
+      normalizeHeaderCredential(bodyKeys.gemini) ||
+      normalizeHeaderCredential(req.header('x-gemini-api-key')) ||
+      normalizeHeaderCredential(req.header('x-google-api-key')) ||
+      normalizeHeaderCredential(genericHeaderKey) ||
+      normalizeHeaderCredential(process.env.GEMINI_API_KEY) ||
+      normalizeHeaderCredential(process.env.GOOGLE_API_KEY);
+    return key ? { key, provider } : null;
+  }
+
+  return null;
+}
+
+function normalizeHeaderCredential(value) {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
 function normalizeModelForProvider(provider, requestedModel) {
@@ -120,6 +174,33 @@ async function callOpenAiChat({ apiKey, messages, model, maxTokens, temperature,
   };
 }
 
+async function callOpenAiVisionBakeoff({ apiKey, requestBody }) {
+  const response = await fetch(OPENAI_RESPONSES_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify(requestBody)
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message = data?.error?.message || `OpenAI bakeoff request failed (${response.status})`;
+    throw new Error(message);
+  }
+
+  const text = extractOpenAiOutputText(data);
+  const parsed = parseStructuredJson(text);
+  return {
+    provider: 'openai',
+    model: data.model || requestBody.model || DEFAULT_OPENAI_VISION_MODEL,
+    usage: data.usage || null,
+    text,
+    parsed
+  };
+}
+
 function normalizeAnthropicMessages(messages) {
   return (messages || []).map((message) => {
     if (typeof message.content === 'string') {
@@ -170,6 +251,34 @@ async function callAnthropicChat({ apiKey, messages, model, maxTokens, temperatu
   };
 }
 
+async function callGeminiVisionBakeoff({ apiKey, requestBody }) {
+  const { model = DEFAULT_GEMINI_VISION_MODEL, ...payload } = requestBody || {};
+  const response = await fetch(`${GEMINI_API_BASE_URL}/${encodeURIComponent(model)}:generateContent`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-goog-api-key': apiKey
+    },
+    body: JSON.stringify(payload)
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message = data?.error?.message || `Gemini bakeoff request failed (${response.status})`;
+    throw new Error(message);
+  }
+
+  const text = extractGeminiOutputText(data);
+  const parsed = parseStructuredJson(text);
+  return {
+    provider: 'gemini',
+    model,
+    usage: data?.usageMetadata || null,
+    text,
+    parsed
+  };
+}
+
 async function getCreateScheduleSpreadsheet() {
   if (createScheduleSpreadsheet) {
     return createScheduleSpreadsheet;
@@ -194,6 +303,30 @@ function toMessages({ prompt, messages, systemPrompt }) {
     normalized.push({ role: 'user', content: prompt.trim() });
   }
   return normalized;
+}
+
+function normalizeVisionProviders(value) {
+  const requestedProviders = Array.isArray(value) ? value : [];
+  const normalized = requestedProviders
+    .map((provider) => String(provider || '').trim().toLowerCase())
+    .filter((provider) => provider === 'openai' || provider === 'gemini');
+  return normalized.length ? Array.from(new Set(normalized)) : ['openai', 'gemini'];
+}
+
+function summarizeBakeoffBatch(batch) {
+  return {
+    rootLabel: batch.rootLabel,
+    imageCount: batch.imageCount,
+    totalBytes: batch.totalBytes,
+    termCounts: batch.termCounts,
+    images: (batch.images || []).map((image) => ({
+      name: image.name,
+      relativePath: image.relativePath,
+      termKey: image.termKey,
+      termHint: image.termHint,
+      sizeBytes: image.sizeBytes
+    }))
+  };
 }
 
 async function callAiProvider({
@@ -341,6 +474,98 @@ app.post('/api/ai/chat', async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/vision/eaglenet-bakeoff', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const providers = normalizeVisionProviders(body.providers);
+    const allowGenericHeader = providers.length === 1;
+    const plan = buildBakeoffPlan({
+      folderPath: body.folderPath,
+      filePaths: body.filePaths,
+      maxImages: body.maxImages,
+      workspaceLabel: body.workspaceLabel,
+      subjectDescriptionMap: body.subjectDescriptionMap,
+      openaiModel: body.openaiModel,
+      geminiModel: body.geminiModel
+    });
+    const dryRun = body.dryRun === true;
+    const results = {};
+    let completedProviders = 0;
+
+    for (const provider of providers) {
+      const requestBody = provider === 'gemini' ? plan.geminiRequest : plan.openaiRequest;
+      const requestPreview = provider === 'gemini'
+        ? buildGeminiRequestPreview(plan.geminiRequest)
+        : buildOpenAiRequestPreview(plan.openaiRequest);
+
+      if (dryRun) {
+        results[provider] = {
+          success: true,
+          dryRun: true,
+          model: provider === 'gemini' ? requestBody.model : requestBody.model,
+          requestPreview
+        };
+        continue;
+      }
+
+      const credential = getVisionApiCredential(req, provider, { allowGenericHeader });
+      if (!credential) {
+        results[provider] = {
+          success: false,
+          error: provider === 'gemini'
+            ? 'Missing Gemini API key. Set GEMINI_API_KEY/GOOGLE_API_KEY, send `x-gemini-api-key`, or pass `apiKeys.gemini`.'
+            : 'Missing OpenAI API key. Set OPENAI_API_KEY, send `x-openai-api-key`, or pass `apiKeys.openai`.',
+          model: requestBody.model,
+          requestPreview
+        };
+        continue;
+      }
+
+      try {
+        const result = provider === 'gemini'
+          ? await callGeminiVisionBakeoff({ apiKey: credential.key, requestBody })
+          : await callOpenAiVisionBakeoff({ apiKey: credential.key, requestBody });
+        completedProviders += 1;
+        results[provider] = {
+          success: true,
+          model: result.model,
+          usage: result.usage,
+          summary: summarizeBatchExtraction(result.parsed),
+          parsed: result.parsed,
+          requestPreview
+        };
+      } catch (error) {
+        results[provider] = {
+          success: false,
+          error: error.message,
+          model: requestBody.model,
+          requestPreview
+        };
+      }
+    }
+
+    if (!dryRun && completedProviders === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'No provider completed the EagleNET bakeoff request.',
+        batch: summarizeBakeoffBatch(plan.batch),
+        providers: results
+      });
+    }
+
+    res.json({
+      success: true,
+      dryRun,
+      batch: summarizeBakeoffBatch(plan.batch),
+      promptPreview: body.includePrompt === false ? undefined : plan.prompt,
+      providers: results
+    });
+  } catch (error) {
+    const status = /Provide `folderPath`|not found|No supported screenshot/i.test(error.message) ? 400 : 500;
+    res.status(status).json({ success: false, error: error.message });
   }
 });
 
