@@ -280,6 +280,60 @@
         return profile;
     }
 
+    function normalizeRoomList(rooms, fallbackRooms) {
+        const source = Array.isArray(rooms)
+            ? rooms
+            : Array.isArray(fallbackRooms) ? fallbackRooms : [];
+
+        return source
+            .map((room) => String(room || '').trim())
+            .filter(Boolean);
+    }
+
+    function normalizeProgramDefinition(program, fallbackProfile) {
+        if (!isObject(program)) return null;
+
+        const normalized = deepClone(program);
+        const identity = isObject(normalized.identity) ? normalized.identity : {};
+        const scheduler = isObject(normalized.scheduler) ? normalized.scheduler : {};
+        const fallbackRooms = Array.isArray(fallbackProfile?.scheduler?.allowedRooms)
+            ? fallbackProfile.scheduler.allowedRooms
+            : DEFAULT_PROFILE.scheduler.allowedRooms;
+        const resolvedName = String(identity.name || normalized.name || normalized.label || '').trim();
+        const resolvedCode = String(identity.code || normalized.code || '').trim();
+        const resolvedDisplayName = String(identity.displayName || normalized.displayName || resolvedName || resolvedCode || '').trim();
+        const resolvedShortName = String(identity.shortName || normalized.shortName || resolvedName || resolvedCode || '').trim();
+        const roomSource = scheduler.allowedRooms !== undefined
+            ? scheduler.allowedRooms
+            : normalized.allowedRooms !== undefined
+                ? normalized.allowedRooms
+                : normalized.roomInventory !== undefined
+                    ? normalized.roomInventory
+                    : normalized.rooms !== undefined
+                        ? normalized.rooms
+                        : fallbackRooms;
+        const roomInventory = normalizeRoomList(
+            roomSource,
+            fallbackRooms
+        );
+
+        normalized.id = String(normalized.id || resolvedCode || resolvedName || '').trim();
+        normalized.identity = {
+            name: resolvedName,
+            code: resolvedCode,
+            displayName: resolvedDisplayName,
+            shortName: resolvedShortName || resolvedName || resolvedCode
+        };
+        normalized.scheduler = scheduler;
+        normalized.scheduler.allowedRooms = roomInventory.slice();
+        normalized.scheduler.roomLabels = isObject(scheduler.roomLabels)
+            ? deepClone(scheduler.roomLabels)
+            : {};
+        normalized.roomInventory = roomInventory.slice();
+
+        return normalized;
+    }
+
     function normalizeProfile(rawProfile) {
         const merged = deepMerge(DEFAULT_PROFILE, rawProfile || {});
 
@@ -311,6 +365,12 @@
 
         if (!isObject(merged.scheduler.roomLabels)) {
             merged.scheduler.roomLabels = { ...DEFAULT_PROFILE.scheduler.roomLabels };
+        }
+
+        if (Array.isArray(merged.programs)) {
+            merged.programs = merged.programs
+                .map((program) => normalizeProgramDefinition(program, merged))
+                .filter(Boolean);
         }
 
         if (!Array.isArray(merged.import.clss.roomMatchPriority)) {
@@ -374,6 +434,29 @@
             }
         }
 
+        if (profile.programs !== undefined) {
+            if (!Array.isArray(profile.programs)) {
+                errors.push('programs must be an array when provided.');
+            } else {
+                profile.programs.forEach((program, index) => {
+                    if (!isObject(program)) {
+                        errors.push(`programs[${index}] must be an object.`);
+                        return;
+                    }
+
+                    if (!String(program.id || '').trim()) {
+                        errors.push(`programs[${index}].id is required.`);
+                    }
+
+                    if (!isObject(program.scheduler)) {
+                        warnings.push(`programs[${index}].scheduler missing; using department-level room inventory fallback.`);
+                    } else if (program.scheduler.allowedRooms !== undefined && !Array.isArray(program.scheduler.allowedRooms)) {
+                        errors.push(`programs[${index}].scheduler.allowedRooms must be an array when provided.`);
+                    }
+                });
+            }
+        }
+
         if (!isObject(profile.workload)) {
             errors.push('workload object is required.');
         } else if (!isObject(profile.workload.defaultAnnualTargets)) {
@@ -434,6 +517,58 @@
             source: state.source,
             warnings: state.warnings.slice(),
             errors: state.errors.slice()
+        };
+    }
+
+    function getWorkspaceOptionsFromProfile(profile) {
+        const normalizedProfile = normalizeProfile(profile || {});
+        const department = {
+            id: String(normalizedProfile.id || '').trim() || null,
+            name: String(normalizedProfile.identity?.name || '').trim() || null,
+            code: String(normalizedProfile.identity?.code || '').trim() || null,
+            displayName: String(normalizedProfile.identity?.displayName || '').trim() || null,
+            shortName: String(normalizedProfile.identity?.shortName || '').trim() || null,
+            roomInventory: normalizeRoomList(normalizedProfile.scheduler?.allowedRooms, DEFAULT_PROFILE.scheduler.allowedRooms),
+            roomLabels: isObject(normalizedProfile.scheduler?.roomLabels)
+                ? deepClone(normalizedProfile.scheduler.roomLabels)
+                : {}
+        };
+
+        const programEntries = Array.isArray(normalizedProfile.programs) ? normalizedProfile.programs : [];
+        const programs = programEntries.length > 0
+            ? programEntries
+                .map((program) => {
+                    const normalized = normalizeProgramDefinition(program, normalizedProfile);
+                    if (!normalized) return null;
+                    return {
+                        id: normalized.id,
+                        name: normalized.identity.name || null,
+                        code: normalized.identity.code || null,
+                        displayName: normalized.identity.displayName || null,
+                        shortName: normalized.identity.shortName || null,
+                        roomInventory: Array.isArray(normalized.roomInventory) ? normalized.roomInventory.slice() : [],
+                        roomLabels: isObject(normalized.scheduler?.roomLabels)
+                            ? deepClone(normalized.scheduler.roomLabels)
+                            : {},
+                        source: 'department.programs'
+                    };
+                })
+                .filter(Boolean)
+            : [{
+                id: department.id,
+                name: department.name,
+                code: department.code,
+                displayName: department.displayName,
+                shortName: department.shortName,
+                roomInventory: department.roomInventory.slice(),
+                roomLabels: deepClone(department.roomLabels),
+                source: 'legacy-profile'
+            }];
+
+        return {
+            department,
+            programs,
+            mode: programEntries.length > 0 ? 'department-programs' : 'single-program'
         };
     }
 
@@ -803,6 +938,7 @@
             return deepClone(state.profile);
         },
         getCurrentSnapshot: makeSnapshot,
+        getWorkspaceOptionsFromProfile,
         getActiveProfileId: function getActiveProfileId() {
             return state.activeProfileId;
         },
