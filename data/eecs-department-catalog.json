@@ -1,0 +1,365 @@
+{
+  "version": "1.0",
+  "sourceType": "EagleNET classroom view with enrollments",
+  "sourceFolder": "course-enrollement-trends-2022-2025/eecs/output",
+  "department": {
+    "code": "EECS",
+    "name": "EECS",
+    "displayName": "EECS",
+    "aliases": [
+      "eecs"
+    ]
+  },
+  "terms": [
+    "Fall 2025",
+    "Winter 2026",
+    "Spring 2026"
+  ],
+  "programs": [
+    {
+      "code": "CSCD",
+      "subjectDescription": "Computer Science",
+      "displayName": "Computer Science",
+      "aliases": [
+        "cs",
+        "computer-science"
+      ],
+      "terms": [
+        "Fall 2025",
+        "Winter 2026",
+        "Spring 2026"
+      ],
+      "sourceFiles": [
+        "CSCD_fall-2025.json",
+        "CSCD_winter-2026.json",
+        "CSCD_spring-2026.json"
+      ],
+      "roomInventory": [
+        {
+          "campus": "Cheney",
+          "building": "Computer Engineering Bldg.",
+          "room": "105",
+          "count": 6
+        },
+        {
+          "campus": "Cheney",
+          "building": "Computer Engineering Bldg.",
+          "room": "106",
+          "count": 5
+        },
+        {
+          "campus": "Cheney",
+          "building": "Computer Engineering Bldg.",
+          "room": "107",
+          "count": 4
+        },
+        {
+          "campus": "Cheney",
+          "building": "Computer Engineering Bldg.",
+          "room": "204",
+          "count": 1
+        },
+        {
+          "campus": "Cheney",
+          "building": "Computer Engineering Bldg.",
+          "room": "228",
+          "count": 1
+        },
+        {
+          "campus": "Spokane U-District",
+          "building": "",
+          "room": "",
+          "count": 5
+        },
+        {
+          "campus": "Spokane U-District",
+          "building": "Arranged",
+          "room": "",
+          "count": 26
+        },
+        {
+          "campus": "Spokane U-District",
+          "building": "Arranged",
+          "room": "XX",
+          "count": 10
+        },
+        {
+          "campus": "Spokane U-District",
+          "building": "Catalyst Building, Spokane",
+          "room": "006",
+          "count": 4
+        },
+        {
+          "campus": "Spokane U-District",
+          "building": "Catalyst Building, Spokane",
+          "room": "193",
+          "count": 2
+        },
+        {
+          "campus": "Spokane U-District",
+          "building": "Catalyst Building, Spokane",
+          "room": "194",
+          "count": 1
+        },
+        {
+          "campus": "Spokane U-District",
+          "building": "Catalyst Building, Spokane",
+          "room": "203",
+          "count": 2
+        },
+        {
+          "campus": "Spokane U-District",
+          "building": "Catalyst Building, Spokane",
+          "room": "214",
+          "count": 7
+        },
+        {
+          "campus": "Spokane U-District",
+          "building": "Catalyst Building, Spokane",
+          "room": "215",
+          "count": 12
+        },
+        {
+          "campus": "Spokane U-District",
+          "building": "Catalyst Building, Spokane",
+          "room": "216",
+          "count": 22
+        },
+        {
+          "campus": "Spokane U-District",
+          "building": "Catalyst Building, Spokane",
+          "room": "219",
+          "count": 14
+        },
+        {
+          "campus": "Spokane U-District",
+          "building": "Catalyst Building, Spokane",
+          "room": "220",
+          "count": 9
+        },
+        {
+          "campus": "Spokane U-District",
+          "building": "Catalyst Building, Spokane",
+          "room": "221",
+          "count": 13
+        }
+      ]
+    },
+    {
+      "code": "CYBR",
+      "subjectDescription": "Cybersecurity",
+      "displayName": "Cybersecurity",
+      "aliases": [
+        "cyber",
+        "cyber-security"
+      ],
+      "terms": [
+        "Fall 2025",
+        "Winter 2026",
+        "Spring 2026"
+      ],
+      "sourceFiles": [
+        "CYBR_fall-2025.json",
+        "CYBR_winter-2026.json",
+        "CYBR_spring-2026.json"
+      ],
+      "roomInventory": [
+        {
+          "campus": "Cheney",
+          "building": "Computer Engineering Bldg.",
+          "room": "105",
+          "count": 1
+        },
+        {
+          "campus": "Cheney",
+          "building": "Computer Engineering Bldg.",
+          "room": "106",
+          "count": 2
+        },
+        {
+          "campus": "Cheney",
+          "building": "Computer Engineering Bldg.",
+          "room": "204",
+          "count": 1
+        },
+        {
+          "campus": "Spokane U-District",
+          "building": "",
+          "room": "",
+          "count": 8
+        },
+        {
+          "campus": "Spokane U-District",
+          "building": "Arranged",
+          "room": "",
+          "count": 6
+        },
+        {
+          "campus": "Spokane U-District",
+          "building": "Arranged",
+          "room": "XX",
+          "count": 10
+        },
+        {
+          "campus": "Spokane U-District",
+          "building": "Catalyst Building, Spokane",
+          "room": "193",
+          "count": 22
+        },
+        {
+          "campus": "Spokane U-District",
+          "building": "Catalyst Building, Spokane",
+          "room": "194",
+          "count": 10
+        },
+        {
+          "campus": "Spokane U-District",
+          "building": "Catalyst Building, Spokane",
+          "room": "214",
+          "count": 7
+        },
+        {
+          "campus": "Spokane U-District",
+          "building": "Catalyst Building, Spokane",
+          "room": "216",
+          "count": 6
+        },
+        {
+          "campus": "Spokane U-District",
+          "building": "Catalyst Building, Spokane",
+          "room": "220",
+          "count": 9
+        },
+        {
+          "campus": "Spokane U-District",
+          "building": "Catalyst Building, Spokane",
+          "room": "221",
+          "count": 7
+        }
+      ]
+    },
+    {
+      "code": "ELEC",
+      "subjectDescription": "Electrical Engineering",
+      "displayName": "Electrical Engineering",
+      "aliases": [
+        "ee",
+        "electrical-engineering"
+      ],
+      "terms": [
+        "Fall 2025",
+        "Winter 2026",
+        "Spring 2026"
+      ],
+      "sourceFiles": [
+        "ELEC_fall-2025.json",
+        "ELEC_winter-2026.json",
+        "ELEC_spring-2026.json"
+      ],
+      "roomInventory": [
+        {
+          "campus": "Cheney",
+          "building": "Arranged",
+          "room": "",
+          "count": 1
+        },
+        {
+          "campus": "Cheney",
+          "building": "Computer Engineering Bldg.",
+          "room": "107",
+          "count": 1
+        },
+        {
+          "campus": "Cheney",
+          "building": "Computer Engineering Bldg.",
+          "room": "204",
+          "count": 2
+        },
+        {
+          "campus": "Cheney",
+          "building": "Computer Engineering Bldg.",
+          "room": "225",
+          "count": 8
+        },
+        {
+          "campus": "Cheney",
+          "building": "Computer Engineering Bldg.",
+          "room": "229",
+          "count": 1
+        },
+        {
+          "campus": "Cheney",
+          "building": "Computer Engineering Bldg.",
+          "room": "233",
+          "count": 1
+        },
+        {
+          "campus": "Spokane U-District",
+          "building": "",
+          "room": "",
+          "count": 5
+        },
+        {
+          "campus": "Spokane U-District",
+          "building": "Arranged",
+          "room": "",
+          "count": 5
+        },
+        {
+          "campus": "Spokane U-District",
+          "building": "Arranged",
+          "room": "XX",
+          "count": 6
+        },
+        {
+          "campus": "Spokane U-District",
+          "building": "Catalyst Building, Spokane",
+          "room": "002",
+          "count": 11
+        },
+        {
+          "campus": "Spokane U-District",
+          "building": "Catalyst Building, Spokane",
+          "room": "005",
+          "count": 4
+        },
+        {
+          "campus": "Spokane U-District",
+          "building": "Catalyst Building, Spokane",
+          "room": "006",
+          "count": 6
+        },
+        {
+          "campus": "Spokane U-District",
+          "building": "Catalyst Building, Spokane",
+          "room": "007",
+          "count": 10
+        },
+        {
+          "campus": "Spokane U-District",
+          "building": "Catalyst Building, Spokane",
+          "room": "201",
+          "count": 15
+        },
+        {
+          "campus": "Spokane U-District",
+          "building": "Catalyst Building, Spokane",
+          "room": "202",
+          "count": 9
+        },
+        {
+          "campus": "Spokane U-District",
+          "building": "Catalyst Building, Spokane",
+          "room": "204",
+          "count": 9
+        },
+        {
+          "campus": "Spokane U-District",
+          "building": "Catalyst Building, Spokane",
+          "room": "221",
+          "count": 1
+        }
+      ]
+    }
+  ]
+}

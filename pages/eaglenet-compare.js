@@ -288,6 +288,66 @@
             .join('');
     }
 
+    function renderCatalogSummary(snapshot) {
+        const node = qs('catalogOutput');
+        if (!node) return;
+
+        const catalog = snapshot?.catalog;
+        const programs = Array.isArray(catalog?.programs) ? catalog.programs : [];
+        if (!catalog || !programs.length) {
+            node.className = 'empty';
+            node.textContent = 'EECS catalog is unavailable.';
+            return;
+        }
+
+        const inventoryCount = programs.reduce((sum, program) => sum + (Array.isArray(program.roomInventory) ? program.roomInventory.length : 0), 0);
+
+        node.className = '';
+        node.innerHTML = `
+            <div class="summary-grid">
+                <div class="metric">
+                    <strong>${escapeHtml(catalog.department?.code || '')}</strong>
+                    <span>Department</span>
+                </div>
+                <div class="metric">
+                    <strong>${escapeHtml(programs.length)}</strong>
+                    <span>Programs</span>
+                </div>
+                <div class="metric">
+                    <strong>${escapeHtml((catalog.terms || []).length)}</strong>
+                    <span>Terms</span>
+                </div>
+                <div class="metric">
+                    <strong>${escapeHtml(inventoryCount)}</strong>
+                    <span>Room inventory entries</span>
+                </div>
+            </div>
+            <div class="catalog-grid">
+                ${programs.map((program) => {
+                    const rooms = Array.isArray(program.roomInventory) ? program.roomInventory : [];
+                    const roomPreview = rooms.slice(0, 5).map((entry) => `<span class="catalog-chip">${escapeHtml(globalScope.EECSDepartmentCatalog?.formatRoomInventoryEntry(entry) || '')}</span>`).join('');
+                    const overflow = rooms.length > 5
+                        ? `<span class="catalog-chip">+${rooms.length - 5} more</span>`
+                        : '';
+                    return `
+                        <article class="catalog-card">
+                            <h3>${escapeHtml(program.code)} · ${escapeHtml(program.displayName || program.subjectDescription || '')}</h3>
+                            <p class="catalog-meta">
+                                ${escapeHtml((program.terms || []).join(' · '))}
+                                · ${escapeHtml(rooms.length)} room inventory entries
+                                · ${escapeHtml((program.sourceFiles || []).length)} source files
+                            </p>
+                            <div class="catalog-inventory">
+                                ${roomPreview}
+                                ${overflow}
+                            </div>
+                        </article>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    }
+
     function recordValue(record, field) {
         const normalized = record && record.normalized ? record.normalized : {};
         const value = normalized[field];
@@ -647,7 +707,7 @@
             });
     }
 
-    function initializePage() {
+    async function initializePage() {
         if (typeof document === 'undefined') return;
         if (!qs('compareYear')) return;
 
@@ -655,15 +715,28 @@
             setStatus('EagleNet compare runtime failed to load.', 'error');
             return;
         }
-        if (!globalScope.WorkloadIntegration) {
-            setStatus('Workload integration runtime failed to load.', 'error');
+        if (!globalScope.EECSDepartmentCatalog || typeof globalScope.EECSDepartmentCatalog.load !== 'function') {
+            setStatus('EECS catalog runtime failed to load.', 'error');
             return;
         }
 
         populateYearSelect();
         renderSummary(null);
         renderReport(null);
-        setStatus('Ready. Select year, provide EagleNet data, and run comparison.');
+        renderCatalogSummary({ catalog: null });
+
+        try {
+            const snapshot = await globalScope.EECSDepartmentCatalog.load();
+            renderCatalogSummary(snapshot);
+            if (globalScope.WorkloadIntegration) {
+                setStatus('Ready. Select year, provide EagleNet data, and run comparison.');
+            } else {
+                setStatus('EECS catalog loaded. Workload integration is unavailable, so comparison is disabled.');
+            }
+        } catch (error) {
+            renderCatalogSummary({ catalog: null });
+            setStatus(`EECS catalog load failed: ${error?.message || String(error)}`, 'error');
+        }
 
         const runButton = qs('runCompareButton');
         const exportButton = qs('exportDiscrepanciesButton');
