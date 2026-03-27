@@ -11,6 +11,16 @@
       "id": "itds-pilot-v1",
       "label": "EWU ITDS Pilot",
       "file": "itds-pilot-v1.json"
+    },
+    {
+      "id": "csee-chair-v1",
+      "label": "EWU CS/EE",
+      "file": "csee-chair-v1.json"
+    },
+    {
+      "id": "cyber-chair-v1",
+      "label": "EWU Cyber",
+      "file": "cyber-chair-v1.json"
     }
   ]
 }
