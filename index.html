@@ -3847,6 +3847,142 @@
             gap: 16px;
         }
 
+        .schedule-workspace-tools {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .schedule-workspace-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #44505c;
+            font-size: 0.88rem;
+            font-weight: 600;
+        }
+
+        .schedule-workspace-label {
+            color: #5b6470;
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .schedule-workspace-select {
+            min-width: 200px;
+            padding: 8px 34px 8px 12px;
+            border: 1px solid #d0d7de;
+            border-radius: 999px;
+            background: #ffffff;
+            color: #1f2937;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .schedule-workspace-button {
+            border-radius: 999px;
+            font-size: 0.9rem;
+            padding: 8px 14px;
+        }
+
+        .eaglenet-seed-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .eaglenet-seed-stat {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 1px solid #d0d7de;
+            background: #f8fafc;
+        }
+
+        .eaglenet-seed-stat strong {
+            color: #111827;
+            font-size: 1.1rem;
+        }
+
+        .eaglenet-seed-stat span {
+            color: #4b5563;
+            font-size: 0.84rem;
+        }
+
+        .eaglenet-seed-note {
+            margin: 0 0 14px;
+            color: #5b6470;
+            font-size: 0.9rem;
+        }
+
+        .eaglenet-seed-workspace {
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid #d0d7de;
+            background: #f8fafc;
+            color: #111827;
+            font-weight: 600;
+        }
+
+        .eaglenet-seed-exceptions-header {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .eaglenet-seed-exceptions-header h3 {
+            margin: 0;
+            color: #111827;
+            font-size: 1rem;
+        }
+
+        .eaglenet-seed-exceptions {
+            max-height: 260px;
+            overflow-y: auto;
+            border: 1px solid #d0d7de;
+            border-radius: 10px;
+            background: #ffffff;
+        }
+
+        .eaglenet-seed-exception-item {
+            padding: 12px 14px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .eaglenet-seed-exception-item:last-child {
+            border-bottom: none;
+        }
+
+        .eaglenet-seed-exception-title {
+            color: #111827;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .eaglenet-seed-exception-reason {
+            color: #991b1b;
+            font-size: 0.88rem;
+            margin-bottom: 4px;
+        }
+
+        .eaglenet-seed-exception-meta {
+            color: #4b5563;
+            font-size: 0.84rem;
+        }
+
+        .eaglenet-seed-empty {
+            padding: 16px;
+            color: #4b5563;
+            font-size: 0.92rem;
+        }
+
         .scheduler-assistant-panel {
             margin-top: 16px;
             margin-bottom: 18px;
@@ -4654,6 +4790,20 @@
                 flex-wrap: wrap;
             }
 
+            .schedule-workspace-tools {
+                width: 100%;
+            }
+
+            .schedule-workspace-control {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .schedule-workspace-select {
+                flex: 1;
+                min-width: 0;
+            }
+
             .scheduler-assistant-input-row {
                 grid-template-columns: 1fr;
             }
@@ -4687,7 +4837,7 @@
     <script src="js/department-profile.js"></script>
     <script type="module" src="js/supabase-config.js"></script>
     <script src="js/auth-service.js"></script>
-    <script src="js/program-shell.js"></script>
+    <script src="js/eaglenet-seed.js"></script>
     <script src="js/auth-guard.js"></script>
     <script src="js/dirty-state-tracker.js"></script>
 
@@ -4709,100 +4859,6 @@
 </head>
 
 <body>
-    <div class="program-shell-overlay" id="programShellOverlay" hidden>
-        <div class="program-shell-layout">
-            <section class="program-shell-card hero">
-                <div class="program-shell-eyebrow">Program Command</div>
-                <h1 class="program-shell-title">Welcome to Program Command</h1>
-                <p class="program-shell-copy">Choose your program, clear the account gate, and we will route you into an existing workspace or the right onboarding path for a new program.</p>
-                <div id="programShellProgramList"></div>
-            </section>
-
-            <section class="program-shell-card">
-                <div class="program-shell-eyebrow">Step 2</div>
-                <h2 style="margin:0 0 8px; font-size:1.5rem; color:#0f172a;">Program access</h2>
-                <p class="program-shell-auth-summary" id="programShellSummary">Choose a program to unlock the correct entry path.</p>
-
-                <form class="program-shell-auth-form" id="programShellAuthForm">
-                    <label>
-                        Email
-                        <input id="programShellEmail" type="email" autocomplete="email" placeholder="chair@ewu.edu">
-                    </label>
-                    <label>
-                        Password
-                        <input id="programShellPassword" type="password" autocomplete="current-password" placeholder="Password">
-                    </label>
-                    <div class="program-shell-actions">
-                        <button type="submit" class="program-shell-button">Sign in</button>
-                        <button type="button" class="program-shell-button-secondary" id="programShellCreateAccountButton">Create account</button>
-                        <button type="button" class="program-shell-button-secondary" id="programShellPreviewButton" hidden>Preview on localhost</button>
-                    </div>
-                </form>
-
-                <div class="program-shell-session-panel" id="programShellSessionPanel" hidden>
-                    <strong id="programShellSessionText">Authentication complete.</strong>
-                    <div class="program-shell-actions">
-                        <button type="button" class="program-shell-button" id="programShellContinueButton" disabled>Continue</button>
-                        <button type="button" class="program-shell-button-secondary" id="programShellSwitchAccountButton">Use another account</button>
-                    </div>
-                </div>
-
-                <div class="program-shell-status info" id="programShellStatus">Welcome to Program Command. Choose a program to begin.</div>
-            </section>
-
-            <section class="program-shell-card program-shell-chooser" id="programShellChooser" hidden>
-                <div class="program-shell-eyebrow">Step 3</div>
-                <h2 style="margin:0; font-size:1.75rem; color:#0f172a;">Start a new program workspace</h2>
-                <p class="program-shell-chooser-meta" id="programShellChooserMeta"></p>
-                <div class="program-shell-choice-grid">
-                    <article class="program-shell-choice">
-                        <span class="program-shell-choice-tag">MVP Ready</span>
-                        <h3>Manual setup</h3>
-                        <p>Open the onboarding workspace and set up the first versioned program profile by hand.</p>
-                        <ul>
-                            <li>Best when the program wants to establish rooms, aliases, and naming first.</li>
-                            <li>Routes directly into the current profile-onboarding workspace.</li>
-                        </ul>
-                        <button type="button" class="program-shell-button" id="programShellManualButton">Open manual setup</button>
-                    </article>
-
-                    <article class="program-shell-choice">
-                        <span class="program-shell-choice-tag">MVP Ready</span>
-                        <h3>Spreadsheet upload</h3>
-                        <p>Capture the current course listing export and carry that program context into onboarding.</p>
-                        <ul>
-                            <li>Use a `.csv`, `.xlsx`, or `.xls` export from EagleNET or a department workbook.</li>
-                            <li>Import mapping and seeded schedule generation stay in issue #210.</li>
-                        </ul>
-                        <button type="button" class="program-shell-button" id="programShellSpreadsheetButton">Choose spreadsheet</button>
-                    </article>
-
-                    <article class="program-shell-choice">
-                        <span class="program-shell-choice-tag">Follow-on</span>
-                        <h3>Screenshot upload</h3>
-                        <p>Capture screenshots from class search with the enrollment view and preserve the handoff context now.</p>
-                        <ul>
-                            <li>Accept a screenshot folder when your browser can preserve nested quarter folders.</li>
-                            <li>Fall back to choosing multiple screenshot files when folder upload is not available.</li>
-                            <li>Parsing and schedule seeding remain staged after the spreadsheet path.</li>
-                        </ul>
-                        <div class="program-shell-choice-actions">
-                            <button type="button" class="program-shell-button-secondary" id="programShellScreenshotDirectoryButton">Choose screenshot folder</button>
-                            <button type="button" class="program-shell-button-secondary" id="programShellScreenshotButton">Choose screenshot files</button>
-                        </div>
-                        <p class="program-shell-choice-note" id="programShellScreenshotSupportText">Folder upload keeps nested quarter folders when the browser supports directory selection.</p>
-                    </article>
-                </div>
-                <div class="program-shell-actions">
-                    <button type="button" class="program-shell-button-secondary" id="programShellBackButton" hidden>Back to program selection</button>
-                </div>
-            </section>
-        </div>
-        <input id="programShellSpreadsheetInput" type="file" accept=".csv,.xlsx,.xls" hidden>
-        <input id="programShellScreenshotDirectoryInput" type="file" accept="image/*" multiple webkitdirectory hidden>
-        <input id="programShellScreenshotInput" type="file" accept="image/*" multiple hidden>
-    </div>
-
     <!-- Displaced Course Tray Sidebar -->
     <div class="displaced-tray" id="displacedTray">
         <div class="displaced-tray-header">
@@ -4882,8 +4938,6 @@
                         <a href="pages/schedule-builder.html" class="nav-link"><span class="icon">📅</span>Builder</a>
                         <a href="pages/academic-year-setup.html" class="nav-link"><span class="icon">🗂️</span>AY
                             Setup</a>
-                        <a href="pages/department-onboarding.html" class="nav-link"><span
-                                class="icon">🧭</span>Onboarding</a>
                         <a href="pages/eaglenet-compare.html" class="nav-link"><span
                                 class="icon">🧾</span>EagleNet Compare</a>
                         <a href="pages/course-management.html" class="nav-link"><span class="icon">📚</span>Courses</a>
@@ -4939,6 +4993,15 @@
             <div class="schedule-grid-header">
                 <h2 class="schedule-grid-title">Program Schedule - <span id="quarterTitle">Spring 2026</span></h2>
                 <div class="schedule-grid-actions">
+                    <div class="schedule-workspace-tools">
+                        <label class="schedule-workspace-control" for="workspaceProfileSelect">
+                            <span class="schedule-workspace-label">Workspace</span>
+                            <select id="workspaceProfileSelect" class="schedule-workspace-select" aria-label="Scheduler workspace"></select>
+                        </label>
+                        <button type="button" id="openEagleNetSeedButton" class="btn-secondary schedule-workspace-button" onclick="openEagleNetSeedModal()" hidden>
+                            Seed Grid
+                        </button>
+                    </div>
                     <div class="swap-toggle-container"
                         title="When ON: Dropping a course onto an occupied slot swaps them. When OFF: The existing course goes to the displaced tray.">
                         <span class="swap-toggle-label" id="displaceLabel">Displace</span>
@@ -5097,6 +5160,9 @@
         let CLSS_IMPORT_PROFILE_COURSE_ALIASES = {};
         let CLSS_IMPORT_PROFILE_COURSE_ALIAS_LOOKUP = {};
         let CLSS_IMPORT_MATCHING_ORDER = DEFAULT_CLSS_IMPORT_MATCHING_ORDER.slice();
+        let eagleNetActiveWorkspaceId = '';
+        let eagleNetActiveWorkspaceSummary = null;
+        let eagleNetSeedPreview = null;
 
         function normalizeSchedulerLookupKey(value) {
             return String(value || '')
@@ -5468,6 +5534,348 @@
                 console.warn('Could not initialize department profile context:', error);
                 return null;
             }
+        }
+
+        function ensureQuarterNavAcademicYearOption(academicYear) {
+            const targetYear = String(academicYear || '').trim();
+            if (!targetYear) return;
+
+            const navComponent = document.getElementById('mainQuarterNav');
+            if (!navComponent) {
+                return;
+            }
+
+            const years = Array.isArray(navComponent.years) ? navComponent.years.slice() : [];
+            if (!years.includes(targetYear)) {
+                years.push(targetYear);
+                years.sort();
+                navComponent.years = years;
+            }
+        }
+
+        function syncQuarterNavAcademicYear(academicYear) {
+            const targetYear = String(academicYear || '').trim();
+            if (!targetYear) return;
+
+            currentAcademicYear = targetYear;
+            if (window.StateManager?.set) {
+                window.StateManager.set('currentAcademicYear', targetYear, { silent: true, recordHistory: false });
+            }
+
+            const navComponent = document.getElementById('mainQuarterNav');
+            if (!navComponent) {
+                updateQuarterTabLabels(targetYear);
+                return;
+            }
+
+            ensureQuarterNavAcademicYearOption(targetYear);
+            navComponent.currentYear = targetYear;
+            if (typeof navComponent.render === 'function') {
+                navComponent.render();
+            }
+            if (typeof navComponent.setupEventListeners === 'function') {
+                navComponent.setupEventListeners();
+            }
+
+            updateQuarterTabLabels(targetYear);
+        }
+
+        function syncAcademicYearFromProfile(profile) {
+            const preferredYear = String(profile?.academic?.defaultSchedulerYear || '').trim();
+            if (!preferredYear) return currentAcademicYear;
+            syncQuarterNavAcademicYear(preferredYear);
+            return preferredYear;
+        }
+
+        function applyEagleNetSchedulerOverrides(runtimeConfig) {
+            if (!runtimeConfig || typeof runtimeConfig !== 'object') return;
+
+            schedulerDayPatterns = parseSchedulerDayPatterns(runtimeConfig.dayPatterns);
+            schedulerTimeSlots = parseSchedulerTimeSlots(runtimeConfig.timeSlots);
+
+            const configuredRoomLabels = runtimeConfig.roomLabels && typeof runtimeConfig.roomLabels === 'object'
+                ? runtimeConfig.roomLabels
+                : {};
+            schedulerRoomLabels = {
+                ...DEFAULT_SCHEDULER_ROOM_LABELS,
+                ...configuredRoomLabels
+            };
+
+            const allowedRooms = Array.isArray(runtimeConfig.allowedRooms)
+                ? runtimeConfig.allowedRooms.map((room) => String(room || '').trim()).filter(Boolean)
+                : [];
+            if (allowedRooms.length > 0) {
+                CLSS_IMPORT_ROOM_PRIORITY = allowedRooms.slice();
+                CLSS_IMPORT_ALLOWED_ROOMS = new Set(allowedRooms);
+            }
+        }
+
+        async function initializeEagleNetWorkspaceContext() {
+            eagleNetActiveWorkspaceId = '';
+            eagleNetActiveWorkspaceSummary = null;
+            eagleNetSeedPreview = null;
+
+            const runtime = window.EagleNetSeed;
+            if (!runtime || typeof runtime.load !== 'function') {
+                refreshEagleNetWorkspaceControls();
+                return null;
+            }
+
+            const workspaceId = typeof runtime.getWorkspaceIdForProfile === 'function'
+                ? runtime.getWorkspaceIdForProfile(activeDepartmentProfile)
+                : '';
+            if (!workspaceId) {
+                refreshEagleNetWorkspaceControls();
+                return null;
+            }
+
+            await runtime.load();
+            eagleNetActiveWorkspaceId = workspaceId;
+            eagleNetActiveWorkspaceSummary = typeof runtime.getWorkspaceSummary === 'function'
+                ? runtime.getWorkspaceSummary(workspaceId)
+                : null;
+            const runtimeConfig = typeof runtime.getRuntimeConfig === 'function'
+                ? runtime.getRuntimeConfig(workspaceId)
+                : null;
+            if (runtimeConfig) {
+                applyEagleNetSchedulerOverrides(runtimeConfig);
+            }
+            refreshEagleNetWorkspaceControls();
+            return runtimeConfig;
+        }
+
+        async function populateWorkspaceProfileSelect() {
+            const select = document.getElementById('workspaceProfileSelect');
+            const manager = window.DepartmentProfileManager;
+            if (!select || !manager || typeof manager.listProfiles !== 'function' || typeof manager.loadProfile !== 'function') {
+                return;
+            }
+
+            const listing = await manager.listProfiles();
+            const profileOptions = await Promise.all((listing.profiles || []).map(async (entry) => {
+                try {
+                    const loaded = await manager.loadProfile(entry.id);
+                    return {
+                        id: entry.id,
+                        label: loaded?.profile?.identity?.displayName || loaded?.profile?.identity?.shortName || entry.id
+                    };
+                } catch (error) {
+                    return {
+                        id: entry.id,
+                        label: entry.id
+                    };
+                }
+            }));
+
+            select.innerHTML = '';
+            profileOptions.forEach((entry) => {
+                const option = document.createElement('option');
+                option.value = entry.id;
+                option.textContent = entry.label;
+                select.appendChild(option);
+            });
+            select.value = activeDepartmentProfile?.id || '';
+        }
+
+        async function handleWorkspaceProfileSelection(event) {
+            const nextProfileId = String(event?.target?.value || '').trim();
+            if (!nextProfileId || nextProfileId === activeDepartmentProfile?.id) return;
+
+            try {
+                saveScheduleData();
+                await window.DepartmentProfileManager.setActiveProfile(nextProfileId);
+                showToast('Switching workspace...');
+                window.location.reload();
+            } catch (error) {
+                console.error('Could not switch workspace profile:', error);
+                showToast('Could not switch workspace profile', 'error');
+                const select = document.getElementById('workspaceProfileSelect');
+                if (select) {
+                    select.value = activeDepartmentProfile?.id || '';
+                }
+            }
+        }
+
+        function refreshEagleNetWorkspaceControls() {
+            const button = document.getElementById('openEagleNetSeedButton');
+            if (!button) return;
+
+            if (!eagleNetActiveWorkspaceId) {
+                button.hidden = true;
+                button.disabled = true;
+                return;
+            }
+
+            const label = String(eagleNetActiveWorkspaceSummary?.label || 'EECS').trim();
+            button.hidden = false;
+            button.disabled = false;
+            button.textContent = `Seed ${label} Grid`;
+        }
+
+        function closeEagleNetSeedModal() {
+            document.getElementById('eaglenetSeedModal')?.classList.remove('active');
+        }
+
+        function getEagleNetSeedTargetYear() {
+            const explicitValue = String(document.getElementById('eaglenetSeedTargetYear')?.value || '').trim();
+            if (explicitValue) return explicitValue;
+            return String(activeDepartmentProfile?.academic?.defaultSchedulerYear || currentAcademicYear || '2026-27').trim();
+        }
+
+        function renderEagleNetSeedPreview(preview) {
+            const workspaceName = document.getElementById('eaglenetSeedWorkspaceName');
+            const sourceNote = document.getElementById('eaglenetSeedSourceNote');
+            const summary = document.getElementById('eaglenetSeedSummary');
+            const exceptions = document.getElementById('eaglenetSeedExceptions');
+            const exceptionCount = document.getElementById('eaglenetSeedExceptionCount');
+
+            if (workspaceName) {
+                workspaceName.textContent = preview?.summary?.displayName || eagleNetActiveWorkspaceSummary?.displayName || eagleNetActiveWorkspaceSummary?.label || 'EECS';
+            }
+            if (sourceNote) {
+                const sourceTerms = Array.isArray(preview?.summary?.sourceTerms) ? preview.summary.sourceTerms.join(', ') : '';
+                const sourceType = String(preview?.summary?.sourceType || '').trim();
+                const pieces = [
+                    sourceType || 'EagleNET manual JSON',
+                    preview?.sourceAcademicYear ? `Source AY ${preview.sourceAcademicYear}` : '',
+                    sourceTerms ? `Terms: ${sourceTerms}` : ''
+                ].filter(Boolean);
+                sourceNote.textContent = pieces.join(' • ');
+            }
+            if (summary) {
+                const quarterCounts = preview?.summary?.quarterCounts || {};
+                summary.innerHTML = `
+                    <div class="eaglenet-seed-stat">
+                        <strong>${preview?.summary?.seededRecords || 0}</strong>
+                        <span>Grid rows ready</span>
+                    </div>
+                    <div class="eaglenet-seed-stat">
+                        <strong>${preview?.summary?.exceptionCount || 0}</strong>
+                        <span>Needs review</span>
+                    </div>
+                    <div class="eaglenet-seed-stat">
+                        <strong>${preview?.summary?.allowedRoomCount || 0}</strong>
+                        <span>Rooms in workspace</span>
+                    </div>
+                    <div class="eaglenet-seed-stat">
+                        <strong>${preview?.summary?.dayPatternCount || 0} / ${preview?.summary?.timeSlotCount || 0}</strong>
+                        <span>Day / time patterns</span>
+                    </div>
+                    <div class="eaglenet-seed-stat">
+                        <strong>${quarterCounts.fall || 0} / ${quarterCounts.winter || 0} / ${quarterCounts.spring || 0}</strong>
+                        <span>Fall / Winter / Spring</span>
+                    </div>
+                `;
+            }
+
+            if (exceptionCount) {
+                exceptionCount.textContent = `${preview?.exceptions?.length || 0} review item${(preview?.exceptions?.length || 0) === 1 ? '' : 's'}`;
+            }
+
+            if (exceptions) {
+                const rows = Array.isArray(preview?.exceptions) ? preview.exceptions : [];
+                if (!rows.length) {
+                    exceptions.innerHTML = '<div class="eaglenet-seed-empty">No review exceptions in this source slice.</div>';
+                } else {
+                    exceptions.innerHTML = rows.map((row) => `
+                        <article class="eaglenet-seed-exception-item">
+                            <div class="eaglenet-seed-exception-title">${escapeHtml(row.label || row.code || 'Review item')}</div>
+                            <div class="eaglenet-seed-exception-reason">${escapeHtml(row.reason || 'Needs review')}</div>
+                            <div class="eaglenet-seed-exception-meta">
+                                ${escapeHtml([row.meetingLabel, row.roomLabel].filter(Boolean).join(' • ') || 'No fixed meeting slot')}
+                            </div>
+                        </article>
+                    `).join('');
+                }
+            }
+        }
+
+        async function refreshEagleNetSeedPreview() {
+            if (!eagleNetActiveWorkspaceId) {
+                showToast('Switch to the CS/EE or Cyber workspace before seeding.', 'error');
+                return null;
+            }
+
+            const targetYear = getEagleNetSeedTargetYear();
+            if (!/^\d{4}-\d{2}$/.test(targetYear)) {
+                showToast('Target year must look like 2026-27.', 'error');
+                return null;
+            }
+
+            try {
+                await window.EagleNetSeed.load();
+                eagleNetSeedPreview = window.EagleNetSeed.buildSchedulerDraft({
+                    workspaceId: eagleNetActiveWorkspaceId,
+                    academicYear: targetYear
+                });
+                renderEagleNetSeedPreview(eagleNetSeedPreview);
+                return eagleNetSeedPreview;
+            } catch (error) {
+                console.error('Could not build EagleNET seed preview:', error);
+                showToast('Could not build EagleNET preview', 'error');
+                return null;
+            }
+        }
+
+        async function openEagleNetSeedModal() {
+            if (!eagleNetActiveWorkspaceId) {
+                showToast('Switch to the CS/EE or Cyber workspace before seeding.', 'error');
+                return;
+            }
+
+            const targetYearInput = document.getElementById('eaglenetSeedTargetYear');
+            if (targetYearInput) {
+                targetYearInput.value = String(activeDepartmentProfile?.academic?.defaultSchedulerYear || currentAcademicYear || '2026-27').trim();
+            }
+
+            document.getElementById('eaglenetSeedModal')?.classList.add('active');
+            await refreshEagleNetSeedPreview();
+        }
+
+        async function applyEagleNetSeed() {
+            const preview = eagleNetSeedPreview || await refreshEagleNetSeedPreview();
+            if (!preview) return;
+
+            const targetYear = preview.academicYear;
+            const currentYearSnapshot = targetYear === currentAcademicYear
+                ? { fall: scheduleData.fall, winter: scheduleData.winter, spring: scheduleData.spring }
+                : loadScheduleDataSnapshotForYear(targetYear);
+            const existingCount = countScheduleCourses(currentYearSnapshot);
+
+            if (existingCount > 0 && !confirm(`Replace the existing ${targetYear} draft (${existingCount} scheduled row${existingCount === 1 ? '' : 's'}) with the EagleNET seed?`)) {
+                return;
+            }
+
+            const draftCopy = JSON.parse(JSON.stringify(preview.draft));
+            if (targetYear === currentAcademicYear) {
+                scheduleData.fall = draftCopy.fall || {};
+                scheduleData.winter = draftCopy.winter || {};
+                scheduleData.spring = draftCopy.spring || {};
+                ensureQuarterScheduleBucket('fall');
+                ensureQuarterScheduleBucket('winter');
+                ensureQuarterScheduleBucket('spring');
+                saveScheduleData();
+            } else {
+                saveScheduleDataSnapshotForYear(targetYear, draftCopy);
+                ensureQuarterNavAcademicYearOption(targetYear);
+                switchAcademicYear(targetYear);
+            }
+
+            setScheduleDirty(true);
+            syncDirtyStateForCurrentYear();
+
+            const currentQuarter = window.StateManager?.get('currentQuarter') || document.getElementById('mainQuarterNav')?.currentQuarter || 'spring';
+            renderSchedule(currentQuarter);
+            renderOnlineCourses(currentQuarter);
+            renderArrangedCourses(currentQuarter);
+            renderEnrollmentAnalytics(currentQuarter);
+            renderConflicts(currentQuarter);
+            renderConflictSolver(currentQuarter);
+            renderRecommendations(currentQuarter);
+            updateStats(currentQuarter);
+
+            closeEagleNetSeedModal();
+            showToast(`Seeded ${preview.summary.seededRecords} EagleNET rows into ${targetYear}.`);
         }
 
         function normalizeFacultyAliasArtifacts(name) {
@@ -7320,6 +7728,11 @@
                 code: normalizeCourseCode(course.code),
                 credits: Number(course.credits) || 5
             }));
+        }
+
+        function formatTime(time) {
+            const slot = getSchedulerTimeSlotByAlias(time);
+            return slot?.label || String(time || '').trim();
         }
 
         function formatConflictSlot(day, time) {
@@ -12891,6 +13304,13 @@
 
         async function init() {
             await initializeDepartmentProfileContext();
+            await initializeEagleNetWorkspaceContext();
+            syncAcademicYearFromProfile(activeDepartmentProfile);
+            await populateWorkspaceProfileSelect();
+            const workspaceSelect = document.getElementById('workspaceProfileSelect');
+            if (workspaceSelect) {
+                workspaceSelect.onchange = handleWorkspaceProfileSelection;
+            }
             await loadEnrollmentData();
             await loadFacultyData();
             migrateLegacyProfileScopedStorage();
@@ -12908,8 +13328,14 @@
             // Migrate old schedule data format to year-aware format
             migrateOldScheduleData();
 
+            if (activeDepartmentProfile?.id && activeDepartmentProfile.id !== 'design-v1') {
+                scheduleData.fall = createEmptyQuarterScheduleBucket();
+                scheduleData.winter = createEmptyQuarterScheduleBucket();
+                scheduleData.spring = createEmptyQuarterScheduleBucket();
+            }
+
             // Load saved schedule data from localStorage
-            loadScheduleData();
+            loadScheduleData(currentAcademicYear);
 
             // Check for imported schedule from schedule builder
             checkForImportedSchedule();
@@ -12932,6 +13358,7 @@
             // Load swap mode preference
             loadSwapMode();
             syncDirtyStateForCurrentYear();
+            populateClssImportTargetYearOptions();
 
             const initialQuarter = (window.StateManager && window.StateManager.get('currentQuarter')) || 'spring';
 
@@ -12987,6 +13414,10 @@
             showClssImportReportRowsNow,
             copyClssImportReportDebugJson,
             clearClssImportResultsPanel,
+            openEagleNetSeedModal,
+            closeEagleNetSeedModal,
+            refreshEagleNetSeedPreview,
+            applyEagleNetSeed,
             openAddCourseModal,
             closeAddCourseModal,
             closeAddFacultyModal,
@@ -13014,24 +13445,10 @@
             set: (value) => { scheduleSaveInProgress = Boolean(value); }
         });
 
-        // Start the app through the onboarding shell so program selection and
-        // auth happen before the runtime boots.
-        const shellBootstrap = window.ProgramCommandShell && typeof window.ProgramCommandShell.bootstrap === 'function'
-            ? window.ProgramCommandShell.bootstrap({
-                launchRuntime: init,
-                profileManager: window.DepartmentProfileManager,
-                authService: window.AuthService,
-                onboardingUrl: 'pages/department-onboarding.html'
-            })
-            : init();
-
-        if (shellBootstrap && typeof shellBootstrap.catch === 'function') {
-            shellBootstrap.catch((error) => {
-                console.error('Program shell bootstrap failed:', error);
-                showToast('Program shell failed to initialize. Loading the scheduler directly.', 'error');
-                init();
-            });
-        }
+        init().catch((error) => {
+            console.error('Scheduler initialization failed:', error);
+            showToast('Scheduler failed to initialize.', 'error');
+        });
     </script>
 
     <!-- Course Details Modal -->
@@ -13374,6 +13791,40 @@
                 <button class="btn-secondary" onclick="closeClssImportModal()">Close</button>
                 <button class="btn-secondary" id="clssImportPreviewButton" onclick="parseClssImportPreview()">Preview Courses</button>
                 <button class="btn-ewu-accent" id="clssImportApplyButton" onclick="applyClssImport()" disabled>Build Schedule Draft</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- EagleNET Seed Review Modal -->
+    <div class="modal-overlay" id="eaglenetSeedModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Seed EagleNET Draft</h2>
+                <button class="modal-close" onclick="closeEagleNetSeedModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-input-group">
+                    <div class="form-group">
+                        <label for="eaglenetSeedTargetYear" class="form-label">Target academic year</label>
+                        <input type="text" id="eaglenetSeedTargetYear" class="form-input" value="2026-27" pattern="\d{4}-\d{2}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Workspace</label>
+                        <div id="eaglenetSeedWorkspaceName" class="eaglenet-seed-workspace">EECS</div>
+                    </div>
+                </div>
+                <p id="eaglenetSeedSourceNote" class="eaglenet-seed-note">EagleNET manual JSON review source.</p>
+                <div id="eaglenetSeedSummary" class="eaglenet-seed-summary"></div>
+                <div class="eaglenet-seed-exceptions-header">
+                    <h3>Needs review</h3>
+                    <span id="eaglenetSeedExceptionCount"></span>
+                </div>
+                <div id="eaglenetSeedExceptions" class="eaglenet-seed-exceptions"></div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="closeEagleNetSeedModal()">Close</button>
+                <button class="btn-secondary" onclick="refreshEagleNetSeedPreview()">Refresh Preview</button>
+                <button class="btn-ewu-accent" id="eaglenetSeedApplyButton" onclick="applyEagleNetSeed()">Seed Grid</button>
             </div>
         </div>
     </div>
@@ -13959,6 +14410,12 @@
                 }
             }
             return courses;
+        }
+
+        function countScheduleCourses(scheduleStore) {
+            return ['fall', 'winter', 'spring'].reduce((total, quarter) => {
+                return total + flattenQuarterData(scheduleStore?.[quarter] || {}).length;
+            }, 0);
         }
 
         /**

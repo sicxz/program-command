@@ -66,15 +66,15 @@
       { "id": "15:00-17:20", "label": "15:00-17:20", "aliases": ["15:00-17:00"], "startMinutes": 900, "endMinutes": 1040 }
     ],
     "roomLabels": {
-      "CEB 105": "Cheney / Computer Engineering Bldg. / 105",
-      "CEB 106": "Cheney / Computer Engineering Bldg. / 106",
-      "CEB 204": "Cheney / Computer Engineering Bldg. / 204",
-      "Catalyst 193": "Spokane U-District / Catalyst Building, Spokane / 193",
-      "Catalyst 194": "Spokane U-District / Catalyst Building, Spokane / 194",
-      "Catalyst 214": "Spokane U-District / Catalyst Building, Spokane / 214",
-      "Catalyst 216": "Spokane U-District / Catalyst Building, Spokane / 216",
-      "Catalyst 220": "Spokane U-District / Catalyst Building, Spokane / 220",
-      "Catalyst 221": "Spokane U-District / Catalyst Building, Spokane / 221"
+      "CEB 105": "CHN 105",
+      "CEB 106": "CHN 106",
+      "CEB 204": "CHN 204",
+      "Catalyst 193": "CAT 193",
+      "Catalyst 194": "CAT 194",
+      "Catalyst 214": "CAT 214",
+      "Catalyst 216": "CAT 216",
+      "Catalyst 220": "CAT 220",
+      "Catalyst 221": "CAT 221"
     }
   },
   "workload": {
