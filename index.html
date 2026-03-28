@@ -8746,8 +8746,8 @@
             currentCourseData = { code, name, instructor, credits, room, courseId, quarter, day, time, section, academicYear };
 
             // Format day/time for display
-            const dayDisplay = day || 'TBD';
-            const timeDisplay = time || 'TBD';
+            const dayDisplay = day ? getSchedulerDayLabel(day) : 'TBD';
+            const timeDisplay = time ? (getSchedulerTimeSlotByAlias(time)?.label || time) : 'TBD';
             const roomDisplay = getSchedulerRoomDisplayText(room);
 
             // Build details content
@@ -8983,9 +8983,15 @@
                 enrollmentCap: parseInt(document.getElementById('editEnrollmentCap').value) || 24,
                 assignedFaculty: newInstructor,
                 room: newRoom,
-                days: getEditSelectedDays(),
-                startTime: document.getElementById('editStartTime').value || null,
-                endTime: document.getElementById('editEndTime').value || null,
+                days: (newRoom === 'ONLINE' || newRoom === 'ARRANGED')
+                    ? []
+                    : getEditSelectedDays().map((token) => token === 'R' ? 'Th' : token),
+                startTime: (newRoom === 'ONLINE' || newRoom === 'ARRANGED')
+                    ? null
+                    : (document.getElementById('editStartTime').value || null),
+                endTime: (newRoom === 'ONLINE' || newRoom === 'ARRANGED')
+                    ? null
+                    : (document.getElementById('editEndTime').value || null),
                 notes: document.getElementById('editNotes').value || null
             };
 
@@ -9249,6 +9255,24 @@
             }
         }
 
+        function persistRecoveryDraft(reason = 'autosave-fallback') {
+            const handler = typeof captureRecoveryDraft === 'function'
+                ? captureRecoveryDraft
+                : (typeof window !== 'undefined' && typeof window.captureRecoveryDraft === 'function'
+                    ? window.captureRecoveryDraft
+                    : null);
+            return handler?.(reason);
+        }
+
+        function removeRecoveryDraft() {
+            const handler = typeof clearRecoveryDraft === 'function'
+                ? clearRecoveryDraft
+                : (typeof window !== 'undefined' && typeof window.clearRecoveryDraft === 'function'
+                    ? window.clearRecoveryDraft
+                    : null);
+            return handler?.();
+        }
+
         async function attemptResilientAutoSave(trigger = 'interval') {
             const hasDirtyState = Boolean(window.DirtyStateTracker?.isDirty?.() || scheduleDirty);
             if (!hasDirtyState || scheduleSaveInProgress || autoSaveRunning) {
@@ -9268,11 +9292,11 @@
                     trigger
                 });
                 if (!success) {
-                    captureRecoveryDraft(`autosave-${trigger}`);
+                    window.persistRecoveryDraft?.(`autosave-${trigger}`);
                 }
                 return success;
             } catch (error) {
-                captureRecoveryDraft(`autosave-${trigger}`);
+                window.persistRecoveryDraft?.(`autosave-${trigger}`);
                 return false;
             } finally {
                 autoSaveRunning = false;
@@ -9283,7 +9307,7 @@
             showToast('Session timed out. Saving pending changes and signing out...', 'error');
             const saved = await attemptResilientAutoSave('timeout');
             if (!saved && (window.DirtyStateTracker?.isDirty?.() || scheduleDirty)) {
-                captureRecoveryDraft('timeout');
+                window.persistRecoveryDraft?.('timeout');
             }
 
             try {
@@ -9323,7 +9347,7 @@
             document.addEventListener('visibilitychange', () => {
                 if (document.hidden) {
                     if (window.DirtyStateTracker?.isDirty?.() || scheduleDirty) {
-                        captureRecoveryDraft('visibility-hidden');
+                        window.persistRecoveryDraft?.('visibility-hidden');
                         attemptResilientAutoSave('visibility-hidden');
                     }
                     return;
@@ -12481,6 +12505,11 @@
         }
 
         function scheduleStoreHasCourses(scheduleStore) {
+            const count = window.SchedulePersistence?.countScheduleCourses?.(scheduleStore);
+            if (Number.isFinite(count)) {
+                return count > 0;
+            }
+
             return CLSS_IMPORT_QUARTERS.some((quarter) => {
                 const quarterData = scheduleStore?.[quarter];
                 if (!quarterData || typeof quarterData !== 'object') return false;
@@ -12547,52 +12576,6 @@
 
         function ensureQuarterScheduleBucket(quarter) {
             return ensureQuarterScheduleBucketForSchedule(scheduleData, quarter);
-        }
-
-        function buildScheduleCourseFromDatabaseRecord(record) {
-            const dayPattern = String(record?.day_pattern ?? record?.dayPattern ?? '').trim().toUpperCase();
-            const roomCode = String(record?.room?.room_code || record?.room || '').trim().toUpperCase();
-            const projectedEnrollment = Number.parseInt(record?.projected_enrollment ?? record?.projectedEnrollment ?? '', 10);
-            const course = {
-                code: normalizeCourseCode(record?.course?.code || record?.code || ''),
-                name: String(record?.course?.title || record?.name || '').trim(),
-                instructor: getCanonicalFacultyName(record?.faculty?.name || record?.instructor || 'TBD'),
-                credits: Number(record?.course?.default_credits || record?.credits || 5) || 5,
-                room: roomCode || (dayPattern === 'ONLINE' ? 'ONLINE' : dayPattern === 'ARRANGED' ? 'ARRANGED' : 'TBD'),
-                section: String(record?.section || '').trim()
-            };
-
-            if (Number.isFinite(projectedEnrollment)) {
-                course.enrollmentCap = projectedEnrollment;
-            }
-
-            return course;
-        }
-
-        function buildScheduleSnapshotFromDatabaseRows(records) {
-            const snapshot = createEmptyAcademicYearScheduleData();
-
-            (Array.isArray(records) ? records : []).forEach((record) => {
-                const quarter = String(record?.quarter || '').trim().toLowerCase();
-                const dayPattern = String(record?.day_pattern ?? record?.dayPattern ?? '').trim().toUpperCase();
-                const timeSlot = String(record?.time_slot ?? record?.timeSlot ?? '').trim();
-
-                if (!CLSS_IMPORT_QUARTERS.includes(quarter) || !dayPattern || !timeSlot) {
-                    return;
-                }
-
-                const quarterBucket = ensureQuarterScheduleBucketForSchedule(snapshot, quarter);
-                if (!quarterBucket[dayPattern] || typeof quarterBucket[dayPattern] !== 'object') {
-                    quarterBucket[dayPattern] = {};
-                }
-                if (!Array.isArray(quarterBucket[dayPattern][timeSlot])) {
-                    quarterBucket[dayPattern][timeSlot] = [];
-                }
-
-                quarterBucket[dayPattern][timeSlot].push(buildScheduleCourseFromDatabaseRecord(record));
-            });
-
-            return normalizeScheduleCourseCodes(snapshot);
         }
 
         function buildImportedScheduleCourse(row, roomOverride) {
@@ -13556,6 +13539,10 @@
             updateSwapModeLabels,
             updateSaveDbButtonState,
             setScheduleDirty,
+            captureRecoveryDraft,
+            clearRecoveryDraft,
+            persistRecoveryDraft,
+            removeRecoveryDraft,
             saveScheduleData,
             openWorkloadReviewFromScheduler,
             saveScheduleToDatabase
@@ -14711,7 +14698,7 @@
                 if (!silent) {
                     showToast('Supabase is not connected. Changes are still saved locally.', 'error');
                 }
-                captureRecoveryDraft(`save-no-client-${trigger}`);
+                window.persistRecoveryDraft?.(`save-no-client-${trigger}`);
                 return false;
             }
 
@@ -14855,14 +14842,14 @@
                 }
 
                 setScheduleDirty(false);
-                clearRecoveryDraft();
+                window.removeRecoveryDraft?.();
                 if (!silent) {
                     showToast(`Saved ${records.length} schedule entries to Supabase (${saveCounts.updated} updated, ${saveCounts.inserted} new${saveCounts.deleted ? `, ${saveCounts.deleted} removed` : ''}).`);
                 }
                 return true;
             } catch (error) {
                 console.error('Error saving schedule to Supabase:', error);
-                captureRecoveryDraft(`save-failed-${trigger}`);
+                window.persistRecoveryDraft?.(`save-failed-${trigger}`);
                 if (!silent) {
                     showToast('Database save failed: ' + (error.message || 'Unknown error'), 'error');
                 }
