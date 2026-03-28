@@ -11,6 +11,8 @@ describe('DepartmentProfileManager onboarding helpers', () => {
     const manifest = loadJson('department-profiles/manifest.json');
     const designProfile = loadJson('department-profiles/design-v1.json');
     const pilotProfile = loadJson('department-profiles/itds-pilot-v1.json');
+    const cseeProfile = loadJson('department-profiles/csee-chair-v1.json');
+    const cyberProfile = loadJson('department-profiles/cyber-chair-v1.json');
 
     beforeEach(() => {
         localStorage.clear();
@@ -107,5 +109,12 @@ describe('DepartmentProfileManager onboarding helpers', () => {
         const ids = listing.profiles.map((entry) => entry.id);
         expect(ids).toContain('test-department-v01');
         expect(ids).toContain('test-department-v02');
+    });
+
+    test('chair profiles use CAT and CHN shorthand room labels', () => {
+        expect(cseeProfile.scheduler.roomLabels['Catalyst 002']).toBe('CAT 002');
+        expect(cseeProfile.scheduler.roomLabels['CEB 105']).toBe('CHN 105');
+        expect(cyberProfile.scheduler.roomLabels['Catalyst 193']).toBe('CAT 193');
+        expect(cyberProfile.scheduler.roomLabels['CEB 106']).toBe('CHN 106');
     });
 });

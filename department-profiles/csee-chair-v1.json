@@ -1,0 +1,158 @@
+{
+  "version": 1,
+  "id": "csee-chair-v1",
+  "identity": {
+    "name": "Computer Science and Electrical Engineering",
+    "code": "CSEE",
+    "displayName": "EWU CS/EE",
+    "shortName": "CS/EE"
+  },
+  "branding": {
+    "appTitle": "Program Command - EWU CS/EE",
+    "headerEyebrow": "EWU CS/EE · PROGRAM COMMAND",
+    "headerSubtitle": "CS/EE Schedule Planning and Draft Seeding",
+    "textSlots": {
+      "navAnalyticsLabel": "Analytics",
+      "navPlanningLabel": "Planning",
+      "navToolsLabel": "Workspace",
+      "onboardingTitle": "EECS Workspace Setup",
+      "onboardingSubtitle": "Seed and manage the CS/EE workspace for AY 2026-27",
+      "onboardingStep1Title": "Step 1: Workspace + Identity",
+      "onboardingStep1Help": "Confirm the chair-facing workspace identity and year defaults.",
+      "onboardingStep2Title": "Step 2: Rooms + Labels",
+      "onboardingStep2Help": "Review the CS/EE room inventory and room label mappings.",
+      "onboardingStep3Title": "Step 3: Review + Seed",
+      "onboardingStep3Help": "Check exceptions, then seed the draft grid for review.",
+      "onboardingStatusTitle": "Workspace Status"
+    },
+    "themeTokens": {
+      "headerTop": "#12304b",
+      "headerBottom": "#0c2034",
+      "headerForeground": "#f8fafc",
+      "headerMuted": "#cbd5e1",
+      "headerActionBg": "#0c2034",
+      "headerActionBorder": "#3c5d79",
+      "headerActionHoverBg": "#12304b",
+      "headerActionHoverBorder": "#5b7d98"
+    }
+  },
+  "academic": {
+    "system": "quarter",
+    "quarters": ["fall", "winter", "spring"],
+    "defaultTargetYearMode": "current",
+    "defaultWorkloadImportYearMode": "next",
+    "defaultSchedulerYear": "2026-27"
+  },
+  "scheduler": {
+    "storageKeyPrefix": "cseeSchedulerData_",
+    "allowedRooms": [
+      "CEB 105",
+      "CEB 106",
+      "CEB 107",
+      "CEB 204",
+      "CEB 225",
+      "CEB 228",
+      "CEB 229",
+      "CEB 233",
+      "Catalyst 002",
+      "Catalyst 005",
+      "Catalyst 006",
+      "Catalyst 193",
+      "Catalyst 194",
+      "Catalyst 201",
+      "Catalyst 202",
+      "Catalyst 203",
+      "Catalyst 204",
+      "Catalyst 214",
+      "Catalyst 215",
+      "Catalyst 216",
+      "Catalyst 219",
+      "Catalyst 220",
+      "Catalyst 221"
+    ],
+    "dayPatterns": [
+      { "id": "MW", "label": "Monday / Wednesday", "aliases": ["MW", "WM"] },
+      { "id": "TR", "label": "Tuesday / Thursday", "aliases": ["TR", "RT", "TH", "TTH"] }
+    ],
+    "timeSlots": [
+      { "id": "09:00-11:20", "label": "09:00-11:20", "aliases": ["09:00-11:00"], "startMinutes": 540, "endMinutes": 680 },
+      { "id": "12:00-14:20", "label": "12:00-14:20", "aliases": ["12:00-14:00"], "startMinutes": 720, "endMinutes": 860 },
+      { "id": "15:00-17:20", "label": "15:00-17:20", "aliases": ["15:00-17:00"], "startMinutes": 900, "endMinutes": 1040 }
+    ],
+    "roomLabels": {
+      "CEB 105": "CHN 105",
+      "CEB 106": "CHN 106",
+      "CEB 107": "CHN 107",
+      "CEB 204": "CHN 204",
+      "CEB 225": "CHN 225",
+      "CEB 228": "CHN 228",
+      "CEB 229": "CHN 229",
+      "CEB 233": "CHN 233",
+      "Catalyst 002": "CAT 002",
+      "Catalyst 005": "CAT 005",
+      "Catalyst 006": "CAT 006",
+      "Catalyst 193": "CAT 193",
+      "Catalyst 194": "CAT 194",
+      "Catalyst 201": "CAT 201",
+      "Catalyst 202": "CAT 202",
+      "Catalyst 203": "CAT 203",
+      "Catalyst 204": "CAT 204",
+      "Catalyst 214": "CAT 214",
+      "Catalyst 215": "CAT 215",
+      "Catalyst 216": "CAT 216",
+      "Catalyst 219": "CAT 219",
+      "Catalyst 220": "CAT 220",
+      "Catalyst 221": "CAT 221"
+    }
+  },
+  "workload": {
+    "dashboardTitle": "Faculty Workload Dashboard",
+    "dashboardSubtitleBase": "EWU CS/EE Department - Academic Workload Analysis",
+    "productionResetDefaultScheduleYear": "2026-27",
+    "defaultAnnualTargets": {
+      "Full Professor": 36,
+      "Associate Professor": 36,
+      "Assistant Professor": 36,
+      "Tenure/Tenure-track": 36,
+      "Senior Lecturer": 45,
+      "Lecturer": 45,
+      "Adjunct": 15
+    }
+  },
+  "import": {
+    "clss": {
+      "roomMatchPriority": [
+        "CEB 105",
+        "CEB 106",
+        "CEB 107",
+        "CEB 204",
+        "CEB 225",
+        "CEB 228",
+        "CEB 229",
+        "CEB 233",
+        "Catalyst 002",
+        "Catalyst 005",
+        "Catalyst 006",
+        "Catalyst 193",
+        "Catalyst 194",
+        "Catalyst 201",
+        "Catalyst 202",
+        "Catalyst 203",
+        "Catalyst 204",
+        "Catalyst 214",
+        "Catalyst 215",
+        "Catalyst 216",
+        "Catalyst 219",
+        "Catalyst 220",
+        "Catalyst 221"
+      ],
+      "preferredMatchingOrder": [
+        "course+section+instructor+quarter",
+        "course+quarter+instructor",
+        "course+quarter"
+      ],
+      "facultyAliases": {},
+      "courseAliases": {}
+    }
+  }
+}

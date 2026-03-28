@@ -193,7 +193,7 @@ describe('Auth + Edit State Integration', () => {
         jest.restoreAllMocks();
     });
 
-    test('allows chair users into the onboarding route after authentication', async () => {
+    test('allows chair users into the main scheduler after authentication', async () => {
         const presenceService = {
             joinPage: jest.fn().mockResolvedValue(true),
             onPresenceChange: jest.fn(),
@@ -201,7 +201,7 @@ describe('Auth + Edit State Integration', () => {
         };
 
         const harness = loadAuthGuardHarness({
-            url: 'https://program-command.local/pages/department-onboarding.html',
+            url: 'https://program-command.local/index.html',
             user: { id: 'chair-1', email: 'chair@example.edu', role: 'chair' },
             canResult: false,
             presenceService
@@ -211,7 +211,7 @@ describe('Auth + Edit State Integration', () => {
 
         expect(harness.authService.can).not.toHaveBeenCalled();
         expect(document.body.textContent).not.toContain('Access Denied');
-        expect(presenceService.joinPage).toHaveBeenCalledWith('/pages/department-onboarding.html');
+        expect(presenceService.joinPage).toHaveBeenCalledWith('/index.html');
 
         harness.cleanup();
     });

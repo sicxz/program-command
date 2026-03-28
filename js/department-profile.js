@@ -1,6 +1,6 @@
 /*
  * Department profile runtime loader/validator (v1)
- * Provides a lightweight config foundation for multi-department onboarding.
+ * Provides a lightweight config foundation for multi-department workspace setup.
  */
 (function departmentProfileRuntime(global) {
     'use strict';
@@ -28,15 +28,15 @@
                 navAnalyticsLabel: 'Analytics',
                 navPlanningLabel: 'Planning',
                 navToolsLabel: 'Tools',
-                onboardingTitle: 'Department Onboarding Shell',
+                onboardingTitle: 'Department Workspace Setup',
                 onboardingSubtitle: 'Create and activate a versioned department profile without code edits for standard setup',
-                onboardingStep1Title: 'Step 1: Entry + Base Profile',
+                onboardingStep1Title: 'Step 1: Base Profile + Identity',
                 onboardingStep1Help: 'Select an existing profile as your base, then define department identity.',
-                onboardingStep2Title: 'Step 2: Seed Mapping Wizard',
+                onboardingStep2Title: 'Step 2: Rooms + Aliases',
                 onboardingStep2Help: 'Enter room map and CLSS alias mappings. Use one item per line. Alias format: alias=canonical.',
-                onboardingStep3Title: 'Step 3: Health Checks + Activation',
+                onboardingStep3Title: 'Step 3: Review + Activate',
                 onboardingStep3Help: 'Run checks before activation. Errors block activation. Warnings are advisory.',
-                onboardingStatusTitle: 'Current Status'
+                onboardingStatusTitle: 'Setup Status'
             },
             themeTokens: {
                 headerTop: '#3d444d',

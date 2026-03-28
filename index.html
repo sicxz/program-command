@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Program Command - EWU Design</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f172a'/%3E%3Cpath d='M18 18h28v8H18zm0 12h18v8H18zm0 12h28v8H18z' fill='%23f8fafc'/%3E%3C/svg%3E">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -72,305 +73,6 @@
             color: var(--color-fg-default);
             font-size: 14px;
             line-height: 1.5;
-        }
-
-        .program-shell-overlay {
-            position: fixed;
-            inset: 0;
-            z-index: 11000;
-            overflow-y: auto;
-            padding: 28px 20px;
-            background:
-                radial-gradient(circle at top right, rgba(161, 0, 34, 0.18), transparent 30%),
-                linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.82));
-            backdrop-filter: blur(10px);
-        }
-
-        .program-shell-overlay[hidden] {
-            display: none;
-        }
-
-        .program-shell-layout {
-            width: min(1180px, 100%);
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: minmax(0, 1.2fr) minmax(340px, 0.8fr);
-            gap: 18px;
-            align-items: start;
-        }
-
-        .program-shell-card {
-            background: rgba(255, 255, 255, 0.96);
-            border: 1px solid rgba(148, 163, 184, 0.28);
-            border-radius: 24px;
-            box-shadow: 0 24px 64px rgba(15, 23, 42, 0.24);
-            padding: 24px;
-        }
-
-        .program-shell-card.hero {
-            min-height: 100%;
-        }
-
-        .program-shell-eyebrow {
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 0.18em;
-            text-transform: uppercase;
-            color: #8a001d;
-            margin-bottom: 12px;
-        }
-
-        .program-shell-title {
-            margin: 0 0 10px;
-            font-size: clamp(2rem, 4vw, 3rem);
-            line-height: 1.02;
-            letter-spacing: -0.04em;
-            color: #0f172a;
-        }
-
-        .program-shell-copy {
-            margin: 0 0 18px;
-            max-width: 56ch;
-            color: #475569;
-            font-size: 15px;
-        }
-
-        .program-shell-catalog {
-            display: grid;
-            gap: 10px;
-        }
-
-        .program-shell-catalog-heading {
-            font-size: 14px;
-            font-weight: 700;
-            color: #334155;
-        }
-
-        .program-shell-catalog-list,
-        .program-shell-subsection-list {
-            display: grid;
-            gap: 8px;
-        }
-
-        .program-shell-subsection {
-            display: grid;
-            gap: 8px;
-            padding: 12px 0 0;
-            border-top: 1px solid rgba(148, 163, 184, 0.24);
-        }
-
-        .program-shell-subsection-title {
-            font-size: 13px;
-            font-weight: 700;
-            color: #1e293b;
-        }
-
-        .program-shell-program-button {
-            width: 100%;
-            display: grid;
-            gap: 2px;
-            text-align: left;
-            background: #ffffff;
-            border: 1px solid #d0d7de;
-            border-radius: 14px;
-            padding: 12px 14px;
-            cursor: pointer;
-            transition: border-color 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
-        }
-
-        .program-shell-program-button:hover {
-            border-color: rgba(161, 0, 34, 0.4);
-            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
-            transform: translateY(-1px);
-        }
-
-        .program-shell-program-button.selected {
-            border-color: #8a001d;
-            background: linear-gradient(180deg, #fff8f8, #ffffff);
-            box-shadow: 0 16px 30px rgba(138, 0, 29, 0.12);
-        }
-
-        .program-shell-program-label {
-            font-size: 18px;
-            font-weight: 700;
-            color: #0f172a;
-        }
-
-        .program-shell-program-meta {
-            font-size: 12px;
-            color: #64748b;
-        }
-
-        .program-shell-auth-summary {
-            margin: 0 0 16px;
-            color: #334155;
-            font-size: 14px;
-        }
-
-        .program-shell-auth-form {
-            display: grid;
-            gap: 12px;
-        }
-
-        .program-shell-auth-form label {
-            display: grid;
-            gap: 6px;
-            font-weight: 600;
-            color: #1e293b;
-        }
-
-        .program-shell-auth-form input {
-            width: 100%;
-            border: 1px solid #cbd5e1;
-            border-radius: 12px;
-            padding: 12px 14px;
-            font-size: 14px;
-        }
-
-        .program-shell-actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 4px;
-        }
-
-        .program-shell-button,
-        .program-shell-button-secondary {
-            border-radius: 999px;
-            padding: 10px 16px;
-            font-size: 13px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: transform 0.16s ease, border-color 0.16s ease;
-        }
-
-        .program-shell-button {
-            border: 1px solid #0f172a;
-            background: #0f172a;
-            color: #ffffff;
-        }
-
-        .program-shell-button-secondary {
-            border: 1px solid #d0d7de;
-            background: #ffffff;
-            color: #0f172a;
-        }
-
-        .program-shell-button:hover,
-        .program-shell-button-secondary:hover {
-            transform: translateY(-1px);
-        }
-
-        .program-shell-session-panel {
-            display: grid;
-            gap: 10px;
-            padding: 14px;
-            border-radius: 16px;
-            background: #f8fafc;
-            border: 1px solid #dbe4ee;
-        }
-
-        .program-shell-status {
-            margin-top: 16px;
-            border-radius: 14px;
-            padding: 12px 14px;
-            border: 1px solid #dbe4ee;
-            background: #f8fafc;
-            color: #0f172a;
-            min-height: 48px;
-        }
-
-        .program-shell-status.ok {
-            border-color: #22c55e;
-            background: #f0fdf4;
-            color: #166534;
-        }
-
-        .program-shell-status.warn {
-            border-color: #f59e0b;
-            background: #fffbeb;
-            color: #92400e;
-        }
-
-        .program-shell-status.error {
-            border-color: #ef4444;
-            background: #fef2f2;
-            color: #991b1b;
-        }
-
-        .program-shell-status.info {
-            border-color: #93c5fd;
-            background: #eff6ff;
-            color: #1d4ed8;
-        }
-
-        .program-shell-chooser {
-            grid-column: 1 / -1;
-            display: grid;
-            gap: 14px;
-        }
-
-        .program-shell-choice-grid {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 14px;
-        }
-
-        .program-shell-choice {
-            display: grid;
-            gap: 10px;
-            padding: 18px;
-            border-radius: 18px;
-            border: 1px solid #dbe4ee;
-            background: #ffffff;
-        }
-
-        .program-shell-choice h3 {
-            margin: 0;
-            font-size: 18px;
-            color: #0f172a;
-        }
-
-        .program-shell-choice p,
-        .program-shell-choice ul {
-            margin: 0;
-            color: #475569;
-        }
-
-        .program-shell-choice ul {
-            padding-left: 18px;
-            display: grid;
-            gap: 4px;
-            font-size: 13px;
-        }
-
-        .program-shell-choice-actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
-        .program-shell-choice-note {
-            font-size: 12px;
-            color: #64748b;
-        }
-
-        .program-shell-choice-tag {
-            display: inline-flex;
-            width: fit-content;
-            border-radius: 999px;
-            background: #f1f5f9;
-            color: #334155;
-            padding: 4px 10px;
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-        }
-
-        .program-shell-chooser-meta {
-            color: #475569;
-            font-size: 14px;
         }
 
         .container {
@@ -3847,6 +3549,142 @@
             gap: 16px;
         }
 
+        .schedule-workspace-tools {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .schedule-workspace-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #44505c;
+            font-size: 0.88rem;
+            font-weight: 600;
+        }
+
+        .schedule-workspace-label {
+            color: #5b6470;
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .schedule-workspace-select {
+            min-width: 200px;
+            padding: 8px 34px 8px 12px;
+            border: 1px solid #d0d7de;
+            border-radius: 999px;
+            background: #ffffff;
+            color: #1f2937;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .schedule-workspace-button {
+            border-radius: 999px;
+            font-size: 0.9rem;
+            padding: 8px 14px;
+        }
+
+        .eaglenet-seed-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .eaglenet-seed-stat {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 1px solid #d0d7de;
+            background: #f8fafc;
+        }
+
+        .eaglenet-seed-stat strong {
+            color: #111827;
+            font-size: 1.1rem;
+        }
+
+        .eaglenet-seed-stat span {
+            color: #4b5563;
+            font-size: 0.84rem;
+        }
+
+        .eaglenet-seed-note {
+            margin: 0 0 14px;
+            color: #5b6470;
+            font-size: 0.9rem;
+        }
+
+        .eaglenet-seed-workspace {
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid #d0d7de;
+            background: #f8fafc;
+            color: #111827;
+            font-weight: 600;
+        }
+
+        .eaglenet-seed-exceptions-header {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .eaglenet-seed-exceptions-header h3 {
+            margin: 0;
+            color: #111827;
+            font-size: 1rem;
+        }
+
+        .eaglenet-seed-exceptions {
+            max-height: 260px;
+            overflow-y: auto;
+            border: 1px solid #d0d7de;
+            border-radius: 10px;
+            background: #ffffff;
+        }
+
+        .eaglenet-seed-exception-item {
+            padding: 12px 14px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .eaglenet-seed-exception-item:last-child {
+            border-bottom: none;
+        }
+
+        .eaglenet-seed-exception-title {
+            color: #111827;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .eaglenet-seed-exception-reason {
+            color: #991b1b;
+            font-size: 0.88rem;
+            margin-bottom: 4px;
+        }
+
+        .eaglenet-seed-exception-meta {
+            color: #4b5563;
+            font-size: 0.84rem;
+        }
+
+        .eaglenet-seed-empty {
+            padding: 16px;
+            color: #4b5563;
+            font-size: 0.92rem;
+        }
+
         .scheduler-assistant-panel {
             margin-top: 16px;
             margin-bottom: 18px;
@@ -4654,6 +4492,20 @@
                 flex-wrap: wrap;
             }
 
+            .schedule-workspace-tools {
+                width: 100%;
+            }
+
+            .schedule-workspace-control {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .schedule-workspace-select {
+                flex: 1;
+                min-width: 0;
+            }
+
             .scheduler-assistant-input-row {
                 grid-template-columns: 1fr;
             }
@@ -4671,15 +4523,6 @@
             }
         }
 
-        @media (max-width: 960px) {
-            .program-shell-layout {
-                grid-template-columns: 1fr;
-            }
-
-            .program-shell-choice-grid {
-                grid-template-columns: 1fr;
-            }
-        }
     </style>
 
     <!-- Supabase -->
@@ -4687,7 +4530,9 @@
     <script src="js/department-profile.js"></script>
     <script type="module" src="js/supabase-config.js"></script>
     <script src="js/auth-service.js"></script>
-    <script src="js/program-shell.js"></script>
+    <script src="js/eaglenet-seed.js"></script>
+    <script src="js/schedule-persistence.js"></script>
+    <script src="js/scheduler-form-utils.js"></script>
     <script src="js/auth-guard.js"></script>
     <script src="js/dirty-state-tracker.js"></script>
 
@@ -4709,100 +4554,6 @@
 </head>
 
 <body>
-    <div class="program-shell-overlay" id="programShellOverlay" hidden>
-        <div class="program-shell-layout">
-            <section class="program-shell-card hero">
-                <div class="program-shell-eyebrow">Program Command</div>
-                <h1 class="program-shell-title">Welcome to Program Command</h1>
-                <p class="program-shell-copy">Choose your program, clear the account gate, and we will route you into an existing workspace or the right onboarding path for a new program.</p>
-                <div id="programShellProgramList"></div>
-            </section>
-
-            <section class="program-shell-card">
-                <div class="program-shell-eyebrow">Step 2</div>
-                <h2 style="margin:0 0 8px; font-size:1.5rem; color:#0f172a;">Program access</h2>
-                <p class="program-shell-auth-summary" id="programShellSummary">Choose a program to unlock the correct entry path.</p>
-
-                <form class="program-shell-auth-form" id="programShellAuthForm">
-                    <label>
-                        Email
-                        <input id="programShellEmail" type="email" autocomplete="email" placeholder="chair@ewu.edu">
-                    </label>
-                    <label>
-                        Password
-                        <input id="programShellPassword" type="password" autocomplete="current-password" placeholder="Password">
-                    </label>
-                    <div class="program-shell-actions">
-                        <button type="submit" class="program-shell-button">Sign in</button>
-                        <button type="button" class="program-shell-button-secondary" id="programShellCreateAccountButton">Create account</button>
-                        <button type="button" class="program-shell-button-secondary" id="programShellPreviewButton" hidden>Preview on localhost</button>
-                    </div>
-                </form>
-
-                <div class="program-shell-session-panel" id="programShellSessionPanel" hidden>
-                    <strong id="programShellSessionText">Authentication complete.</strong>
-                    <div class="program-shell-actions">
-                        <button type="button" class="program-shell-button" id="programShellContinueButton" disabled>Continue</button>
-                        <button type="button" class="program-shell-button-secondary" id="programShellSwitchAccountButton">Use another account</button>
-                    </div>
-                </div>
-
-                <div class="program-shell-status info" id="programShellStatus">Welcome to Program Command. Choose a program to begin.</div>
-            </section>
-
-            <section class="program-shell-card program-shell-chooser" id="programShellChooser" hidden>
-                <div class="program-shell-eyebrow">Step 3</div>
-                <h2 style="margin:0; font-size:1.75rem; color:#0f172a;">Start a new program workspace</h2>
-                <p class="program-shell-chooser-meta" id="programShellChooserMeta"></p>
-                <div class="program-shell-choice-grid">
-                    <article class="program-shell-choice">
-                        <span class="program-shell-choice-tag">MVP Ready</span>
-                        <h3>Manual setup</h3>
-                        <p>Open the onboarding workspace and set up the first versioned program profile by hand.</p>
-                        <ul>
-                            <li>Best when the program wants to establish rooms, aliases, and naming first.</li>
-                            <li>Routes directly into the current profile-onboarding workspace.</li>
-                        </ul>
-                        <button type="button" class="program-shell-button" id="programShellManualButton">Open manual setup</button>
-                    </article>
-
-                    <article class="program-shell-choice">
-                        <span class="program-shell-choice-tag">MVP Ready</span>
-                        <h3>Spreadsheet upload</h3>
-                        <p>Capture the current course listing export and carry that program context into onboarding.</p>
-                        <ul>
-                            <li>Use a `.csv`, `.xlsx`, or `.xls` export from EagleNET or a department workbook.</li>
-                            <li>Import mapping and seeded schedule generation stay in issue #210.</li>
-                        </ul>
-                        <button type="button" class="program-shell-button" id="programShellSpreadsheetButton">Choose spreadsheet</button>
-                    </article>
-
-                    <article class="program-shell-choice">
-                        <span class="program-shell-choice-tag">Follow-on</span>
-                        <h3>Screenshot upload</h3>
-                        <p>Capture screenshots from class search with the enrollment view and preserve the handoff context now.</p>
-                        <ul>
-                            <li>Accept a screenshot folder when your browser can preserve nested quarter folders.</li>
-                            <li>Fall back to choosing multiple screenshot files when folder upload is not available.</li>
-                            <li>Parsing and schedule seeding remain staged after the spreadsheet path.</li>
-                        </ul>
-                        <div class="program-shell-choice-actions">
-                            <button type="button" class="program-shell-button-secondary" id="programShellScreenshotDirectoryButton">Choose screenshot folder</button>
-                            <button type="button" class="program-shell-button-secondary" id="programShellScreenshotButton">Choose screenshot files</button>
-                        </div>
-                        <p class="program-shell-choice-note" id="programShellScreenshotSupportText">Folder upload keeps nested quarter folders when the browser supports directory selection.</p>
-                    </article>
-                </div>
-                <div class="program-shell-actions">
-                    <button type="button" class="program-shell-button-secondary" id="programShellBackButton" hidden>Back to program selection</button>
-                </div>
-            </section>
-        </div>
-        <input id="programShellSpreadsheetInput" type="file" accept=".csv,.xlsx,.xls" hidden>
-        <input id="programShellScreenshotDirectoryInput" type="file" accept="image/*" multiple webkitdirectory hidden>
-        <input id="programShellScreenshotInput" type="file" accept="image/*" multiple hidden>
-    </div>
-
     <!-- Displaced Course Tray Sidebar -->
     <div class="displaced-tray" id="displacedTray">
         <div class="displaced-tray-header">
@@ -4882,8 +4633,6 @@
                         <a href="pages/schedule-builder.html" class="nav-link"><span class="icon">📅</span>Builder</a>
                         <a href="pages/academic-year-setup.html" class="nav-link"><span class="icon">🗂️</span>AY
                             Setup</a>
-                        <a href="pages/department-onboarding.html" class="nav-link"><span
-                                class="icon">🧭</span>Onboarding</a>
                         <a href="pages/eaglenet-compare.html" class="nav-link"><span
                                 class="icon">🧾</span>EagleNet Compare</a>
                         <a href="pages/course-management.html" class="nav-link"><span class="icon">📚</span>Courses</a>
@@ -4939,6 +4688,15 @@
             <div class="schedule-grid-header">
                 <h2 class="schedule-grid-title">Program Schedule - <span id="quarterTitle">Spring 2026</span></h2>
                 <div class="schedule-grid-actions">
+                    <div class="schedule-workspace-tools">
+                        <label class="schedule-workspace-control" for="workspaceProfileSelect">
+                            <span class="schedule-workspace-label">Workspace</span>
+                            <select id="workspaceProfileSelect" class="schedule-workspace-select" aria-label="Scheduler workspace"></select>
+                        </label>
+                        <button type="button" id="openEagleNetSeedButton" class="btn-secondary schedule-workspace-button" onclick="openEagleNetSeedModal()" hidden>
+                            Seed Grid
+                        </button>
+                    </div>
                     <div class="swap-toggle-container"
                         title="When ON: Dropping a course onto an occupied slot swaps them. When OFF: The existing course goes to the displaced tray.">
                         <span class="swap-toggle-label" id="displaceLabel">Displace</span>
@@ -5097,6 +4855,9 @@
         let CLSS_IMPORT_PROFILE_COURSE_ALIASES = {};
         let CLSS_IMPORT_PROFILE_COURSE_ALIAS_LOOKUP = {};
         let CLSS_IMPORT_MATCHING_ORDER = DEFAULT_CLSS_IMPORT_MATCHING_ORDER.slice();
+        let eagleNetActiveWorkspaceId = '';
+        let eagleNetActiveWorkspaceSummary = null;
+        let eagleNetSeedPreview = null;
 
         function normalizeSchedulerLookupKey(value) {
             return String(value || '')
@@ -5212,6 +4973,15 @@
             return match?.label || normalized;
         }
 
+        function getSchedulerDayPatternByAlias(value) {
+            const lookup = normalizeSchedulerLookupKey(value);
+            if (!lookup) return null;
+            return getSchedulerDayPatterns().find((pattern) => {
+                const aliases = [pattern.id, ...(Array.isArray(pattern.aliases) ? pattern.aliases : [])];
+                return aliases.some((alias) => normalizeSchedulerLookupKey(alias) === lookup);
+            }) || null;
+        }
+
         function getSchedulerDayRegexTokens() {
             const tokens = new Set(['M', 'T', 'W', 'R', 'F', 'TH', 'TTH']);
             getSchedulerDayPatterns().forEach((pattern) => {
@@ -5258,11 +5028,139 @@
             return startMatch ? startMatch.id : '';
         }
 
+        function getSchedulerFormUtils() {
+            return window.SchedulerFormUtils || {};
+        }
+
+        function formatSchedulerClockMinutes(totalMinutes) {
+            if (!Number.isFinite(totalMinutes)) return '';
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = totalMinutes % 60;
+            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+        }
+
+        function getSchedulerTimeInputOptions(type) {
+            const values = new Set();
+            getSchedulerTimeSlots().forEach((slot) => {
+                const totalMinutes = type === 'end' ? slot.endMinutes : slot.startMinutes;
+                const formatted = formatSchedulerClockMinutes(totalMinutes);
+                if (formatted) values.add(formatted);
+            });
+            return [...values].sort();
+        }
+
+        function getSchedulerTimeRangeForSlot(slotId) {
+            const utils = getSchedulerFormUtils();
+            if (typeof utils.getTimeSlotRangeForId === 'function') {
+                const range = utils.getTimeSlotRangeForId(getSchedulerTimeSlots(), slotId);
+                if (range && range.start && range.end) return range;
+            }
+
+            const slot = getSchedulerTimeSlotByAlias(slotId);
+            return {
+                start: formatSchedulerClockMinutes(slot?.startMinutes),
+                end: formatSchedulerClockMinutes(slot?.endMinutes)
+            };
+        }
+
         function getSchedulerRoomOptionList() {
             const ordered = Array.isArray(CLSS_IMPORT_ROOM_PRIORITY) ? CLSS_IMPORT_ROOM_PRIORITY.slice() : [];
             const allowed = Array.from(CLSS_IMPORT_ALLOWED_ROOMS || []);
             const merged = [...new Set([...ordered, ...allowed])].filter(Boolean);
             return merged.length ? merged : Object.keys(DEFAULT_SCHEDULER_ROOM_LABELS);
+        }
+
+        function setSelectOptions(selectElement, options, selectedValue = '') {
+            if (!selectElement) return;
+            const currentValue = String(selectedValue ?? '').trim();
+            selectElement.innerHTML = '';
+            (Array.isArray(options) ? options : []).forEach((entry) => {
+                const option = document.createElement('option');
+                option.value = String(entry?.value ?? '').trim();
+                option.textContent = String(entry?.label ?? option.value).trim() || option.value;
+                if (option.value === currentValue) {
+                    option.selected = true;
+                }
+                selectElement.appendChild(option);
+            });
+            if (currentValue && selectElement.value !== currentValue) {
+                const fallback = document.createElement('option');
+                fallback.value = currentValue;
+                fallback.textContent = currentValue;
+                fallback.selected = true;
+                selectElement.appendChild(fallback);
+            }
+        }
+
+        function buildSchedulerRoomOptions(options = {}) {
+            const utils = getSchedulerFormUtils();
+            if (typeof utils.buildRoomOptions === 'function') {
+                return utils.buildRoomOptions(
+                    getSchedulerRoomOptionList(),
+                    schedulerRoomLabels,
+                    options
+                );
+            }
+
+            const entries = [];
+            if (options.includeBlank) {
+                entries.push({ value: '', label: options.blankLabel || 'Select Room...' });
+            }
+            if (options.includeOnline) {
+                entries.push({ value: 'ONLINE', label: 'Online / Async' });
+            }
+            if (options.includeArranged) {
+                entries.push({ value: 'ARRANGED', label: 'Arranged' });
+            }
+            getSchedulerRoomOptionList().forEach((roomCode) => {
+                entries.push({
+                    value: roomCode,
+                    label: schedulerRoomLabels[roomCode] || roomCode
+                });
+            });
+            return entries;
+        }
+
+        function populateSchedulerRoomSelect(selectId, options = {}) {
+            const selectElement = document.getElementById(selectId);
+            if (!selectElement) return;
+            setSelectOptions(selectElement, buildSchedulerRoomOptions(options), options.selectedValue || '');
+        }
+
+        function populateSchedulerTimeSelects(startSelectId, endSelectId, selectedTimeSlot = '') {
+            const startSelect = document.getElementById(startSelectId);
+            const endSelect = document.getElementById(endSelectId);
+            if (!startSelect || !endSelect) return;
+
+            const selectedRange = getSchedulerTimeRangeForSlot(selectedTimeSlot);
+            const startOptions = getSchedulerTimeInputOptions('start').map((value) => ({ value, label: value }));
+            const endOptions = getSchedulerTimeInputOptions('end').map((value) => ({ value, label: value }));
+
+            setSelectOptions(
+                startSelect,
+                startOptions,
+                selectedRange.start || startSelect.value || startOptions[0]?.value || ''
+            );
+            setSelectOptions(
+                endSelect,
+                endOptions,
+                selectedRange.end || endSelect.value || endOptions[0]?.value || ''
+            );
+        }
+
+        function getSelectedSchedulerTimeSlotId(startSelectId, endSelectId) {
+            const startValue = document.getElementById(startSelectId)?.value || '';
+            const endValue = document.getElementById(endSelectId)?.value || '';
+            const utils = getSchedulerFormUtils();
+
+            if (typeof utils.getTimeSlotIdFromInputs === 'function') {
+                const slotId = utils.getTimeSlotIdFromInputs(startValue, endValue, getSchedulerTimeSlots());
+                const matched = getSchedulerTimeSlotByAlias(slotId);
+                return matched ? matched.id : '';
+            }
+
+            const slot = getSchedulerTimeSlotByAlias(`${startValue}-${endValue}`);
+            return slot ? slot.id : '';
         }
 
         function normalizeRoomLookupKey(room) {
@@ -5292,9 +5190,57 @@
             return '';
         }
 
-        function getSchedulerRoomHeaderLabel(roomCode) {
+        function getSchedulerRoomDisplayLabel(roomCode) {
             const code = String(roomCode || '').trim();
+            if (code === 'ONLINE') return 'Online / Async';
+            if (code === 'ARRANGED') return 'Arranged';
             return schedulerRoomLabels[code] || code;
+        }
+
+        function getSchedulerRoomHeaderLabel(roomCode) {
+            return getSchedulerRoomDisplayLabel(roomCode);
+        }
+
+        function getSchedulerRoomDisplayText(roomCode, fallback = 'TBD') {
+            const code = String(roomCode || '').trim();
+            if (!code) return fallback;
+            return getSchedulerRoomHeaderLabel(code) || fallback;
+        }
+
+        function getSchedulerDayCheckboxConfig() {
+            return [
+                { suffix: 'M', token: 'M' },
+                { suffix: 'T', token: 'T' },
+                { suffix: 'W', token: 'W' },
+                { suffix: 'Th', token: 'R' },
+                { suffix: 'F', token: 'F' }
+            ];
+        }
+
+        function applyDayPatternToCheckboxes(prefix, dayPattern) {
+            const normalizedPattern = getSchedulerDayPatternByAlias(dayPattern)?.id || String(dayPattern || '').trim().toUpperCase();
+            const tokens = new Set(normalizedPattern.split('').filter(Boolean));
+            getSchedulerDayCheckboxConfig().forEach(({ suffix, token }) => {
+                const checkbox = document.getElementById(`${prefix}${suffix}`);
+                if (checkbox) checkbox.checked = tokens.has(token);
+            });
+        }
+
+        function getSelectedSchedulerDayPattern(prefix) {
+            const utils = getSchedulerFormUtils();
+            const selectedTokens = getSchedulerDayCheckboxConfig()
+                .filter(({ suffix }) => document.getElementById(`${prefix}${suffix}`)?.checked)
+                .map(({ token }) => token);
+
+            if (typeof utils.buildDayPatternId === 'function') {
+                const patternId = utils.buildDayPatternId(selectedTokens, getSchedulerDayPatterns());
+                const matched = getSchedulerDayPatternByAlias(patternId);
+                return matched ? matched.id : '';
+            }
+
+            const normalized = selectedTokens.join('');
+            const matched = getSchedulerDayPatternByAlias(normalized);
+            return matched ? matched.id : '';
         }
 
         function normalizeCourseAliasLookupKey(code) {
@@ -5468,6 +5414,348 @@
                 console.warn('Could not initialize department profile context:', error);
                 return null;
             }
+        }
+
+        function ensureQuarterNavAcademicYearOption(academicYear) {
+            const targetYear = String(academicYear || '').trim();
+            if (!targetYear) return;
+
+            const navComponent = document.getElementById('mainQuarterNav');
+            if (!navComponent) {
+                return;
+            }
+
+            const years = Array.isArray(navComponent.years) ? navComponent.years.slice() : [];
+            if (!years.includes(targetYear)) {
+                years.push(targetYear);
+                years.sort();
+                navComponent.years = years;
+            }
+        }
+
+        function syncQuarterNavAcademicYear(academicYear) {
+            const targetYear = String(academicYear || '').trim();
+            if (!targetYear) return;
+
+            currentAcademicYear = targetYear;
+            if (window.StateManager?.set) {
+                window.StateManager.set('currentAcademicYear', targetYear, { silent: true, recordHistory: false });
+            }
+
+            const navComponent = document.getElementById('mainQuarterNav');
+            if (!navComponent) {
+                updateQuarterTabLabels(targetYear);
+                return;
+            }
+
+            ensureQuarterNavAcademicYearOption(targetYear);
+            navComponent.currentYear = targetYear;
+            if (typeof navComponent.render === 'function') {
+                navComponent.render();
+            }
+            if (typeof navComponent.setupEventListeners === 'function') {
+                navComponent.setupEventListeners();
+            }
+
+            updateQuarterTabLabels(targetYear);
+        }
+
+        function syncAcademicYearFromProfile(profile) {
+            const preferredYear = String(profile?.academic?.defaultSchedulerYear || '').trim();
+            if (!preferredYear) return currentAcademicYear;
+            syncQuarterNavAcademicYear(preferredYear);
+            return preferredYear;
+        }
+
+        function applyEagleNetSchedulerOverrides(runtimeConfig) {
+            if (!runtimeConfig || typeof runtimeConfig !== 'object') return;
+
+            schedulerDayPatterns = parseSchedulerDayPatterns(runtimeConfig.dayPatterns);
+            schedulerTimeSlots = parseSchedulerTimeSlots(runtimeConfig.timeSlots);
+
+            const configuredRoomLabels = runtimeConfig.roomLabels && typeof runtimeConfig.roomLabels === 'object'
+                ? runtimeConfig.roomLabels
+                : {};
+            schedulerRoomLabels = {
+                ...DEFAULT_SCHEDULER_ROOM_LABELS,
+                ...configuredRoomLabels
+            };
+
+            const allowedRooms = Array.isArray(runtimeConfig.allowedRooms)
+                ? runtimeConfig.allowedRooms.map((room) => String(room || '').trim()).filter(Boolean)
+                : [];
+            if (allowedRooms.length > 0) {
+                CLSS_IMPORT_ROOM_PRIORITY = allowedRooms.slice();
+                CLSS_IMPORT_ALLOWED_ROOMS = new Set(allowedRooms);
+            }
+        }
+
+        async function initializeEagleNetWorkspaceContext() {
+            eagleNetActiveWorkspaceId = '';
+            eagleNetActiveWorkspaceSummary = null;
+            eagleNetSeedPreview = null;
+
+            const runtime = window.EagleNetSeed;
+            if (!runtime || typeof runtime.load !== 'function') {
+                refreshEagleNetWorkspaceControls();
+                return null;
+            }
+
+            const workspaceId = typeof runtime.getWorkspaceIdForProfile === 'function'
+                ? runtime.getWorkspaceIdForProfile(activeDepartmentProfile)
+                : '';
+            if (!workspaceId) {
+                refreshEagleNetWorkspaceControls();
+                return null;
+            }
+
+            await runtime.load();
+            eagleNetActiveWorkspaceId = workspaceId;
+            eagleNetActiveWorkspaceSummary = typeof runtime.getWorkspaceSummary === 'function'
+                ? runtime.getWorkspaceSummary(workspaceId)
+                : null;
+            const runtimeConfig = typeof runtime.getRuntimeConfig === 'function'
+                ? runtime.getRuntimeConfig(workspaceId)
+                : null;
+            if (runtimeConfig) {
+                applyEagleNetSchedulerOverrides(runtimeConfig);
+            }
+            refreshEagleNetWorkspaceControls();
+            return runtimeConfig;
+        }
+
+        async function populateWorkspaceProfileSelect() {
+            const select = document.getElementById('workspaceProfileSelect');
+            const manager = window.DepartmentProfileManager;
+            if (!select || !manager || typeof manager.listProfiles !== 'function' || typeof manager.loadProfile !== 'function') {
+                return;
+            }
+
+            const listing = await manager.listProfiles();
+            const profileOptions = await Promise.all((listing.profiles || []).map(async (entry) => {
+                try {
+                    const loaded = await manager.loadProfile(entry.id);
+                    return {
+                        id: entry.id,
+                        label: loaded?.profile?.identity?.displayName || loaded?.profile?.identity?.shortName || entry.id
+                    };
+                } catch (error) {
+                    return {
+                        id: entry.id,
+                        label: entry.id
+                    };
+                }
+            }));
+
+            select.innerHTML = '';
+            profileOptions.forEach((entry) => {
+                const option = document.createElement('option');
+                option.value = entry.id;
+                option.textContent = entry.label;
+                select.appendChild(option);
+            });
+            select.value = activeDepartmentProfile?.id || '';
+        }
+
+        async function handleWorkspaceProfileSelection(event) {
+            const nextProfileId = String(event?.target?.value || '').trim();
+            if (!nextProfileId || nextProfileId === activeDepartmentProfile?.id) return;
+
+            try {
+                saveScheduleData();
+                await window.DepartmentProfileManager.setActiveProfile(nextProfileId);
+                showToast('Switching workspace...');
+                window.location.reload();
+            } catch (error) {
+                console.error('Could not switch workspace profile:', error);
+                showToast('Could not switch workspace profile', 'error');
+                const select = document.getElementById('workspaceProfileSelect');
+                if (select) {
+                    select.value = activeDepartmentProfile?.id || '';
+                }
+            }
+        }
+
+        function refreshEagleNetWorkspaceControls() {
+            const button = document.getElementById('openEagleNetSeedButton');
+            if (!button) return;
+
+            if (!eagleNetActiveWorkspaceId) {
+                button.hidden = true;
+                button.disabled = true;
+                return;
+            }
+
+            const label = String(eagleNetActiveWorkspaceSummary?.label || 'EECS').trim();
+            button.hidden = false;
+            button.disabled = false;
+            button.textContent = `Seed ${label} Grid`;
+        }
+
+        function closeEagleNetSeedModal() {
+            document.getElementById('eaglenetSeedModal')?.classList.remove('active');
+        }
+
+        function getEagleNetSeedTargetYear() {
+            const explicitValue = String(document.getElementById('eaglenetSeedTargetYear')?.value || '').trim();
+            if (explicitValue) return explicitValue;
+            return String(activeDepartmentProfile?.academic?.defaultSchedulerYear || currentAcademicYear || '2026-27').trim();
+        }
+
+        function renderEagleNetSeedPreview(preview) {
+            const workspaceName = document.getElementById('eaglenetSeedWorkspaceName');
+            const sourceNote = document.getElementById('eaglenetSeedSourceNote');
+            const summary = document.getElementById('eaglenetSeedSummary');
+            const exceptions = document.getElementById('eaglenetSeedExceptions');
+            const exceptionCount = document.getElementById('eaglenetSeedExceptionCount');
+
+            if (workspaceName) {
+                workspaceName.textContent = preview?.summary?.displayName || eagleNetActiveWorkspaceSummary?.displayName || eagleNetActiveWorkspaceSummary?.label || 'EECS';
+            }
+            if (sourceNote) {
+                const sourceTerms = Array.isArray(preview?.summary?.sourceTerms) ? preview.summary.sourceTerms.join(', ') : '';
+                const sourceType = String(preview?.summary?.sourceType || '').trim();
+                const pieces = [
+                    sourceType || 'EagleNET manual JSON',
+                    preview?.sourceAcademicYear ? `Source AY ${preview.sourceAcademicYear}` : '',
+                    sourceTerms ? `Terms: ${sourceTerms}` : ''
+                ].filter(Boolean);
+                sourceNote.textContent = pieces.join(' • ');
+            }
+            if (summary) {
+                const quarterCounts = preview?.summary?.quarterCounts || {};
+                summary.innerHTML = `
+                    <div class="eaglenet-seed-stat">
+                        <strong>${preview?.summary?.seededRecords || 0}</strong>
+                        <span>Grid rows ready</span>
+                    </div>
+                    <div class="eaglenet-seed-stat">
+                        <strong>${preview?.summary?.exceptionCount || 0}</strong>
+                        <span>Needs review</span>
+                    </div>
+                    <div class="eaglenet-seed-stat">
+                        <strong>${preview?.summary?.allowedRoomCount || 0}</strong>
+                        <span>Rooms in workspace</span>
+                    </div>
+                    <div class="eaglenet-seed-stat">
+                        <strong>${preview?.summary?.dayPatternCount || 0} / ${preview?.summary?.timeSlotCount || 0}</strong>
+                        <span>Day / time patterns</span>
+                    </div>
+                    <div class="eaglenet-seed-stat">
+                        <strong>${quarterCounts.fall || 0} / ${quarterCounts.winter || 0} / ${quarterCounts.spring || 0}</strong>
+                        <span>Fall / Winter / Spring</span>
+                    </div>
+                `;
+            }
+
+            if (exceptionCount) {
+                exceptionCount.textContent = `${preview?.exceptions?.length || 0} review item${(preview?.exceptions?.length || 0) === 1 ? '' : 's'}`;
+            }
+
+            if (exceptions) {
+                const rows = Array.isArray(preview?.exceptions) ? preview.exceptions : [];
+                if (!rows.length) {
+                    exceptions.innerHTML = '<div class="eaglenet-seed-empty">No review exceptions in this source slice.</div>';
+                } else {
+                    exceptions.innerHTML = rows.map((row) => `
+                        <article class="eaglenet-seed-exception-item">
+                            <div class="eaglenet-seed-exception-title">${escapeHtml(row.label || row.code || 'Review item')}</div>
+                            <div class="eaglenet-seed-exception-reason">${escapeHtml(row.reason || 'Needs review')}</div>
+                            <div class="eaglenet-seed-exception-meta">
+                                ${escapeHtml([row.meetingLabel, row.roomLabel].filter(Boolean).join(' • ') || 'No fixed meeting slot')}
+                            </div>
+                        </article>
+                    `).join('');
+                }
+            }
+        }
+
+        async function refreshEagleNetSeedPreview() {
+            if (!eagleNetActiveWorkspaceId) {
+                showToast('Switch to the CS/EE or Cyber workspace before seeding.', 'error');
+                return null;
+            }
+
+            const targetYear = getEagleNetSeedTargetYear();
+            if (!/^\d{4}-\d{2}$/.test(targetYear)) {
+                showToast('Target year must look like 2026-27.', 'error');
+                return null;
+            }
+
+            try {
+                await window.EagleNetSeed.load();
+                eagleNetSeedPreview = window.EagleNetSeed.buildSchedulerDraft({
+                    workspaceId: eagleNetActiveWorkspaceId,
+                    academicYear: targetYear
+                });
+                renderEagleNetSeedPreview(eagleNetSeedPreview);
+                return eagleNetSeedPreview;
+            } catch (error) {
+                console.error('Could not build EagleNET seed preview:', error);
+                showToast('Could not build EagleNET preview', 'error');
+                return null;
+            }
+        }
+
+        async function openEagleNetSeedModal() {
+            if (!eagleNetActiveWorkspaceId) {
+                showToast('Switch to the CS/EE or Cyber workspace before seeding.', 'error');
+                return;
+            }
+
+            const targetYearInput = document.getElementById('eaglenetSeedTargetYear');
+            if (targetYearInput) {
+                targetYearInput.value = String(activeDepartmentProfile?.academic?.defaultSchedulerYear || currentAcademicYear || '2026-27').trim();
+            }
+
+            document.getElementById('eaglenetSeedModal')?.classList.add('active');
+            await refreshEagleNetSeedPreview();
+        }
+
+        async function applyEagleNetSeed() {
+            const preview = eagleNetSeedPreview || await refreshEagleNetSeedPreview();
+            if (!preview) return;
+
+            const targetYear = preview.academicYear;
+            const currentYearSnapshot = targetYear === currentAcademicYear
+                ? { fall: scheduleData.fall, winter: scheduleData.winter, spring: scheduleData.spring }
+                : loadScheduleDataSnapshotForYear(targetYear);
+            const existingCount = countScheduleCourses(currentYearSnapshot);
+
+            if (existingCount > 0 && !confirm(`Replace the existing ${targetYear} draft (${existingCount} scheduled row${existingCount === 1 ? '' : 's'}) with the EagleNET seed?`)) {
+                return;
+            }
+
+            const draftCopy = JSON.parse(JSON.stringify(preview.draft));
+            if (targetYear === currentAcademicYear) {
+                scheduleData.fall = draftCopy.fall || {};
+                scheduleData.winter = draftCopy.winter || {};
+                scheduleData.spring = draftCopy.spring || {};
+                ensureQuarterScheduleBucket('fall');
+                ensureQuarterScheduleBucket('winter');
+                ensureQuarterScheduleBucket('spring');
+                saveScheduleData();
+            } else {
+                saveScheduleDataSnapshotForYear(targetYear, draftCopy);
+                ensureQuarterNavAcademicYearOption(targetYear);
+                await switchAcademicYear(targetYear);
+            }
+
+            setScheduleDirty(true);
+            syncDirtyStateForCurrentYear();
+
+            const currentQuarter = window.StateManager?.get('currentQuarter') || document.getElementById('mainQuarterNav')?.currentQuarter || 'spring';
+            renderSchedule(currentQuarter);
+            renderOnlineCourses(currentQuarter);
+            renderArrangedCourses(currentQuarter);
+            renderEnrollmentAnalytics(currentQuarter);
+            renderConflicts(currentQuarter);
+            renderConflictSolver(currentQuarter);
+            renderRecommendations(currentQuarter);
+            updateStats(currentQuarter);
+
+            closeEagleNetSeedModal();
+            showToast(`Seeded ${preview.summary.seededRecords} EagleNET rows into ${targetYear}.`);
         }
 
         function normalizeFacultyAliasArtifacts(name) {
@@ -5937,7 +6225,7 @@
 
         document.addEventListener('year-change', (e) => {
             if (typeof switchAcademicYear === 'function') {
-                switchAcademicYear(e.detail.year);
+                void switchAcademicYear(e.detail.year);
             }
         });
 
@@ -6490,7 +6778,7 @@
                             const trendClass = 'trend-' + enrollment.trend;
 
                             // Generate a course ID for editing
-                            const courseId = '2025-26-' + quarter + '-' + course.code.replace(/\s+/g, '').toLowerCase() + '-001';
+                            const courseId = `${currentAcademicYear}-${quarter}-${course.code.replace(/\s+/g, '').toLowerCase()}-${course.section || '001'}`;
 
                             const block = document.createElement('div');
                             block.className = 'course-block conflict-' + conflictLevel + ' ' + facultyClass + ' ' + trendClass;
@@ -6505,7 +6793,7 @@
                             block.onclick = function (e) {
                                 // Don't trigger click if we're dragging
                                 if (!block.classList.contains('dragging')) {
-                                    showCourseDetails(course.code, course.name, course.instructor, course.credits, course.room, courseId, quarter, day, time);
+                                    showCourseDetails(course.code, course.name, course.instructor, course.credits, course.room, courseId, quarter, day, time, course.section || '', currentAcademicYear);
                                 }
                             };
 
@@ -6793,12 +7081,15 @@
                     if (typeof ScheduleManager !== 'undefined') {
                         const updates = {
                             room: newRoom,
-                            days: newDay === 'MW' ? ['M', 'W'] : ['T', 'Th'],
+                            days: String(newDay || '')
+                                .split('')
+                                .filter(Boolean)
+                                .map((token) => token === 'R' ? 'Th' : token),
                             startTime: convertTimeSlotToStart(newTime),
                             endTime: convertTimeSlotToEnd(newTime)
                         };
 
-                        ScheduleManager.updateCourseAssignment('2025-26', quarter, course.courseId, updates);
+                        ScheduleManager.updateCourseAssignment(currentAcademicYear, quarter, course.courseId, updates);
                     }
 
                     // Save and re-render the schedule
@@ -6873,7 +7164,7 @@
                 courseInfo.innerHTML = `<strong>${course.code}</strong> <span style="color:#57606a">${course.name}</span> <span style="color:#8b949e">- ${course.instructor}</span>`;
                 courseInfo.style.cursor = 'pointer';
                 courseInfo.onclick = () => {
-                    showCourseDetails(course.code, course.name, course.instructor, course.credits, 'ONLINE', null, quarter, 'ONLINE', 'async');
+                    showCourseDetails(course.code, course.name, course.instructor, course.credits, 'ONLINE', null, quarter, 'ONLINE', 'async', course.section || '', currentAcademicYear);
                 };
 
                 const deleteBtn = document.createElement('button');
@@ -7322,6 +7613,11 @@
             }));
         }
 
+        function formatTime(time) {
+            const slot = getSchedulerTimeSlotByAlias(time);
+            return slot?.label || String(time || '').trim();
+        }
+
         function formatConflictSlot(day, time) {
             const dayLabel = getSchedulerDayLabel(day) || day;
             return `${dayLabel}, ${formatTime(time)}`;
@@ -7501,11 +7797,12 @@
             byRoomSlot.forEach((slotCourses, key) => {
                 if (slotCourses.length < 2) return;
                 const [room, day, time] = key.split('|');
+                const displayRoom = getSchedulerRoomDisplayText(room, room);
                 conflicts.push(createConflictEntry({
                     severity: 'critical',
                     time: formatConflictSlot(day, time),
                     courses: slotCourses.map(getCourseDisplayLabel),
-                    impact: `Room ${room} is double-booked for the same time slot.`,
+                    impact: `Room ${displayRoom} is double-booked for the same time slot.`,
                     affected: 'High',
                     source: 'room-double-book',
                     meta: {
@@ -7997,7 +8294,7 @@
                     const detailsDiv = document.createElement('div');
                     detailsDiv.className = 'solution-details';
                     const existingText = solution.existingCourses.length > 0
-                        ? solution.existingCourses.map((course) => `${normalizeCourseCode(course.code)} (${course.room || 'TBD'})`).join(', ')
+                        ? solution.existingCourses.map((course) => `${normalizeCourseCode(course.code)} (${getSchedulerRoomDisplayText(course.room)})`).join(', ')
                         : 'EMPTY SLOT';
                     detailsDiv.innerHTML = `
                         <strong>Currently scheduled:</strong> ${escapeHtml(existingText)}<br>
@@ -8444,23 +8741,25 @@
         // Current course being viewed/edited
         let currentCourseData = null;
 
-        function showCourseDetails(code, name, instructor, credits, room, courseId, quarter, day, time) {
+        function showCourseDetails(code, name, instructor, credits, room, courseId, quarter, day, time, section = '', academicYear = currentAcademicYear) {
             // Store course data for edit modal
-            currentCourseData = { code, name, instructor, credits, room, courseId, quarter, day, time };
+            currentCourseData = { code, name, instructor, credits, room, courseId, quarter, day, time, section, academicYear };
 
             // Format day/time for display
-            const dayDisplay = day || 'TBD';
-            const timeDisplay = time || 'TBD';
+            const dayDisplay = day ? getSchedulerDayLabel(day) : 'TBD';
+            const timeDisplay = time ? (getSchedulerTimeSlotByAlias(time)?.label || time) : 'TBD';
+            const roomDisplay = getSchedulerRoomDisplayText(room);
 
             // Build details content
             const content = document.getElementById('courseDetailsContent');
             content.innerHTML = `
                 <p><strong>Course:</strong> ${code} - ${name || 'N/A'}</p>
+                <p><strong>Section:</strong> ${section || 'TBD'}</p>
                 <p><strong>Instructor:</strong> ${instructor || 'TBD'}</p>
                 <p><strong>Credits:</strong> ${credits || 'N/A'}</p>
                 <p><strong>Days:</strong> ${dayDisplay}</p>
                 <p><strong>Time:</strong> ${timeDisplay}</p>
-                <p><strong>Room:</strong> ${room || 'TBD'}</p>
+                <p><strong>Room:</strong> ${roomDisplay}</p>
             `;
 
             document.getElementById('detailsModalTitle').textContent = code;
@@ -8481,18 +8780,26 @@
             // Fill edit form with current data
             document.getElementById('editCourseId').value = currentCourseData.courseId || '';
             document.getElementById('editCourseCode').value = currentCourseData.code || '';
-            document.getElementById('editSection').value = '001';
+            document.getElementById('editSection').value = currentCourseData.section || '001';
             document.getElementById('editCredits').value = currentCourseData.credits || 5;
 
             // Set year and quarter
-            document.getElementById('editYear').value = '2025-26'; // Current academic year
+            setSelectOptions(
+                document.getElementById('editYear'),
+                [{ value: currentCourseData.academicYear || currentAcademicYear, label: currentCourseData.academicYear || currentAcademicYear }],
+                currentCourseData.academicYear || currentAcademicYear
+            );
             document.getElementById('editQuarter').value = currentCourseData.quarter || 'spring';
 
             // Default enrollment cap is 24 for most courses
             const specialCaps = { 'DESN 399': 5, 'DESN 491': 10, 'DESN 495': 15, 'DESN 499': 10 };
             const defaultCap = specialCaps[currentCourseData.code] || 24;
             document.getElementById('editEnrollmentCap').value = defaultCap;
-            document.getElementById('editRoom').value = currentCourseData.room || '';
+            populateSchedulerRoomSelect('editRoom', {
+                includeOnline: true,
+                includeArranged: true,
+                selectedValue: currentCourseData.room || ''
+            });
             document.getElementById('editNotes').value = '';
 
             // Parse time slot (e.g., "10:00-12:00" -> start: "10:00", end: "12:00")
@@ -8509,29 +8816,7 @@
             document.getElementById('editEndTime').value = endTime;
 
             // Clear day checkboxes first
-            ['M', 'T', 'W', 'Th', 'F'].forEach(day => {
-                const cb = document.getElementById('editDay' + day);
-                if (cb) cb.checked = false;
-            });
-
-            // Set day checkboxes based on current day pattern (e.g., "MW" -> M, W checked)
-            if (currentCourseData.day) {
-                const dayPattern = currentCourseData.day;
-                if (dayPattern === 'MW') {
-                    document.getElementById('editDayM').checked = true;
-                    document.getElementById('editDayW').checked = true;
-                } else if (dayPattern === 'TR') {
-                    document.getElementById('editDayT').checked = true;
-                    document.getElementById('editDayTh').checked = true;
-                } else {
-                    // Handle other patterns by checking matching days
-                    if (dayPattern.includes('M')) document.getElementById('editDayM').checked = true;
-                    if (dayPattern.includes('T') && !dayPattern.includes('Th')) document.getElementById('editDayT').checked = true;
-                    if (dayPattern.includes('W')) document.getElementById('editDayW').checked = true;
-                    if (dayPattern.includes('Th')) document.getElementById('editDayTh').checked = true;
-                    if (dayPattern.includes('F')) document.getElementById('editDayF').checked = true;
-                }
-            }
+            applyDayPatternToCheckboxes('editDay', currentCourseData.day || '');
 
             // Set faculty dropdown - find matching option
             const facultySelect = document.getElementById('editFaculty');
@@ -8581,10 +8866,10 @@
 
             // Try to get more data from ScheduleManager if available
             if (typeof ScheduleManager !== 'undefined' && currentCourseData.courseId) {
-                const schedule = ScheduleManager.getQuarterSchedule('2025-26', currentCourseData.quarter);
+                const schedule = ScheduleManager.getQuarterSchedule(currentCourseData.academicYear || currentAcademicYear, currentCourseData.quarter);
                 const course = schedule.find(c => c.id === currentCourseData.courseId);
                 if (course) {
-                    document.getElementById('editSection').value = course.section || '001';
+                    document.getElementById('editSection').value = course.section || currentCourseData.section || '001';
                     // Only override enrollment cap if ScheduleManager has one set
                     if (course.enrollmentCap) {
                         document.getElementById('editEnrollmentCap').value = course.enrollmentCap;
@@ -8594,15 +8879,7 @@
                     if (course.startTime) document.getElementById('editStartTime').value = course.startTime;
                     if (course.endTime) document.getElementById('editEndTime').value = course.endTime;
                     if (course.days && Array.isArray(course.days)) {
-                        // Clear and reset days
-                        ['M', 'T', 'W', 'Th', 'F'].forEach(day => {
-                            const cb = document.getElementById('editDay' + day);
-                            if (cb) cb.checked = false;
-                        });
-                        course.days.forEach(day => {
-                            const cb = document.getElementById('editDay' + day);
-                            if (cb) cb.checked = true;
-                        });
+                        applyDayPatternToCheckboxes('editDay', course.days.join(''));
                     }
                 }
             }
@@ -8616,12 +8893,55 @@
         }
 
         function getEditSelectedDays() {
-            const days = [];
-            ['M', 'T', 'W', 'Th', 'F'].forEach(day => {
-                const cb = document.getElementById('editDay' + day);
-                if (cb && cb.checked) days.push(day);
-            });
-            return days;
+            return getSchedulerDayCheckboxConfig()
+                .filter(({ suffix }) => document.getElementById(`editDay${suffix}`)?.checked)
+                .map(({ token }) => token);
+        }
+
+        function courseMatchesCurrentRecord(course, target) {
+            if (!course || !target) return false;
+            const sameCode = normalizeCourseCode(course.code) === normalizeCourseCode(target.code);
+            const sameRoom = String(course.room || '').trim() === String(target.room || '').trim();
+            const sameInstructor = getCanonicalFacultyName(course.instructor || 'TBD') === getCanonicalFacultyName(target.instructor || 'TBD');
+            const sameSection = String(course.section || '').trim() === String(target.section || '').trim();
+            return sameCode && sameRoom && sameInstructor && (sameSection || !target.section || !course.section);
+        }
+
+        function findCourseRecordInQuarterData(quarterData, target) {
+            if (!quarterData || !target) return null;
+
+            const preferredDay = String(target.day || '').trim();
+            const preferredTime = String(target.time || '').trim();
+            const preferredSlot = quarterData?.[preferredDay]?.[preferredTime];
+            if (Array.isArray(preferredSlot)) {
+                const preferredIndex = preferredSlot.findIndex((course) => courseMatchesCurrentRecord(course, target));
+                if (preferredIndex !== -1) {
+                    return { day: preferredDay, time: preferredTime, slot: preferredSlot, index: preferredIndex };
+                }
+            }
+
+            for (const [dayKey, dayData] of Object.entries(quarterData || {})) {
+                if (!dayData || typeof dayData !== 'object') continue;
+                for (const [timeKey, slotCourses] of Object.entries(dayData)) {
+                    if (!Array.isArray(slotCourses)) continue;
+                    const index = slotCourses.findIndex((course) => courseMatchesCurrentRecord(course, target));
+                    if (index !== -1) {
+                        return { day: dayKey, time: timeKey, slot: slotCourses, index };
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        function pruneEmptyScheduleSlot(quarterData, dayKey, timeKey) {
+            if (!quarterData?.[dayKey] || !Array.isArray(quarterData[dayKey][timeKey]) || quarterData[dayKey][timeKey].length > 0) {
+                return;
+            }
+            delete quarterData[dayKey][timeKey];
+            if (dayKey !== 'ONLINE' && dayKey !== 'ARRANGED' && Object.keys(quarterData[dayKey] || {}).length === 0) {
+                delete quarterData[dayKey];
+            }
         }
 
         function handleEditFormSubmit(e) {
@@ -8635,6 +8955,27 @@
 
             const newInstructor = document.getElementById('editFaculty').value || 'TBD';
             const newRoom = document.getElementById('editRoom').value || '';
+            const newDayPattern = newRoom === 'ONLINE'
+                ? 'ONLINE'
+                : newRoom === 'ARRANGED'
+                    ? 'ARRANGED'
+                    : getSelectedSchedulerDayPattern('editDay');
+            const newTimeSlot = newRoom === 'ONLINE'
+                ? 'async'
+                : newRoom === 'ARRANGED'
+                    ? 'arranged'
+                    : getSelectedSchedulerTimeSlotId('editStartTime', 'editEndTime');
+
+            if (newRoom !== 'ONLINE' && newRoom !== 'ARRANGED') {
+                if (!newDayPattern || !isSchedulableDay(newDayPattern)) {
+                    showToast('Select a supported meeting pattern for this workspace.', 'error');
+                    return;
+                }
+                if (!newTimeSlot) {
+                    showToast('Select a supported time slot for this workspace.', 'error');
+                    return;
+                }
+            }
 
             const updates = {
                 section: document.getElementById('editSection').value,
@@ -8642,9 +8983,15 @@
                 enrollmentCap: parseInt(document.getElementById('editEnrollmentCap').value) || 24,
                 assignedFaculty: newInstructor,
                 room: newRoom,
-                days: getEditSelectedDays(),
-                startTime: document.getElementById('editStartTime').value || null,
-                endTime: document.getElementById('editEndTime').value || null,
+                days: (newRoom === 'ONLINE' || newRoom === 'ARRANGED')
+                    ? []
+                    : getEditSelectedDays().map((token) => token === 'R' ? 'Th' : token),
+                startTime: (newRoom === 'ONLINE' || newRoom === 'ARRANGED')
+                    ? null
+                    : (document.getElementById('editStartTime').value || null),
+                endTime: (newRoom === 'ONLINE' || newRoom === 'ARRANGED')
+                    ? null
+                    : (document.getElementById('editEndTime').value || null),
                 notes: document.getElementById('editNotes').value || null
             };
 
@@ -8653,25 +9000,57 @@
 
             // Update the scheduleData directly for immediate display (primary save path)
             if (currentCourseData) {
-                const { day, time, room, code } = currentCourseData;
-                const quarterData = scheduleData[quarterLower];
+                const sourceQuarter = String(currentCourseData.quarter || quarterLower).toLowerCase();
+                const sourceQuarterData = scheduleData[sourceQuarter];
+                const sourceRecord = findCourseRecordInQuarterData(sourceQuarterData, currentCourseData);
 
-                if (quarterData && quarterData[day] && quarterData[day][time]) {
-                    const courses = quarterData[day][time];
-                    const courseIndex = courses.findIndex(c => c.code === code && c.room === room);
+                if (sourceRecord) {
+                    const existingCourse = sourceRecord.slot[sourceRecord.index];
+                    const updatedCourse = {
+                        ...existingCourse,
+                        instructor: newInstructor,
+                        room: newRoom || existingCourse.room,
+                        credits: updates.credits,
+                        enrollmentCap: updates.enrollmentCap,
+                        section: updates.section,
+                        notes: updates.notes || ''
+                    };
 
-                    if (courseIndex !== -1) {
-                        courses[courseIndex].instructor = newInstructor;
-                        if (newRoom) courses[courseIndex].room = newRoom;
-                        // Update other fields
-                        courses[courseIndex].credits = updates.credits;
-                        courses[courseIndex].enrollmentCap = updates.enrollmentCap;
-                        courses[courseIndex].section = updates.section;
-                        if (updates.notes) courses[courseIndex].notes = updates.notes;
-                        saveScheduleData();
-                        setScheduleDirty(true);
-                        savedSuccessfully = true;
+                    const locationChanged = sourceQuarter !== quarterLower
+                        || sourceRecord.day !== newDayPattern
+                        || sourceRecord.time !== newTimeSlot;
+
+                    if (locationChanged) {
+                        sourceRecord.slot.splice(sourceRecord.index, 1);
+                        pruneEmptyScheduleSlot(sourceQuarterData, sourceRecord.day, sourceRecord.time);
+
+                        const targetQuarterData = ensureQuarterScheduleBucket(quarterLower);
+                        if (!targetQuarterData[newDayPattern] || typeof targetQuarterData[newDayPattern] !== 'object') {
+                            targetQuarterData[newDayPattern] = {};
+                        }
+                        if (!Array.isArray(targetQuarterData[newDayPattern][newTimeSlot])) {
+                            targetQuarterData[newDayPattern][newTimeSlot] = [];
+                        }
+                        targetQuarterData[newDayPattern][newTimeSlot].push(updatedCourse);
+                    } else {
+                        sourceRecord.slot[sourceRecord.index] = updatedCourse;
                     }
+
+                    currentCourseData = {
+                        ...currentCourseData,
+                        instructor: updatedCourse.instructor,
+                        room: updatedCourse.room,
+                        credits: updatedCourse.credits,
+                        section: updatedCourse.section,
+                        quarter: quarterLower,
+                        day: newDayPattern,
+                        time: newTimeSlot,
+                        academicYear: year
+                    };
+
+                    saveScheduleData();
+                    setScheduleDirty(true);
+                    savedSuccessfully = true;
                 }
             }
 
@@ -8697,6 +9076,8 @@
                 renderSchedule(currentQuarter);
                 renderOnlineCourses(currentQuarter);
                 renderArrangedCourses(currentQuarter);
+                renderConflicts(currentQuarter);
+                updateStats(currentQuarter);
             } else {
                 // No direct save path available - try just closing and refreshing
                 showToast('Course updated');
@@ -8705,6 +9086,8 @@
                 renderSchedule(currentQuarter);
                 renderOnlineCourses(currentQuarter);
                 renderArrangedCourses(currentQuarter);
+                renderConflicts(currentQuarter);
+                updateStats(currentQuarter);
             }
         }
 
@@ -8872,6 +9255,24 @@
             }
         }
 
+        function persistRecoveryDraft(reason = 'autosave-fallback') {
+            const handler = typeof captureRecoveryDraft === 'function'
+                ? captureRecoveryDraft
+                : (typeof window !== 'undefined' && typeof window.captureRecoveryDraft === 'function'
+                    ? window.captureRecoveryDraft
+                    : null);
+            return handler?.(reason);
+        }
+
+        function removeRecoveryDraft() {
+            const handler = typeof clearRecoveryDraft === 'function'
+                ? clearRecoveryDraft
+                : (typeof window !== 'undefined' && typeof window.clearRecoveryDraft === 'function'
+                    ? window.clearRecoveryDraft
+                    : null);
+            return handler?.();
+        }
+
         async function attemptResilientAutoSave(trigger = 'interval') {
             const hasDirtyState = Boolean(window.DirtyStateTracker?.isDirty?.() || scheduleDirty);
             if (!hasDirtyState || scheduleSaveInProgress || autoSaveRunning) {
@@ -8891,11 +9292,11 @@
                     trigger
                 });
                 if (!success) {
-                    captureRecoveryDraft(`autosave-${trigger}`);
+                    window.persistRecoveryDraft?.(`autosave-${trigger}`);
                 }
                 return success;
             } catch (error) {
-                captureRecoveryDraft(`autosave-${trigger}`);
+                window.persistRecoveryDraft?.(`autosave-${trigger}`);
                 return false;
             } finally {
                 autoSaveRunning = false;
@@ -8906,7 +9307,7 @@
             showToast('Session timed out. Saving pending changes and signing out...', 'error');
             const saved = await attemptResilientAutoSave('timeout');
             if (!saved && (window.DirtyStateTracker?.isDirty?.() || scheduleDirty)) {
-                captureRecoveryDraft('timeout');
+                window.persistRecoveryDraft?.('timeout');
             }
 
             try {
@@ -8946,7 +9347,7 @@
             document.addEventListener('visibilitychange', () => {
                 if (document.hidden) {
                     if (window.DirtyStateTracker?.isDirty?.() || scheduleDirty) {
-                        captureRecoveryDraft('visibility-hidden');
+                        window.persistRecoveryDraft?.('visibility-hidden');
                         attemptResilientAutoSave('visibility-hidden');
                     }
                     return;
@@ -12080,7 +12481,7 @@
             }
 
             if (typeof switchAcademicYear === 'function') {
-                switchAcademicYear(targetYear);
+                void switchAcademicYear(targetYear);
             }
         }
 
@@ -12101,6 +12502,23 @@
                 winter: createEmptyQuarterScheduleBucket(),
                 spring: createEmptyQuarterScheduleBucket()
             };
+        }
+
+        function scheduleStoreHasCourses(scheduleStore) {
+            const count = window.SchedulePersistence?.countScheduleCourses?.(scheduleStore);
+            if (Number.isFinite(count)) {
+                return count > 0;
+            }
+
+            return CLSS_IMPORT_QUARTERS.some((quarter) => {
+                const quarterData = scheduleStore?.[quarter];
+                if (!quarterData || typeof quarterData !== 'object') return false;
+
+                return Object.values(quarterData).some((dayData) => {
+                    if (!dayData || typeof dayData !== 'object') return false;
+                    return Object.values(dayData).some((timeData) => Array.isArray(timeData) && timeData.length > 0);
+                });
+            });
         }
 
         function loadScheduleDataSnapshotForYear(year) {
@@ -12264,8 +12682,14 @@
 
         async function openAddCourseModal() {
             document.getElementById('addCourseForm').reset();
-            document.getElementById('addDayM').checked = true;
-            document.getElementById('addDayW').checked = true;
+            const defaultDayPattern = getSchedulerDayIds().find((dayId) => dayId !== 'ONLINE' && dayId !== 'ARRANGED') || 'MW';
+            const defaultTimeSlot = getSchedulerTimeSlots()[0]?.id || '';
+            applyDayPatternToCheckboxes('addDay', defaultDayPattern);
+            populateSchedulerRoomSelect('addRoom', {
+                includeBlank: true,
+                includeOnline: true
+            });
+            populateSchedulerTimeSelects('addStartTime', 'addEndTime', defaultTimeSlot);
             document.getElementById('addOnlineSection').checked = false;
             toggleOnlineMode(false);
             document.getElementById('addCourseModal').classList.add('active');
@@ -12406,11 +12830,16 @@
                 dayPattern = 'ONLINE';
                 timeSlot = 'async';
             } else {
-                const days = getAddSelectedDays();
-                const startTime = document.getElementById('addStartTime').value;
-                dayPattern = (days.includes('M') || days.includes('W')) ? 'MW' : 'TR';
-                timeSlot = startTime.replace(':', '') === '1000' ? '10:00-12:20' :
-                    startTime.replace(':', '') === '1300' ? '13:00-15:20' : '16:00-18:20';
+                dayPattern = getSelectedSchedulerDayPattern('addDay');
+                timeSlot = getSelectedSchedulerTimeSlotId('addStartTime', 'addEndTime');
+                if (!dayPattern || !isSchedulableDay(dayPattern)) {
+                    showToast('Select a supported meeting pattern for this workspace.', 'error');
+                    return;
+                }
+                if (!timeSlot) {
+                    showToast('Select a supported time slot for this workspace.', 'error');
+                    return;
+                }
             }
 
             // Ensure structure exists
@@ -12443,6 +12872,11 @@
             return scheduleStorageKeyPrefix + (year || currentAcademicYear);
         }
 
+        function getCurrentScheduleQuarter() {
+            const navComponent = document.getElementById('mainQuarterNav');
+            return navComponent ? navComponent.currentQuarter : (window.StateManager?.get('currentQuarter') || 'spring');
+        }
+
         function saveScheduleData() {
             try {
                 normalizeScheduleCourseCodes(scheduleData);
@@ -12450,6 +12884,96 @@
                 console.log('Schedule data saved for year:', currentAcademicYear);
             } catch (e) {
                 console.warn('Could not save schedule data:', e);
+            }
+        }
+
+        async function resolveSavedAcademicYearRecord(client, year) {
+            const departmentIdentity = getActiveDepartmentIdentity();
+            const departmentResult = await client
+                .from('departments')
+                .select('id')
+                .eq('code', departmentIdentity.code)
+                .maybeSingle();
+            if (departmentResult.error) throw departmentResult.error;
+            if (!departmentResult.data?.id) return null;
+
+            const academicYearResult = await client
+                .from('academic_years')
+                .select('id')
+                .eq('department_id', departmentResult.data.id)
+                .eq('year', year)
+                .maybeSingle();
+            if (academicYearResult.error) throw academicYearResult.error;
+            if (!academicYearResult.data?.id) return null;
+
+            return {
+                departmentId: departmentResult.data.id,
+                academicYearId: academicYearResult.data.id
+            };
+        }
+
+        async function loadScheduleDataFromDatabase(year, options = {}) {
+            const {
+                silent = false,
+                applyIfCurrentYear = true
+            } = options || {};
+
+            const client = getDatabaseClient();
+            const targetYear = year || currentAcademicYear;
+            if (!client || !window.SchedulePersistence) return false;
+
+            try {
+                const savedYear = await resolveSavedAcademicYearRecord(client, targetYear);
+                if (!savedYear?.academicYearId) return false;
+
+                const scheduleResult = await client
+                    .from('scheduled_courses')
+                    .select(`
+                        quarter,
+                        day_pattern,
+                        time_slot,
+                        section,
+                        projected_enrollment,
+                        course:courses(code, title, default_credits),
+                        faculty:faculty(name),
+                        room:rooms(room_code, campus)
+                    `)
+                    .eq('academic_year_id', savedYear.academicYearId)
+                    .order('quarter')
+                    .order('day_pattern')
+                    .order('time_slot')
+                    .order('section');
+
+                if (scheduleResult.error) throw scheduleResult.error;
+
+                const snapshot = window.SchedulePersistence.buildScheduleSnapshotFromDatabaseRows(scheduleResult.data || []);
+                if (!window.SchedulePersistence.countScheduleCourses(snapshot)) return false;
+
+                saveScheduleDataSnapshotForYear(targetYear, snapshot);
+                if (applyIfCurrentYear && currentAcademicYear === targetYear) {
+                    applyScheduleDataSnapshot(snapshot);
+                }
+
+                console.log('Schedule data loaded from Supabase for year:', targetYear);
+
+                if (!silent && currentAcademicYear === targetYear) {
+                    const quarter = getCurrentScheduleQuarter();
+                    syncDirtyStateForCurrentYear();
+                    renderSchedule(quarter);
+                    renderOnlineCourses(quarter);
+                    renderArrangedCourses(quarter);
+                    renderEnrollmentAnalytics(quarter);
+                    renderConflicts(quarter);
+                    renderConflictSolver(quarter);
+                    renderRecommendations(quarter);
+                    updateStats(quarter);
+                    showToast(`Loaded saved schedule from database for ${targetYear}`);
+                }
+
+                return true;
+            } catch (error) {
+                console.warn('Could not load schedule data from Supabase:', error);
+                return false;
             }
         }
 
@@ -12529,23 +13053,17 @@
                     let parsed = JSON.parse(saved);
                     parsed = migrateTimeSlots(parsed);
                     parsed = normalizeScheduleCourseCodes(parsed);
-                    const hasCourses = (qData) => {
-                        if (!qData) return false;
-                        return Object.values(qData).some(dayData =>
-                            Object.values(dayData).some(timeData =>
-                                Array.isArray(timeData) && timeData.length > 0
-                            )
-                        );
-                    };
-
-                    for (const quarter of ['fall', 'winter', 'spring']) {
-                        if (parsed[quarter] && hasCourses(parsed[quarter])) {
+                    for (const quarter of CLSS_IMPORT_QUARTERS) {
+                        if (parsed[quarter] && typeof parsed[quarter] === 'object') {
                             scheduleData[quarter] = parsed[quarter];
                         }
+                        ensureQuarterScheduleBucket(quarter);
                     }
-                    console.log('Schedule data loaded for year:', targetYear);
-                    saveScheduleData();
-                    return true;
+                    if (scheduleStoreHasCourses(scheduleData)) {
+                        console.log('Schedule data loaded for year:', targetYear);
+                        saveScheduleData();
+                        return true;
+                    }
                 }
             } catch (e) {
                 console.warn('Could not load schedule data:', e);
@@ -12595,7 +13113,7 @@
         }
 
         // Switch academic year
-        function switchAcademicYear(newYear) {
+        async function switchAcademicYear(newYear) {
             // Save current year's data first
             saveScheduleData();
 
@@ -12608,7 +13126,10 @@
             scheduleData.spring = {};
 
             // Load the new year's data (if any)
-            const hasData = loadScheduleData(newYear);
+            let hasData = loadScheduleData(newYear);
+            if (!hasData) {
+                hasData = await loadScheduleDataFromDatabase(newYear);
+            }
             syncDirtyStateForCurrentYear();
 
             // Update quarter tab labels
@@ -12699,10 +13220,10 @@
                             if (typeof navComponent.setupEventListeners === 'function') {
                                 navComponent.setupEventListeners();
                             }
-                            switchAcademicYear(nextYear);
+                            void switchAcademicYear(nextYear);
                         }
                     } else {
-                        switchAcademicYear(nextYear);
+                        void switchAcademicYear(nextYear);
                     }
                 }
             }
@@ -12891,6 +13412,13 @@
 
         async function init() {
             await initializeDepartmentProfileContext();
+            await initializeEagleNetWorkspaceContext();
+            syncAcademicYearFromProfile(activeDepartmentProfile);
+            await populateWorkspaceProfileSelect();
+            const workspaceSelect = document.getElementById('workspaceProfileSelect');
+            if (workspaceSelect) {
+                workspaceSelect.onchange = handleWorkspaceProfileSelection;
+            }
             await loadEnrollmentData();
             await loadFacultyData();
             migrateLegacyProfileScopedStorage();
@@ -12908,8 +13436,17 @@
             // Migrate old schedule data format to year-aware format
             migrateOldScheduleData();
 
-            // Load saved schedule data from localStorage
-            loadScheduleData();
+            if (activeDepartmentProfile?.id && activeDepartmentProfile.id !== 'design-v1') {
+                scheduleData.fall = createEmptyQuarterScheduleBucket();
+                scheduleData.winter = createEmptyQuarterScheduleBucket();
+                scheduleData.spring = createEmptyQuarterScheduleBucket();
+            }
+
+            // Load saved schedule data from localStorage, then fall back to Supabase if needed.
+            const hasLocalSchedule = loadScheduleData(currentAcademicYear);
+            if (!hasLocalSchedule) {
+                await loadScheduleDataFromDatabase(currentAcademicYear);
+            }
 
             // Check for imported schedule from schedule builder
             checkForImportedSchedule();
@@ -12932,6 +13469,7 @@
             // Load swap mode preference
             loadSwapMode();
             syncDirtyStateForCurrentYear();
+            populateClssImportTargetYearOptions();
 
             const initialQuarter = (window.StateManager && window.StateManager.get('currentQuarter')) || 'spring';
 
@@ -12987,6 +13525,10 @@
             showClssImportReportRowsNow,
             copyClssImportReportDebugJson,
             clearClssImportResultsPanel,
+            openEagleNetSeedModal,
+            closeEagleNetSeedModal,
+            refreshEagleNetSeedPreview,
+            applyEagleNetSeed,
             openAddCourseModal,
             closeAddCourseModal,
             closeAddFacultyModal,
@@ -12997,6 +13539,10 @@
             updateSwapModeLabels,
             updateSaveDbButtonState,
             setScheduleDirty,
+            captureRecoveryDraft,
+            clearRecoveryDraft,
+            persistRecoveryDraft,
+            removeRecoveryDraft,
             saveScheduleData,
             openWorkloadReviewFromScheduler,
             saveScheduleToDatabase
@@ -13014,24 +13560,10 @@
             set: (value) => { scheduleSaveInProgress = Boolean(value); }
         });
 
-        // Start the app through the onboarding shell so program selection and
-        // auth happen before the runtime boots.
-        const shellBootstrap = window.ProgramCommandShell && typeof window.ProgramCommandShell.bootstrap === 'function'
-            ? window.ProgramCommandShell.bootstrap({
-                launchRuntime: init,
-                profileManager: window.DepartmentProfileManager,
-                authService: window.AuthService,
-                onboardingUrl: 'pages/department-onboarding.html'
-            })
-            : init();
-
-        if (shellBootstrap && typeof shellBootstrap.catch === 'function') {
-            shellBootstrap.catch((error) => {
-                console.error('Program shell bootstrap failed:', error);
-                showToast('Program shell failed to initialize. Loading the scheduler directly.', 'error');
-                init();
-            });
-        }
+        init().catch((error) => {
+            console.error('Scheduler initialization failed:', error);
+            showToast('Scheduler failed to initialize.', 'error');
+        });
     </script>
 
     <!-- Course Details Modal -->
@@ -13163,7 +13695,7 @@
 
                     <div class="form-group">
                         <label for="editRoom" class="form-label">Room</label>
-                        <input type="text" id="editRoom" class="form-input" placeholder="e.g., CEB 242">
+                        <select id="editRoom" class="form-select"></select>
                     </div>
 
                     <div class="form-group">
@@ -13378,6 +13910,40 @@
         </div>
     </div>
 
+    <!-- EagleNET Seed Review Modal -->
+    <div class="modal-overlay" id="eaglenetSeedModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Seed EagleNET Draft</h2>
+                <button class="modal-close" onclick="closeEagleNetSeedModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-input-group">
+                    <div class="form-group">
+                        <label for="eaglenetSeedTargetYear" class="form-label">Target academic year</label>
+                        <input type="text" id="eaglenetSeedTargetYear" class="form-input" value="2026-27" pattern="\d{4}-\d{2}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Workspace</label>
+                        <div id="eaglenetSeedWorkspaceName" class="eaglenet-seed-workspace">EECS</div>
+                    </div>
+                </div>
+                <p id="eaglenetSeedSourceNote" class="eaglenet-seed-note">EagleNET manual JSON review source.</p>
+                <div id="eaglenetSeedSummary" class="eaglenet-seed-summary"></div>
+                <div class="eaglenet-seed-exceptions-header">
+                    <h3>Needs review</h3>
+                    <span id="eaglenetSeedExceptionCount"></span>
+                </div>
+                <div id="eaglenetSeedExceptions" class="eaglenet-seed-exceptions"></div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="closeEagleNetSeedModal()">Close</button>
+                <button class="btn-secondary" onclick="refreshEagleNetSeedPreview()">Refresh Preview</button>
+                <button class="btn-ewu-accent" id="eaglenetSeedApplyButton" onclick="applyEagleNetSeed()">Seed Grid</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Add Course Modal -->
     <div class="modal-overlay" id="addCourseModal">
         <div class="modal">
@@ -13506,14 +14072,6 @@
                             <label for="addRoom" class="form-label">Room</label>
                             <select id="addRoom" class="form-select" required>
                                 <option value="">Select Room...</option>
-                                <option value="206">206 - UX Lab</option>
-                                <option value="207">207 - Media Lab</option>
-                                <option value="209">209 - Mac Lab</option>
-                                <option value="210">210 - Mac Lab</option>
-                                <option value="212">212 - Project Lab</option>
-                                <option value="CEB 102">CEB 102</option>
-                                <option value="CEB 104">CEB 104</option>
-                                <option value="ONLINE">Online / Async</option>
                             </select>
                         </div>
                     </div>
@@ -13961,6 +14519,38 @@
             return courses;
         }
 
+        function countScheduleCourses(scheduleStore) {
+            return ['fall', 'winter', 'spring'].reduce((total, quarter) => {
+                return total + flattenQuarterData(scheduleStore?.[quarter] || {}).length;
+            }, 0);
+        }
+
+        function hasScheduleCourses(scheduleStore) {
+            if (!scheduleStore || typeof scheduleStore !== 'object') return false;
+
+            return Object.values(scheduleStore).some((dayData) => {
+                if (!dayData || typeof dayData !== 'object') return false;
+                return Object.values(dayData).some((timeData) => Array.isArray(timeData) && timeData.length > 0);
+            });
+        }
+
+        function applyScheduleDataSnapshot(snapshot) {
+            const clonedSnapshot = snapshot == null ? {} : JSON.parse(JSON.stringify(snapshot));
+            const normalized = window.SchedulePersistence?.createEmptyAcademicYearScheduleData?.()
+                || createEmptyAcademicYearScheduleData();
+
+            CLSS_IMPORT_QUARTERS.forEach((quarter) => {
+                if (clonedSnapshot?.[quarter] && typeof clonedSnapshot[quarter] === 'object') {
+                    normalized[quarter] = clonedSnapshot[quarter];
+                }
+                ensureQuarterScheduleBucketForSchedule(normalized, quarter);
+            });
+
+            scheduleData.fall = normalized.fall;
+            scheduleData.winter = normalized.winter;
+            scheduleData.spring = normalized.spring;
+        }
+
         /**
          * Flatten all quarters into one list for database persistence.
          */
@@ -14108,7 +14698,7 @@
                 if (!silent) {
                     showToast('Supabase is not connected. Changes are still saved locally.', 'error');
                 }
-                captureRecoveryDraft(`save-no-client-${trigger}`);
+                window.persistRecoveryDraft?.(`save-no-client-${trigger}`);
                 return false;
             }
 
@@ -14252,14 +14842,14 @@
                 }
 
                 setScheduleDirty(false);
-                clearRecoveryDraft();
+                window.removeRecoveryDraft?.();
                 if (!silent) {
                     showToast(`Saved ${records.length} schedule entries to Supabase (${saveCounts.updated} updated, ${saveCounts.inserted} new${saveCounts.deleted ? `, ${saveCounts.deleted} removed` : ''}).`);
                 }
                 return true;
             } catch (error) {
                 console.error('Error saving schedule to Supabase:', error);
-                captureRecoveryDraft(`save-failed-${trigger}`);
+                window.persistRecoveryDraft?.(`save-failed-${trigger}`);
                 if (!silent) {
                     showToast('Database save failed: ' + (error.message || 'Unknown error'), 'error');
                 }
