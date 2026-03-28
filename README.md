@@ -27,15 +27,9 @@ npm run check:data-freshness -- --department DESN --year 2026-27 --output output
 If drift is detected, the command exits with code `2` and lists tables that need carry-over review.
 See `/docs/dev-data-freshness.md` for full usage.
 
-## ✅ Onboarding QA Gate
+## ✅ Workspace Smoke Check
 
-Run the onboarding QA suite before rollout:
-
-```bash
-npm run qa:onboarding
-```
-
-Rollout checklist and SOP: `/docs/department-onboarding-qa-pack.md`.
+Before rollout, validate the main Program Command surface on localhost and confirm the target workspace loads on the direct scheduler route rather than the retired onboarding shell path.
 
 ## 🌐 GitHub Pages Deployment
 
