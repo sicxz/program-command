@@ -33,6 +33,10 @@ function isSupabaseConfigured() {
 }
 
 function initSupabase() {
+    if (supabaseClient) {
+        return supabaseClient;
+    }
+
     if (!isSupabaseConfigured()) {
         console.warn('Supabase not configured. Using local JSON files as fallback.');
         return null;
