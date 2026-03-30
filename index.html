@@ -5056,6 +5056,15 @@
         const readOnlineCoursesFromQuarter = typeof scheduleDataUtils.getOnlineCoursesForQuarter === 'function'
             ? scheduleDataUtils.getOnlineCoursesForQuarter
             : normalizeOnlineQuarterBucket;
+        const buildScheduleDataFromDatabaseRecords = typeof scheduleDataUtils.buildScheduleDataFromDatabaseRecords === 'function'
+            ? scheduleDataUtils.buildScheduleDataFromDatabaseRecords
+            : null;
+        const scheduleSnapshotHasCourses = typeof scheduleDataUtils.scheduleHasCourses === 'function'
+            ? scheduleDataUtils.scheduleHasCourses
+            : function(snapshot) {
+                if (!snapshot || typeof snapshot !== 'object') return false;
+                return Object.values(snapshot).some((quarterData) => flattenQuarterData(quarterData || {}).length > 0);
+            };
         // Faculty color mapping
         const facultyColors = {
             'T.Masingale': { class: 'faculty-masingale', color: '#667eea', name: 'T.Masingale' },
@@ -5946,9 +5955,30 @@
                 quarterTitle.textContent = currentQuarter.charAt(0).toUpperCase() + currentQuarter.slice(1) + ' ' + qYear;
             }
 
-            // Re-render schedule UI
+            // Re-render quarter-specific scheduler UI
             if (typeof renderSchedule === 'function') {
                 renderSchedule(currentQuarter);
+            }
+            if (typeof renderOnlineCourses === 'function') {
+                renderOnlineCourses(currentQuarter);
+            }
+            if (typeof renderArrangedCourses === 'function') {
+                renderArrangedCourses(currentQuarter);
+            }
+            if (typeof renderEnrollmentAnalytics === 'function') {
+                renderEnrollmentAnalytics(currentQuarter);
+            }
+            if (typeof renderConflicts === 'function') {
+                renderConflicts(currentQuarter);
+            }
+            if (typeof renderConflictSolver === 'function') {
+                renderConflictSolver(currentQuarter);
+            }
+            if (typeof renderRecommendations === 'function') {
+                renderRecommendations(currentQuarter);
+            }
+            if (typeof updateStats === 'function') {
+                updateStats(currentQuarter);
             }
         });
 
@@ -12470,6 +12500,22 @@
             }
         }
 
+        function applyScheduleDataSnapshot(snapshot) {
+            const nextSnapshot = snapshot && typeof snapshot === 'object'
+                ? snapshot
+                : createEmptyAcademicYearScheduleData();
+
+            ['fall', 'winter', 'spring'].forEach((quarter) => {
+                const quarterSnapshot = nextSnapshot[quarter] && typeof nextSnapshot[quarter] === 'object'
+                    ? nextSnapshot[quarter]
+                    : createEmptyQuarterScheduleBucket();
+                scheduleData[quarter] = quarterSnapshot;
+                ensureQuarterScheduleBucketForSchedule(scheduleData, quarter);
+            });
+
+            normalizeScheduleCourseCodes(scheduleData);
+        }
+
         function openWorkloadReviewFromScheduler(options = {}) {
             const {
                 yearOverride = null,
@@ -12546,20 +12592,15 @@
                     let parsed = JSON.parse(saved);
                     parsed = migrateTimeSlots(parsed);
                     parsed = normalizeScheduleCourseCodes(parsed);
-                    const hasCourses = (qData) => {
-                        if (!qData) return false;
-                        return Object.values(qData).some(dayData =>
-                            Object.values(dayData).some(timeData =>
-                                Array.isArray(timeData) && timeData.length > 0
-                            )
-                        );
-                    };
-
-                    for (const quarter of ['fall', 'winter', 'spring']) {
-                        if (parsed[quarter] && hasCourses(parsed[quarter])) {
-                            scheduleData[quarter] = parsed[quarter];
+                    const snapshot = createEmptyAcademicYearScheduleData();
+                    ['fall', 'winter', 'spring'].forEach((quarter) => {
+                        if (parsed[quarter] && typeof parsed[quarter] === 'object') {
+                            snapshot[quarter] = parsed[quarter];
                         }
-                    }
+                        ensureQuarterScheduleBucketForSchedule(snapshot, quarter);
+                    });
+
+                    applyScheduleDataSnapshot(snapshot);
                     console.log('Schedule data loaded for year:', targetYear);
                     saveScheduleData();
                     return true;
@@ -12568,6 +12609,134 @@
                 console.warn('Could not load schedule data:', e);
             }
             return false;
+        }
+
+        async function loadScheduleDataFromDatabase(year) {
+            const targetYear = year || currentAcademicYear;
+            const client = getDatabaseClient();
+
+            if (!client) {
+                return { ok: false, reason: 'no-client' };
+            }
+
+            try {
+                const departmentIdentity = getActiveDepartmentIdentity();
+                const departmentResult = await client
+                    .from('departments')
+                    .select('id')
+                    .eq('code', departmentIdentity.code)
+                    .maybeSingle();
+                if (departmentResult.error) throw departmentResult.error;
+
+                if (!departmentResult.data?.id) {
+                    return {
+                        ok: true,
+                        hasData: false,
+                        reason: 'missing-department',
+                        scheduleData: createEmptyAcademicYearScheduleData()
+                    };
+                }
+
+                const academicYearResult = await client
+                    .from('academic_years')
+                    .select('id')
+                    .eq('department_id', departmentResult.data.id)
+                    .eq('year', targetYear)
+                    .maybeSingle();
+                if (academicYearResult.error) throw academicYearResult.error;
+
+                if (!academicYearResult.data?.id) {
+                    return {
+                        ok: true,
+                        hasData: false,
+                        reason: 'missing-academic-year',
+                        scheduleData: createEmptyAcademicYearScheduleData()
+                    };
+                }
+
+                const scheduledCourseResult = await client
+                    .from('scheduled_courses')
+                    .select(`
+                        quarter,
+                        day_pattern,
+                        time_slot,
+                        section,
+                        projected_enrollment,
+                        course:courses(code, title, default_credits),
+                        faculty:faculty(name),
+                        room:rooms(room_code)
+                    `)
+                    .eq('academic_year_id', academicYearResult.data.id)
+                    .order('quarter')
+                    .order('day_pattern')
+                    .order('time_slot')
+                    .order('section');
+                if (scheduledCourseResult.error) throw scheduledCourseResult.error;
+
+                const hydratedSchedule = typeof buildScheduleDataFromDatabaseRecords === 'function'
+                    ? buildScheduleDataFromDatabaseRecords(scheduledCourseResult.data || [], {
+                        quarters: ['fall', 'winter', 'spring'],
+                        dayPatterns: getSchedulerDayIds(),
+                        normalizeCourseCode,
+                        normalizeInstructor: getCanonicalFacultyName,
+                        normalizeRoom: (value) => String(value || '').trim()
+                    })
+                    : createEmptyAcademicYearScheduleData();
+
+                return {
+                    ok: true,
+                    hasData: scheduleSnapshotHasCourses(hydratedSchedule),
+                    reason: 'loaded',
+                    scheduleData: hydratedSchedule,
+                    recordCount: Array.isArray(scheduledCourseResult.data) ? scheduledCourseResult.data.length : 0
+                };
+            } catch (error) {
+                console.warn('Could not load schedule data from Supabase:', error);
+                return {
+                    ok: false,
+                    reason: 'load-failed',
+                    error
+                };
+            }
+        }
+
+        async function hydrateScheduleDataForYear(year) {
+            const targetYear = year || currentAcademicYear;
+            const localSnapshot = loadScheduleDataSnapshotForYear(targetYear);
+            const localHasData = scheduleSnapshotHasCourses(localSnapshot);
+            const cloudResult = await loadScheduleDataFromDatabase(targetYear);
+
+            if (cloudResult.ok && cloudResult.hasData) {
+                applyScheduleDataSnapshot(cloudResult.scheduleData);
+                saveScheduleDataSnapshotForYear(targetYear, scheduleData);
+                console.log(`Hydrated ${targetYear} schedule from Supabase`, { records: cloudResult.recordCount || 0 });
+                return {
+                    ok: true,
+                    source: 'supabase',
+                    hasData: true,
+                    recordCount: cloudResult.recordCount || 0
+                };
+            }
+
+            if (localHasData) {
+                applyScheduleDataSnapshot(localSnapshot);
+                return {
+                    ok: true,
+                    source: 'local',
+                    hasData: true,
+                    fallbackReason: cloudResult.ok ? cloudResult.reason : 'cloud-load-failed',
+                    error: cloudResult.error
+                };
+            }
+
+            applyScheduleDataSnapshot(createEmptyAcademicYearScheduleData());
+            return {
+                ok: Boolean(cloudResult.ok),
+                source: 'empty',
+                hasData: false,
+                fallbackReason: cloudResult.ok ? cloudResult.reason : 'cloud-load-failed',
+                error: cloudResult.error
+            };
         }
 
         function clearScheduleData() {
@@ -12612,7 +12781,7 @@
         }
 
         // Switch academic year
-        function switchAcademicYear(newYear) {
+        async function switchAcademicYearAsync(newYear) {
             // Save current year's data first
             saveScheduleData();
 
@@ -12620,12 +12789,10 @@
             currentAcademicYear = newYear;
 
             // Reset scheduleData to defaults
-            scheduleData.fall = {};
-            scheduleData.winter = {};
-            scheduleData.spring = {};
+            applyScheduleDataSnapshot(createEmptyAcademicYearScheduleData());
 
-            // Load the new year's data (if any)
-            const hasData = loadScheduleData(newYear);
+            // Load the new year's shared schedule first, then fall back to local draft data.
+            const loadResult = await hydrateScheduleDataForYear(newYear);
             syncDirtyStateForCurrentYear();
 
             // Update quarter tab labels
@@ -12636,14 +12803,22 @@
             const quarter = navComponent ? navComponent.currentQuarter : (window.StateManager?.get('currentQuarter') || 'spring');
 
             renderSchedule(quarter);
+            renderOnlineCourses(quarter);
+            renderArrangedCourses(quarter);
             renderConflicts(quarter);
             updateStats(quarter);
 
-            if (!hasData) {
+            if (!loadResult.hasData) {
                 showToast('Viewing ' + newYear + ' schedule (empty - use Copy to populate)');
+            } else if (loadResult.source === 'local') {
+                showToast(`Switched to ${newYear} schedule (local draft)`, 'warning');
             } else {
                 showToast('Switched to ' + newYear + ' schedule');
             }
+        }
+
+        function switchAcademicYear(newYear) {
+            void switchAcademicYearAsync(newYear);
         }
 
         function updateQuarterTabLabels(year) {
@@ -12925,8 +13100,11 @@
             // Migrate old schedule data format to year-aware format
             migrateOldScheduleData();
 
-            // Load saved schedule data from localStorage
-            loadScheduleData();
+            // Load shared schedule data first, then fall back to this browser's local draft.
+            const initialScheduleLoad = await hydrateScheduleDataForYear(currentAcademicYear);
+            if (initialScheduleLoad.source === 'local' && initialScheduleLoad.fallbackReason === 'cloud-load-failed') {
+                console.warn(`Using local schedule draft for ${currentAcademicYear} because shared schedule load failed.`, initialScheduleLoad.error);
+            }
 
             // Check for imported schedule from schedule builder
             checkForImportedSchedule();
