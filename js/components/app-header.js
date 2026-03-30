@@ -337,10 +337,6 @@ class AppHeader extends HTMLElement {
                                 <span class="header-settings-item-icon">🔍</span>
                                 <span>Detect Conflicts</span>
                             </button>
-                            <button class="header-settings-item" type="button" data-action="ai">
-                                <span class="header-settings-item-icon">✨</span>
-                                <span>AI Analysis</span>
-                            </button>
                             <button class="header-settings-item" type="button" data-action="print">
                                 <span class="header-settings-item-icon">🖨️</span>
                                 <span>Print Schedule</span>
@@ -367,7 +363,7 @@ class AppHeader extends HTMLElement {
                             </button>
                             <button class="header-settings-item" type="button" data-action="api" data-rbac-action="manage" data-rbac-resource="system-config" data-denied-message="Insufficient permissions: only admins can access API connections.">
                                 <span class="header-settings-item-icon">🔐</span>
-                                <span>API Connections</span>
+                                <span>AI & API Settings</span>
                             </button>
                             <button class="header-settings-item" type="button" data-action="accounts" data-rbac-action="manage" data-rbac-resource="accounts" data-denied-message="Insufficient permissions: only admins can manage users and accounts.">
                                 <span class="header-settings-item-icon">👤</span>
