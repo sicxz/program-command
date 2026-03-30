@@ -5037,8 +5037,25 @@
         </div>
     </div>
 
+    <script src="js/schedule-data-utils.js"></script>
     <script type="module">
         console.log(">>>>>>>> MAIN SCRIPT STARTING <<<<<<<<");
+        const scheduleDataUtils = window.ScheduleDataUtils || {};
+        const normalizeOnlineQuarterBucket = typeof scheduleDataUtils.ensureOnlineCourseBucketForQuarter === 'function'
+            ? scheduleDataUtils.ensureOnlineCourseBucketForQuarter
+            : function(quarterData) {
+                if (!quarterData || typeof quarterData !== 'object') return [];
+                if (!quarterData.ONLINE || typeof quarterData.ONLINE !== 'object' || Array.isArray(quarterData.ONLINE)) {
+                    quarterData.ONLINE = {};
+                }
+                if (!Array.isArray(quarterData.ONLINE.async)) {
+                    quarterData.ONLINE.async = [];
+                }
+                return quarterData.ONLINE.async;
+            };
+        const readOnlineCoursesFromQuarter = typeof scheduleDataUtils.getOnlineCoursesForQuarter === 'function'
+            ? scheduleDataUtils.getOnlineCoursesForQuarter
+            : normalizeOnlineQuarterBucket;
         // Faculty color mapping
         const facultyColors = {
             'T.Masingale': { class: 'faculty-masingale', color: '#667eea', name: 'T.Masingale' },
@@ -6845,11 +6862,11 @@
                 onlineSection.removeChild(onlineSection.firstChild);
             }
 
-            if (!data || !data['ONLINE']) {
+            if (!data) {
                 return;
             }
 
-            const onlineCourses = data['ONLINE']['async'] || [];
+            const onlineCourses = readOnlineCoursesFromQuarter(data);
 
             if (onlineCourses.length === 0) {
                 return;
@@ -6866,14 +6883,15 @@
             coursesList.className = 'online-courses-list';
 
             onlineCourses.forEach((course, index) => {
+                const courseTitle = course.name || course.title || '';
                 const item = document.createElement('div');
                 item.className = 'online-course-item';
 
                 const courseInfo = document.createElement('span');
-                courseInfo.innerHTML = `<strong>${course.code}</strong> <span style="color:#57606a">${course.name}</span> <span style="color:#8b949e">- ${course.instructor}</span>`;
+                courseInfo.innerHTML = `<strong>${course.code}</strong> <span style="color:#57606a">${courseTitle}</span> <span style="color:#8b949e">- ${course.instructor}</span>`;
                 courseInfo.style.cursor = 'pointer';
                 courseInfo.onclick = () => {
-                    showCourseDetails(course.code, course.name, course.instructor, course.credits, 'ONLINE', null, quarter, 'ONLINE', 'async');
+                    showCourseDetails(course.code, courseTitle, course.instructor, course.credits, 'ONLINE', null, quarter, 'ONLINE', 'async');
                 };
 
                 const deleteBtn = document.createElement('button');
@@ -6898,8 +6916,9 @@
 
         function deleteOnlineCourse(quarter, index) {
             const data = scheduleData[quarter];
-            if (data && data['ONLINE'] && data['ONLINE']['async']) {
-                data['ONLINE']['async'].splice(index, 1);
+            const onlineCourses = data ? readOnlineCoursesFromQuarter(data) : [];
+            if (Array.isArray(onlineCourses) && onlineCourses[index]) {
+                onlineCourses.splice(index, 1);
                 saveScheduleData();
                 setScheduleDirty(true);
                 renderOnlineCourses(quarter);
@@ -7054,9 +7073,7 @@
                 }
             });
 
-            if (data['ONLINE'] && data['ONLINE']['async']) {
-                allCourses = allCourses.concat(data['ONLINE']['async']);
-            }
+            allCourses = allCourses.concat(readOnlineCoursesFromQuarter(data));
 
             // Categorize courses
             const highEnrollment = [];
@@ -7285,6 +7302,7 @@
             quarters.forEach((quarter) => {
                 const quarterData = data?.[quarter];
                 if (!quarterData || typeof quarterData !== 'object') return;
+                normalizeOnlineQuarterBucket(quarterData);
 
                 Object.values(quarterData).forEach((timeBucket) => {
                     if (!timeBucket || typeof timeBucket !== 'object') return;
@@ -12149,8 +12167,7 @@
                     bucket[dayPattern] = {};
                 }
             });
-            if (!bucket.ONLINE || typeof bucket.ONLINE !== 'object') bucket.ONLINE = {};
-            if (!Array.isArray(bucket.ONLINE.async)) bucket.ONLINE.async = [];
+            normalizeOnlineQuarterBucket(bucket);
             if (!bucket.ARRANGED || typeof bucket.ARRANGED !== 'object') bucket.ARRANGED = {};
             if (!Array.isArray(bucket.ARRANGED.arranged)) bucket.ARRANGED.arranged = [];
             return bucket;
@@ -13897,6 +13914,37 @@
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
 
     <script>
+        const scheduleDataRuntimeUtils = window.ScheduleDataUtils || {};
+        const flattenQuarterScheduleData = typeof scheduleDataRuntimeUtils.flattenQuarterData === 'function'
+            ? scheduleDataRuntimeUtils.flattenQuarterData
+            : function(quarterData) {
+                const courses = [];
+                Object.keys(quarterData || {}).forEach((day) => {
+                    const dayData = quarterData[day];
+                    if (!dayData || typeof dayData !== 'object') return;
+
+                    Object.keys(dayData).forEach((time) => {
+                        const timeCourses = dayData[time];
+                        if (!Array.isArray(timeCourses)) return;
+
+                        timeCourses.forEach((course) => {
+                            courses.push({
+                                ...course,
+                                day,
+                                time
+                            });
+                        });
+                    });
+                });
+                return courses;
+            };
+        const getQuarterOnlineCourses = typeof scheduleDataRuntimeUtils.getOnlineCoursesForQuarter === 'function'
+            ? scheduleDataRuntimeUtils.getOnlineCoursesForQuarter
+            : function(quarterData) {
+                const onlineData = quarterData && quarterData['ONLINE'] ? quarterData['ONLINE'] : {};
+                return Array.isArray(onlineData.async) ? onlineData.async : [];
+            };
+
         // ============================================
         // SAVE, CONFLICT DETECTION & AI ANALYSIS
         // ============================================
@@ -13940,25 +13988,7 @@
         }
 
         function flattenQuarterData(quarterData) {
-            const courses = [];
-            for (const day of Object.keys(quarterData)) {
-                const dayData = quarterData[day];
-                if (!dayData || typeof dayData !== 'object') continue;
-
-                for (const time of Object.keys(dayData)) {
-                    const timeCourses = dayData[time];
-                    if (!Array.isArray(timeCourses)) continue;
-
-                    for (const course of timeCourses) {
-                        courses.push({
-                            ...course,
-                            day: day,
-                            time: time
-                        });
-                    }
-                }
-            }
-            return courses;
+            return flattenQuarterScheduleData(quarterData);
         }
 
         /**
@@ -15535,9 +15565,7 @@ RESPONSE FORMAT:
         }
 
         function getOnlineCoursesForQuarter(quarterData) {
-            const onlineData = quarterData['ONLINE'] || {};
-            const asyncData = onlineData['async'] || [];
-            return asyncData;
+            return getQuarterOnlineCourses(quarterData);
         }
     </script>
 </body>
