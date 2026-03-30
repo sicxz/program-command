@@ -2358,6 +2358,62 @@
             background: #fef2f2;
         }
 
+        .api-feature-card {
+            margin-top: 14px;
+            border: 1px solid #d0d7de;
+            border-radius: 10px;
+            background: #f8fafc;
+            padding: 12px;
+            display: grid;
+            gap: 8px;
+        }
+
+        .api-feature-card.disabled {
+            opacity: 0.82;
+        }
+
+        .api-feature-card-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .api-feature-eyebrow {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #57606a;
+            margin-bottom: 3px;
+        }
+
+        .api-feature-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #24292f;
+        }
+
+        .api-feature-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: #57606a;
+            white-space: nowrap;
+        }
+
+        .api-feature-toggle input {
+            cursor: not-allowed;
+        }
+
+        .api-feature-note {
+            margin: 0;
+            font-size: 12px;
+            line-height: 1.45;
+            color: #57606a;
+        }
+
         .api-status-title {
             font-size: 12px;
             text-transform: uppercase;
@@ -4592,29 +4648,6 @@
 
             <div class="special-sections-grid">
                 <div id="arrangedSection"></div>
-            </div>
-
-            <div class="scheduler-assistant-panel">
-                <div class="scheduler-assistant-header">
-                    <div class="scheduler-assistant-eyebrow">Program Command · ChatGPT</div>
-                    <h3>Program Command</h3>
-                    <p>Run natural-language planning commands before committing schedule changes.</p>
-                </div>
-                <div class="scheduler-assistant-input-row">
-                    <textarea id="schedulerQuestionInput" class="scheduler-question-input"
-                        placeholder="Example: Run without the optional lecturer and redistribute 45 credits with minimum conflict risk."></textarea>
-                    <div class="scheduler-assistant-actions">
-                        <button class="btn-ewu-accent" onclick="askSchedulerQuestion()">Run Command</button>
-                        <button class="btn-secondary"
-                            onclick="fillSchedulerQuestion('If the optional lecturer is removed from the 45-credit plan, what is the lowest-risk redistribution across Sam, Sonja, and Meg?')">Without
-                            Optional Lecturer</button>
-                        <button class="btn-secondary"
-                            onclick="fillSchedulerQuestion('Given Travis and Ginelle each have 31 credits plus 5 inload and DESN 499 at 2 per quarter, where are overload risks by quarter?')">Overload
-                            Audit</button>
-                    </div>
-                </div>
-                <div id="schedulerQuestionResponse" class="scheduler-assistant-response empty">Your answer will appear
-                    here.</div>
             </div>
 
             <div class="legend">
@@ -14314,6 +14347,19 @@
                 <div id="apiKeyStatus" class="api-status-box">
                     <div class="api-status-title">Status</div>
                     <div id="apiKeyStatusMessage" class="api-status-message">No API key configured.</div>
+                </div>
+                <div class="api-feature-card disabled">
+                    <div class="api-feature-card-header">
+                        <div>
+                            <div class="api-feature-eyebrow">Program Command assistant</div>
+                            <div class="api-feature-title">Scheduler command bar</div>
+                        </div>
+                        <label class="api-feature-toggle">
+                            <input type="checkbox" disabled>
+                            <span>Disabled for now</span>
+                        </label>
+                    </div>
+                    <p class="api-feature-note">The natural-language scheduler assistant is hidden on the stable UI for now. API keys and model preferences remain here so we can re-enable the tool later without rebuilding the settings flow.</p>
                 </div>
             </div>
             <div class="modal-actions">
