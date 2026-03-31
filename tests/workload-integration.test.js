@@ -13,6 +13,7 @@ describe('WorkloadIntegration', () => {
 
     afterEach(() => {
         delete global.getYearData;
+        delete global.__PROGRAM_COMMAND_ACTIVE_PROFILE__;
         localStorage.clear();
     });
 
@@ -94,5 +95,79 @@ describe('WorkloadIntegration', () => {
         expect(entries).toHaveLength(1);
         expect(entries[0].courseCode).toBe('DESN 491');
         expect(entries[0].workloadCredits).toBe(2);
+    });
+
+    test('uses active department profile storage prefixes and applied-learning courses', () => {
+        global.__PROGRAM_COMMAND_ACTIVE_PROFILE__ = {
+            scheduler: {
+                storageKeyPrefix: 'itdsSchedulerData_'
+            },
+            workload: {
+                appliedLearningCourses: {
+                    'ITDS 495': { title: 'Internship', rate: 0.1 },
+                    'ITDS 499': { title: 'Independent Study', rate: 0.2 }
+                },
+                defaultAnnualTargets: {
+                    Lecturer: 42
+                }
+            }
+        };
+
+        localStorage.setItem('itdsSchedulerData_2026-27', JSON.stringify({
+            fall: {
+                MW: {
+                    '09:00-11:20': [
+                        { code: 'ITDS 220', name: 'Interaction Design', instructor: 'Jordan Perez', credits: 5, room: 'IT 101' }
+                    ]
+                }
+            },
+            winter: {},
+            spring: {}
+        }));
+
+        localStorage.setItem('programCommandAySetup', JSON.stringify({
+            '2026-27': {
+                adjunctTargets: { fall: 0, winter: 0, spring: 0 },
+                faculty: [
+                    {
+                        name: 'Jordan Perez',
+                        role: 'Lecturer'
+                    }
+                ]
+            }
+        }));
+
+        WorkloadIntegration.saveFacultyWorkloadDetailEntries(
+            '2026-27',
+            'Jordan Perez',
+            [
+                {
+                    id: 'entry_itds_1',
+                    quarter: 'Fall',
+                    courseCode: 'ITDS 499',
+                    studentCredits: 5,
+                    workloadRate: 0.2,
+                    notes: 'Independent study supervision'
+                }
+            ],
+            'Jordan Perez'
+        );
+
+        const integrated = WorkloadIntegration.buildIntegratedWorkloadYearData({}, '2026-27');
+        const faculty = integrated.all['Jordan Perez'];
+        const appliedLearningCourses = WorkloadIntegration.getAppliedLearningCourses()
+            .map((entry) => entry.code)
+            .sort();
+        const yearOptions = WorkloadIntegration.getAcademicYearOptions({});
+
+        expect(appliedLearningCourses).toEqual(['ITDS 495', 'ITDS 499']);
+        expect(yearOptions).toContain('2026-27');
+        expect(faculty).toBeDefined();
+        expect(faculty.scheduledCredits).toBe(5);
+        expect(faculty.appliedLearningCredits).toBe(5);
+        expect(faculty.totalWorkloadCredits).toBe(6);
+        expect(faculty.maxWorkload).toBe(42);
+        expect(faculty.appliedLearning['ITDS 499'].workload).toBe(1);
+
     });
 });

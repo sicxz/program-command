@@ -6,18 +6,51 @@
 
 const dbService = {
     departmentId: null,
+    departmentIdentity: null,
+    departmentIdByCode: {},
     initialized: false,
-    lastSaveAttribution: null,
 
     /**
      * Initialize the database service
      * Gets or creates the department, ensures base data exists
      */
     async initialize() {
-        if (this.initialized) return this.departmentId;
+        const activeDepartment = typeof getActiveDepartmentIdentity === 'function'
+            ? getActiveDepartmentIdentity()
+            : {
+                code: 'DESN',
+                name: 'Design',
+                displayName: 'EWU Design'
+            };
+        const departmentCode = String(activeDepartment.code || 'DESN').trim().toUpperCase() || 'DESN';
+        const departmentName = String(activeDepartment.name || activeDepartment.displayName || 'Design').trim() || 'Design';
+
+        if (this.initialized
+            && this.departmentIdentity
+            && this.departmentIdentity.code === departmentCode
+            && this.departmentId
+        ) {
+            return this.departmentId;
+        }
+
+        if (this.departmentIdByCode[departmentCode]) {
+            this.departmentId = this.departmentIdByCode[departmentCode];
+            this.departmentIdentity = {
+                code: departmentCode,
+                name: departmentName,
+                displayName: String(activeDepartment.displayName || departmentName).trim() || departmentName
+            };
+            this.initialized = true;
+            return this.departmentId;
+        }
 
         if (!isSupabaseConfigured()) {
             console.log('Database service: Using local JSON fallback mode');
+            this.departmentIdentity = {
+                code: departmentCode,
+                name: departmentName,
+                displayName: String(activeDepartment.displayName || departmentName).trim() || departmentName
+            };
             this.initialized = true;
             return null;
         }
@@ -28,14 +61,14 @@ const dbService = {
             const { data: dept, error: deptError } = await client
                 .from('departments')
                 .select('id')
-                .eq('code', CURRENT_DEPARTMENT_CODE)
+                .eq('code', departmentCode)
                 .single();
 
             if (deptError && deptError.code === 'PGRST116') {
                 // Department doesn't exist, create it
                 const { data: newDept, error: createError } = await client
                     .from('departments')
-                    .insert({ name: 'Design', code: CURRENT_DEPARTMENT_CODE })
+                    .insert({ name: departmentName, code: departmentCode })
                     .select('id')
                     .single();
 
@@ -47,8 +80,17 @@ const dbService = {
                 this.departmentId = dept.id;
             }
 
+            this.departmentIdByCode[departmentCode] = this.departmentId;
+            this.departmentIdentity = {
+                code: departmentCode,
+                name: departmentName,
+                displayName: String(activeDepartment.displayName || departmentName).trim() || departmentName
+            };
             this.initialized = true;
-            console.log('Database service initialized. Department ID:', this.departmentId);
+            console.log('Database service initialized.', {
+                departmentId: this.departmentId,
+                code: departmentCode
+            });
             return this.departmentId;
         } catch (error) {
             console.error('Failed to initialize database service:', error);
@@ -89,7 +131,6 @@ const dbService = {
         }
 
         await this.initialize();
-        const currentUserId = await this._resolveCurrentAuthUserId();
         const { data, error } = await getSupabaseClient()
             .from('courses')
             .insert({
@@ -108,8 +149,7 @@ const dbService = {
                 // Constraint flags
                 room_constraint_hard: course.roomConstraintHard || false,
                 time_constraint_hard: course.timeConstraintHard || false,
-                is_case_by_case: course.isCaseByCase || false,
-                updated_by: currentUserId
+                is_case_by_case: course.isCaseByCase || false
             })
             .select()
             .single();
@@ -128,14 +168,12 @@ const dbService = {
         }
 
         await this.initialize();
-        const currentUserId = await this._resolveCurrentAuthUserId();
         const updateData = {
             code: course.code,
             title: course.title,
             default_credits: course.defaultCredits || 5,
             typical_cap: course.typicalCap || 24,
             level: course.level,
-            updated_by: currentUserId,
             updated_at: new Date().toISOString()
         };
 
@@ -236,7 +274,6 @@ const dbService = {
         }
 
         await this.initialize();
-        const currentUserId = await this._resolveCurrentAuthUserId();
         const { data, error } = await getSupabaseClient()
             .from('faculty')
             .insert({
@@ -244,8 +281,7 @@ const dbService = {
                 name: faculty.name,
                 email: faculty.email,
                 category: faculty.category || 'fullTime',
-                max_workload: faculty.maxWorkload || 45,
-                updated_by: currentUserId
+                max_workload: faculty.maxWorkload || 45
             })
             .select()
             .single();
@@ -275,57 +311,6 @@ const dbService = {
 
         if (error) throw error;
         return data;
-    },
-
-    // ============================================
-    // PATHWAYS
-    // ============================================
-
-    /**
-     * Get all student pathways (tracks and minors)
-     */
-    async getPathways() {
-        if (!isSupabaseConfigured()) {
-            return this._fetchLocalPathways();
-        }
-
-        await this.initialize();
-
-        // Fetch pathways and their linked courses
-        const { data, error } = await getSupabaseClient()
-            .from('pathways')
-            .select(`
-                *,
-                pathway_courses(
-                    course:courses(code)
-                )
-            `)
-            .eq('department_id', this.departmentId);
-
-        if (error) throw error;
-
-        // Transform Supabase structure into the expected format
-        const formattedData = { minors: {}, studentTracks: {} };
-
-        data.forEach(pathway => {
-            const courseList = pathway.pathway_courses?.map(pc => pc.course.code) || [];
-
-            const obj = {
-                name: pathway.name,
-                color: pathway.color,
-                typical: pathway.typical,
-                courses: courseList,
-                note: pathway.notes
-            };
-
-            if (pathway.type === 'minor') {
-                formattedData.minors[pathway.name.toLowerCase().replace(/ /g, '-')] = obj;
-            } else {
-                formattedData.studentTracks[pathway.name.toLowerCase().replace(/ /g, '-')] = obj;
-            }
-        });
-
-        return formattedData;
     },
 
     // ============================================
@@ -508,7 +493,6 @@ const dbService = {
             time_slot: placement.time_slot,
             section: courseData.section,
             projected_enrollment: courseData.projectedEnrollment || null,
-            updated_by: currentUserId,
             updated_at: new Date().toISOString()
         };
 
@@ -704,7 +688,6 @@ const dbService = {
             return null;
         }
 
-        const currentUserId = await this._resolveCurrentAuthUserId();
         const record = {
             faculty_id: facultyId,
             time_preferred: prefs.timePreferred || [],
@@ -714,7 +697,6 @@ const dbService = {
             campus_assignment: prefs.campusAssignment || 'any',
             qualified_courses: prefs.qualifiedCourses || [],
             notes: prefs.notes || '',
-            updated_by: currentUserId,
             updated_at: new Date().toISOString()
         };
 
@@ -761,14 +743,12 @@ const dbService = {
         }
 
         await this.initialize();
-        const currentUserId = await this._resolveCurrentAuthUserId();
         const record = {
             department_id: this.departmentId,
             constraint_type: constraint.type,
             description: constraint.description,
             rule_details: constraint.ruleDetails,
-            enabled: constraint.enabled !== false,
-            updated_by: currentUserId
+            enabled: constraint.enabled !== false
         };
 
         if (constraint.id) {
@@ -829,15 +809,13 @@ const dbService = {
             return null;
         }
 
-        const currentUserId = await this._resolveCurrentAuthUserId();
         const record = {
             faculty_id: allocation.facultyId,
             academic_year_id: allocation.academicYearId,
             category: allocation.category,
             credits: allocation.credits,
             quarters: allocation.quarters || ['Fall', 'Winter', 'Spring'],
-            notes: allocation.notes || '',
-            updated_by: currentUserId
+            notes: allocation.notes || ''
         };
 
         if (allocation.id) {
@@ -942,16 +920,6 @@ const dbService = {
         } catch (e) {
             console.error('Failed to load local constraints:', e);
             return {};
-        }
-    },
-
-    async _fetchLocalPathways() {
-        try {
-            const response = await fetch('../data/pathways.json');
-            return await response.json();
-        } catch (e) {
-            console.error('Failed to load local pathways:', e);
-            return { minors: {}, studentTracks: {} };
         }
     },
 
@@ -1262,7 +1230,7 @@ const dbService = {
                 }
             }
         } catch (error) {
-            // fall through to direct Supabase lookup
+            // Fall through to direct Supabase lookup.
         }
 
         try {

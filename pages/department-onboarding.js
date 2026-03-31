@@ -5,7 +5,8 @@
         manager: null,
         baseProfile: null,
         baseProfileSource: 'embedded-default',
-        lastChecks: null
+        lastChecks: null,
+        handoffContext: null
     };
 
     function qs(id) {
@@ -28,6 +29,197 @@
             .replace(/^-+/, '')
             .replace(/-+$/, '')
             || 'department';
+    }
+
+    function buildStorageKeyPrefix(identity) {
+        const base = sanitizeBaseId(identity?.code || identity?.shortName || identity?.name || 'department');
+        return `${base}SchedulerData_`;
+    }
+
+    function getNextAcademicYearLabel(yearLabel) {
+        const normalized = String(yearLabel || '').trim();
+        const match = normalized.match(/^(\d{4})-(\d{2})$/);
+        if (!match) return '';
+        const startYear = Number(match[1]);
+        if (!Number.isFinite(startYear)) return '';
+        return `${startYear + 1}-${String(startYear + 2).slice(-2)}`;
+    }
+
+    function remapDepartmentCourseCodes(courseMap, nextCode, previousCode) {
+        if (!courseMap || typeof courseMap !== 'object' || Array.isArray(courseMap)) {
+            return courseMap;
+        }
+
+        const nextPrefix = sanitizeCode(nextCode);
+        const previousPrefix = sanitizeCode(previousCode);
+        if (!nextPrefix) return clone(courseMap);
+
+        return Object.entries(courseMap).reduce((result, [courseCode, details]) => {
+            const normalizedCode = String(courseCode || '').trim();
+            let nextCourseCode = normalizedCode;
+            if (previousPrefix) {
+                const previousPattern = new RegExp(`^${previousPrefix}(\\s+\\d)`, 'i');
+                nextCourseCode = normalizedCode.replace(previousPattern, `${nextPrefix}$1`);
+            }
+            result[nextCourseCode] = clone(details);
+            return result;
+        }, {});
+    }
+
+    function readHandoffContext() {
+        if (window.ProgramCommandShell && typeof window.ProgramCommandShell.readOnboardingContext === 'function') {
+            return window.ProgramCommandShell.readOnboardingContext();
+        }
+        try {
+            const raw = localStorage.getItem('programCommandOnboardingContextV1');
+            return raw ? JSON.parse(raw) : null;
+        } catch (error) {
+            return null;
+        }
+    }
+
+    function clearHandoffContext() {
+        if (window.ProgramCommandShell && typeof window.ProgramCommandShell.clearOnboardingContext === 'function') {
+            window.ProgramCommandShell.clearOnboardingContext();
+            return;
+        }
+        try {
+            localStorage.removeItem('programCommandOnboardingContextV1');
+        } catch (error) {
+            // Ignore storage cleanup failures.
+        }
+    }
+
+    function renderHandoffContext(context) {
+        const card = qs('handoffCard');
+        if (!card || !context) return;
+
+        const title = qs('handoffTitle');
+        const summary = qs('handoffSummary');
+        const artifact = qs('handoffArtifact');
+        const artifactGroups = qs('handoffArtifactGroups');
+        const badge = qs('handoffBadge');
+
+        const label = String(context.label || 'Selected program').trim() || 'Selected program';
+        const parentLabel = String(context.parentLabel || '').trim();
+        const departmentLabel = String(context.departmentLabel || parentLabel || '').trim();
+        const workspaceKind = String(context.workspaceKind || 'program').trim() || 'program';
+        const source = String(context.source || 'manual').trim() || 'manual';
+        const artifactName = String(context.artifact?.name || '').trim();
+        const artifactBatch = context.artifactBatch && typeof context.artifactBatch === 'object'
+            ? context.artifactBatch
+            : null;
+        const sourceLabel = source === 'spreadsheet'
+            ? 'Spreadsheet handoff'
+            : source === 'screenshot'
+                ? 'Screenshot handoff'
+                : 'Manual setup handoff';
+
+        if (badge) {
+            badge.textContent = sourceLabel;
+        }
+        if (title) {
+            title.textContent = `${label} onboarding handoff`;
+        }
+        if (summary) {
+            if (workspaceKind === 'department' && departmentLabel) {
+                summary.textContent = `${departmentLabel} department view came from the Program Command start shell. Use this page to shape the first versioned profile and keep the selected department context intact.`;
+            } else if (workspaceKind === 'combined-programs' && departmentLabel) {
+                summary.textContent = `${label} came from the ${departmentLabel} department selection in Program Command. Use this page to shape the first versioned profile and keep the shared program context intact.`;
+            } else {
+                summary.textContent = parentLabel
+                    ? `${parentLabel} / ${label} came from the Program Command start shell. Use this page to shape the first versioned profile and keep the selected program context intact.`
+                    : `${label} came from the Program Command start shell. Use this page to shape the first versioned profile and keep the selected program context intact.`;
+            }
+        }
+        if (artifact) {
+            if (source === 'screenshot' && artifactBatch?.count) {
+                const rootFolderName = String(artifactBatch.rootFolderName || '').trim();
+                const groupedCount = Array.isArray(artifactBatch.groups)
+                    ? artifactBatch.groups.filter((group) => String(group.key || '') !== 'unassigned').length
+                    : 0;
+                const intro = rootFolderName
+                    ? `Captured ${artifactBatch.count} screenshot files from ${rootFolderName}.`
+                    : `Captured ${artifactBatch.count} screenshot files for this onboarding handoff.`;
+                const grouping = groupedCount
+                    ? ` The shell inferred ${groupedCount} term group${groupedCount === 1 ? '' : 's'} for downstream parsing.`
+                    : ' The shell preserved the files, but term grouping still needs manual review before parsing.';
+                artifact.textContent = `${intro}${grouping}`;
+            } else {
+                artifact.textContent = artifactName
+                    ? `Captured artifact: ${artifactName}. Parsing and seeded schedule generation continue in the follow-on import slice.`
+                    : source === 'manual'
+                        ? 'No import artifact attached. Manual setup is active for this handoff.'
+                        : 'No artifact metadata was carried into this handoff.';
+            }
+        }
+
+        if (artifactGroups) {
+            artifactGroups.innerHTML = '';
+            const groups = Array.isArray(artifactBatch?.groups) ? artifactBatch.groups : [];
+            if (source === 'screenshot' && groups.length) {
+                const heading = document.createElement('strong');
+                heading.textContent = 'Grouped screenshot batches';
+                artifactGroups.appendChild(heading);
+
+                const list = document.createElement('ul');
+                groups.forEach((group) => {
+                    const li = document.createElement('li');
+                    const labelText = String(group.label || 'Unassigned').trim() || 'Unassigned';
+                    const sampleNames = Array.isArray(group.sampleNames) && group.sampleNames.length
+                        ? ` Examples: ${group.sampleNames.slice(0, 2).join(', ')}`
+                        : '';
+                    li.textContent = `${labelText}: ${Number(group.fileCount) || 0} file${Number(group.fileCount) === 1 ? '' : 's'}.${sampleNames}`;
+                    list.appendChild(li);
+                });
+                artifactGroups.appendChild(list);
+                artifactGroups.hidden = false;
+            } else {
+                artifactGroups.hidden = true;
+            }
+        }
+
+        card.hidden = false;
+    }
+
+    async function applyHandoffContext() {
+        const context = state.handoffContext;
+        if (!context) return;
+
+        const select = qs('baseProfileSelect');
+        const requestedBaseProfileId = String(context.baseProfileId || '').trim();
+        if (requestedBaseProfileId && select && select.value !== requestedBaseProfileId) {
+            const hasOption = Array.from(select.options).some((option) => option.value === requestedBaseProfileId);
+            if (hasOption) {
+                select.value = requestedBaseProfileId;
+                await loadBaseProfile(requestedBaseProfileId);
+            }
+        }
+
+        const identity = context.suggestedIdentity || {};
+        if (identity.name) qs('departmentName').value = String(identity.name);
+        if (identity.code) qs('departmentCode').value = sanitizeCode(identity.code);
+        if (identity.displayName) qs('departmentDisplayName').value = String(identity.displayName);
+        if (identity.shortName) qs('departmentShortName').value = String(identity.shortName);
+
+        renderHandoffContext(context);
+
+        const label = String(context.label || 'selected program').trim() || 'selected program';
+        const source = String(context.source || 'manual').trim() || 'manual';
+        if (source === 'spreadsheet') {
+            setStatus('info', `Spreadsheet handoff ready for ${label}. Finish the profile setup here before the import mapping slice lands.`);
+        } else if (source === 'screenshot') {
+            const screenshotCount = Number(context.artifactBatch?.count) || 0;
+            const groupedCount = Array.isArray(context.artifactBatch?.groups)
+                ? context.artifactBatch.groups.filter((group) => String(group.key || '') !== 'unassigned').length
+                : 0;
+            const screenshotSummary = screenshotCount
+                ? `${screenshotCount} file${screenshotCount === 1 ? '' : 's'}${groupedCount ? ` across ${groupedCount} inferred term group${groupedCount === 1 ? '' : 's'}` : ''}`
+                : 'the captured screenshot set';
+            setStatus('warn', `Screenshot handoff ready for ${label}: ${screenshotSummary}. OCR/import parsing is staged after the spreadsheet path, but program context is preserved here.`);
+        } else {
+            setStatus('info', `Manual setup handoff ready for ${label}.`);
+        }
     }
 
     function parseListLines(rawText) {
@@ -151,6 +343,7 @@
         const courseAliasParse = parseAliasLines(qs('courseAliasInput')?.value || '');
 
         const profile = clone(state.baseProfile);
+        const previousCode = String(profile.identity?.code || '').trim();
         profile.id = sanitizeBaseId(identity.code || identity.name || profile.id || 'department');
         profile.identity = {
             ...profile.identity,
@@ -160,7 +353,13 @@
             shortName: identity.shortName || identity.name
         };
 
+        profile.branding = profile.branding || {};
+        profile.branding.appTitle = `Program Command - ${profile.identity.displayName}`;
+        profile.branding.headerEyebrow = `${profile.identity.displayName.toUpperCase()} · PROGRAM COMMAND`;
+        profile.branding.headerSubtitle = `${profile.identity.shortName} Program Planning and Schedule Operations`;
+
         profile.scheduler = profile.scheduler || {};
+        profile.scheduler.storageKeyPrefix = buildStorageKeyPrefix(profile.identity);
         profile.scheduler.allowedRooms = rooms;
 
         const existingRoomLabels = profile.scheduler.roomLabels && typeof profile.scheduler.roomLabels === 'object'
@@ -178,10 +377,34 @@
         profile.import.clss.facultyAliases = facultyAliasParse.aliases;
         profile.import.clss.courseAliases = courseAliasParse.aliases;
 
+        profile.workload = profile.workload || {};
+        profile.workload.dashboardTitle = String(profile.workload.dashboardTitle || 'Faculty Workload Dashboard').trim() || 'Faculty Workload Dashboard';
+        profile.workload.dashboardSubtitleBase = `${profile.identity.displayName} Department - Academic Workload Analysis`;
+        const resetYear = getNextAcademicYearLabel(profile.academic?.defaultSchedulerYear);
+        if (resetYear) {
+            profile.workload.productionResetDefaultScheduleYear = resetYear;
+        }
+        if (profile.workload.appliedLearningCourses && typeof profile.workload.appliedLearningCourses === 'object' && !Array.isArray(profile.workload.appliedLearningCourses)) {
+            profile.workload.appliedLearningCourses = remapDepartmentCourseCodes(
+                profile.workload.appliedLearningCourses,
+                profile.identity.code,
+                previousCode
+            );
+        }
+
         profile.onboardingMeta = {
             basedOn: String(qs('baseProfileSelect')?.value || ''),
             generatedAt: new Date().toISOString(),
-            generatedBy: 'department-onboarding-shell-v1'
+            generatedBy: 'department-onboarding-shell-v1',
+            catalogProgramId: String(state.handoffContext?.id || '').trim() || null,
+            catalogProgramLabel: String(state.handoffContext?.label || '').trim() || null,
+            catalogDepartmentId: String(state.handoffContext?.departmentId || '').trim() || null,
+            catalogDepartmentLabel: String(state.handoffContext?.departmentLabel || '').trim() || null,
+            catalogWorkspaceKind: String(state.handoffContext?.workspaceKind || '').trim() || 'program',
+            catalogMemberProgramIds: Array.isArray(state.handoffContext?.memberProgramIds)
+                ? state.handoffContext.memberProgramIds.map((id) => String(id || '').trim()).filter(Boolean)
+                : [],
+            previousCode: previousCode || null
         };
 
         return {
@@ -332,6 +555,11 @@
             select.value = stored;
         }
 
+        const requestedBaseProfileId = String(state.handoffContext?.baseProfileId || '').trim();
+        if (requestedBaseProfileId && profileList.profiles.some((entry) => entry.id === requestedBaseProfileId)) {
+            select.value = requestedBaseProfileId;
+        }
+
         if (!select.value && profileList.profiles.length > 0) {
             select.value = profileList.profiles[0].id;
         }
@@ -339,6 +567,8 @@
         if (select.value) {
             await loadBaseProfile(select.value);
         }
+
+        await applyHandoffContext();
     }
 
     function bindEvents() {
@@ -380,6 +610,7 @@
                     activate: true
                 });
 
+                clearHandoffContext();
                 qs('activationResult').textContent = `Activated profile ${saved.profileId}.`;
                 setStatus('ok', `Profile ${saved.profileId} saved and activated.`);
                 await populateProfileSelect();
@@ -400,6 +631,7 @@
         }
 
         state.manager = manager;
+        state.handoffContext = readHandoffContext();
         await manager.initialize();
         bindEvents();
         await populateProfileSelect();

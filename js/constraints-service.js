@@ -9,6 +9,24 @@ const ConstraintsService = (function() {
     let cacheTimestamp = null;
     const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
+    function getActiveDepartmentProfile() {
+        const profileFromGlobal = (typeof globalThis !== 'undefined' && globalThis.__PROGRAM_COMMAND_ACTIVE_PROFILE__)
+            ? globalThis.__PROGRAM_COMMAND_ACTIVE_PROFILE__
+            : null;
+        if (profileFromGlobal && typeof profileFromGlobal === 'object') {
+            return profileFromGlobal;
+        }
+        return null;
+    }
+
+    function getActiveDepartmentIdentity() {
+        const identity = getActiveDepartmentProfile()?.identity || {};
+        return {
+            code: String(identity.code || 'DESN').trim().toUpperCase() || 'DESN',
+            displayName: String(identity.displayName || identity.name || 'EWU Design').trim() || 'EWU Design'
+        };
+    }
+
     /**
      * Load all constraints from Supabase
      * @param {boolean} forceRefresh - Bypass cache
@@ -22,7 +40,7 @@ const ConstraintsService = (function() {
             }
         }
 
-        if (typeof supabase === 'undefined' || !supabase) {
+        if (!supabase) {
             console.warn('Supabase not configured, using fallback constraints');
             return getFallbackConstraints();
         }
@@ -52,10 +70,6 @@ const ConstraintsService = (function() {
      */
     async function loadEnabledConstraints() {
         const all = await loadConstraints();
-        if (!Array.isArray(all) || all.length === 0) {
-            // Defensive fallback for empty/unseeded remote table.
-            return getFallbackConstraints().filter(c => c.enabled);
-        }
         return all.filter(c => c.enabled);
     }
 
@@ -106,17 +120,24 @@ const ConstraintsService = (function() {
         }
 
         try {
-            // Get department ID for DESN
-            const { data: dept } = await supabase
+            const department = getActiveDepartmentIdentity();
+            const { data: deptRows, error: departmentError } = await supabase
                 .from('departments')
                 .select('id')
-                .eq('code', 'DESN')
-                .single();
+                .eq('code', department.code)
+                .limit(1);
+
+            if (departmentError) throw departmentError;
+
+            const departmentId = Array.isArray(deptRows) ? deptRows[0]?.id : deptRows?.id;
+            if (!departmentId) {
+                throw new Error(`Department row not found for ${department.code}`);
+            }
 
             const { data, error } = await supabase
                 .from('scheduling_constraints')
                 .insert({
-                    department_id: dept?.id,
+                    department_id: departmentId,
                     constraint_type: constraint.type,
                     description: constraint.description,
                     rule_details: constraint.rule_details,
@@ -175,47 +196,24 @@ const ConstraintsService = (function() {
      * These mirror the seed data
      */
     function getFallbackConstraints() {
+        const department = getActiveDepartmentIdentity();
         return [
             {
                 id: 'fallback-1',
-                constraint_type: 'room_restriction',
-                description: 'Room 212 is reserved for specific courses only',
-                rule_details: {
-                    room: '212',
-                    allowed_courses: ['DESN 301', 'DESN 359', 'DESN 401'],
-                    severity: 'warning',
-                    message: 'Room 212 is typically reserved for Visual Storytelling, Histories of Design, and Imaginary Worlds'
-                },
-                enabled: true
-            },
-            {
-                id: 'fallback-2',
-                constraint_type: 'room_restriction',
-                description: 'Room 210 has no computers - drawing/lecture only',
-                rule_details: {
-                    room: '210',
-                    allowed_courses: ['DESN 100', 'DESN 301', 'DESN 401', 'DESN 359'],
-                    severity: 'warning',
-                    message: 'Room 210 has no computers - only suitable for drawing, lecture, or discussion courses'
-                },
-                enabled: true
-            },
-            {
-                id: 'fallback-3',
                 constraint_type: 'student_conflict',
-                description: 'Graduation pathway conflicts - courses students take together',
+                description: `${department.code} graduation pathway conflicts`,
                 rule_details: {
                     severity: 'critical',
-                    message: 'Courses in the same graduation pathway are scheduled at the same time, preventing students from completing requirements',
+                    message: `${department.displayName} courses in the same pathway are scheduled at the same time, preventing students from completing requirements`,
                     preferred_resolutions: [
-                        { action: 'move_course', target_slot: 'MW 16:00-18:20', reason: 'Evening slot typically has capacity' },
-                        { action: 'move_course', target_slot: 'TR 16:00-18:20', reason: 'Evening slot alternative' }
+                        { action: 'move_course', target_slot: 'MW 16:00-18:00', reason: 'Evening slot typically has capacity' },
+                        { action: 'move_course', target_slot: 'TR 16:00-18:00', reason: 'Evening slot alternative' }
                     ]
                 },
                 enabled: true
             },
             {
-                id: 'fallback-4',
+                id: 'fallback-2',
                 constraint_type: 'faculty_double_book',
                 description: 'Faculty cannot teach two courses at the same time',
                 rule_details: {
@@ -225,7 +223,7 @@ const ConstraintsService = (function() {
                 enabled: true
             },
             {
-                id: 'fallback-5',
+                id: 'fallback-3',
                 constraint_type: 'room_double_book',
                 description: 'Only one course per room per time slot',
                 rule_details: {
@@ -235,7 +233,7 @@ const ConstraintsService = (function() {
                 enabled: true
             },
             {
-                id: 'fallback-6',
+                id: 'fallback-4',
                 constraint_type: 'evening_safety',
                 description: 'Minimum instructors for evening classes',
                 rule_details: {
@@ -247,7 +245,7 @@ const ConstraintsService = (function() {
                 enabled: true
             },
             {
-                id: 'fallback-7',
+                id: 'fallback-5',
                 constraint_type: 'ay_setup_alignment',
                 description: 'Academic Year Setup alignment for workload and adjunct targets',
                 rule_details: {

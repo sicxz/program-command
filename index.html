@@ -74,6 +74,305 @@
             line-height: 1.5;
         }
 
+        .program-shell-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 11000;
+            overflow-y: auto;
+            padding: 28px 20px;
+            background:
+                radial-gradient(circle at top right, rgba(161, 0, 34, 0.18), transparent 30%),
+                linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.82));
+            backdrop-filter: blur(10px);
+        }
+
+        .program-shell-overlay[hidden] {
+            display: none;
+        }
+
+        .program-shell-layout {
+            width: min(1180px, 100%);
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: minmax(0, 1.2fr) minmax(340px, 0.8fr);
+            gap: 18px;
+            align-items: start;
+        }
+
+        .program-shell-card {
+            background: rgba(255, 255, 255, 0.96);
+            border: 1px solid rgba(148, 163, 184, 0.28);
+            border-radius: 24px;
+            box-shadow: 0 24px 64px rgba(15, 23, 42, 0.24);
+            padding: 24px;
+        }
+
+        .program-shell-card.hero {
+            min-height: 100%;
+        }
+
+        .program-shell-eyebrow {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: #8a001d;
+            margin-bottom: 12px;
+        }
+
+        .program-shell-title {
+            margin: 0 0 10px;
+            font-size: clamp(2rem, 4vw, 3rem);
+            line-height: 1.02;
+            letter-spacing: -0.04em;
+            color: #0f172a;
+        }
+
+        .program-shell-copy {
+            margin: 0 0 18px;
+            max-width: 56ch;
+            color: #475569;
+            font-size: 15px;
+        }
+
+        .program-shell-catalog {
+            display: grid;
+            gap: 10px;
+        }
+
+        .program-shell-catalog-heading {
+            font-size: 14px;
+            font-weight: 700;
+            color: #334155;
+        }
+
+        .program-shell-catalog-list,
+        .program-shell-subsection-list {
+            display: grid;
+            gap: 8px;
+        }
+
+        .program-shell-subsection {
+            display: grid;
+            gap: 8px;
+            padding: 12px 0 0;
+            border-top: 1px solid rgba(148, 163, 184, 0.24);
+        }
+
+        .program-shell-subsection-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .program-shell-program-button {
+            width: 100%;
+            display: grid;
+            gap: 2px;
+            text-align: left;
+            background: #ffffff;
+            border: 1px solid #d0d7de;
+            border-radius: 14px;
+            padding: 12px 14px;
+            cursor: pointer;
+            transition: border-color 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
+        }
+
+        .program-shell-program-button:hover {
+            border-color: rgba(161, 0, 34, 0.4);
+            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+            transform: translateY(-1px);
+        }
+
+        .program-shell-program-button.selected {
+            border-color: #8a001d;
+            background: linear-gradient(180deg, #fff8f8, #ffffff);
+            box-shadow: 0 16px 30px rgba(138, 0, 29, 0.12);
+        }
+
+        .program-shell-program-label {
+            font-size: 18px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .program-shell-program-meta {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .program-shell-auth-summary {
+            margin: 0 0 16px;
+            color: #334155;
+            font-size: 14px;
+        }
+
+        .program-shell-auth-form {
+            display: grid;
+            gap: 12px;
+        }
+
+        .program-shell-auth-form label {
+            display: grid;
+            gap: 6px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .program-shell-auth-form input {
+            width: 100%;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            padding: 12px 14px;
+            font-size: 14px;
+        }
+
+        .program-shell-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 4px;
+        }
+
+        .program-shell-button,
+        .program-shell-button-secondary {
+            border-radius: 999px;
+            padding: 10px 16px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.16s ease, border-color 0.16s ease;
+        }
+
+        .program-shell-button {
+            border: 1px solid #0f172a;
+            background: #0f172a;
+            color: #ffffff;
+        }
+
+        .program-shell-button-secondary {
+            border: 1px solid #d0d7de;
+            background: #ffffff;
+            color: #0f172a;
+        }
+
+        .program-shell-button:hover,
+        .program-shell-button-secondary:hover {
+            transform: translateY(-1px);
+        }
+
+        .program-shell-session-panel {
+            display: grid;
+            gap: 10px;
+            padding: 14px;
+            border-radius: 16px;
+            background: #f8fafc;
+            border: 1px solid #dbe4ee;
+        }
+
+        .program-shell-status {
+            margin-top: 16px;
+            border-radius: 14px;
+            padding: 12px 14px;
+            border: 1px solid #dbe4ee;
+            background: #f8fafc;
+            color: #0f172a;
+            min-height: 48px;
+        }
+
+        .program-shell-status.ok {
+            border-color: #22c55e;
+            background: #f0fdf4;
+            color: #166534;
+        }
+
+        .program-shell-status.warn {
+            border-color: #f59e0b;
+            background: #fffbeb;
+            color: #92400e;
+        }
+
+        .program-shell-status.error {
+            border-color: #ef4444;
+            background: #fef2f2;
+            color: #991b1b;
+        }
+
+        .program-shell-status.info {
+            border-color: #93c5fd;
+            background: #eff6ff;
+            color: #1d4ed8;
+        }
+
+        .program-shell-chooser {
+            grid-column: 1 / -1;
+            display: grid;
+            gap: 14px;
+        }
+
+        .program-shell-choice-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .program-shell-choice {
+            display: grid;
+            gap: 10px;
+            padding: 18px;
+            border-radius: 18px;
+            border: 1px solid #dbe4ee;
+            background: #ffffff;
+        }
+
+        .program-shell-choice h3 {
+            margin: 0;
+            font-size: 18px;
+            color: #0f172a;
+        }
+
+        .program-shell-choice p,
+        .program-shell-choice ul {
+            margin: 0;
+            color: #475569;
+        }
+
+        .program-shell-choice ul {
+            padding-left: 18px;
+            display: grid;
+            gap: 4px;
+            font-size: 13px;
+        }
+
+        .program-shell-choice-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .program-shell-choice-note {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .program-shell-choice-tag {
+            display: inline-flex;
+            width: fit-content;
+            border-radius: 999px;
+            background: #f1f5f9;
+            color: #334155;
+            padding: 4px 10px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .program-shell-chooser-meta {
+            color: #475569;
+            font-size: 14px;
+        }
+
         .container {
             max-width: 1600px;
             margin: 0 auto;
@@ -4386,6 +4685,16 @@
                 transition: none !important;
             }
         }
+
+        @media (max-width: 960px) {
+            .program-shell-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .program-shell-choice-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 
     <!-- Supabase -->
@@ -4393,6 +4702,7 @@
     <script src="js/department-profile.js"></script>
     <script type="module" src="js/supabase-config.js"></script>
     <script src="js/auth-service.js"></script>
+    <script src="js/program-shell.js"></script>
     <script src="js/auth-guard.js"></script>
     <script src="js/dirty-state-tracker.js"></script>
 
@@ -4414,6 +4724,100 @@
 </head>
 
 <body>
+    <div class="program-shell-overlay" id="programShellOverlay" hidden>
+        <div class="program-shell-layout">
+            <section class="program-shell-card hero">
+                <div class="program-shell-eyebrow">Program Command</div>
+                <h1 class="program-shell-title">Welcome to Program Command</h1>
+                <p class="program-shell-copy">Choose your program, clear the account gate, and we will route you into an existing workspace or the right onboarding path for a new program.</p>
+                <div id="programShellProgramList"></div>
+            </section>
+
+            <section class="program-shell-card">
+                <div class="program-shell-eyebrow">Step 2</div>
+                <h2 style="margin:0 0 8px; font-size:1.5rem; color:#0f172a;">Program access</h2>
+                <p class="program-shell-auth-summary" id="programShellSummary">Choose a program to unlock the correct entry path.</p>
+
+                <form class="program-shell-auth-form" id="programShellAuthForm">
+                    <label>
+                        Email
+                        <input id="programShellEmail" type="email" autocomplete="email" placeholder="chair@ewu.edu">
+                    </label>
+                    <label>
+                        Password
+                        <input id="programShellPassword" type="password" autocomplete="current-password" placeholder="Password">
+                    </label>
+                    <div class="program-shell-actions">
+                        <button type="submit" class="program-shell-button">Sign in</button>
+                        <button type="button" class="program-shell-button-secondary" id="programShellCreateAccountButton">Create account</button>
+                        <button type="button" class="program-shell-button-secondary" id="programShellPreviewButton" hidden>Preview on localhost</button>
+                    </div>
+                </form>
+
+                <div class="program-shell-session-panel" id="programShellSessionPanel" hidden>
+                    <strong id="programShellSessionText">Authentication complete.</strong>
+                    <div class="program-shell-actions">
+                        <button type="button" class="program-shell-button" id="programShellContinueButton" disabled>Continue</button>
+                        <button type="button" class="program-shell-button-secondary" id="programShellSwitchAccountButton">Use another account</button>
+                    </div>
+                </div>
+
+                <div class="program-shell-status info" id="programShellStatus">Welcome to Program Command. Choose a program to begin.</div>
+            </section>
+
+            <section class="program-shell-card program-shell-chooser" id="programShellChooser" hidden>
+                <div class="program-shell-eyebrow">Step 3</div>
+                <h2 style="margin:0; font-size:1.75rem; color:#0f172a;">Start a new program workspace</h2>
+                <p class="program-shell-chooser-meta" id="programShellChooserMeta"></p>
+                <div class="program-shell-choice-grid">
+                    <article class="program-shell-choice">
+                        <span class="program-shell-choice-tag">MVP Ready</span>
+                        <h3>Manual setup</h3>
+                        <p>Open the onboarding workspace and set up the first versioned program profile by hand.</p>
+                        <ul>
+                            <li>Best when the program wants to establish rooms, aliases, and naming first.</li>
+                            <li>Routes directly into the current profile-onboarding workspace.</li>
+                        </ul>
+                        <button type="button" class="program-shell-button" id="programShellManualButton">Open manual setup</button>
+                    </article>
+
+                    <article class="program-shell-choice">
+                        <span class="program-shell-choice-tag">MVP Ready</span>
+                        <h3>Spreadsheet upload</h3>
+                        <p>Capture the current course listing export and carry that program context into onboarding.</p>
+                        <ul>
+                            <li>Use a `.csv`, `.xlsx`, or `.xls` export from EagleNET or a department workbook.</li>
+                            <li>Import mapping and seeded schedule generation stay in issue #210.</li>
+                        </ul>
+                        <button type="button" class="program-shell-button" id="programShellSpreadsheetButton">Choose spreadsheet</button>
+                    </article>
+
+                    <article class="program-shell-choice">
+                        <span class="program-shell-choice-tag">Follow-on</span>
+                        <h3>Screenshot upload</h3>
+                        <p>Capture screenshots from class search with the enrollment view and preserve the handoff context now.</p>
+                        <ul>
+                            <li>Accept a screenshot folder when your browser can preserve nested quarter folders.</li>
+                            <li>Fall back to choosing multiple screenshot files when folder upload is not available.</li>
+                            <li>Parsing and schedule seeding remain staged after the spreadsheet path.</li>
+                        </ul>
+                        <div class="program-shell-choice-actions">
+                            <button type="button" class="program-shell-button-secondary" id="programShellScreenshotDirectoryButton">Choose screenshot folder</button>
+                            <button type="button" class="program-shell-button-secondary" id="programShellScreenshotButton">Choose screenshot files</button>
+                        </div>
+                        <p class="program-shell-choice-note" id="programShellScreenshotSupportText">Folder upload keeps nested quarter folders when the browser supports directory selection.</p>
+                    </article>
+                </div>
+                <div class="program-shell-actions">
+                    <button type="button" class="program-shell-button-secondary" id="programShellBackButton" hidden>Back to program selection</button>
+                </div>
+            </section>
+        </div>
+        <input id="programShellSpreadsheetInput" type="file" accept=".csv,.xlsx,.xls" hidden>
+        <input id="programShellScreenshotDirectoryInput" type="file" accept="image/*" multiple webkitdirectory hidden>
+        <input id="programShellScreenshotInput" type="file" accept="image/*" multiple hidden>
+    </div>
+
     <!-- Displaced Course Tray Sidebar -->
     <div class="displaced-tray" id="displacedTray">
         <div class="displaced-tray-header">
@@ -4644,8 +5048,25 @@
         </div>
     </div>
 
+    <script src="js/schedule-data-utils.js"></script>
     <script type="module">
         console.log(">>>>>>>> MAIN SCRIPT STARTING <<<<<<<<");
+        const scheduleDataUtils = window.ScheduleDataUtils || {};
+        const normalizeOnlineQuarterBucket = typeof scheduleDataUtils.ensureOnlineCourseBucketForQuarter === 'function'
+            ? scheduleDataUtils.ensureOnlineCourseBucketForQuarter
+            : function(quarterData) {
+                if (!quarterData || typeof quarterData !== 'object') return [];
+                if (!quarterData.ONLINE || typeof quarterData.ONLINE !== 'object' || Array.isArray(quarterData.ONLINE)) {
+                    quarterData.ONLINE = {};
+                }
+                if (!Array.isArray(quarterData.ONLINE.async)) {
+                    quarterData.ONLINE.async = [];
+                }
+                return quarterData.ONLINE.async;
+            };
+        const readOnlineCoursesFromQuarter = typeof scheduleDataUtils.getOnlineCoursesForQuarter === 'function'
+            ? scheduleDataUtils.getOnlineCoursesForQuarter
+            : normalizeOnlineQuarterBucket;
         // Faculty color mapping
         const facultyColors = {
             'T.Masingale': { class: 'faculty-masingale', color: '#667eea', name: 'T.Masingale' },
@@ -6728,11 +7149,11 @@
                 onlineSection.removeChild(onlineSection.firstChild);
             }
 
-            if (!data || !data['ONLINE']) {
+            if (!data) {
                 return;
             }
 
-            const onlineCourses = data['ONLINE']['async'] || [];
+            const onlineCourses = readOnlineCoursesFromQuarter(data);
 
             if (onlineCourses.length === 0) {
                 return;
@@ -6749,14 +7170,15 @@
             coursesList.className = 'online-courses-list';
 
             onlineCourses.forEach((course, index) => {
+                const courseTitle = course.name || course.title || '';
                 const item = document.createElement('div');
                 item.className = 'online-course-item';
 
                 const courseInfo = document.createElement('span');
-                courseInfo.innerHTML = `<strong>${course.code}</strong> <span style="color:#57606a">${course.name}</span> <span style="color:#8b949e">- ${course.instructor}</span>`;
+                courseInfo.innerHTML = `<strong>${course.code}</strong> <span style="color:#57606a">${courseTitle}</span> <span style="color:#8b949e">- ${course.instructor}</span>`;
                 courseInfo.style.cursor = 'pointer';
                 courseInfo.onclick = () => {
-                    showCourseDetails(course.code, course.name, course.instructor, course.credits, 'ONLINE', null, quarter, 'ONLINE', 'async');
+                    showCourseDetails(course.code, courseTitle, course.instructor, course.credits, 'ONLINE', null, quarter, 'ONLINE', 'async');
                 };
 
                 const deleteBtn = document.createElement('button');
@@ -6781,8 +7203,9 @@
 
         function deleteOnlineCourse(quarter, index) {
             const data = scheduleData[quarter];
-            if (data && data['ONLINE'] && data['ONLINE']['async']) {
-                data['ONLINE']['async'].splice(index, 1);
+            const onlineCourses = data ? readOnlineCoursesFromQuarter(data) : [];
+            if (Array.isArray(onlineCourses) && onlineCourses[index]) {
+                onlineCourses.splice(index, 1);
                 saveScheduleData();
                 setScheduleDirty(true);
                 renderOnlineCourses(quarter);
@@ -6937,9 +7360,7 @@
                 }
             });
 
-            if (data['ONLINE'] && data['ONLINE']['async']) {
-                allCourses = allCourses.concat(data['ONLINE']['async']);
-            }
+            allCourses = allCourses.concat(readOnlineCoursesFromQuarter(data));
 
             // Categorize courses
             const highEnrollment = [];
@@ -7168,6 +7589,7 @@
             quarters.forEach((quarter) => {
                 const quarterData = data?.[quarter];
                 if (!quarterData || typeof quarterData !== 'object') return;
+                normalizeOnlineQuarterBucket(quarterData);
 
                 Object.values(quarterData).forEach((timeBucket) => {
                     if (!timeBucket || typeof timeBucket !== 'object') return;
@@ -8984,10 +9406,36 @@
             content.addEventListener('dragend', handleDisplacedContentDragEnd);
         }
 
+        function getProfileScopedStorageKey(suffix) {
+            const normalizedSuffix = String(suffix || '').trim();
+            const activePrefix = String(scheduleStorageKeyPrefix || 'designSchedulerData_').trim() || 'designSchedulerData_';
+            return `${activePrefix}${normalizedSuffix}`;
+        }
+
+        function migrateLegacyProfileScopedStorage() {
+            const activePrefix = String(scheduleStorageKeyPrefix || 'designSchedulerData_').trim() || 'designSchedulerData_';
+            if (activePrefix !== 'designSchedulerData_') {
+                return;
+            }
+
+            [
+                { legacyKey: 'displacedCourses', scopedKey: getProfileScopedStorageKey('displacedCourses') },
+                { legacyKey: 'customFaculty', scopedKey: getProfileScopedStorageKey('customFaculty') }
+            ].forEach(({ legacyKey, scopedKey }) => {
+                const scopedValue = localStorage.getItem(scopedKey);
+                const legacyValue = localStorage.getItem(legacyKey);
+                if (scopedValue || !legacyValue) {
+                    return;
+                }
+                localStorage.setItem(scopedKey, legacyValue);
+                localStorage.removeItem(legacyKey);
+            });
+        }
+
         // Load displaced courses from localStorage
         function loadDisplacedCourses() {
             try {
-                const saved = localStorage.getItem('displacedCourses');
+                const saved = localStorage.getItem(getProfileScopedStorageKey('displacedCourses'));
                 const parsed = saved ? JSON.parse(saved) : [];
                 displacedCourses = Array.isArray(parsed) ? parsed : [];
             } catch (e) {
@@ -9000,7 +9448,7 @@
         // Save displaced courses to localStorage
         function saveDisplacedCourses() {
             try {
-                localStorage.setItem('displacedCourses', JSON.stringify(displacedCourses));
+                localStorage.setItem(getProfileScopedStorageKey('displacedCourses'), JSON.stringify(displacedCourses));
             } catch (e) {
                 console.warn('Could not save displaced courses:', e);
             }
@@ -12111,8 +12559,7 @@
                     bucket[dayPattern] = {};
                 }
             });
-            if (!bucket.ONLINE || typeof bucket.ONLINE !== 'object') bucket.ONLINE = {};
-            if (!Array.isArray(bucket.ONLINE.async)) bucket.ONLINE.async = [];
+            normalizeOnlineQuarterBucket(bucket);
             if (!bucket.ARRANGED || typeof bucket.ARRANGED !== 'object') bucket.ARRANGED = {};
             if (!Array.isArray(bucket.ARRANGED.arranged)) bucket.ARRANGED.arranged = [];
             return bucket;
@@ -13011,7 +13458,7 @@
         }
 
         // Custom faculty storage
-        let customFaculty = JSON.parse(localStorage.getItem('customFaculty') || '[]');
+        let customFaculty = [];
         let pendingFacultySelectId = null;
 
         // Default faculty roster
@@ -13128,7 +13575,7 @@
 
             // Add to custom faculty
             customFaculty.push({ name, rank });
-            localStorage.setItem('customFaculty', JSON.stringify(customFaculty));
+            localStorage.setItem(getProfileScopedStorageKey('customFaculty'), JSON.stringify(customFaculty));
 
             // Rebuild dropdowns
             rebuildFacultyDropdowns();
@@ -13149,11 +13596,12 @@
             await initializeDepartmentProfileContext();
             await loadEnrollmentData();
             await loadFacultyData();
+            migrateLegacyProfileScopedStorage();
             await ensureCourseCatalogLoaded();
             await loadCoursesFromSupabase();
 
             // Initialize custom faculty from localStorage
-            customFaculty = JSON.parse(localStorage.getItem('customFaculty') || '[]');
+            customFaculty = JSON.parse(localStorage.getItem(getProfileScopedStorageKey('customFaculty')) || '[]');
 
             // Rebuild faculty dropdowns with current roster
             rebuildFacultyDropdowns();
@@ -13276,8 +13724,24 @@
             set: (value) => { scheduleSaveInProgress = Boolean(value); }
         });
 
-        // Start the app when page loads
-        init();
+        // Start the app through the onboarding shell so program selection and
+        // auth happen before the runtime boots.
+        const shellBootstrap = window.ProgramCommandShell && typeof window.ProgramCommandShell.bootstrap === 'function'
+            ? window.ProgramCommandShell.bootstrap({
+                launchRuntime: init,
+                profileManager: window.DepartmentProfileManager,
+                authService: window.AuthService,
+                onboardingUrl: 'pages/department-onboarding.html'
+            })
+            : init();
+
+        if (shellBootstrap && typeof shellBootstrap.catch === 'function') {
+            shellBootstrap.catch((error) => {
+                console.error('Program shell bootstrap failed:', error);
+                showToast('Program shell failed to initialize. Loading the scheduler directly.', 'error');
+                init();
+            });
+        }
     </script>
 
     <!-- Course Details Modal -->
@@ -14146,6 +14610,37 @@
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
 
     <script>
+        const scheduleDataRuntimeUtils = window.ScheduleDataUtils || {};
+        const flattenQuarterScheduleData = typeof scheduleDataRuntimeUtils.flattenQuarterData === 'function'
+            ? scheduleDataRuntimeUtils.flattenQuarterData
+            : function(quarterData) {
+                const courses = [];
+                Object.keys(quarterData || {}).forEach((day) => {
+                    const dayData = quarterData[day];
+                    if (!dayData || typeof dayData !== 'object') return;
+
+                    Object.keys(dayData).forEach((time) => {
+                        const timeCourses = dayData[time];
+                        if (!Array.isArray(timeCourses)) return;
+
+                        timeCourses.forEach((course) => {
+                            courses.push({
+                                ...course,
+                                day,
+                                time
+                            });
+                        });
+                    });
+                });
+                return courses;
+            };
+        const getQuarterOnlineCourses = typeof scheduleDataRuntimeUtils.getOnlineCoursesForQuarter === 'function'
+            ? scheduleDataRuntimeUtils.getOnlineCoursesForQuarter
+            : function(quarterData) {
+                const onlineData = quarterData && quarterData['ONLINE'] ? quarterData['ONLINE'] : {};
+                return Array.isArray(onlineData.async) ? onlineData.async : [];
+            };
+
         // ============================================
         // SAVE, CONFLICT DETECTION & AI ANALYSIS
         // ============================================
@@ -14269,25 +14764,7 @@
         }
 
         function flattenQuarterData(quarterData) {
-            const courses = [];
-            for (const day of Object.keys(quarterData)) {
-                const dayData = quarterData[day];
-                if (!dayData || typeof dayData !== 'object') continue;
-
-                for (const time of Object.keys(dayData)) {
-                    const timeCourses = dayData[time];
-                    if (!Array.isArray(timeCourses)) continue;
-
-                    for (const course of timeCourses) {
-                        courses.push({
-                            ...course,
-                            day: day,
-                            time: time
-                        });
-                    }
-                }
-            }
-            return courses;
+            return flattenQuarterScheduleData(quarterData);
         }
 
         /**
@@ -15909,9 +16386,7 @@ RESPONSE FORMAT:
         }
 
         function getOnlineCoursesForQuarter(quarterData) {
-            const onlineData = quarterData['ONLINE'] || {};
-            const asyncData = onlineData['async'] || [];
-            return asyncData;
+            return getQuarterOnlineCourses(quarterData);
         }
     </script>
 </body>
