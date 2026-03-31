@@ -38,13 +38,30 @@ let allQuartersSchedule = {
 let activeQuarter = 'Fall';
 let courseCatalog = null; // Loaded from course-catalog.json
 
-// Time slots: 2hr 20min classes
-const TIMES = ['10:00 AM - 12:20 PM', '1:00 PM - 3:20 PM', '4:00 PM - 6:20 PM'];
-const TIME_KEYS = ['10:00-12:20', '13:00-15:20', '16:00-18:20']; // For data storage
-const DAYS = ['MW', 'TR'];
+// Scheduler pattern configuration (profile-driven with sensible defaults for Design)
+let schedulerDayPatterns = [
+    { id: 'MW', label: 'Monday / Wednesday' },
+    { id: 'TR', label: 'Tuesday / Thursday' }
+];
+let schedulerTimeSlots = [
+    { id: '10:00-12:20', label: '10:00-12:20', startMinutes: 10 * 60, endMinutes: (12 * 60) + 20 },
+    { id: '13:00-15:20', label: '13:00-15:20', startMinutes: 13 * 60, endMinutes: (15 * 60) + 20 },
+    { id: '16:00-18:20', label: '16:00-18:20', startMinutes: 16 * 60, endMinutes: (18 * 60) + 20 }
+];
+let activeSchedulerProfileMetadata = { id: null, version: null };
+
+let DAYS = schedulerDayPatterns.map((pattern) => pattern.id);
+let TIME_KEYS = schedulerTimeSlots.map((slot) => slot.id); // For data storage
+let TIMES = schedulerTimeSlots.map((slot) => slot.label);
+let EVENING_SLOT_IDS = schedulerTimeSlots
+    .filter((slot) => Number.isFinite(slot.startMinutes) && slot.startMinutes >= 16 * 60)
+    .map((slot) => slot.id);
 
 // Evening time slot (for safety pairing rule)
 const EVENING_TIME = '4:00 PM - 6:20 PM';
+
+// Program Command storage prefix (kept in sync with department profile scheduler.storageKeyPrefix)
+let PROGRAM_COMMAND_STORAGE_KEY_PREFIX = 'designSchedulerData_';
 
 // Store courses from database for constraints
 let dbCourses = [];
@@ -165,6 +182,143 @@ function buildDefaultFacultyBuildScenario() {
 
 function cloneDefaultFacultyBuildScenario() {
     return JSON.parse(JSON.stringify(buildDefaultFacultyBuildScenario()));
+}
+
+function normalizeBuilderDayPatternEntry(entry) {
+    if (typeof entry === 'string') {
+        const id = String(entry || '').trim().toUpperCase();
+        return id ? { id, label: id, aliases: [id] } : null;
+    }
+    if (!entry || typeof entry !== 'object') return null;
+
+    const id = String(entry.id || entry.key || entry.value || '').trim().toUpperCase();
+    if (!id) return null;
+
+    const label = String(entry.label || entry.name || id).trim() || id;
+    const aliases = Array.isArray(entry.aliases)
+        ? [...new Set([id, ...entry.aliases.map((alias) => String(alias || '').trim().toUpperCase()).filter(Boolean)])]
+        : [id];
+
+    return { id, label, aliases };
+}
+
+function parseBuilderTimeSlotRange(rangeValue) {
+    const match = String(rangeValue || '').trim().match(/^(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})$/);
+    if (!match) return { startMinutes: null, endMinutes: null };
+
+    const startHours = Number(match[1]);
+    const startMinutes = Number(match[2]);
+    const endHours = Number(match[3]);
+    const endMinutes = Number(match[4]);
+    if ([startHours, startMinutes, endHours, endMinutes].some((value) => !Number.isFinite(value))) {
+        return { startMinutes: null, endMinutes: null };
+    }
+
+    return {
+        startMinutes: (startHours * 60) + startMinutes,
+        endMinutes: (endHours * 60) + endMinutes
+    };
+}
+
+function normalizeBuilderTimeSlotEntry(entry) {
+    if (typeof entry === 'string') {
+        const id = String(entry || '').trim();
+        if (!id) return null;
+        const range = parseBuilderTimeSlotRange(id);
+        return { id, label: id, aliases: [id], startMinutes: range.startMinutes, endMinutes: range.endMinutes };
+    }
+    if (!entry || typeof entry !== 'object') return null;
+
+    const id = String(entry.id || entry.value || entry.slot || '').trim();
+    if (!id) return null;
+
+    const label = String(entry.label || entry.name || id).trim() || id;
+    const aliases = Array.isArray(entry.aliases)
+        ? [...new Set([id, ...entry.aliases.map((alias) => String(alias || '').trim()).filter(Boolean)])]
+        : [id];
+    const range = parseBuilderTimeSlotRange(id);
+    const startMinutes = Number.isFinite(Number(entry.startMinutes)) ? Number(entry.startMinutes) : range.startMinutes;
+    const endMinutes = Number.isFinite(Number(entry.endMinutes)) ? Number(entry.endMinutes) : range.endMinutes;
+
+    return { id, label, aliases, startMinutes, endMinutes };
+}
+
+function applySchedulerRuntimeConfiguration(scheduler = {}) {
+    const nextDayPatterns = Array.isArray(scheduler.dayPatterns)
+        ? scheduler.dayPatterns.map((entry) => normalizeBuilderDayPatternEntry(entry)).filter(Boolean)
+        : [];
+    const nextTimeSlots = Array.isArray(scheduler.timeSlots)
+        ? scheduler.timeSlots.map((entry) => normalizeBuilderTimeSlotEntry(entry)).filter(Boolean)
+        : [];
+
+    if (nextDayPatterns.length > 0) {
+        schedulerDayPatterns = nextDayPatterns;
+    }
+    if (nextTimeSlots.length > 0) {
+        schedulerTimeSlots = nextTimeSlots;
+    }
+
+    DAYS = schedulerDayPatterns.map((pattern) => String(pattern.id || '').trim().toUpperCase()).filter(Boolean);
+    TIME_KEYS = schedulerTimeSlots.map((slot) => String(slot.id || '').trim()).filter(Boolean);
+    TIMES = schedulerTimeSlots.map((slot) => String(slot.label || slot.id || '').trim());
+
+    EVENING_SLOT_IDS = schedulerTimeSlots
+        .filter((slot) => Number.isFinite(slot.startMinutes) && slot.startMinutes >= 16 * 60)
+        .map((slot) => slot.id);
+
+    if (scheduler.storageKeyPrefix && typeof scheduler.storageKeyPrefix === 'string') {
+        PROGRAM_COMMAND_STORAGE_KEY_PREFIX = scheduler.storageKeyPrefix.trim() || PROGRAM_COMMAND_STORAGE_KEY_PREFIX;
+    }
+}
+
+function buildAcademicYearSchedulerSnapshot() {
+    return {
+        dayPatterns: schedulerDayPatterns
+            .map((entry) => normalizeBuilderDayPatternEntry(entry))
+            .filter(Boolean),
+        timeSlots: schedulerTimeSlots
+            .map((entry) => normalizeBuilderTimeSlotEntry(entry))
+            .filter(Boolean)
+    };
+}
+
+function buildAcademicYearSchedulerProfileVersion() {
+    const profileId = String(activeSchedulerProfileMetadata.id || '').trim();
+    const versionValue = Number(activeSchedulerProfileMetadata.version);
+    const versionLabel = Number.isFinite(versionValue) ? `v${versionValue}` : '';
+
+    if (profileId && versionLabel) return `${profileId}@${versionLabel}`;
+    if (profileId) return profileId;
+    return versionLabel || null;
+}
+
+function buildAcademicYearSchedulerContractOptions() {
+    return {
+        schedulerProfileVersion: buildAcademicYearSchedulerProfileVersion(),
+        schedulerProfileSnapshot: buildAcademicYearSchedulerSnapshot()
+    };
+}
+
+function buildAcademicYearSchedulerContractOptionsFromYearRecord(yearRecord) {
+    const storedVersion = String(yearRecord?.scheduler_profile_version || '').trim();
+    const storedSnapshot = yearRecord && yearRecord.scheduler_profile_snapshot && typeof yearRecord.scheduler_profile_snapshot === 'object'
+        ? yearRecord.scheduler_profile_snapshot
+        : null;
+
+    return {
+        schedulerProfileVersion: storedVersion || buildAcademicYearSchedulerProfileVersion(),
+        schedulerProfileSnapshot: storedSnapshot || buildAcademicYearSchedulerSnapshot()
+    };
+}
+
+function applyAcademicYearSchedulerSnapshot(yearRecord) {
+    const snapshot = yearRecord && yearRecord.scheduler_profile_snapshot && typeof yearRecord.scheduler_profile_snapshot === 'object'
+        ? yearRecord.scheduler_profile_snapshot
+        : null;
+    if (!snapshot) return false;
+
+    applySchedulerRuntimeConfiguration(snapshot);
+    return true;
 }
 
 function normalizeFacultyName(name) {
@@ -663,6 +817,29 @@ document.addEventListener('DOMContentLoaded', async function() {
     console.log('Initializing Schedule Builder...');
 
     try {
+        // Initialize department profile + scheduler patterns
+        if (window.DepartmentProfileManager && typeof window.DepartmentProfileManager.initialize === 'function') {
+            try {
+                const snapshot = await window.DepartmentProfileManager.initialize();
+                const profile = snapshot?.profile
+                    || (typeof window.DepartmentProfileManager.getCurrentProfile === 'function'
+                        ? window.DepartmentProfileManager.getCurrentProfile()
+                        : null)
+                    || (typeof window.DepartmentProfileManager.getDefaultProfile === 'function'
+                        ? window.DepartmentProfileManager.getDefaultProfile()
+                        : null);
+
+                activeSchedulerProfileMetadata = {
+                    id: profile && profile.id ? String(profile.id) : null,
+                    version: profile && profile.version !== undefined ? profile.version : null
+                };
+
+                const scheduler = profile && profile.scheduler ? profile.scheduler : {};
+                applySchedulerRuntimeConfiguration(scheduler);
+            } catch (profileError) {
+                console.warn('Could not initialize department profile for Schedule Builder; falling back to defaults.', profileError);
+            }
+        }
         const workloadResponse = await fetch('../workload-data.json');
         if (workloadResponse.ok) {
             workloadDataCache = await workloadResponse.json();
@@ -2748,7 +2925,7 @@ async function saveToDatabase() {
         const targetYear = document.getElementById('academicYear')?.value || currentSchedule.year;
 
         // Get or create academic year
-        const yearRecord = await dbService.getOrCreateYear(targetYear);
+        const yearRecord = await dbService.getOrCreateYear(targetYear, buildAcademicYearSchedulerContractOptions());
         if (!yearRecord) {
             showToast('Failed to get academic year', 'error');
             return;
@@ -2756,7 +2933,11 @@ async function saveToDatabase() {
 
         const quarterSchedules = getAllQuarterSchedulesForSave();
         const records = await buildYearScopedScheduleSyncRecords(quarterSchedules);
-        const syncResult = await dbService.syncScheduledCoursesForAcademicYear(yearRecord.id, records);
+        const syncResult = await dbService.syncScheduledCoursesForAcademicYear(
+            yearRecord.id,
+            records,
+            buildAcademicYearSchedulerContractOptionsFromYearRecord(yearRecord)
+        );
 
         if (!syncResult) {
             showToast('Error saving to database', 'error');
@@ -2790,10 +2971,12 @@ async function loadFromDatabase() {
         const quarter = activeQuarter || 'Fall';
 
         // Get academic year ID
-        const yearRecord = await dbService.getOrCreateYear(yearString);
+        const yearRecord = await dbService.getOrCreateYear(yearString, buildAcademicYearSchedulerContractOptions());
         if (!yearRecord) {
             return null;
         }
+
+        applyAcademicYearSchedulerSnapshot(yearRecord);
 
         // Fetch schedule
         const schedule = await dbService.getSchedule(yearRecord.id, quarter);
@@ -2847,7 +3030,7 @@ async function checkDatabaseSchedule(yearString, quarter) {
     try {
         await dbService.initialize();
 
-        const yearRecord = await dbService.getOrCreateYear(yearString);
+        const yearRecord = await dbService.getOrCreateYear(yearString, buildAcademicYearSchedulerContractOptions());
         if (!yearRecord) return false;
 
         const { count, error } = await supabase

@@ -15,6 +15,8 @@ CREATE TABLE academic_years (
   department_id UUID REFERENCES departments(id),
   year VARCHAR(10) NOT NULL,
   is_active BOOLEAN DEFAULT false,
+  scheduler_profile_version VARCHAR(255),
+  scheduler_profile_snapshot JSONB,
   created_at TIMESTAMP DEFAULT NOW(),
   UNIQUE(department_id, year)
 );
@@ -65,8 +67,8 @@ CREATE TABLE scheduled_courses (
   faculty_id UUID REFERENCES faculty(id),
   room_id UUID REFERENCES rooms(id),
   quarter VARCHAR(20) NOT NULL,
-  day_pattern VARCHAR(10),
-  time_slot VARCHAR(20),
+  day_pattern TEXT,
+  time_slot TEXT,
   section VARCHAR(10),
   projected_enrollment INT,
   created_at TIMESTAMP DEFAULT NOW(),

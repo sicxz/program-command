@@ -149,6 +149,47 @@ describe('dbService.syncScheduledCoursesForAcademicYear', () => {
         expect(payload.p_records[0].updated_by).toBe('override-user');
     });
 
+    test('canonicalizes scheduler aliases against the academic-year snapshot before saving', async () => {
+        const { dbService, client } = createConfiguredService({
+            authUserId: 'auth-user-default'
+        });
+
+        await dbService.syncScheduledCoursesForAcademicYear('ay-2026-27-id', [
+            {
+                quarter: 'Fall',
+                dayPattern: 'wm',
+                timeSlot: '10:00-12:00'
+            }
+        ], {
+            schedulerProfileSnapshot: {
+                dayPatterns: [{ id: 'MW', aliases: ['WM'] }],
+                timeSlots: [{ id: '10:00-12:20', aliases: ['10:00-12:00'] }]
+            }
+        });
+
+        const payload = client.rpc.mock.calls[0][1];
+        expect(payload.p_records[0].day_pattern).toBe('MW');
+        expect(payload.p_records[0].time_slot).toBe('10:00-12:20');
+    });
+
+    test('normalizes reserved online placements before saving', async () => {
+        const { dbService, client } = createConfiguredService({
+            authUserId: 'auth-user-default'
+        });
+
+        await dbService.syncScheduledCoursesForAcademicYear('ay-2026-27-id', [
+            {
+                quarter: 'Fall',
+                dayPattern: 'online',
+                timeSlot: null
+            }
+        ]);
+
+        const payload = client.rpc.mock.calls[0][1];
+        expect(payload.p_records[0].day_pattern).toBe('ONLINE');
+        expect(payload.p_records[0].time_slot).toBe('async');
+    });
+
     test('getLatestScheduleSaveMetadata returns the most recent save attribution row', async () => {
         const latestRow = {
             updated_by: 'user-200',

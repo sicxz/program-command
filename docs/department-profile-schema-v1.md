@@ -28,12 +28,16 @@ This schema defines the runtime configuration contract for department onboarding
   - `allowedRooms` (array of strings, optional)
   - `dayPatterns` (array, optional): each entry can define:
     - `id` (string, required)
+      - Canonical persisted value written to `scheduled_courses.day_pattern` for academic years created from this profile
     - `label` (string, optional)
     - `aliases` (array of strings, optional)
+      - Alternate spellings accepted at import/save time and normalized back to `id`
   - `timeSlots` (array, optional): each entry can define:
     - `id` (string, required)
+      - Canonical persisted value written to `scheduled_courses.time_slot` for academic years created from this profile
     - `label` (string, optional)
     - `aliases` (array of strings, optional)
+      - Alternate spellings accepted at import/save time and normalized back to `id`
     - `startMinutes` (number, optional)
     - `endMinutes` (number, optional)
   - `roomLabels` (object map, optional): room code to display label
@@ -68,3 +72,11 @@ If manifest/profile loading fails or validation fails, runtime falls back to the
 - Runtime applies v1 defaults for optional fields.
 - Runtime emits contrast warnings when branding foreground/background header tokens fail a 4.5:1 ratio check.
 - Migration hook entry point exists in `js/department-profile.js` (`migrateProfile`) for future version upgrades.
+
+## Academic-Year Freeze
+
+- When a new `academic_years` record is created, the active profile's normalized `scheduler.dayPatterns` and `scheduler.timeSlots` are copied into `academic_years.scheduler_profile_snapshot`.
+- Saved `scheduled_courses.day_pattern` / `time_slot` values are interpreted against that frozen year snapshot, not only against the currently active profile.
+- Later profile edits can affect newly created academic years, but they should not silently rewrite an older year's scheduler contract.
+
+See [docs/scheduler-pattern-storage-contract.md](./scheduler-pattern-storage-contract.md) for the persistence contract that sits between profile JSON and DB-first hydration.
