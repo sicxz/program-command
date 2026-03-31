@@ -27,7 +27,18 @@ describe('schedule-builder save failure rollback safety', () => {
         global.isSupabaseConfigured = jest.fn(() => true);
         global.dbService = {
             initialize: jest.fn().mockResolvedValue('dept-1'),
-            getOrCreateYear: jest.fn().mockResolvedValue({ id: 'year-1' }),
+            getOrCreateYear: jest.fn().mockResolvedValue({
+                id: 'year-1',
+                scheduler_profile_version: 'design-v1@v1',
+                scheduler_profile_snapshot: {
+                    dayPatterns: [
+                        { id: 'MW', label: 'Monday / Wednesday', aliases: ['MW', 'WM'] }
+                    ],
+                    timeSlots: [
+                        { id: '10:00-12:20', label: '10:00-12:20', aliases: ['10:00-12:20', '10:00-12:00'] }
+                    ]
+                }
+            }),
             lookupCourseId: jest.fn().mockResolvedValue('course-1'),
             lookupFacultyId: jest.fn().mockResolvedValue('faculty-1'),
             lookupRoomId: jest.fn().mockResolvedValue('room-1'),
@@ -90,6 +101,21 @@ describe('schedule-builder save failure rollback safety', () => {
             })
         }));
         expect(global.dbService.syncScheduledCoursesForAcademicYear).toHaveBeenCalledTimes(1);
+        expect(global.dbService.syncScheduledCoursesForAcademicYear).toHaveBeenCalledWith(
+            'year-1',
+            expect.any(Array),
+            expect.objectContaining({
+                schedulerProfileVersion: 'design-v1@v1',
+                schedulerProfileSnapshot: expect.objectContaining({
+                    dayPatterns: [
+                        expect.objectContaining({ id: 'MW' })
+                    ],
+                    timeSlots: [
+                        expect.objectContaining({ id: '10:00-12:20' })
+                    ]
+                })
+            })
+        );
         expect(document.getElementById('toastMessage').textContent).toContain('Save blocked by permissions');
     });
 

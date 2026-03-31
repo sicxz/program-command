@@ -218,6 +218,18 @@ function buildAcademicYearSchedulerContractOptions() {
     };
 }
 
+function buildAcademicYearSchedulerContractOptionsFromYearRecord(yearRecord) {
+    const storedVersion = String(yearRecord?.scheduler_profile_version || '').trim();
+    const storedSnapshot = yearRecord && yearRecord.scheduler_profile_snapshot && typeof yearRecord.scheduler_profile_snapshot === 'object'
+        ? yearRecord.scheduler_profile_snapshot
+        : null;
+
+    return {
+        schedulerProfileVersion: storedVersion || buildAcademicYearSchedulerProfileVersion(),
+        schedulerProfileSnapshot: storedSnapshot || buildAcademicYearSchedulerSnapshot()
+    };
+}
+
 function applyAcademicYearSchedulerSnapshot(yearRecord) {
     const snapshot = yearRecord && yearRecord.scheduler_profile_snapshot && typeof yearRecord.scheduler_profile_snapshot === 'object'
         ? yearRecord.scheduler_profile_snapshot
@@ -2887,7 +2899,7 @@ async function saveToDatabase() {
         const syncResult = await dbService.syncScheduledCoursesForAcademicYear(
             yearRecord.id,
             recordsWithUserContext,
-            buildAcademicYearSchedulerContractOptions()
+            buildAcademicYearSchedulerContractOptionsFromYearRecord(yearRecord)
         );
 
         if (!syncResult) {

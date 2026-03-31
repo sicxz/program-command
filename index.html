@@ -4899,6 +4899,15 @@
             return getSchedulerDayPatterns().map((pattern) => pattern.id);
         }
 
+        function getSchedulerDayPatternByAlias(value, dayPatterns = getSchedulerDayPatterns()) {
+            const lookup = normalizeSchedulerLookupKey(value);
+            if (!lookup) return null;
+            return (Array.isArray(dayPatterns) ? dayPatterns : []).find((pattern) => {
+                const aliases = [pattern.id, ...(Array.isArray(pattern.aliases) ? pattern.aliases : [])];
+                return aliases.some((alias) => normalizeSchedulerLookupKey(alias) === lookup);
+            }) || null;
+        }
+
         function getSchedulerDayLabel(dayId) {
             const normalized = String(dayId || '').trim().toUpperCase();
             const match = getSchedulerDayPatterns().find((pattern) => pattern.id === normalized);
@@ -4926,10 +4935,10 @@
             return getSchedulerTimeSlots().map((slot) => slot.id);
         }
 
-        function getSchedulerTimeSlotByAlias(value) {
+        function getSchedulerTimeSlotByAlias(value, timeSlots = getSchedulerTimeSlots()) {
             const lookup = normalizeSchedulerLookupKey(value);
             if (!lookup) return null;
-            return getSchedulerTimeSlots().find((slot) => {
+            return (Array.isArray(timeSlots) ? timeSlots : []).find((slot) => {
                 const aliases = [slot.id, ...(Array.isArray(slot.aliases) ? slot.aliases : [])];
                 return aliases.some((alias) => normalizeSchedulerLookupKey(alias) === lookup);
             }) || null;
@@ -5004,6 +5013,31 @@
             }
 
             return { dayPatterns, timeSlots };
+        }
+
+        function canonicalizeAcademicYearSchedulePlacement(dayPattern, timeSlot, schedulerSnapshot = null) {
+            const normalizedDay = String(dayPattern || '').trim().toUpperCase() || null;
+            const normalizedTime = String(timeSlot || '').trim() || null;
+
+            if (normalizedDay === 'ONLINE' || normalizedDay === 'ARRANGED') {
+                return {
+                    day_pattern: normalizedDay,
+                    time_slot: normalizedDay === 'ONLINE'
+                        ? (normalizedTime ? normalizedTime.toLowerCase() : 'async')
+                        : (normalizedTime ? normalizedTime.toLowerCase() : 'arranged')
+                };
+            }
+
+            const effectiveSnapshot = normalizeAcademicYearSchedulerSnapshot(schedulerSnapshot)
+                || normalizeAcademicYearSchedulerSnapshot({
+                    dayPatterns: getSchedulerDayPatterns(),
+                    timeSlots: getSchedulerTimeSlots()
+                });
+
+            return {
+                day_pattern: getSchedulerDayPatternByAlias(normalizedDay, effectiveSnapshot?.dayPatterns)?.id || normalizedDay,
+                time_slot: getSchedulerTimeSlotByAlias(normalizedTime, effectiveSnapshot?.timeSlots)?.id || normalizedTime
+            };
         }
 
         function buildAcademicYearSchedulerProfileVersion() {
@@ -14461,6 +14495,9 @@
                 if (!academicYearId) {
                     throw new Error(`Could not resolve academic year record for ${currentAcademicYear}`);
                 }
+                const effectiveSchedulerSnapshot = normalizeAcademicYearSchedulerSnapshot(
+                    academicYearRecord?.scheduler_profile_snapshot
+                ) || schedulerContract.scheduler_profile_snapshot;
 
                 const [courseResult, facultyResult, roomResult] = await Promise.all([
                     client.from('courses').select('id, code').eq('department_id', department.id),
@@ -14549,6 +14586,11 @@
                         const roomCode = String(row.room || '').trim().toUpperCase();
                         const instructorName = String(row.instructor || '').trim();
                         const projectedEnrollment = Number(row.enrollmentCap);
+                        const placement = canonicalizeAcademicYearSchedulePlacement(
+                            row.day || null,
+                            row.time || null,
+                            effectiveSchedulerSnapshot
+                        );
 
                         return {
                             academic_year_id: academicYearId,
@@ -14560,8 +14602,8 @@
                                 ? (roomMap.get(roomCode) || null)
                                 : null,
                             quarter: row.quarter,
-                            day_pattern: row.day || null,
-                            time_slot: row.time || null,
+                            day_pattern: placement.day_pattern,
+                            time_slot: placement.time_slot,
                             section: row.section || String(index + 1).padStart(3, '0'),
                             projected_enrollment: Number.isFinite(projectedEnrollment) ? projectedEnrollment : null,
                             updated_at: new Date().toISOString()

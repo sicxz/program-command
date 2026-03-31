@@ -32,11 +32,18 @@ Record shape (`records[]`), mapped to RPC `p_records` JSON objects:
 | `faculty_id` | UUID string or `null` | No | Nullable for TBD/unassigned faculty. |
 | `room_id` | UUID string or `null` | No | Nullable for room TBD. |
 | `quarter` | string | Yes | Must be non-empty after trim. |
-| `day_pattern` | string or `null` | No | Optional meeting pattern. |
-| `time_slot` | string or `null` | No | Optional time slot. |
+| `day_pattern` | string or `null` | No | Canonical day-pattern id for the academic year snapshot, or `ONLINE` / `ARRANGED` for reserved special placements. |
+| `time_slot` | string or `null` | No | Canonical time-slot id for the academic year snapshot; special placements normalize to `async` or `arranged` unless a more specific value is supplied. |
 | `section` | string or `null` | No | Default to `001` when omitted in UI mapping. |
 | `projected_enrollment` | integer or `null` | No | Parseable integer when provided. |
 | `updated_at` | ISO timestamp or `null` | No | If omitted, server uses `now()`. |
+
+## Academic-Year Scheduler Contract
+
+- `academic_years.scheduler_profile_version` stores the profile/version label used when the year contract was frozen.
+- `academic_years.scheduler_profile_snapshot` stores the normalized `dayPatterns[]` and `timeSlots[]` definitions that give meaning to saved `day_pattern` and `time_slot` values.
+- Save paths should normalize aliases back to canonical ids before calling the RPC.
+- Existing academic years can be backfilled once with this snapshot contract; they should not be silently rewritten on later profile changes.
 
 ## Save Semantics
 
@@ -104,3 +111,4 @@ On error:
 - Parent: [#1](https://github.com/sicxz/program-command/issues/1)
 - RPC SQL: [scripts/supabase-schedule-sync-rpc.sql](../scripts/supabase-schedule-sync-rpc.sql)
 - Current legacy path: [pages/schedule-builder.js](../pages/schedule-builder.js)
+- Scheduler pattern contract: [docs/scheduler-pattern-storage-contract.md](./scheduler-pattern-storage-contract.md)
