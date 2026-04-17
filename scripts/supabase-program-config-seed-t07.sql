@@ -16,12 +16,8 @@ CREATE TABLE IF NOT EXISTS public.programs (
 
 CREATE INDEX IF NOT EXISTS idx_programs_created_by ON public.programs(created_by);
 
-INSERT INTO public.programs (name, code, config)
-VALUES (
-    'EWU Design',
-    'ewu-design',
-    $program_config$
-    {
+WITH canonical_program_config AS (
+    SELECT '{
       "legacy_department_code": "DESN",
       "profile_schema_version": 1,
       "profile_source": "department-profiles/design-v1.json",
@@ -119,9 +115,14 @@ VALUES (
           }
         }
       }
-    }
-    $program_config$::jsonb
+    }'::jsonb AS config
 )
+INSERT INTO public.programs (name, code, config)
+SELECT
+    'EWU Design',
+    'ewu-design',
+    canonical_program_config.config
+FROM canonical_program_config
 ON CONFLICT (code) DO UPDATE
 SET
     name = EXCLUDED.name,

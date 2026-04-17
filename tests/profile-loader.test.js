@@ -175,6 +175,39 @@ describe('ProfileLoader', () => {
         expect(ProfileLoader.get('faculty.ranks.professor.limit')).toBe(42);
     });
 
+    test('can resolve canonical program config from an explicit profile hint', async () => {
+        const { ProfileLoader, query } = loadProfileLoader({
+            supabaseRow: {
+                id: 'program-design',
+                code: 'ewu-design',
+                config: {
+                    profile: {
+                        identity: {
+                            code: 'DESN',
+                            name: 'Design',
+                            displayName: 'EWU Design'
+                        }
+                    }
+                }
+            },
+            authUser: {}
+        });
+
+        const snapshot = await ProfileLoader.init(null, {
+            profileHint: {
+                identity: {
+                    code: 'DESN',
+                    name: 'Design',
+                    displayName: 'EWU Design'
+                }
+            }
+        });
+
+        expect(snapshot.source).toBe('supabase-programs');
+        expect(snapshot.programCode).toBe('ewu-design');
+        expect(query.eq).toHaveBeenCalledWith('code', 'ewu-design');
+    });
+
     test('can resolve program id from AuthService metadata when not passed explicitly', async () => {
         const { ProfileLoader, query, windowObject } = loadProfileLoader({
             supabaseRow: {

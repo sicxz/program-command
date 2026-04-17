@@ -228,7 +228,7 @@ const ProfileLoader = (function() {
         }
     }
 
-    async function resolveProgramTarget(explicitProgramId = null) {
+    async function resolveProgramTarget(explicitProgramId = null, options = {}) {
         const explicitId = explicitProgramId ? String(explicitProgramId) : null;
         if (explicitId) {
             return {
@@ -261,6 +261,20 @@ const ProfileLoader = (function() {
                 }
             } catch (error) {
                 // ignore auth metadata failures
+            }
+        }
+
+        const profileHint = isObject(options?.profileHint) ? options.profileHint : null;
+        if (profileHint) {
+            const hintedProgramCodes = buildProgramCodeCandidates({
+                profile: profileHint
+            });
+            if (hintedProgramCodes.length) {
+                return {
+                    programId: null,
+                    programCodes: hintedProgramCodes,
+                    source: 'profile-hint'
+                };
             }
         }
 
@@ -322,13 +336,13 @@ const ProfileLoader = (function() {
         return result;
     }
 
-    async function loadFromSupabase(explicitProgramId = null) {
+    async function loadFromSupabase(explicitProgramId = null, options = {}) {
         const client = getClient();
         if (!client || typeof client.from !== 'function') {
             return null;
         }
 
-        const target = await resolveProgramTarget(explicitProgramId);
+        const target = await resolveProgramTarget(explicitProgramId, options);
         if (target.programId) {
             const { data, error } = await client
                 .from('programs')
@@ -425,7 +439,7 @@ const ProfileLoader = (function() {
             let fromSupabase = null;
 
             try {
-                fromSupabase = await loadFromSupabase(requestedProgramId);
+                fromSupabase = await loadFromSupabase(requestedProgramId, config);
                 if (fromSupabase && isObject(fromSupabase.profile)) {
                     profile = deepMerge(profile, fromSupabase.profile);
                     resolvedProgramId = fromSupabase.programId || resolvedProgramId;

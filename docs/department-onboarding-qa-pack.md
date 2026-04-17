@@ -12,6 +12,8 @@ The onboarding page now explicitly reports whether canonical program config was 
 
 For develop environments that should exercise the canonical runtime path, apply `scripts/supabase-program-config-seed-t07.sql` after the base schema setup so `ewu-design` exists in `public.programs` with a real runtime profile.
 
+After that seed is applied, a fresh load of `pages/department-onboarding.html` should report `Canonical program config is available in Supabase.` for the Design bootstrap profile.
+
 ## 1) Regression Suite (Scheduler + Workload + CLSS)
 
 Run before each onboarding rollout:

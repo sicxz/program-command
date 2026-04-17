@@ -6,9 +6,9 @@ function loadRepoFile(...parts) {
 }
 
 function extractProgramConfigEnvelope(sql) {
-    const match = sql.match(/\$program_config\$\s*([\s\S]*?)\s*\$program_config\$\:\:jsonb/i);
+    const match = sql.match(/SELECT\s+'([\s\S]*?)'\:\:jsonb AS config/i);
     if (!match) {
-        throw new Error('Could not locate $program_config$ envelope in T-07 SQL');
+        throw new Error('Could not locate canonical config envelope in T-07 SQL');
     }
     return JSON.parse(match[1]);
 }

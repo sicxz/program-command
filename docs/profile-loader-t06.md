@@ -32,6 +32,15 @@ Profiles are cached in-memory after first load. Use `init(..., { forceRefresh: t
 
 The canonical Design seed in `scripts/supabase-program-config-seed-t07.sql` uses the envelope form.
 
+## Init Options
+
+`ProfileLoader.init(programId?, options?)` supports:
+
+- `forceRefresh` to bypass the in-memory cache
+- `profileHint` to probe canonical `programs.config` using a known profile identity when no auth or shell program target is present yet
+
+The onboarding shell uses `profileHint` so a freshly loaded Design bootstrap profile can still confirm whether canonical `ewu-design` config exists in Supabase.
+
 ## Current Integration
 
 - `js/schedule-manager.js` now checks `ProfileLoader.get(...)` for:

@@ -648,7 +648,9 @@
 
         if (window.ProfileLoader && typeof window.ProfileLoader.init === 'function') {
             try {
-                const profileSnapshot = await window.ProfileLoader.init();
+                const profileSnapshot = await window.ProfileLoader.init(null, {
+                    profileHint: managerSnapshot?.profile || null
+                });
                 if (profileSnapshot?.source === 'supabase-programs') {
                     setRuntimeContractStatus(
                         'ok',
