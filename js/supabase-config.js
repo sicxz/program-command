@@ -1,29 +1,147 @@
 /**
  * Supabase Configuration
  *
- * SETUP INSTRUCTIONS:
- * 1. Go to https://supabase.com and create a free account
- * 2. Create a new project (e.g., "ewu-schedule")
- * 3. Go to Project Settings > API
- * 4. Copy your Project URL and paste below
- * 5. Copy your anon/public key and paste below
+ * Default behavior:
+ * - `localhost` / `127.0.0.1` uses the develop database
+ * - all other hosts use production
+ *
+ * Optional override:
+ * - `?supabaseEnv=develop` or `?supabaseEnv=production`
+ * - `localStorage["program-command.supabase-env"]`
  */
 
-// Supabase project credentials
-const SUPABASE_URL = 'https://ohnrhjxcjkrdtudpzjgn.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9obnJoanhjamtyZHR1ZHB6amduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ5NDQ2NzAsImV4cCI6MjA4MDUyMDY3MH0.XN1CC0xC5dizIhF4cIEkv90TApJHXRBYTC7a6AXPvtU';
+const SUPABASE_ENV_STORAGE_KEY = 'program-command.supabase-env';
+const SUPABASE_QUERY_PARAM = 'supabaseEnv';
 
-// Current department code (for multi-department support)
+const SUPABASE_ENVIRONMENTS = {
+    production: {
+        name: 'production',
+        url: 'https://ohnrhjxcjkrdtudpzjgn.supabase.co',
+        anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9obnJoanhjamtyZHR1ZHB6amduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ5NDQ2NzAsImV4cCI6MjA4MDUyMDY3MH0.XN1CC0xC5dizIhF4cIEkv90TApJHXRBYTC7a6AXPvtU'
+    },
+    develop: {
+        name: 'develop',
+        url: 'https://cstcwplvioheazoghkgf.supabase.co',
+        anonKey: 'sb_publishable_2hOaq8gbaOGIwg1_1yRhDw_wS9xhy4z'
+    }
+};
+
 const CURRENT_DEPARTMENT_CODE = 'DESN';
 const CURRENT_DEPARTMENT_NAME = 'Design';
 
-// Initialize Supabase client (only if credentials are configured)
 let supabaseClient = null;
-var supabase = (typeof window !== 'undefined' && window.supabase) ? window.supabase : null; // Preserve CDN global until client init.
+let supabaseLibraryRef = (typeof window !== 'undefined' && window.supabase && typeof window.supabase.createClient === 'function')
+    ? window.supabase
+    : null;
+var supabase = null;
+
+function getLocationHostname() {
+    if (typeof window !== 'undefined' && window.location && typeof window.location.hostname === 'string') {
+        return window.location.hostname;
+    }
+    if (typeof location !== 'undefined' && typeof location.hostname === 'string') {
+        return location.hostname;
+    }
+    return '';
+}
+
+function getSearchParams() {
+    const search = (typeof window !== 'undefined' && window.location && typeof window.location.search === 'string')
+        ? window.location.search
+        : (typeof location !== 'undefined' && typeof location.search === 'string' ? location.search : '');
+
+    return new URLSearchParams(search || '');
+}
+
+function readSupabaseEnvironmentOverride() {
+    const queryOverride = getSearchParams().get(SUPABASE_QUERY_PARAM);
+    if (queryOverride && SUPABASE_ENVIRONMENTS[queryOverride]) {
+        return queryOverride;
+    }
+
+    if (typeof globalThis !== 'undefined' && SUPABASE_ENVIRONMENTS[globalThis.__PROGRAM_COMMAND_SUPABASE_ENV__]) {
+        return globalThis.__PROGRAM_COMMAND_SUPABASE_ENV__;
+    }
+
+    if (typeof window !== 'undefined' && window.localStorage) {
+        try {
+            const storedValue = window.localStorage.getItem(SUPABASE_ENV_STORAGE_KEY);
+            if (storedValue && SUPABASE_ENVIRONMENTS[storedValue]) {
+                return storedValue;
+            }
+        } catch (error) {
+            console.warn('Could not read Supabase environment override from localStorage:', error);
+        }
+    }
+
+    return null;
+}
+
+function inferDefaultSupabaseEnvironment() {
+    const hostname = getLocationHostname().toLowerCase();
+    if (!hostname || hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') {
+        return 'develop';
+    }
+
+    return 'production';
+}
+
+function getSupabaseEnvironmentName() {
+    return readSupabaseEnvironmentOverride() || inferDefaultSupabaseEnvironment();
+}
+
+function getSupabaseEnvironment() {
+    return SUPABASE_ENVIRONMENTS[getSupabaseEnvironmentName()] || SUPABASE_ENVIRONMENTS.production;
+}
+
+function getSupabaseUrl() {
+    return getSupabaseEnvironment().url;
+}
+
+function getSupabaseAnonKey() {
+    return getSupabaseEnvironment().anonKey;
+}
 
 function isSupabaseConfigured() {
-    return SUPABASE_URL !== 'YOUR_SUPABASE_PROJECT_URL' &&
-           SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY';
+    const environment = getSupabaseEnvironment();
+    return Boolean(environment.url && environment.anonKey);
+}
+
+function resetSupabaseClient() {
+    supabaseClient = null;
+    supabase = null;
+    if (typeof window !== 'undefined' && supabaseLibraryRef) {
+        window.supabase = supabaseLibraryRef;
+    }
+}
+
+function setSupabaseEnvironment(environmentName, { persist = true } = {}) {
+    if (!SUPABASE_ENVIRONMENTS[environmentName]) {
+        throw new Error(`Unknown Supabase environment: ${environmentName}`);
+    }
+
+    if (typeof globalThis !== 'undefined') {
+        globalThis.__PROGRAM_COMMAND_SUPABASE_ENV__ = environmentName;
+    }
+
+    if (persist && typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(SUPABASE_ENV_STORAGE_KEY, environmentName);
+    }
+
+    resetSupabaseClient();
+    return getSupabaseEnvironment();
+}
+
+function clearSupabaseEnvironmentOverride() {
+    if (typeof globalThis !== 'undefined') {
+        delete globalThis.__PROGRAM_COMMAND_SUPABASE_ENV__;
+    }
+
+    if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.removeItem(SUPABASE_ENV_STORAGE_KEY);
+    }
+
+    resetSupabaseClient();
 }
 
 function initSupabase() {
@@ -34,19 +152,23 @@ function initSupabase() {
 
     const supabaseLibrary = (typeof window !== 'undefined' && window.supabase && typeof window.supabase.createClient === 'function')
         ? window.supabase
-        : (supabase && typeof supabase.createClient === 'function' ? supabase : null);
+        : supabaseLibraryRef;
 
     if (!supabaseLibrary) {
         console.error('Supabase JS library not loaded. Add the script tag before this file.');
         return null;
     }
 
-    supabaseClient = supabaseLibrary.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    supabase = supabaseClient; // Set global reference
+    const environment = getSupabaseEnvironment();
+    supabaseLibraryRef = supabaseLibrary;
+    supabaseClient = supabaseLibrary.createClient(environment.url, environment.anonKey);
+    supabase = supabaseClient;
+
     if (typeof window !== 'undefined') {
         window.supabase = supabaseClient;
     }
-    console.log('Supabase client initialized successfully');
+
+    console.log(`Supabase client initialized successfully (${environment.name})`);
     return supabaseClient;
 }
 
@@ -55,6 +177,15 @@ function getSupabaseClient() {
         return initSupabase();
     }
     return supabaseClient;
+}
+
+function getSupabaseConfigSnapshot() {
+    const environment = getSupabaseEnvironment();
+    return {
+        environment: environment.name,
+        url: environment.url,
+        departmentCode: CURRENT_DEPARTMENT_CODE
+    };
 }
 
 function getActiveDepartmentProfile() {
@@ -76,7 +207,36 @@ function getActiveDepartmentIdentity() {
     return { code, name, displayName };
 }
 
-// Auto-initialize when script loads
-document.addEventListener('DOMContentLoaded', () => {
-    initSupabase();
-});
+if (typeof window !== 'undefined') {
+    window.getSupabaseEnvironmentName = getSupabaseEnvironmentName;
+    window.getSupabaseEnvironment = getSupabaseEnvironment;
+    window.setSupabaseEnvironment = setSupabaseEnvironment;
+    window.clearSupabaseEnvironmentOverride = clearSupabaseEnvironmentOverride;
+    window.getSupabaseConfigSnapshot = getSupabaseConfigSnapshot;
+}
+
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+    document.addEventListener('DOMContentLoaded', () => {
+        initSupabase();
+    });
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        SUPABASE_ENV_STORAGE_KEY,
+        SUPABASE_QUERY_PARAM,
+        SUPABASE_ENVIRONMENTS,
+        CURRENT_DEPARTMENT_CODE,
+        CURRENT_DEPARTMENT_NAME,
+        inferDefaultSupabaseEnvironment,
+        getSupabaseEnvironmentName,
+        getSupabaseEnvironment,
+        getSupabaseUrl,
+        getSupabaseAnonKey,
+        isSupabaseConfigured,
+        setSupabaseEnvironment,
+        clearSupabaseEnvironmentOverride,
+        getSupabaseConfigSnapshot,
+        getActiveDepartmentIdentity
+    };
+}

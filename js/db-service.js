@@ -9,6 +9,40 @@ const dbService = {
     departmentIdentity: null,
     departmentIdByCode: {},
     initialized: false,
+    initializationPromise: null,
+    runtimeSourceStatus: {},
+
+    resetRuntimeSourceStatus() {
+        this.runtimeSourceStatus = {};
+    },
+
+    _setRuntimeSourceStatus(key, status = {}) {
+        const count = Number.isFinite(status.count) ? status.count : null;
+        this.runtimeSourceStatus[key] = {
+            key,
+            label: status.label || key,
+            source: status.source || 'unknown',
+            canonical: status.canonical === true,
+            fallback: status.fallback !== undefined ? !!status.fallback : status.canonical !== true,
+            detail: status.detail || null,
+            count,
+            message: status.message || null
+        };
+
+        return this.runtimeSourceStatus[key];
+    },
+
+    getRuntimeSourceStatus() {
+        const supabaseConfigured = typeof isSupabaseConfigured === 'function'
+            ? !!isSupabaseConfigured()
+            : false;
+
+        return {
+            supabaseConfigured,
+            department: this.departmentIdentity ? { ...this.departmentIdentity } : null,
+            entries: JSON.parse(JSON.stringify(this.runtimeSourceStatus || {}))
+        };
+    },
 
     /**
      * Initialize the database service
@@ -24,6 +58,10 @@ const dbService = {
             };
         const departmentCode = String(activeDepartment.code || 'DESN').trim().toUpperCase() || 'DESN';
         const departmentName = String(activeDepartment.name || activeDepartment.displayName || 'Design').trim() || 'Design';
+
+        if (this.initializationPromise) {
+            return this.initializationPromise;
+        }
 
         if (this.initialized
             && this.departmentIdentity
@@ -55,47 +93,54 @@ const dbService = {
             return null;
         }
 
-        try {
-            // Get or create department
-            const client = getSupabaseClient();
-            const { data: dept, error: deptError } = await client
-                .from('departments')
-                .select('id')
-                .eq('code', departmentCode)
-                .single();
-
-            if (deptError && deptError.code === 'PGRST116') {
-                // Department doesn't exist, create it
-                const { data: newDept, error: createError } = await client
+        this.initializationPromise = (async () => {
+            try {
+                // Get or create department
+                const client = getSupabaseClient();
+                const { data: dept, error: deptError } = await client
                     .from('departments')
-                    .insert({ name: departmentName, code: departmentCode })
                     .select('id')
+                    .eq('code', departmentCode)
                     .single();
 
-                if (createError) throw createError;
-                this.departmentId = newDept.id;
-            } else if (deptError) {
-                throw deptError;
-            } else {
-                this.departmentId = dept.id;
-            }
+                if (deptError && deptError.code === 'PGRST116') {
+                    // Department doesn't exist, create it
+                    const { data: newDept, error: createError } = await client
+                        .from('departments')
+                        .insert({ name: departmentName, code: departmentCode })
+                        .select('id')
+                        .single();
 
-            this.departmentIdByCode[departmentCode] = this.departmentId;
-            this.departmentIdentity = {
-                code: departmentCode,
-                name: departmentName,
-                displayName: String(activeDepartment.displayName || departmentName).trim() || departmentName
-            };
-            this.initialized = true;
-            console.log('Database service initialized.', {
-                departmentId: this.departmentId,
-                code: departmentCode
-            });
-            return this.departmentId;
-        } catch (error) {
-            console.error('Failed to initialize database service:', error);
-            throw error;
-        }
+                    if (createError) throw createError;
+                    this.departmentId = newDept.id;
+                } else if (deptError) {
+                    throw deptError;
+                } else {
+                    this.departmentId = dept.id;
+                }
+
+                this.departmentIdByCode[departmentCode] = this.departmentId;
+                this.departmentIdentity = {
+                    code: departmentCode,
+                    name: departmentName,
+                    displayName: String(activeDepartment.displayName || departmentName).trim() || departmentName
+                };
+                this.initialized = true;
+                console.log('Database service initialized.', {
+                    departmentId: this.departmentId,
+                    code: departmentCode
+                });
+                return this.departmentId;
+            } catch (error) {
+                this.initialized = false;
+                console.error('Failed to initialize database service:', error);
+                throw error;
+            } finally {
+                this.initializationPromise = null;
+            }
+        })();
+
+        return this.initializationPromise;
     },
 
     // ============================================
@@ -107,7 +152,17 @@ const dbService = {
      */
     async getCourses() {
         if (!isSupabaseConfigured()) {
-            return this._fetchLocalCourses();
+            const data = await this._fetchLocalCourses();
+            this._setRuntimeSourceStatus('courses', {
+                label: 'Courses',
+                source: 'local-file',
+                canonical: false,
+                fallback: true,
+                detail: '../data/course-catalog.json',
+                count: data.length,
+                message: 'Courses are loading from the local course catalog fallback because Supabase is not configured.'
+            });
+            return data;
         }
 
         await this.initialize();
@@ -117,7 +172,27 @@ const dbService = {
             .eq('department_id', this.departmentId)
             .order('code');
 
-        if (error) throw error;
+        if (error) {
+            this._setRuntimeSourceStatus('courses', {
+                label: 'Courses',
+                source: 'database-error',
+                canonical: false,
+                fallback: false,
+                detail: error.message || 'Unknown database error',
+                message: 'Courses failed to load from Supabase.'
+            });
+            throw error;
+        }
+
+        this._setRuntimeSourceStatus('courses', {
+            label: 'Courses',
+            source: 'database',
+            canonical: true,
+            fallback: false,
+            detail: 'courses',
+            count: Array.isArray(data) ? data.length : 0,
+            message: 'Courses loaded from the canonical Supabase courses table.'
+        });
         return data;
     },
 
@@ -230,7 +305,17 @@ const dbService = {
      */
     async getFaculty() {
         if (!isSupabaseConfigured()) {
-            return this._fetchLocalFaculty();
+            const data = await this._fetchLocalFaculty();
+            this._setRuntimeSourceStatus('faculty', {
+                label: 'Faculty',
+                source: 'local-file',
+                canonical: false,
+                fallback: true,
+                detail: '../workload-data.json',
+                count: data.length,
+                message: 'Faculty are loading from local workload JSON because Supabase is not configured.'
+            });
+            return data;
         }
 
         await this.initialize();
@@ -240,7 +325,27 @@ const dbService = {
             .eq('department_id', this.departmentId)
             .order('name');
 
-        if (error) throw error;
+        if (error) {
+            this._setRuntimeSourceStatus('faculty', {
+                label: 'Faculty',
+                source: 'database-error',
+                canonical: false,
+                fallback: false,
+                detail: error.message || 'Unknown database error',
+                message: 'Faculty failed to load from Supabase.'
+            });
+            throw error;
+        }
+
+        this._setRuntimeSourceStatus('faculty', {
+            label: 'Faculty',
+            source: 'database',
+            canonical: true,
+            fallback: false,
+            detail: 'faculty',
+            count: Array.isArray(data) ? data.length : 0,
+            message: 'Faculty loaded from the canonical Supabase faculty table.'
+        });
         return data;
     },
 
@@ -299,7 +404,17 @@ const dbService = {
      */
     async getRooms() {
         if (!isSupabaseConfigured()) {
-            return this._fetchLocalRooms();
+            const data = await this._fetchLocalRooms();
+            this._setRuntimeSourceStatus('rooms', {
+                label: 'Rooms',
+                source: 'local-file',
+                canonical: false,
+                fallback: true,
+                detail: '../data/room-constraints.json',
+                count: data.length,
+                message: 'Rooms are loading from the local room constraints fallback because Supabase is not configured.'
+            });
+            return data;
         }
 
         await this.initialize();
@@ -308,6 +423,66 @@ const dbService = {
             .select('*')
             .eq('department_id', this.departmentId)
             .order('room_code');
+
+        if (error) {
+            this._setRuntimeSourceStatus('rooms', {
+                label: 'Rooms',
+                source: 'database-error',
+                canonical: false,
+                fallback: false,
+                detail: error.message || 'Unknown database error',
+                message: 'Rooms failed to load from Supabase.'
+            });
+            throw error;
+        }
+
+        this._setRuntimeSourceStatus('rooms', {
+            label: 'Rooms',
+            source: 'database',
+            canonical: true,
+            fallback: false,
+            detail: 'rooms',
+            count: Array.isArray(data) ? data.length : 0,
+            message: 'Rooms loaded from the canonical Supabase rooms table.'
+        });
+        return data;
+    },
+
+    /**
+     * Update a room record for the current department.
+     */
+    async updateRoom(id, room) {
+        if (!isSupabaseConfigured()) {
+            console.warn('Cannot update room: Supabase not configured');
+            return null;
+        }
+
+        if (!id) {
+            throw new Error('Room id is required');
+        }
+
+        await this.initialize();
+
+        const updateData = {
+            updated_at: new Date().toISOString()
+        };
+
+        if (room.roomCode !== undefined) updateData.room_code = room.roomCode;
+        if (room.name !== undefined) updateData.name = room.name;
+        if (room.campus !== undefined) updateData.campus = room.campus;
+        if (room.capacity !== undefined) updateData.capacity = room.capacity;
+        if (room.roomType !== undefined) updateData.room_type = room.roomType;
+        if (room.excludeFromGrid !== undefined) updateData.exclude_from_grid = room.excludeFromGrid;
+
+        delete updateData.updated_at;
+
+        const { data, error } = await getSupabaseClient()
+            .from('rooms')
+            .update(updateData)
+            .eq('id', id)
+            .eq('department_id', this.departmentId)
+            .select()
+            .single();
 
         if (error) throw error;
         return data;
@@ -322,11 +497,21 @@ const dbService = {
      */
     async getAcademicYears() {
         if (!isSupabaseConfigured()) {
-            return [
+            const data = [
                 { year: '2023-24', is_active: false },
                 { year: '2024-25', is_active: false },
                 { year: '2025-26', is_active: true }
             ];
+            this._setRuntimeSourceStatus('academicYears', {
+                label: 'Academic years',
+                source: 'hardcoded-default',
+                canonical: false,
+                fallback: true,
+                detail: 'db-service local academic year defaults',
+                count: data.length,
+                message: 'Academic years are using hardcoded defaults because Supabase is not configured.'
+            });
+            return data;
         }
 
         await this.initialize();
@@ -336,8 +521,47 @@ const dbService = {
             .eq('department_id', this.departmentId)
             .order('year', { ascending: false });
 
-        if (error) throw error;
+        if (error) {
+            this._setRuntimeSourceStatus('academicYears', {
+                label: 'Academic years',
+                source: 'database-error',
+                canonical: false,
+                fallback: false,
+                detail: error.message || 'Unknown database error',
+                message: 'Academic years failed to load from Supabase.'
+            });
+            throw error;
+        }
+
+        this._setRuntimeSourceStatus('academicYears', {
+            label: 'Academic years',
+            source: 'database',
+            canonical: true,
+            fallback: false,
+            detail: 'academic_years',
+            count: Array.isArray(data) ? data.length : 0,
+            message: 'Academic years loaded from the canonical Supabase academic_years table.'
+        });
         return data;
+    },
+
+    /**
+     * Get a specific academic year without creating it.
+     */
+    async getAcademicYear(yearString) {
+        if (!isSupabaseConfigured()) return null;
+        if (!yearString) return null;
+
+        await this.initialize();
+        const { data, error } = await getSupabaseClient()
+            .from('academic_years')
+            .select('*')
+            .eq('department_id', this.departmentId)
+            .eq('year', yearString)
+            .maybeSingle();
+
+        if (error && error.code !== 'PGRST116') throw error;
+        return data || null;
     },
 
     /**
@@ -346,15 +570,8 @@ const dbService = {
     async getOrCreateYear(yearString) {
         if (!isSupabaseConfigured()) return null;
 
-        await this.initialize();
-
         // Try to get existing
-        const { data: existing } = await getSupabaseClient()
-            .from('academic_years')
-            .select('*')
-            .eq('department_id', this.departmentId)
-            .eq('year', yearString)
-            .single();
+        const existing = await this.getAcademicYear(yearString);
 
         if (existing) return existing;
 
@@ -593,6 +810,91 @@ const dbService = {
     },
 
     /**
+     * Get all faculty preference rows for the current department.
+     */
+    async listFacultyPreferences(facultyIds = null) {
+        if (!isSupabaseConfigured()) {
+            this._setRuntimeSourceStatus('facultyPreferences', {
+                label: 'Faculty preferences',
+                source: 'hardcoded-default',
+                canonical: false,
+                fallback: true,
+                detail: 'No configured database',
+                count: 0,
+                message: 'Faculty preferences are unavailable because Supabase is not configured.'
+            });
+            return [];
+        }
+
+        await this.initialize();
+
+        let effectiveFacultyIds = facultyIds;
+        if (!Array.isArray(effectiveFacultyIds)) {
+            const { data: facultyRows, error: facultyError } = await getSupabaseClient()
+                .from('faculty')
+                .select('id')
+                .eq('department_id', this.departmentId);
+
+            if (facultyError) {
+                this._setRuntimeSourceStatus('facultyPreferences', {
+                    label: 'Faculty preferences',
+                    source: 'database-error',
+                    canonical: false,
+                    fallback: false,
+                    detail: facultyError.message || 'Unknown database error',
+                    message: 'Faculty preferences failed to scope faculty rows from Supabase.'
+                });
+                throw facultyError;
+            }
+
+            effectiveFacultyIds = Array.isArray(facultyRows)
+                ? facultyRows.map((row) => row.id).filter(Boolean)
+                : [];
+        }
+
+        if (effectiveFacultyIds.length === 0) {
+            this._setRuntimeSourceStatus('facultyPreferences', {
+                label: 'Faculty preferences',
+                source: 'database',
+                canonical: true,
+                fallback: false,
+                detail: 'faculty_preferences',
+                count: 0,
+                message: 'Faculty preferences loaded from the canonical Supabase faculty_preferences table.'
+            });
+            return [];
+        }
+
+        const { data, error } = await getSupabaseClient()
+            .from('faculty_preferences')
+            .select('*')
+            .in('faculty_id', effectiveFacultyIds);
+
+        if (error) {
+            this._setRuntimeSourceStatus('facultyPreferences', {
+                label: 'Faculty preferences',
+                source: 'database-error',
+                canonical: false,
+                fallback: false,
+                detail: error.message || 'Unknown database error',
+                message: 'Faculty preferences failed to load from Supabase.'
+            });
+            throw error;
+        }
+
+        this._setRuntimeSourceStatus('facultyPreferences', {
+            label: 'Faculty preferences',
+            source: 'database',
+            canonical: true,
+            fallback: false,
+            detail: 'faculty_preferences',
+            count: Array.isArray(data) ? data.length : 0,
+            message: 'Faculty preferences loaded from the canonical Supabase faculty_preferences table.'
+        });
+        return data || [];
+    },
+
+    /**
      * Save faculty preferences
      */
     async saveFacultyPreferences(facultyId, prefs) {
@@ -623,6 +925,28 @@ const dbService = {
         return data;
     },
 
+    /**
+     * Delete the preference row for a faculty member.
+     */
+    async deleteFacultyPreferences(facultyId) {
+        if (!isSupabaseConfigured()) {
+            console.warn('Cannot delete preferences: Supabase not configured');
+            return false;
+        }
+
+        if (!facultyId) {
+            throw new Error('facultyId is required');
+        }
+
+        const { error } = await getSupabaseClient()
+            .from('faculty_preferences')
+            .delete()
+            .eq('faculty_id', facultyId);
+
+        if (error) throw error;
+        return true;
+    },
+
     // ============================================
     // SCHEDULING CONSTRAINTS
     // ============================================
@@ -632,7 +956,22 @@ const dbService = {
      */
     async getConstraints() {
         if (!isSupabaseConfigured()) {
-            return this._fetchLocalConstraints();
+            const data = await this._fetchLocalConstraints();
+            const count = Array.isArray(data)
+                ? data.length
+                : Array.isArray(data?.rules)
+                    ? data.rules.length
+                    : Object.keys(data || {}).length;
+            this._setRuntimeSourceStatus('constraints', {
+                label: 'Constraints',
+                source: 'local-file',
+                canonical: false,
+                fallback: true,
+                detail: '../data/scheduling-rules.json',
+                count,
+                message: 'Constraints are loading from local scheduling rules because Supabase is not configured.'
+            });
+            return data;
         }
 
         await this.initialize();
@@ -642,7 +981,27 @@ const dbService = {
             .eq('department_id', this.departmentId)
             .eq('enabled', true);
 
-        if (error) throw error;
+        if (error) {
+            this._setRuntimeSourceStatus('constraints', {
+                label: 'Constraints',
+                source: 'database-error',
+                canonical: false,
+                fallback: false,
+                detail: error.message || 'Unknown database error',
+                message: 'Constraints failed to load from Supabase.'
+            });
+            throw error;
+        }
+
+        this._setRuntimeSourceStatus('constraints', {
+            label: 'Constraints',
+            source: 'database',
+            canonical: true,
+            fallback: false,
+            detail: 'scheduling_constraints',
+            count: Array.isArray(data) ? data.length : 0,
+            message: 'Constraints loaded from the canonical Supabase scheduling_constraints table.'
+        });
         return data;
     },
 
@@ -684,6 +1043,30 @@ const dbService = {
             if (error) throw error;
             return data;
         }
+    },
+
+    /**
+     * Delete a scheduling constraint.
+     */
+    async deleteConstraint(id) {
+        if (!isSupabaseConfigured()) {
+            console.warn('Cannot delete constraint: Supabase not configured');
+            return false;
+        }
+
+        if (!id) {
+            throw new Error('Constraint id is required');
+        }
+
+        await this.initialize();
+        const { error } = await getSupabaseClient()
+            .from('scheduling_constraints')
+            .delete()
+            .eq('id', id)
+            .eq('department_id', this.departmentId);
+
+        if (error) throw error;
+        return true;
     },
 
     // ============================================

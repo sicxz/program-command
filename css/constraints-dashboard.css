@@ -60,6 +60,39 @@ body {
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
+.runtime-source-banner {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 24px;
+    padding: 14px 18px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    font-size: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.runtime-source-banner strong {
+    font-size: 14px;
+}
+
+.runtime-source-banner span {
+    color: inherit;
+    opacity: 0.9;
+}
+
+.runtime-source-banner-warning {
+    background: #fff7ed;
+    border-color: #fdba74;
+    color: #9a3412;
+}
+
+.runtime-source-banner-success {
+    background: #ecfdf5;
+    border-color: #86efac;
+    color: #166534;
+}
+
 .action-group {
     display: flex;
     align-items: center;

@@ -2,6 +2,12 @@
 
 This QA pack is the release gate for department onboarding rollout work.
 
+## Current Status
+
+This QA pack reflects the current onboarding shell and local-profile workflow. During the production-readiness program, it should be treated as a transitional QA artifact rather than proof that the platform is already ready for another department.
+
+Another department should not be onboarded from this pack alone until the platformization and release-gate artifacts in `docs/audits/` pass.
+
 ## 1) Regression Suite (Scheduler + Workload + CLSS)
 
 Run before each onboarding rollout:
@@ -48,6 +54,14 @@ Expected pilot onboarding outcome:
 - Activated profile becomes the active runtime profile and survives reload.
 
 ## 3) Rollout SOP (Chair/Admin)
+
+### Preconditions
+
+Before using this SOP for a real additional department rollout:
+
+1. The multi-department release gate in `docs/audits/multi-department-release-gate.md` must pass.
+2. The platformization blockers in `docs/audits/multi-department-blockers.md` must be resolved for release-gated behavior.
+3. The canonical runtime identity and profile source model must be documented.
 
 ### Preflight
 

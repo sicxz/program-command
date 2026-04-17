@@ -13,17 +13,135 @@ const ConstraintsEngine = (function() {
     // Store course data from database (for course-level constraints)
     let coursesData = [];
 
+    function getDefaultTimeSlots() {
+        return {
+            morning: {
+                id: 'morning',
+                label: 'Morning',
+                start: '10:00',
+                end: '12:20',
+                key: '10:00-12:20'
+            },
+            afternoon: {
+                id: 'afternoon',
+                label: 'Afternoon',
+                start: '13:00',
+                end: '15:20',
+                key: '13:00-15:20'
+            },
+            evening: {
+                id: 'evening',
+                label: 'Evening',
+                start: '16:00',
+                end: '18:20',
+                key: '16:00-18:20'
+            }
+        };
+    }
+
+    function getDefaultDayPatterns() {
+        return {
+            MW: {
+                id: 'MW',
+                label: 'Monday/Wednesday',
+                days: ['Monday', 'Wednesday']
+            },
+            TR: {
+                id: 'TR',
+                label: 'Tuesday/Thursday',
+                days: ['Tuesday', 'Thursday']
+            }
+        };
+    }
+
+    function getDefaultCampuses() {
+        return {
+            catalyst: {
+                id: 'catalyst',
+                name: 'Catalyst (Spokane)',
+                rooms: ['206', '209', '210', '212']
+            },
+            cheney: {
+                id: 'cheney',
+                name: 'Cheney (Main Campus)',
+                rooms: ['CEB 102', 'CEB 104']
+            }
+        };
+    }
+
+    function normalizeCampuses(campuses) {
+        const source = campuses && Object.keys(campuses).length > 0
+            ? campuses
+            : getDefaultCampuses();
+
+        return Object.fromEntries(
+            Object.entries(source).map(([campusId, campus]) => {
+                const rooms = Array.isArray(campus?.rooms)
+                    ? campus.rooms.map((room) => typeof room === 'string' ? room : room?.id).filter(Boolean)
+                    : [];
+                return [
+                    campusId,
+                    {
+                        id: campus?.id || campusId,
+                        name: campus?.name || campusId,
+                        rooms
+                    }
+                ];
+            })
+        );
+    }
+
+    function normalizeRules(nextRules = {}) {
+        const normalized = {
+            ...nextRules,
+            courseConstraints: Array.isArray(nextRules.courseConstraints) ? nextRules.courseConstraints : [],
+            facultyConstraints: Array.isArray(nextRules.facultyConstraints) ? nextRules.facultyConstraints : [],
+            roomConstraints: Array.isArray(nextRules.roomConstraints) ? nextRules.roomConstraints : [],
+            caseByCase: nextRules.caseByCase || { courses: [], descriptions: {} },
+            timeSlots: nextRules.timeSlots && Object.keys(nextRules.timeSlots).length > 0
+                ? nextRules.timeSlots
+                : getDefaultTimeSlots(),
+            dayPatterns: nextRules.dayPatterns && Object.keys(nextRules.dayPatterns).length > 0
+                ? nextRules.dayPatterns
+                : getDefaultDayPatterns(),
+            campuses: normalizeCampuses(nextRules.campuses)
+        };
+
+        if (!normalized.caseByCase.descriptions) {
+            normalized.caseByCase.descriptions = {};
+        }
+        if (!Array.isArray(normalized.caseByCase.courses)) {
+            normalized.caseByCase.courses = [];
+        }
+
+        return normalized;
+    }
+
+    function logInitializedRules() {
+        console.log('Constraints engine initialized with',
+            rules?.courseConstraints?.length || 0, 'course constraints,',
+            rules?.facultyConstraints?.length || 0, 'faculty constraints');
+    }
+
     /**
      * Initialize the constraints engine by loading rules
      */
-    async function init(rulesPath = '../data/scheduling-rules.json') {
+    async function init(rulesInput = '../data/scheduling-rules.json') {
         try {
-            const response = await fetch(rulesPath);
+            if (rules && typeof rulesInput === 'string') {
+                return true;
+            }
+
+            if (rulesInput && typeof rulesInput === 'object') {
+                rules = normalizeRules(rulesInput);
+                logInitializedRules();
+                return true;
+            }
+
+            const response = await fetch(rulesInput);
             if (!response.ok) throw new Error('Failed to load scheduling rules');
-            rules = await response.json();
-            console.log('Constraints engine initialized with',
-                rules.courseConstraints?.length || 0, 'course constraints,',
-                rules.facultyConstraints?.length || 0, 'faculty constraints');
+            rules = normalizeRules(await response.json());
+            logInitializedRules();
             return true;
         } catch (err) {
             console.error('Error initializing constraints engine:', err);

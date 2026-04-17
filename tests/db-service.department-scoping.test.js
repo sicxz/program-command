@@ -6,6 +6,7 @@ describe('dbService department scoping', () => {
         dbService.departmentIdentity = null;
         dbService.departmentIdByCode = {};
         dbService.initialized = false;
+        dbService.resetRuntimeSourceStatus();
     }
 
     function createDepartmentClient({ selectResponses = [], insertResponses = [] } = {}) {

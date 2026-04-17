@@ -78,6 +78,8 @@ On error:
 - Atomic by academic year: all changes commit together or none commit.
 - No destructive pre-delete outside the transaction path.
 - Idempotent for repeated identical payloads.
+- Persisted saved schedule state is canonical for the targeted academic year once the save succeeds.
+- Local draft state may exist for in-progress editing, but it must not replace canonical persisted schedule truth on reload.
 - Local draft state is not mutated on failed save.
 - Save errors are surfaced with actionable guidance.
 

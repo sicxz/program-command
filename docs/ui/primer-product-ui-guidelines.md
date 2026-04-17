@@ -5,6 +5,11 @@
 
 This repo uses Primer Product UI as the design-system reference for chair-facing planning surfaces, especially workload and scheduler-adjacent dashboards.
 
+For the production-readiness program, Primer remains the design reference, but the operational baseline for release-gated surfaces is defined in:
+
+- `docs/audits/product-consistency-audit.md`
+- `docs/audits/dashboard-shell-baseline.md`
+
 ## What We Apply Here
 
 ### Foundations
@@ -39,6 +44,16 @@ Use this checklist when editing `pages/workload-dashboard.*`:
 - Empty states say what happened, what it means, and what to do next
 - Table labels and badges are legible at a glance
 - Mobile width behavior is acceptable (wrapped controls, no hidden critical actions)
+
+## Release-Gated Shell Expectations
+
+Use these as the shared dashboard-shell baseline while the readiness program is active:
+
+- Prefer the shared header direction (`app-header` or equivalent shared shell behavior) over page-specific hero headers
+- Prefer the shared dashboard theme layer over bespoke gradient page framing
+- Use stable status and empty-state language across release-gated surfaces
+- Use `details/summary` for dense supporting assumptions or diagnostics when the content would otherwise overwhelm the page
+- Treat a broader visual refresh as an audit outcome, not a starting assumption
 
 ## Status Color Intent (Recommended)
 - Neutral: informational framing, table chrome, secondary actions

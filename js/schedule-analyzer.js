@@ -27,32 +27,46 @@ const ScheduleAnalyzer = (function() {
     /**
      * Initialize analyzer with data sources
      */
-    async function init() {
+    async function init(options = {}) {
         try {
-            // Load enrollment dashboard data
-            const enrollmentResponse = await fetch('../enrollment-dashboard-data.json');
-            if (enrollmentResponse.ok) {
-                enrollmentData = await enrollmentResponse.json();
+            if (options.enrollmentData) {
+                enrollmentData = options.enrollmentData;
                 console.log('Enrollment data loaded for analyzer');
+            } else {
+                const enrollmentResponse = await fetch('../enrollment-dashboard-data.json');
+                if (enrollmentResponse.ok) {
+                    enrollmentData = await enrollmentResponse.json();
+                    console.log('Enrollment data loaded for analyzer');
+                }
             }
 
-            // Load course catalog
-            const catalogResponse = await fetch('../data/course-catalog.json');
-            if (catalogResponse.ok) {
-                courseCatalog = await catalogResponse.json();
+            if (options.courseCatalogData) {
+                courseCatalog = options.courseCatalogData.courses
+                    ? options.courseCatalogData
+                    : { courses: options.courseCatalogData };
                 console.log('Course catalog loaded for analyzer');
+            } else {
+                const catalogResponse = await fetch('../data/course-catalog.json');
+                if (catalogResponse.ok) {
+                    courseCatalog = await catalogResponse.json();
+                    console.log('Course catalog loaded for analyzer');
+                }
             }
 
-            // Load prerequisite graph
-            const prereqResponse = await fetch('../data/prerequisite-graph.json');
-            if (prereqResponse.ok) {
-                prerequisiteGraph = await prereqResponse.json();
+            if (options.prerequisiteGraphData) {
+                prerequisiteGraph = options.prerequisiteGraphData;
                 console.log('Prerequisite graph loaded for analyzer');
+            } else {
+                const prereqResponse = await fetch('../data/prerequisite-graph.json');
+                if (prereqResponse.ok) {
+                    prerequisiteGraph = await prereqResponse.json();
+                    console.log('Prerequisite graph loaded for analyzer');
+                }
             }
 
             // Initialize constraints engine if available
             if (typeof ConstraintsEngine !== 'undefined') {
-                await ConstraintsEngine.init('../data/scheduling-rules.json');
+                await ConstraintsEngine.init(options.constraintRules || '../data/scheduling-rules.json');
                 console.log('Constraints engine loaded for analyzer');
             }
 

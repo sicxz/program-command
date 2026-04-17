@@ -7,16 +7,27 @@
 let currentSchedule = null;
 let currentView = 'grid';
 let assignedCourses = {}; // { 'MW-10:00-12:00-206': [course1, course2], ... }
-let roomConstraints = null; // Loaded from room-constraints.json
+let roomConstraints = null; // Runtime room metadata with DB inventory overlays when available
 let caseByeCaseCourses = []; // Courses handled individually, not in grid
 let activeDepartmentProfile = null;
 let workloadDataCache = null;
+let runtimeDataSourceStatus = {};
+
+const RUNTIME_DATA_SOURCE_LABELS = {
+    historicalWorkload: 'Historical workload baseline',
+    roomInventory: 'Room inventory',
+    roomMetadata: 'Room metadata',
+    courseCatalog: 'Course catalog',
+    courses: 'Courses',
+    schedulingRules: 'Scheduling rules',
+    savedSchedule: 'Saved schedule'
+};
 
 // Room configuration - organized by campus (207 excluded - dedicated project room)
-const CATALYST_ROOMS = ['206', '209', '210', '212'];
-const CHENEY_ROOMS = ['CEB 102', 'CEB 104'];
-const ROOMS = [...CATALYST_ROOMS, ...CHENEY_ROOMS];
-const ROOM_NAMES = {
+let CATALYST_ROOMS = ['206', '209', '210', '212'];
+let CHENEY_ROOMS = ['CEB 102', 'CEB 104'];
+let ROOMS = [...CATALYST_ROOMS, ...CHENEY_ROOMS];
+let ROOM_NAMES = {
     '206': '206 UX Lab',
     '209': '209 Mac Lab',
     '210': '210 Mac Lab',
@@ -28,6 +39,43 @@ const ROOM_NAMES = {
 // Courses allowed in Room 212
 const ROOM_212_PRIMARY = ['DESN 301', 'DESN 359', 'DESN 401'];
 const ROOM_212_OVERFLOW = ['DESN 100', 'DESN 200'];
+
+const DEFAULT_TIME_SLOTS = {
+    morning: {
+        id: 'morning',
+        label: 'Morning',
+        start: '10:00',
+        end: '12:20',
+        key: '10:00-12:20'
+    },
+    afternoon: {
+        id: 'afternoon',
+        label: 'Afternoon',
+        start: '13:00',
+        end: '15:20',
+        key: '13:00-15:20'
+    },
+    evening: {
+        id: 'evening',
+        label: 'Evening',
+        start: '16:00',
+        end: '18:20',
+        key: '16:00-18:20'
+    }
+};
+
+const DEFAULT_DAY_PATTERNS = {
+    MW: {
+        id: 'MW',
+        label: 'Monday/Wednesday',
+        days: ['Monday', 'Wednesday']
+    },
+    TR: {
+        id: 'TR',
+        label: 'Tuesday/Thursday',
+        days: ['Tuesday', 'Thursday']
+    }
+};
 
 // State for all quarters
 let allQuartersSchedule = {
@@ -83,6 +131,306 @@ const FACULTY_NAME_ALIASES = {
 let facultyBuildScenario = cloneDefaultFacultyBuildScenario();
 let facultyBuildCapacityWarnings = [];
 let facultyPreferencesCache = {};
+
+function escapeRuntimeSourceText(value) {
+    return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+}
+
+function setRuntimeDataSourceStatus(key, status = {}) {
+    runtimeDataSourceStatus[key] = {
+        key,
+        label: status.label || RUNTIME_DATA_SOURCE_LABELS[key] || key,
+        source: status.source || 'unknown',
+        canonical: status.canonical === true,
+        fallback: status.fallback !== undefined ? !!status.fallback : status.canonical !== true,
+        detail: status.detail || null,
+        count: Number.isFinite(status.count) ? status.count : null,
+        message: status.message || null
+    };
+    renderRuntimeDataSourceBanner();
+    return runtimeDataSourceStatus[key];
+}
+
+function syncRuntimeDataSourcesFromDbService() {
+    if (typeof dbService === 'undefined' || typeof dbService.getRuntimeSourceStatus !== 'function') {
+        return null;
+    }
+
+    const snapshot = dbService.getRuntimeSourceStatus();
+    Object.entries(snapshot.entries || {}).forEach(([key, entry]) => {
+        setRuntimeDataSourceStatus(key, entry);
+    });
+    return snapshot;
+}
+
+function getRuntimeDataSourceSummary() {
+    const entries = Object.values(runtimeDataSourceStatus);
+    const blockedEntries = entries.filter((entry) => entry.canonical !== true);
+    return {
+        entries,
+        blockedEntries,
+        hasFallbacks: blockedEntries.length > 0,
+        canonicalCount: entries.length - blockedEntries.length,
+        fallbackCount: blockedEntries.length
+    };
+}
+
+function renderRuntimeDataSourceBanner() {
+    const banner = document.getElementById('runtimeDataSourceBanner');
+    if (!banner) return;
+
+    const summary = getRuntimeDataSourceSummary();
+    if (!summary.entries.length) {
+        banner.hidden = true;
+        banner.innerHTML = '';
+        return;
+    }
+
+    const hasFallbacks = summary.hasFallbacks;
+    const title = hasFallbacks
+        ? 'Release gate warning: this builder still depends on local data'
+        : 'Runtime check: tracked builder inputs are using canonical persisted sources';
+    const subtitle = hasFallbacks
+        ? 'W1 is still in progress. These tracked inputs are not fully converged yet, so this screen is not purely DB-backed.'
+        : 'The tracked release-gated inputs on this screen are resolving from persisted sources right now.';
+
+    const items = summary.entries.map((entry) => {
+        const countText = Number.isFinite(entry.count) ? `${entry.count} items` : null;
+        const detail = [entry.detail, countText].filter(Boolean).join(' | ');
+        return `
+            <li class="runtime-source-item">
+                <div class="runtime-source-item-header">
+                    <span class="runtime-source-item-label">${escapeRuntimeSourceText(entry.label)}</span>
+                    <span class="runtime-source-item-status ${escapeRuntimeSourceText(entry.source)}">${escapeRuntimeSourceText(entry.source)}</span>
+                </div>
+                <p class="runtime-source-item-message">${escapeRuntimeSourceText(entry.message || 'No runtime note recorded.')}</p>
+                ${detail ? `<p class="runtime-source-item-detail">${escapeRuntimeSourceText(detail)}</p>` : ''}
+            </li>
+        `;
+    }).join('');
+
+    banner.hidden = false;
+    banner.className = `runtime-source-banner ${hasFallbacks ? 'runtime-source-banner-warning' : 'runtime-source-banner-success'}`;
+    banner.innerHTML = `
+        <div class="runtime-source-banner-copy">
+            <p class="runtime-source-banner-title">${escapeRuntimeSourceText(title)}</p>
+            <p class="runtime-source-banner-subtitle">${escapeRuntimeSourceText(subtitle)}</p>
+        </div>
+        <ul class="runtime-source-list">${items}</ul>
+    `;
+}
+
+function cloneRuntimeValue(value) {
+    return JSON.parse(JSON.stringify(value));
+}
+
+function normalizeCampusId(campus) {
+    const normalized = String(campus || '').trim().toLowerCase();
+    if (!normalized) return 'catalyst';
+    if (normalized.includes('cheney')) return 'cheney';
+    if (normalized.includes('spokane') || normalized.includes('catalyst')) return 'catalyst';
+    return normalized;
+}
+
+function getRoomMetadataEntries(metadata = null) {
+    if (!metadata?.campuses) return [];
+    return Object.values(metadata.campuses).flatMap((campus) => campus.rooms || []);
+}
+
+function applyRoomInventoryFromMetadata(metadata = null) {
+    const catalystRooms = metadata?.campuses?.catalyst?.rooms || [];
+    const cheneyRooms = metadata?.campuses?.cheney?.rooms || [];
+    const allRooms = [...catalystRooms, ...cheneyRooms];
+
+    if (!allRooms.length) {
+        return;
+    }
+
+    CATALYST_ROOMS = catalystRooms.map((room) => room.id);
+    CHENEY_ROOMS = cheneyRooms.map((room) => room.id);
+    ROOMS = [...CATALYST_ROOMS, ...CHENEY_ROOMS];
+    ROOM_NAMES = Object.fromEntries(
+        allRooms.map((room) => [room.id, room.name || room.id])
+    );
+}
+
+function buildRoomMetadataFromInventory(rooms = [], fallbackMetadata = null) {
+    if (!Array.isArray(rooms) || rooms.length === 0) {
+        return fallbackMetadata ? cloneRuntimeValue(fallbackMetadata) : null;
+    }
+
+    const fallbackRoomsById = Object.fromEntries(
+        getRoomMetadataEntries(fallbackMetadata).map((room) => [room.id, room])
+    );
+
+    const base = fallbackMetadata ? cloneRuntimeValue(fallbackMetadata) : {};
+    const campuses = {
+        catalyst: {
+            name: fallbackMetadata?.campuses?.catalyst?.name || 'Catalyst (Spokane)',
+            rooms: []
+        },
+        cheney: {
+            name: fallbackMetadata?.campuses?.cheney?.name || 'Cheney (Main Campus)',
+            rooms: []
+        }
+    };
+
+    rooms.forEach((room) => {
+        const roomId = String(room.room_code || room.id || '').trim();
+        if (!roomId) return;
+
+        const campusId = normalizeCampusId(room.campus);
+        const fallbackRoom = fallbackRoomsById[roomId] || {};
+        if (!campuses[campusId]) {
+            campuses[campusId] = {
+                name: String(room.campus || campusId).trim() || campusId,
+                rooms: []
+            };
+        }
+
+        campuses[campusId].rooms.push({
+            id: roomId,
+            name: String(room.name || fallbackRoom.name || roomId).trim() || roomId,
+            type: String(room.room_type || fallbackRoom.type || '').trim() || undefined,
+            capacity: Number(room.capacity ?? fallbackRoom.capacity) || undefined,
+            excludeFromGrid: room.exclude_from_grid === true || fallbackRoom.excludeFromGrid === true,
+            note: fallbackRoom.note,
+            allowedCourses: Array.isArray(fallbackRoom.allowedCourses) ? fallbackRoom.allowedCourses : undefined,
+            overflowCourses: Array.isArray(fallbackRoom.overflowCourses) ? fallbackRoom.overflowCourses : undefined
+        });
+    });
+
+    Object.values(campuses).forEach((campus) => {
+        campus.rooms.sort((a, b) => String(a.id).localeCompare(String(b.id)));
+    });
+
+    base.campuses = campuses;
+    return base;
+}
+
+function buildRuntimeConstraintRules({ rooms = [], constraints = [], roomMetadata = roomConstraints } = {}) {
+    const roomInventoryMetadata = buildRoomMetadataFromInventory(rooms, roomMetadata);
+    const campusRules = Object.fromEntries(
+        Object.entries(roomInventoryMetadata?.campuses || {}).map(([campusId, campus]) => [
+            campusId,
+            {
+                id: campusId,
+                name: campus.name,
+                rooms: (campus.rooms || []).map((room) => room.id)
+            }
+        ])
+    );
+
+    const runtimeRules = {
+        version: 'db-runtime',
+        description: 'Runtime rules synthesized from database-backed rooms and scheduling constraints.',
+        courseConstraints: [],
+        facultyConstraints: [],
+        roomConstraints: [],
+        caseByCase: {
+            courses: [],
+            descriptions: {}
+        },
+        timeSlots: cloneRuntimeValue(DEFAULT_TIME_SLOTS),
+        dayPatterns: cloneRuntimeValue(DEFAULT_DAY_PATTERNS),
+        campuses: campusRules
+    };
+
+    const seenRoomRules = new Set();
+    (rooms || []).forEach((room) => {
+        const roomId = String(room.room_code || room.id || '').trim();
+        if (!roomId || room.exclude_from_grid !== true) return;
+        const ruleId = `exclude-${roomId}`;
+        seenRoomRules.add(ruleId);
+        runtimeRules.roomConstraints.push({
+            id: ruleId,
+            room: roomId,
+            type: 'exclude-from-grid',
+            enabled: true,
+            reason: `${roomId} is excluded from the grid`
+        });
+    });
+
+    (constraints || []).forEach((constraint) => {
+        if (!constraint || constraint.enabled === false) return;
+
+        const details = constraint.rule_details || constraint.ruleDetails || {};
+        switch (constraint.constraint_type) {
+            case 'evening_safety':
+                runtimeRules.facultyConstraints.push({
+                    id: constraint.id || 'evening-safety',
+                    type: 'safety',
+                    rule: 'minimum-instructors-evening',
+                    minimumCount: Number(details.min_instructors || details.minimumCount || 2),
+                    afterTime: String(details.time_after || details.afterTime || '16:00'),
+                    enabled: true,
+                    reason: constraint.description || details.message || 'Minimum instructor count for evening sections'
+                });
+                break;
+            case 'campus_transition':
+                runtimeRules.facultyConstraints.push({
+                    id: constraint.id || 'campus-transition',
+                    type: 'travel-time',
+                    rule: 'no-back-to-back-different-campus',
+                    bufferMinutes: Number(details.min_gap_hours || 2) * 60,
+                    enabled: true,
+                    reason: constraint.description || details.message || 'Travel buffer between campuses'
+                });
+                break;
+            case 'room_restriction':
+                if (details.room && Array.isArray(details.allowed_courses) && details.allowed_courses.length > 0) {
+                    const ruleId = String(constraint.id || `room-${details.room}-assignment`);
+                    if (!seenRoomRules.has(ruleId)) {
+                        seenRoomRules.add(ruleId);
+                        runtimeRules.roomConstraints.push({
+                            id: ruleId,
+                            room: String(details.room),
+                            type: 'room-assignment',
+                            allowedCourses: details.allowed_courses,
+                            enabled: true,
+                            reason: constraint.description || details.message || `Room assignment rule for ${details.room}`
+                        });
+                    }
+                }
+                break;
+            default:
+                break;
+        }
+    });
+
+    return runtimeRules;
+}
+
+function normalizeCourseCatalogEntry(course = {}) {
+    return {
+        code: String(course.code || '').trim(),
+        title: String(course.title || '').trim(),
+        defaultCredits: Number(course.defaultCredits ?? course.default_credits) || 5,
+        typicalEnrollmentCap: Number(course.typicalEnrollmentCap ?? course.typical_cap) || 24,
+        level: String(course.level || '').trim(),
+        offeredQuarters: Array.isArray(course.offeredQuarters)
+            ? course.offeredQuarters
+            : Array.isArray(course.quarters_offered)
+                ? course.quarters_offered
+                : ['Fall', 'Winter', 'Spring'],
+        required: course.required === true,
+        workloadMultiplier: Number(course.workloadMultiplier ?? course.workload_multiplier) || 1,
+        isVariable: course.isVariable === true
+    };
+}
+
+function buildCourseCatalogFromDbCourses(courses = []) {
+    return {
+        courses: (Array.isArray(courses) ? courses : [])
+            .map((course) => normalizeCourseCatalogEntry(course))
+            .filter((course) => course.code)
+    };
+}
 
 function getDepartmentIdentity() {
     const identity = activeDepartmentProfile && activeDepartmentProfile.identity
@@ -663,17 +1011,48 @@ document.addEventListener('DOMContentLoaded', async function() {
     console.log('Initializing Schedule Builder...');
 
     try {
+        runtimeDataSourceStatus = {};
+        renderRuntimeDataSourceBanner();
+        let dbRooms = [];
+        let dbSchedulingConstraints = [];
+        let constraintsEngineInitializedFromDatabase = false;
+
         const workloadResponse = await fetch('../workload-data.json');
         if (workloadResponse.ok) {
             workloadDataCache = await workloadResponse.json();
+            setRuntimeDataSourceStatus('historicalWorkload', {
+                source: 'local-file',
+                canonical: false,
+                fallback: true,
+                detail: '../workload-data.json',
+                message: 'Historical workload analysis still boots from local workload JSON.'
+            });
         }
         await initializeDepartmentProfileContext();
 
-        // Load room constraints
-        const constraintsResponse = await fetch('../data/room-constraints.json');
-        if (constraintsResponse.ok) {
-            roomConstraints = await constraintsResponse.json();
-            console.log('Room constraints loaded:', roomConstraints);
+        // Load fallback room metadata for curriculum notes and case-by-case descriptions.
+        const roomMetadataResponse = await fetch('../data/room-constraints.json');
+        if (roomMetadataResponse.ok) {
+            roomConstraints = await roomMetadataResponse.json();
+            applyRoomInventoryFromMetadata(roomConstraints);
+            console.log('Fallback room metadata loaded:', roomConstraints);
+            const roomCount = getRoomMetadataEntries(roomConstraints).length;
+            setRuntimeDataSourceStatus('roomMetadata', {
+                source: 'local-file',
+                canonical: false,
+                fallback: true,
+                detail: '../data/room-constraints.json',
+                count: roomCount,
+                message: 'Case-by-case descriptions and curriculum room notes still come from the local room metadata file.'
+            });
+            setRuntimeDataSourceStatus('roomInventory', {
+                source: 'local-file',
+                canonical: false,
+                fallback: true,
+                detail: '../data/room-constraints.json',
+                count: roomCount,
+                message: 'Room inventory is currently using the local room metadata fallback.'
+            });
         }
 
         // Load course catalog for offering patterns
@@ -681,21 +1060,68 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (catalogResponse.ok) {
             courseCatalog = await catalogResponse.json();
             console.log('Course catalog loaded:', courseCatalog.courses?.length, 'courses');
+            setRuntimeDataSourceStatus('courseCatalog', {
+                source: 'local-file',
+                canonical: false,
+                fallback: true,
+                detail: '../data/course-catalog.json',
+                count: Array.isArray(courseCatalog?.courses) ? courseCatalog.courses.length : null,
+                message: 'Offering patterns and course metadata still come from the local catalog file.'
+            });
         }
 
         // Load courses from database for constraints (if dbService is available)
         if (typeof dbService !== 'undefined') {
             try {
-                dbCourses = await dbService.getCourses();
+                [dbCourses, dbRooms, dbSchedulingConstraints] = await Promise.all([
+                    dbService.getCourses(),
+                    dbService.getRooms(),
+                    dbService.getConstraints()
+                ]);
                 console.log('Database courses loaded:', dbCourses?.length || 0, 'courses');
+                syncRuntimeDataSourcesFromDbService();
+
+                if (dbCourses.length > 0) {
+                    courseCatalog = buildCourseCatalogFromDbCourses(dbCourses);
+                    setRuntimeDataSourceStatus('courseCatalog', {
+                        source: 'database',
+                        canonical: true,
+                        fallback: false,
+                        detail: 'courses (normalized for builder)',
+                        count: courseCatalog.courses.length,
+                        message: 'Course catalog inputs for builder analysis now normalize from the Supabase courses table.'
+                    });
+                }
+
+                if (dbRooms.length > 0) {
+                    roomConstraints = buildRoomMetadataFromInventory(dbRooms, roomConstraints);
+                    applyRoomInventoryFromMetadata(roomConstraints);
+                    setRuntimeDataSourceStatus('roomInventory', {
+                        source: 'database',
+                        canonical: true,
+                        fallback: false,
+                        detail: 'rooms',
+                        count: dbRooms.length,
+                        message: 'Room inventory is loading from the canonical Supabase rooms table.'
+                    });
+                }
             } catch (err) {
-                console.warn('Could not load courses from database:', err);
+                console.warn('Could not load builder bootstrap data from database:', err);
+                syncRuntimeDataSourcesFromDbService();
+                setRuntimeDataSourceStatus('courses', {
+                    source: 'database-error',
+                    canonical: false,
+                    fallback: false,
+                    detail: err.message || 'Unknown database error',
+                    message: 'Course verification against Supabase failed during builder startup.'
+                });
             }
         }
 
         if (typeof ScheduleGenerator !== 'undefined') {
             await ScheduleGenerator.init({
                 workloadPath: '../workload-data.json',
+                catalogData: courseCatalog,
                 catalogPath: '../data/course-catalog.json',
                 enrollmentPath: '../enrollment-dashboard-data.json'
             });
@@ -705,13 +1131,41 @@ document.addEventListener('DOMContentLoaded', async function() {
             await DemandPredictor.init({
                 graphPath: '../data/prerequisite-graph.json',
                 enrollmentPath: '../enrollment-dashboard-data.json',
+                catalogData: courseCatalog?.courses || courseCatalog,
                 catalogPath: '../data/course-catalog.json'
             });
         }
 
         // Initialize constraints engine
         if (typeof ConstraintsEngine !== 'undefined') {
-            await ConstraintsEngine.init('../data/scheduling-rules.json');
+            if (dbRooms.length > 0 && dbSchedulingConstraints.length > 0) {
+                const runtimeRules = buildRuntimeConstraintRules({
+                    rooms: dbRooms,
+                    constraints: dbSchedulingConstraints
+                });
+                await ConstraintsEngine.init(runtimeRules);
+                constraintsEngineInitializedFromDatabase = true;
+                setRuntimeDataSourceStatus('schedulingRules', {
+                    source: 'database',
+                    canonical: true,
+                    fallback: false,
+                    detail: 'scheduling_constraints + rooms',
+                    count: dbSchedulingConstraints.length,
+                    message: 'Scheduling rules now initialize from Supabase constraints plus database room inventory.'
+                });
+            }
+
+            if (!constraintsEngineInitializedFromDatabase) {
+                await ConstraintsEngine.init('../data/scheduling-rules.json');
+                setRuntimeDataSourceStatus('schedulingRules', {
+                    source: 'local-file',
+                    canonical: false,
+                    fallback: true,
+                    detail: '../data/scheduling-rules.json',
+                    message: 'Scheduling rules still initialize from the local rules file.'
+                });
+            }
+
             // Pass database courses to constraints engine
             if (dbCourses.length > 0) {
                 ConstraintsEngine.setCoursesData(dbCourses);
@@ -741,6 +1195,138 @@ function getProgramCommandScheduleStorageKey(academicYear) {
     return `${prefix}${academicYear}`;
 }
 
+function createEmptyQuarterSchedules() {
+    return {
+        Fall: { assignedCourses: {}, caseByeCaseCourses: [], recommendations: [] },
+        Winter: { assignedCourses: {}, caseByeCaseCourses: [], recommendations: [] },
+        Spring: { assignedCourses: {}, caseByeCaseCourses: [], recommendations: [] }
+    };
+}
+
+function flattenAssignedCoursesForRecommendations(assignedCoursesBySlot = {}) {
+    return Object.values(assignedCoursesBySlot)
+        .flat()
+        .map((course) => ({
+            ...course,
+            enrolled: Number(course.enrolled ?? course.predictedDemand ?? 0) || 0
+        }));
+}
+
+function buildQuarterSchedulesFromDatabaseRecords(records = [], targetYear) {
+    const quarterSchedules = createEmptyQuarterSchedules();
+
+    (Array.isArray(records) ? records : []).forEach((record) => {
+        const quarter = String(record.quarter || '').trim();
+        if (!quarterSchedules[quarter]) return;
+
+        const slotKey = `${record.day_pattern}-${record.time_slot}-${record.room?.room_code || 'TBD'}`;
+        if (!quarterSchedules[quarter].assignedCourses[slotKey]) {
+            quarterSchedules[quarter].assignedCourses[slotKey] = [];
+        }
+
+        quarterSchedules[quarter].assignedCourses[slotKey].push({
+            courseCode: record.course?.code || 'Unknown',
+            courseTitle: record.course?.title || '',
+            section: record.section || '001',
+            credits: record.course?.default_credits || 5,
+            facultyName: record.faculty?.name || 'TBD',
+            predictedDemand: record.projected_enrollment,
+            enrolled: record.projected_enrollment,
+            priority: record.projected_enrollment < 6 ? 'critical' :
+                record.projected_enrollment <= 15 ? 'low' :
+                record.projected_enrollment <= 20 ? 'medium' : 'high'
+        });
+    });
+
+    let totalSections = 0;
+    Object.entries(quarterSchedules).forEach(([quarter, quarterData]) => {
+        totalSections += Object.values(quarterData.assignedCourses).flat().length;
+        quarterData.recommendations = buildRecommendations(
+            flattenAssignedCoursesForRecommendations(quarterData.assignedCourses),
+            quarter,
+            targetYear
+        );
+    });
+
+    return { quarterSchedules, totalSections };
+}
+
+async function loadSourceAcademicYearBaseline(sourceYear, targetYear) {
+    if (isSupabaseConfigured() && typeof dbService !== 'undefined') {
+        try {
+            await dbService.initialize();
+            const existingYear = await dbService.getAcademicYear(sourceYear);
+            if (existingYear) {
+                const persistedSchedule = await dbService.getSchedule(existingYear.id);
+                if (persistedSchedule?.length) {
+                    const { quarterSchedules, totalSections } = buildQuarterSchedulesFromDatabaseRecords(persistedSchedule, targetYear);
+                    setRuntimeDataSourceStatus('historicalWorkload', {
+                        source: 'database',
+                        canonical: true,
+                        fallback: false,
+                        detail: 'scheduled_courses',
+                        count: persistedSchedule.length,
+                        message: `${sourceYear} baseline now loads from the saved academic-year schedule in Supabase when available.`
+                    });
+                    return {
+                        source: 'database',
+                        quarterSchedules,
+                        totalSections
+                    };
+                }
+            }
+        } catch (error) {
+            console.warn('Could not load source academic year from database:', error);
+        }
+    }
+
+    const workloadResponse = await fetch('../workload-data.json');
+    if (!workloadResponse.ok) throw new Error('Failed to load workload data');
+    const workloadData = await workloadResponse.json();
+
+    const yearData = workloadData.workloadByYear?.byYear?.[sourceYear];
+    if (!yearData) throw new Error(`No data found for ${sourceYear}`);
+
+    const allCourses = extractCoursesFromYear(yearData, workloadData.facultyWorkload);
+    const quarterSchedules = createEmptyQuarterSchedules();
+    const assignmentState = { annualLoads: {} };
+    let totalSections = 0;
+
+    for (const quarter of ['Fall', 'Winter', 'Spring']) {
+        const quarterCourses = allCourses.filter((course) => course.quarter === quarter);
+        const recommendations = buildRecommendations(quarterCourses, quarter, targetYear);
+
+        assignedCourses = {};
+        caseByeCaseCourses = [];
+
+        const gridCourses = filterCaseByeCaseCourses(recommendations, quarter);
+        autoAssignToGrid(gridCourses, quarter, assignmentState);
+
+        quarterSchedules[quarter] = {
+            assignedCourses: { ...assignedCourses },
+            caseByeCaseCourses: [...caseByeCaseCourses],
+            recommendations
+        };
+
+        totalSections += Object.values(assignedCourses).flat().length;
+    }
+
+    setRuntimeDataSourceStatus('historicalWorkload', {
+        source: 'local-file',
+        canonical: false,
+        fallback: true,
+        detail: '../workload-data.json',
+        count: totalSections,
+        message: `${sourceYear} baseline still falls back to workload-data.json because no saved academic-year schedule was available in Supabase.`
+    });
+
+    return {
+        source: 'local-file',
+        quarterSchedules,
+        totalSections
+    };
+}
+
 /**
  * Handle Load & Analyze button - loads previous year and runs analysis
  */
@@ -758,54 +1344,14 @@ async function handleLoadAndAnalyze() {
 
     try {
         // Initialize analyzer
-        await ScheduleAnalyzer.init();
+        await ScheduleAnalyzer.init({
+            courseCatalogData: courseCatalog
+        });
 
-        // Load source year's schedule from workload-data.json
-        const workloadResponse = await fetch('../workload-data.json');
-        if (!workloadResponse.ok) throw new Error('Failed to load workload data');
-        const workloadData = await workloadResponse.json();
-
-        // Get source year data
-        const yearData = workloadData.workloadByYear?.byYear?.[sourceYear];
-        if (!yearData) throw new Error(`No data found for ${sourceYear}`);
-
-        // Extract all courses from all faculty
-        const allCourses = extractCoursesFromYear(yearData, workloadData.facultyWorkload);
-
-        // Group by quarter and build schedule
-        const quarters = ['Fall', 'Winter', 'Spring'];
-        allQuartersSchedule = {
-            Fall: { assignedCourses: {}, caseByeCaseCourses: [] },
-            Winter: { assignedCourses: {}, caseByeCaseCourses: [] },
-            Spring: { assignedCourses: {}, caseByeCaseCourses: [] }
-        };
-
-        let totalSections = 0;
         facultyBuildCapacityWarnings = [];
-        const assignmentState = { annualLoads: {} };
-
-        // Generate schedule for each quarter
-        for (const quarter of quarters) {
-            const quarterCourses = allCourses.filter(c => c.quarter === quarter);
-            const recommendations = buildRecommendations(quarterCourses, quarter, targetYear);
-
-            // Reset current quarter state
-            assignedCourses = {};
-            caseByeCaseCourses = [];
-
-            // Filter case-by-case and assign to grid
-            const gridCourses = filterCaseByeCaseCourses(recommendations, quarter);
-            autoAssignToGrid(gridCourses, quarter, assignmentState);
-
-            // Store in allQuartersSchedule
-            allQuartersSchedule[quarter] = {
-                assignedCourses: { ...assignedCourses },
-                caseByeCaseCourses: [...caseByeCaseCourses],
-                recommendations: recommendations
-            };
-
-            totalSections += Object.values(assignedCourses).flat().length;
-        }
+        const baseline = await loadSourceAcademicYearBaseline(sourceYear, targetYear);
+        allQuartersSchedule = baseline.quarterSchedules;
+        const totalSections = baseline.totalSections;
 
         // Run analysis
         analysisResults = ScheduleAnalyzer.analyzeSchedule(allQuartersSchedule, sourceYear, targetYear);
@@ -1139,59 +1685,18 @@ async function handleGenerate() {
     document.getElementById('actionBar').style.display = 'none';
 
     try {
-        // Load previous year's schedule from workload-data.json
-        const workloadResponse = await fetch('../workload-data.json');
-        if (!workloadResponse.ok) throw new Error('Failed to load workload data');
-        const workloadData = await workloadResponse.json();
-
-        // Get previous year data
-        const yearData = workloadData.workloadByYear?.byYear?.[previousYear];
-        if (!yearData) throw new Error(`No data found for ${previousYear}`);
-
-        // Extract all courses from all faculty
-        const allCourses = extractCoursesFromYear(yearData, workloadData.facultyWorkload);
-
-        // Group by quarter
-        const quarters = ['Fall', 'Winter', 'Spring'];
-
-        // Reset all quarters schedule
-        allQuartersSchedule = {
-            Fall: { assignedCourses: {}, caseByeCaseCourses: [] },
-            Winter: { assignedCourses: {}, caseByeCaseCourses: [] },
-            Spring: { assignedCourses: {}, caseByeCaseCourses: [] }
-        };
-
-        let totalSections = 0;
         facultyBuildCapacityWarnings = [];
-        const assignmentState = { annualLoads: {} };
-
-        // Generate schedule for each quarter
-        for (const quarter of quarters) {
-            const quarterCourses = allCourses.filter(c => c.quarter === quarter);
-            const recommendations = buildRecommendations(quarterCourses, quarter, targetYear);
-
-            // Reset current quarter state
-            assignedCourses = {};
-            caseByeCaseCourses = [];
-
-            // Filter case-by-case and assign to grid
-            const gridCourses = filterCaseByeCaseCourses(recommendations, quarter);
-            autoAssignToGrid(gridCourses, quarter, assignmentState);
-
-            // Store in allQuartersSchedule
-            allQuartersSchedule[quarter] = {
-                assignedCourses: { ...assignedCourses },
-                caseByeCaseCourses: [...caseByeCaseCourses],
-                recommendations: recommendations
-            };
-
-            totalSections += Object.values(assignedCourses).flat().length;
-        }
+        const baseline = await loadSourceAcademicYearBaseline(previousYear, targetYear);
+        allQuartersSchedule = baseline.quarterSchedules;
+        const totalSections = baseline.totalSections;
 
         // Set active quarter and restore its state
         activeQuarter = 'Fall';
         assignedCourses = allQuartersSchedule[activeQuarter].assignedCourses;
         caseByeCaseCourses = allQuartersSchedule[activeQuarter].caseByeCaseCourses;
+
+        const allRecommendations = Object.values(allQuartersSchedule).flatMap((quarterData) => quarterData.recommendations || []);
+        const highDemandCourses = allRecommendations.filter((course) => Number(course.predictedDemand || 0) > 20).length;
 
         // Create schedule summary
         currentSchedule = {
@@ -1200,7 +1705,7 @@ async function handleGenerate() {
             summary: {
                 totalSections: totalSections,
                 assignedSections: totalSections,
-                highDemandCourses: allCourses.filter(c => c.enrolled > 20).length,
+                highDemandCourses: highDemandCourses,
                 warningCount: Object.values(allQuartersSchedule).reduce((sum, q) =>
                     sum + (q.assignedCourses['unassigned']?.length || 0), 0) + facultyBuildCapacityWarnings.length
             },
@@ -2766,6 +3271,14 @@ async function saveToDatabase() {
         const updatedCount = Number(syncResult.updated_count || 0);
         const insertedCount = Number(syncResult.inserted_count || 0);
         const deletedCount = Number(syncResult.deleted_count || 0);
+        setRuntimeDataSourceStatus('savedSchedule', {
+            source: 'database',
+            canonical: true,
+            fallback: false,
+            detail: 'scheduled_courses',
+            count: updatedCount + insertedCount,
+            message: `${targetYear} schedule changes are now persisted in Supabase scheduled_courses.`
+        });
         showToast(`Saved ${targetYear}: ${updatedCount} updated, ${insertedCount} inserted, ${deletedCount} removed`);
 
     } catch (error) {
@@ -2790,7 +3303,7 @@ async function loadFromDatabase() {
         const quarter = activeQuarter || 'Fall';
 
         // Get academic year ID
-        const yearRecord = await dbService.getOrCreateYear(yearString);
+        const yearRecord = await dbService.getAcademicYear(yearString);
         if (!yearRecord) {
             return null;
         }
@@ -2826,6 +3339,14 @@ async function loadFromDatabase() {
             });
         }
 
+        setRuntimeDataSourceStatus('savedSchedule', {
+            source: 'database',
+            canonical: true,
+            fallback: false,
+            detail: 'scheduled_courses',
+            count: schedule.length,
+            message: `${yearString} ${quarter} schedule was loaded from Supabase scheduled_courses.`
+        });
         showToast(`Loaded ${schedule.length} courses from database`);
         return loaded;
 
@@ -2847,7 +3368,7 @@ async function checkDatabaseSchedule(yearString, quarter) {
     try {
         await dbService.initialize();
 
-        const yearRecord = await dbService.getOrCreateYear(yearString);
+        const yearRecord = await dbService.getAcademicYear(yearString);
         if (!yearRecord) return false;
 
         const { count, error } = await supabase
@@ -3828,6 +4349,15 @@ function exportAiReport() {
     showToast('Report exported');
 }
 
+function __setRuntimeDataSourcesForTests(nextState = {}) {
+    runtimeDataSourceStatus = JSON.parse(JSON.stringify(nextState));
+    renderRuntimeDataSourceBanner();
+}
+
+function __getRuntimeDataSourceSummaryForTests() {
+    return JSON.parse(JSON.stringify(getRuntimeDataSourceSummary()));
+}
+
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         saveToDatabase,
@@ -3836,7 +4366,15 @@ if (typeof module !== 'undefined' && module.exports) {
         shouldPersistFacultyName,
         buildDatabaseSaveErrorMessage,
         buildYearScopedScheduleSyncRecords,
+        normalizeCampusId,
+        buildRoomMetadataFromInventory,
+        buildRuntimeConstraintRules,
+        buildCourseCatalogFromDbCourses,
+        buildQuarterSchedulesFromDatabaseRecords,
+        renderRuntimeDataSourceBanner,
         __setSaveStateForTests,
-        __getSaveStateForTests
+        __getSaveStateForTests,
+        __setRuntimeDataSourcesForTests,
+        __getRuntimeDataSourceSummaryForTests
     };
 }

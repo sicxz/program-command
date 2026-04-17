@@ -2,6 +2,11 @@
 
 Use this when you need to verify whether dev data has drifted from production before merging or deploying.
 
+This check supports the data-truth pillar of the production-readiness audit, but it is not sufficient on its own. A surface can be fresh between environments and still fail the source-of-truth policy if it depends on local JSON, embedded fallback data, or hardcoded runtime defaults. See:
+
+- `docs/audits/data-truth-audit.md`
+- `docs/audits/production-source-of-truth-policy.md`
+
 ## What it checks
 
 For a department and academic year, the checker compares these tables between production and dev:
@@ -51,3 +56,7 @@ npm run check:data-freshness -- \
 - `dev-newer` or `dev-has-more`: dev contains changes not yet in production.
 
 If drift is reported, review the affected tables and plan a carry-over before merge/deploy.
+
+Passing this check means the compared persisted tables are aligned. It does not prove that every production-facing surface is actually reading from those persisted tables.
+
+For the multi-department release gate, this check is evidence for the data-truth pillar, not the gate itself. Record it as supporting proof inside `docs/audits/multi-department-release-gate.md`.

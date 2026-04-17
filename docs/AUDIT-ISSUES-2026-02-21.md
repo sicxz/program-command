@@ -1,5 +1,18 @@
 # Full Codebase Audit - Issue Backlog (Feb 21, 2026)
 
+## Current Status In The Readiness Program
+
+This backlog remains useful as issue-level prior art, but it is no longer the sole source of truth for multi-department readiness.
+
+Use `docs/audits/production-readiness-program.md` as the current readiness-program narrative and workstream map.
+
+Rough mapping:
+
+- data/runtime integrity items feed into W1. Canonical data/runtime convergence
+- dashboard and UI consistency items feed into W2. Shared dashboard shell convergence
+- multi-tenant and department-scoping items feed into W3. Canonical multi-department runtime contract
+- rollout and verification gaps feed into W4. Release evidence and operational discipline
+
 Scope: scheduler UI, persistence/Supabase, scripts/data pipeline, conflict engine, PAMCAM/reporting readiness.
 
 ## Validation snapshot

@@ -160,6 +160,105 @@ body {
     border: 1px solid var(--border-color);
 }
 
+.runtime-source-banner[hidden] {
+    display: none !important;
+}
+
+.runtime-source-banner {
+    margin-bottom: 24px;
+    padding: 16px 18px;
+    border-radius: 16px;
+    border: 1px solid transparent;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+}
+
+.runtime-source-banner-warning {
+    background: linear-gradient(180deg, rgba(255, 247, 237, 0.98) 0%, rgba(255, 251, 235, 0.98) 100%);
+    border-color: rgba(217, 119, 6, 0.26);
+}
+
+.runtime-source-banner-success {
+    background: linear-gradient(180deg, rgba(236, 253, 245, 0.98) 0%, rgba(240, 253, 250, 0.98) 100%);
+    border-color: rgba(22, 163, 74, 0.24);
+}
+
+.runtime-source-banner-copy {
+    margin-bottom: 14px;
+}
+
+.runtime-source-banner-title {
+    font-size: 0.98rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.runtime-source-banner-subtitle {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.runtime-source-list {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+}
+
+.runtime-source-item {
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 12px;
+    padding: 12px 14px;
+}
+
+.runtime-source-item-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.runtime-source-item-label {
+    font-size: 0.86rem;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+.runtime-source-item-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: rgba(217, 119, 6, 0.12);
+    color: #9a3412;
+}
+
+.runtime-source-item-status.database {
+    background: rgba(22, 163, 74, 0.14);
+    color: #166534;
+}
+
+.runtime-source-item-message {
+    font-size: 0.84rem;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.runtime-source-item-detail {
+    font-size: 0.76rem;
+    color: #64748b;
+    font-family: var(--mono-font);
+}
+
 .controls-bar-lead {
     display: flex;
     align-items: center;

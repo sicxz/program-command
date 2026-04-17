@@ -29,25 +29,34 @@ const ScheduleGenerator = (function() {
      */
     async function init(options = {}) {
         try {
-            // Load workload data
-            const workloadPath = options.workloadPath || '../workload-data.json';
-            const workloadResponse = await fetch(workloadPath);
-            if (workloadResponse.ok) {
-                workloadData = await workloadResponse.json();
+            if (options.workloadData) {
+                workloadData = options.workloadData;
+            } else {
+                const workloadPath = options.workloadPath || '../workload-data.json';
+                const workloadResponse = await fetch(workloadPath);
+                if (workloadResponse.ok) {
+                    workloadData = await workloadResponse.json();
+                }
             }
 
-            // Load course catalog
-            const catalogPath = options.catalogPath || '../data/course-catalog.json';
-            const catalogResponse = await fetch(catalogPath);
-            if (catalogResponse.ok) {
-                catalogData = await catalogResponse.json();
+            if (options.catalogData) {
+                catalogData = options.catalogData;
+            } else {
+                const catalogPath = options.catalogPath || '../data/course-catalog.json';
+                const catalogResponse = await fetch(catalogPath);
+                if (catalogResponse.ok) {
+                    catalogData = await catalogResponse.json();
+                }
             }
 
-            // Load enrollment data
-            const enrollmentPath = options.enrollmentPath || '../enrollment-dashboard-data.json';
-            const enrollmentResponse = await fetch(enrollmentPath);
-            if (enrollmentResponse.ok) {
-                enrollmentData = await enrollmentResponse.json();
+            if (options.enrollmentData) {
+                enrollmentData = options.enrollmentData;
+            } else {
+                const enrollmentPath = options.enrollmentPath || '../enrollment-dashboard-data.json';
+                const enrollmentResponse = await fetch(enrollmentPath);
+                if (enrollmentResponse.ok) {
+                    enrollmentData = await enrollmentResponse.json();
+                }
             }
 
             initialized = true;

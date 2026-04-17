@@ -55,9 +55,36 @@ async function initializePage() {
             await loadSections();
         }
 
+        applyCourseManagementIntentFromUrl();
+
     } catch (error) {
         console.error('Failed to initialize page:', error);
         showToast('Failed to load data. Please refresh.', 'error');
+    }
+}
+
+function resolveCourseManagementIntent(search = window.location.search) {
+    const params = new URLSearchParams(search || '');
+    return {
+        action: params.get('action') || '',
+        courseId: params.get('courseId') || ''
+    };
+}
+
+function applyCourseManagementIntentFromUrl() {
+    const intent = resolveCourseManagementIntent();
+    if (!intent.action && !intent.courseId) {
+        return;
+    }
+
+    if (intent.action === 'add') {
+        openAddCourseModal();
+    } else if (intent.courseId) {
+        editCourse(intent.courseId);
+    }
+
+    if (window.history?.replaceState) {
+        window.history.replaceState({}, document.title, window.location.pathname);
     }
 }
 
@@ -671,4 +698,10 @@ function showToast(message, type = '') {
     setTimeout(() => {
         toast.classList.remove('active');
     }, 3000);
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        resolveCourseManagementIntent
+    };
 }

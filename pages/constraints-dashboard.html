@@ -19,14 +19,16 @@
         <!-- Action Bar -->
         <div class="action-bar">
             <div class="action-group">
-                <span class="status-text" id="statusText">All changes saved</span>
+                <span class="status-text" id="statusText">Loading constraint sources...</span>
             </div>
             <div class="action-group">
                 <button class="btn-secondary" onclick="window.location.href='pamcam-playground.html'">PamCam Lab</button>
-                <button class="btn-secondary" onclick="resetToDefaults()">Reset to Defaults</button>
-                <button class="btn-primary" onclick="saveRules()">Save Changes</button>
+                <button class="btn-secondary" onclick="window.location.href='course-management.html'">Course Catalog</button>
+                <button class="btn-primary" onclick="refreshDashboardData()">Refresh Data</button>
             </div>
         </div>
+
+        <div class="runtime-source-banner" id="runtimeDataSourceBanner" hidden></div>
 
         <!-- Main Content -->
         <div class="dashboard-content">
@@ -34,9 +36,9 @@
             <section class="constraint-section">
                 <div class="section-header">
                     <h2>Course Constraints</h2>
-                    <button class="btn-add" onclick="showAddCourseConstraint()">+ Add Rule</button>
+                    <button class="btn-add" onclick="showAddCourseConstraint()">Open Course Catalog</button>
                 </div>
-                <p class="section-description">Define which rooms and times specific courses can use</p>
+                <p class="section-description">Course-level timing, campus, room, and case-by-case rules are now managed from the canonical course catalog.</p>
 
                 <div class="constraints-list" id="courseConstraintsList">
                     <!-- Populated by JavaScript -->
@@ -93,9 +95,9 @@
             <section class="constraint-section">
                 <div class="section-header">
                     <h2>Case-by-Case Courses</h2>
-                    <button class="btn-add" onclick="showAddCaseByCase()">+ Add Course</button>
+                    <button class="btn-add" onclick="showAddCaseByCase()">Manage Courses</button>
                 </div>
-                <p class="section-description">Courses not scheduled in the regular grid - handled individually</p>
+                <p class="section-description">Courses marked as case-by-case come from the canonical course catalog and are handled individually.</p>
 
                 <div class="case-by-case-list" id="caseByeCaseList">
                     <!-- Populated by JavaScript -->
@@ -142,11 +144,12 @@
     </div>
 
     <!-- Scripts -->
-    <script src="../js/constraints-engine.js"></script>
-    <script src="constraints-dashboard.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../js/supabase-config.js"></script>
+    <script src="../js/db-service.js"></script>
     <script src="../js/auth-service.js"></script>
     <script src="../js/auth-guard.js"></script>
+    <script src="../js/constraints-engine.js"></script>
+    <script src="constraints-dashboard.js"></script>
 </body>
 </html>

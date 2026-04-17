@@ -39,20 +39,26 @@ const DemandPredictor = (function() {
                 });
             }
 
-            // Load enrollment data directly for additional analysis
-            const enrollmentPath = options.enrollmentPath || 'enrollment-dashboard-data.json';
-            const enrollmentResponse = await fetch(enrollmentPath);
-            if (enrollmentResponse.ok) {
-                const data = await enrollmentResponse.json();
-                enrollmentData = data.courseStats || {};
+            if (options.enrollmentData) {
+                enrollmentData = options.enrollmentData.courseStats || options.enrollmentData;
+            } else {
+                const enrollmentPath = options.enrollmentPath || 'enrollment-dashboard-data.json';
+                const enrollmentResponse = await fetch(enrollmentPath);
+                if (enrollmentResponse.ok) {
+                    const data = await enrollmentResponse.json();
+                    enrollmentData = data.courseStats || {};
+                }
             }
 
-            // Load course catalog
-            const catalogPath = options.catalogPath || 'data/course-catalog.json';
-            const catalogResponse = await fetch(catalogPath);
-            if (catalogResponse.ok) {
-                const data = await catalogResponse.json();
-                catalogData = data.courses || data;
+            if (options.catalogData) {
+                catalogData = options.catalogData.courses || options.catalogData;
+            } else {
+                const catalogPath = options.catalogPath || 'data/course-catalog.json';
+                const catalogResponse = await fetch(catalogPath);
+                if (catalogResponse.ok) {
+                    const data = await catalogResponse.json();
+                    catalogData = data.courses || data;
+                }
             }
 
             initialized = true;
