@@ -143,6 +143,38 @@ describe('ProfileLoader', () => {
         expect(query.limit).toHaveBeenCalledTimes(1);
     });
 
+    test('supports canonical program config envelopes that store the runtime profile under config.profile', async () => {
+        const { ProfileLoader } = loadProfileLoader({
+            supabaseRow: {
+                id: 'program-1',
+                code: 'ewu-design',
+                config: {
+                    legacy_department_code: 'DESN',
+                    profile_schema_version: 1,
+                    profile: {
+                        identity: {
+                            code: 'DESN',
+                            name: 'Design',
+                            displayName: 'EWU Design'
+                        },
+                        workload: {
+                            defaultAnnualTargets: {
+                                'Full Professor': 42
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        const snapshot = await ProfileLoader.init('program-1');
+
+        expect(snapshot.source).toBe('supabase-programs');
+        expect(snapshot.programCode).toBe('ewu-design');
+        expect(ProfileLoader.get('identity.displayName')).toBe('EWU Design');
+        expect(ProfileLoader.get('faculty.ranks.professor.limit')).toBe(42);
+    });
+
     test('can resolve program id from AuthService metadata when not passed explicitly', async () => {
         const { ProfileLoader, query, windowObject } = loadProfileLoader({
             supabaseRow: {

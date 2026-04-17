@@ -10,6 +10,8 @@ Another department should not be onboarded from this pack alone until the platfo
 
 The onboarding page now explicitly reports whether canonical program config was found in Supabase or whether the page is still operating in bootstrap local-profile mode. Treat bootstrap mode as setup-only, not release evidence.
 
+For develop environments that should exercise the canonical runtime path, apply `scripts/supabase-program-config-seed-t07.sql` after the base schema setup so `ewu-design` exists in `public.programs` with a real runtime profile.
+
 ## 1) Regression Suite (Scheduler + Workload + CLSS)
 
 Run before each onboarding rollout:

@@ -1,0 +1,131 @@
+-- Tree/T-07: Seed canonical program config for EWU Design
+-- Idempotent migration: safe to re-run.
+
+BEGIN;
+
+-- Ensure the canonical programs table exists even in base-schema develop setups.
+CREATE TABLE IF NOT EXISTS public.programs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    code TEXT NOT NULL UNIQUE,
+    config JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_by UUID REFERENCES auth.users(id),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_programs_created_by ON public.programs(created_by);
+
+INSERT INTO public.programs (name, code, config)
+VALUES (
+    'EWU Design',
+    'ewu-design',
+    $program_config$
+    {
+      "legacy_department_code": "DESN",
+      "profile_schema_version": 1,
+      "profile_source": "department-profiles/design-v1.json",
+      "profile": {
+        "version": 1,
+        "id": "design-v1",
+        "identity": {
+          "name": "Design",
+          "code": "DESN",
+          "displayName": "EWU Design",
+          "shortName": "Design"
+        },
+        "branding": {
+          "appTitle": "Program Command - EWU Design",
+          "headerEyebrow": "EWU DESIGN · PROGRAM COMMAND",
+          "headerSubtitle": "Design Program Planning, Scheduling, and Scenario Control",
+          "textSlots": {
+            "navAnalyticsLabel": "Analytics",
+            "navPlanningLabel": "Planning",
+            "navToolsLabel": "Tools",
+            "onboardingTitle": "Department Onboarding Shell",
+            "onboardingSubtitle": "Create and activate a versioned department profile without code edits for standard setup",
+            "onboardingStep1Title": "Step 1: Entry + Base Profile",
+            "onboardingStep1Help": "Select an existing profile as your base, then define department identity.",
+            "onboardingStep2Title": "Step 2: Seed Mapping Wizard",
+            "onboardingStep2Help": "Enter room map and CLSS alias mappings. Use one item per line. Alias format: alias=canonical.",
+            "onboardingStep3Title": "Step 3: Health Checks + Activation",
+            "onboardingStep3Help": "Run checks before activation. Errors block activation. Warnings are advisory.",
+            "onboardingStatusTitle": "Current Status"
+          },
+          "themeTokens": {
+            "headerTop": "#3d444d",
+            "headerBottom": "#24292f",
+            "headerForeground": "#ffffff",
+            "headerMuted": "#d0d7de",
+            "headerActionBg": "#24292f",
+            "headerActionBorder": "#57606a",
+            "headerActionHoverBg": "#30363d",
+            "headerActionHoverBorder": "#8b949e"
+          }
+        },
+        "academic": {
+          "system": "quarter",
+          "quarters": ["fall", "winter", "spring"],
+          "defaultTargetYearMode": "current",
+          "defaultWorkloadImportYearMode": "next",
+          "defaultSchedulerYear": "2025-26"
+        },
+        "scheduler": {
+          "storageKeyPrefix": "designSchedulerData_",
+          "allowedRooms": ["206", "207", "209", "210", "212", "CEB 102", "CEB 104"],
+          "dayPatterns": [
+            { "id": "MW", "label": "Monday / Wednesday", "aliases": ["MW", "WM"] },
+            { "id": "TR", "label": "Tuesday / Thursday", "aliases": ["TR", "RT", "TH", "TTH"] }
+          ],
+          "timeSlots": [
+            { "id": "10:00-12:20", "label": "10:00-12:20", "aliases": ["10:00-12:00"], "startMinutes": 600, "endMinutes": 740 },
+            { "id": "13:00-15:20", "label": "13:00-15:20", "aliases": ["13:00-15:00"], "startMinutes": 780, "endMinutes": 920 },
+            { "id": "16:00-18:20", "label": "16:00-18:20", "aliases": ["16:00-18:00"], "startMinutes": 960, "endMinutes": 1100 }
+          ],
+          "roomLabels": {
+            "206": "206 UX Lab",
+            "207": "207 Media Lab",
+            "209": "209 Mac Lab",
+            "210": "210 Mac Lab",
+            "212": "212 Project Lab",
+            "CEB 102": "CEB 102",
+            "CEB 104": "CEB 104"
+          }
+        },
+        "workload": {
+          "dashboardTitle": "Faculty Workload Dashboard",
+          "dashboardSubtitleBase": "EWU Design Department - Academic Workload Analysis",
+          "productionResetDefaultScheduleYear": "2026-27",
+          "defaultAnnualTargets": {
+            "Full Professor": 36,
+            "Associate Professor": 36,
+            "Assistant Professor": 36,
+            "Tenure/Tenure-track": 36,
+            "Senior Lecturer": 45,
+            "Lecturer": 45,
+            "Adjunct": 15
+          }
+        },
+        "import": {
+          "clss": {
+            "roomMatchPriority": ["206", "207", "209", "210", "212", "CEB 102", "CEB 104"],
+            "preferredMatchingOrder": [
+              "course+section+instructor+quarter",
+              "course+quarter+instructor",
+              "course+quarter"
+            ],
+            "facultyAliases": {},
+            "courseAliases": {}
+          }
+        }
+      }
+    }
+    $program_config$::jsonb
+)
+ON CONFLICT (code) DO UPDATE
+SET
+    name = EXCLUDED.name,
+    config = EXCLUDED.config,
+    updated_at = NOW();
+
+COMMIT;
