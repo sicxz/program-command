@@ -139,8 +139,6 @@ const ProfileLoader = (function() {
         addCandidate(context?.selection?.identityName);
         addCandidate(context?.selection?.departmentLabel);
         addCandidate(context?.selection?.suggestedCode);
-        addCandidate(context?.selection?.baseProfileId);
-        addCandidate(context?.profile?.id);
         addCandidate(context?.profile?.identity?.displayName);
         addCandidate(context?.profile?.identity?.name);
         addCandidate(context?.profile?.identity?.code);
@@ -160,7 +158,10 @@ const ProfileLoader = (function() {
     function getLocalRuntimeContext() {
         if (typeof window !== 'undefined' && typeof window.getProgramCommandRuntimeContext === 'function') {
             try {
-                return window.getProgramCommandRuntimeContext();
+                const runtimeContext = window.getProgramCommandRuntimeContext();
+                if (runtimeContext && runtimeContext.source && runtimeContext.source !== 'active-profile') {
+                    return runtimeContext;
+                }
             } catch (error) {
                 // fall back to local context discovery below
             }
@@ -202,19 +203,6 @@ const ProfileLoader = (function() {
                         name: onboardingContext.identityName || onboardingContext.label || onboardingContext.departmentLabel,
                         displayName: onboardingContext.identityDisplayName
                     }
-                })
-            };
-        }
-
-        const activeProfile = (typeof globalThis !== 'undefined' && globalThis.__PROGRAM_COMMAND_ACTIVE_PROFILE__)
-            ? globalThis.__PROGRAM_COMMAND_ACTIVE_PROFILE__
-            : null;
-
-        if (activeProfile && isObject(activeProfile)) {
-            return {
-                source: 'active-profile',
-                programCodeCandidates: buildProgramCodeCandidates({
-                    profile: activeProfile
                 })
             };
         }
@@ -277,12 +265,15 @@ const ProfileLoader = (function() {
         }
 
         const runtimeContext = getLocalRuntimeContext();
+        const runtimeSource = runtimeContext.source || 'runtime-context';
+        const programCodes = Array.isArray(runtimeContext.programCodeCandidates) && runtimeContext.programCodeCandidates.length
+            ? runtimeContext.programCodeCandidates
+            : [];
+
         return {
             programId: null,
-            programCodes: Array.isArray(runtimeContext.programCodeCandidates) && runtimeContext.programCodeCandidates.length
-                ? runtimeContext.programCodeCandidates
-                : ['ewu-design'],
-            source: runtimeContext.source || 'runtime-context'
+            programCodes: runtimeSource === 'design-bootstrap-default' ? [] : programCodes,
+            source: runtimeSource
         };
     }
 
@@ -343,46 +334,54 @@ const ProfileLoader = (function() {
                 .from('programs')
                 .select('id, code, config')
                 .eq('id', target.programId)
-                .maybeSingle();
+                .limit(1);
 
-            if (error || !data) {
+            if (error || !Array.isArray(data) || !data.length) {
                 return null;
             }
 
-            const profile = normalizeLoadedProfile(data.config);
+            const row = data[0];
+
+            const profile = normalizeLoadedProfile(row.config);
             if (!isObject(profile)) {
                 return null;
             }
 
             return {
-                programId: data.id || target.programId || null,
-                programCode: data.code || null,
+                programId: row.id || target.programId || null,
+                programCode: row.code || null,
                 profile
             };
         }
 
         const candidateCodes = Array.isArray(target.programCodes) && target.programCodes.length
             ? target.programCodes
-            : ['ewu-design'];
+            : [];
+
+        if (!candidateCodes.length) {
+            return null;
+        }
 
         for (const code of candidateCodes) {
             const { data, error } = await client
                 .from('programs')
                 .select('id, code, config')
                 .eq('code', code)
-                .maybeSingle();
+                .limit(1);
 
-            if (error && error.code !== 'PGRST116') {
+            if (error) {
                 return null;
             }
 
-            if (!data) continue;
-            const profile = normalizeLoadedProfile(data.config);
+            const row = Array.isArray(data) ? data[0] : null;
+            if (!row) continue;
+
+            const profile = normalizeLoadedProfile(row.config);
             if (!isObject(profile)) continue;
 
             return {
-                programId: data.id || null,
-                programCode: data.code || code,
+                programId: row.id || null,
+                programCode: row.code || code,
                 profile
             };
         }

@@ -238,11 +238,9 @@ function buildProgramCodeCandidates({
     addCandidate(selection?.identityName);
     addCandidate(selection?.departmentLabel);
     addCandidate(selection?.suggestedCode);
-    addCandidate(selection?.baseProfileId);
     addCandidate(suggestedIdentity?.displayName);
     addCandidate(suggestedIdentity?.name);
     addCandidate(suggestedIdentity?.code);
-    addCandidate(profile?.id);
     addCandidate(profile?.identity?.displayName);
     addCandidate(profile?.identity?.name);
     addCandidate(profile?.identity?.code);

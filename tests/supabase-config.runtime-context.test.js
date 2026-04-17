@@ -28,6 +28,7 @@ describe('supabase runtime context resolution', () => {
             displayName: 'EWU Engineering'
         });
         expect(config.getProgramCommandRuntimeContext().source).toBe('active-profile');
+        expect(config.getProgramCommandRuntimeContext().programCodeCandidates).not.toContain('engineering-v1');
     });
 
     test('uses shell selection before falling back to design bootstrap', () => {

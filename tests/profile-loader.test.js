@@ -14,7 +14,10 @@ function loadProfileLoader({
     const query = {
         select: jest.fn(function select() { return this; }),
         eq: jest.fn(function eq() { return this; }),
-        maybeSingle: jest.fn().mockResolvedValue({ data: supabaseRow, error: supabaseError })
+        limit: jest.fn().mockResolvedValue({
+            data: supabaseRow ? [supabaseRow] : [],
+            error: supabaseError
+        })
     };
 
     const client = {
@@ -79,6 +82,42 @@ describe('ProfileLoader', () => {
         expect(ProfileLoader.get('does.not.exist', 'fallback')).toBe('fallback');
     });
 
+    test('does not probe canonical programs when only the bootstrap default is available', async () => {
+        const { ProfileLoader, client, windowObject } = loadProfileLoader({
+            supabaseRow: {
+                id: 'program-design',
+                code: 'ewu-design',
+                config: {}
+            },
+            authUser: {}
+        });
+
+        delete windowObject.ProgramCommandShell;
+        await ProfileLoader.init();
+
+        expect(client.from).not.toHaveBeenCalledWith('programs');
+    });
+
+    test('ignores active-profile runtime context when choosing whether to probe canonical programs', async () => {
+        const { ProfileLoader, client, windowObject } = loadProfileLoader({
+            supabaseRow: {
+                id: 'program-design',
+                code: 'ewu-design',
+                config: {}
+            },
+            authUser: {}
+        });
+
+        windowObject.getProgramCommandRuntimeContext = jest.fn(() => ({
+            source: 'active-profile',
+            programCodeCandidates: ['ewu-design']
+        }));
+
+        await ProfileLoader.init();
+
+        expect(client.from).not.toHaveBeenCalledWith('programs');
+    });
+
     test('loads program config from supabase and caches by program id', async () => {
         const { ProfileLoader, query, client } = loadProfileLoader({
             supabaseRow: {
@@ -101,7 +140,7 @@ describe('ProfileLoader', () => {
         expect(second.source).toBe('supabase-programs');
         expect(ProfileLoader.get('faculty.ranks.professor.limit')).toBe(40);
         expect(client.from).toHaveBeenCalledWith('programs');
-        expect(query.maybeSingle).toHaveBeenCalledTimes(1);
+        expect(query.limit).toHaveBeenCalledTimes(1);
     });
 
     test('can resolve program id from AuthService metadata when not passed explicitly', async () => {
@@ -138,12 +177,14 @@ describe('ProfileLoader', () => {
             readSelection: jest.fn(() => ({
                 id: 'computer-science',
                 label: 'Computer Science',
-                suggestedCode: 'CSCD'
+                suggestedCode: 'CSCD',
+                baseProfileId: 'design-v1'
             }))
         };
 
         await ProfileLoader.init();
 
         expect(query.eq).toHaveBeenCalledWith('code', 'computer-science');
+        expect(query.eq).not.toHaveBeenCalledWith('code', 'design-v1');
     });
 });
