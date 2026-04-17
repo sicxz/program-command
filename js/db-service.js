@@ -599,10 +599,21 @@ const dbService = {
      */
     async getSchedule(yearId, quarter = null) {
         if (!isSupabaseConfigured()) {
+            this._setRuntimeSourceStatus('savedSchedule', {
+                label: 'Saved schedule',
+                source: 'database-unavailable',
+                canonical: false,
+                fallback: false,
+                detail: 'Supabase not configured',
+                count: 0,
+                message: 'Saved schedule data is unavailable because Supabase is not configured.'
+            });
             return [];
         }
 
-        let query = supabase
+        await this.initialize();
+
+        let query = getSupabaseClient()
             .from('scheduled_courses')
             .select(`
                 *,
@@ -618,7 +629,30 @@ const dbService = {
 
         const { data, error } = await query.order('quarter').order('day_pattern').order('time_slot');
 
-        if (error) throw error;
+        if (error) {
+            this._setRuntimeSourceStatus('savedSchedule', {
+                label: 'Saved schedule',
+                source: 'database-error',
+                canonical: false,
+                fallback: false,
+                detail: error.message || 'Unknown database error',
+                count: 0,
+                message: 'Saved schedule data failed to load from Supabase.'
+            });
+            throw error;
+        }
+
+        this._setRuntimeSourceStatus('savedSchedule', {
+            label: 'Saved schedule',
+            source: 'database',
+            canonical: true,
+            fallback: false,
+            detail: quarter
+                ? `scheduled_courses (${quarter})`
+                : 'scheduled_courses',
+            count: Array.isArray(data) ? data.length : 0,
+            message: 'Saved schedule data loaded from the canonical Supabase scheduled_courses table.'
+        });
         return data;
     },
 

@@ -19,10 +19,10 @@ The blocking problem is not lack of ambition. It is overlap without a single can
 
 | Area | Current state | Evidence |
 | --- | --- | --- |
-| Runtime identity | `js/supabase-config.js` and `js/db-service.js` still fall back to hardcoded Design identity even while supporting active-profile identity when available | `js/supabase-config.js`, `js/db-service.js` |
+| Runtime identity | `js/supabase-config.js` and `js/db-service.js` now prefer active profile, shell selection, and onboarding context before Design bootstrap defaults, but the bootstrap fallback still exists and remains explicitly non-canonical | `js/supabase-config.js`, `js/db-service.js`, `tests/supabase-config.runtime-context.test.js` |
 | Seeded onboarding catalog | `js/program-shell.js` seeds all future programs from `design-v1`, which is a useful bootstrap but not a final reusable platform contract | `js/program-shell.js`, `tests/program-shell.test.js` |
-| Profile source of truth | `js/department-profile.js` still centers manifest/file loading and local storage, while `js/profile-loader.js` loads program config from Supabase with a fallback default | `js/department-profile.js`, `js/profile-loader.js`, `tests/profile-loader.test.js` |
-| Onboarding handoff | `pages/department-onboarding.js` preserves department-aware context from Program Command, but the resulting workflow still saves and activates local versioned profiles | `pages/department-onboarding.js`, `docs/department-onboarding-qa-pack.md` |
+| Profile source of truth | `js/department-profile.js` still centers manifest/file loading and local storage, while `js/profile-loader.js` now resolves canonical program config from auth, shell selection, onboarding context, or bootstrap fallback in an explicit order | `js/department-profile.js`, `js/profile-loader.js`, `tests/profile-loader.test.js` |
+| Onboarding handoff | `pages/department-onboarding.js` now calls out canonical-vs-bootstrap runtime state explicitly, but the workflow still saves and activates local versioned profiles as bootstrap artifacts | `pages/department-onboarding.js`, `pages/department-onboarding.html`, `docs/department-onboarding-qa-pack.md` |
 | Storage isolation | Namespaced storage prefixes exist, but they are still rooted in profile-driven local storage behavior rather than a fully canonical platform state model | `js/department-profile.js`, `pages/department-onboarding.js`, `tests/release-time-manager.profile-scope.test.js` |
 | Department scoping in the data layer | DB service has meaningful department scoping behavior, but its initialization still tolerates Design fallbacks and local JSON fallback mode | `js/db-service.js`, `tests/db-service.department-scoping.test.js` |
 
@@ -30,7 +30,7 @@ The blocking problem is not lack of ambition. It is overlap without a single can
 
 | ID | Type | Surface | Impact | Recommended outcome | Blocks multi-department |
 | --- | --- | --- | --- | --- | --- |
-| PTA-001 | `foundational-gap` | Runtime identity | The app can still derive live department identity from Design defaults when the richer context is missing | Define one canonical runtime identity resolution path and demote Design defaults to non-production bootstrap only | yes |
+| PTA-001 | `foundational-gap` | Runtime identity | Runtime identity resolution is now explicit, but the final release-gated contract still needs to remove or tightly bound the remaining Design bootstrap fallback | Define one canonical runtime identity resolution path and demote Design defaults to non-production bootstrap only | yes |
 | PTA-002 | `foundational-gap` | Profile source model | The codebase supports both local file-backed profiles and Supabase-backed program config without one declared canonical source | Decide and document the canonical profile/runtime source model for release-gated behavior | yes |
 | PTA-003 | `foundational-gap` | Program shell onboarding | Program shell seeding from `design-v1` is practical for bootstrap, but it means new departments still inherit Design assumptions by default | Reframe Design seeding as temporary bootstrap behavior and define what must replace it before phase 2 | yes |
 | PTA-004 | `docs-process-gap` | Onboarding docs | Current onboarding docs still read like a local profile activation rollout, not a platformized multi-department system | Update docs so they describe the hybrid current state honestly and gate onboarding behind platform readiness | yes |

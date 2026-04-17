@@ -8,6 +8,8 @@ This QA pack reflects the current onboarding shell and local-profile workflow. D
 
 Another department should not be onboarded from this pack alone until the platformization and release-gate artifacts in `docs/audits/` pass.
 
+The onboarding page now explicitly reports whether canonical program config was found in Supabase or whether the page is still operating in bootstrap local-profile mode. Treat bootstrap mode as setup-only, not release evidence.
+
 ## 1) Regression Suite (Scheduler + Workload + CLSS)
 
 Run before each onboarding rollout:

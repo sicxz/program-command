@@ -62,7 +62,8 @@ const ProfileLoader = (function() {
         loadingPromise: null,
         profile: deepClone(DEFAULT_PROFILE),
         source: 'fallback-default',
-        programId: null
+        programId: null,
+        programCode: null
     };
 
     function deepClone(value) {
@@ -104,6 +105,126 @@ const ProfileLoader = (function() {
         return null;
     }
 
+    function readJsonStorageKey(storageKey) {
+        if (typeof window === 'undefined' || !window.localStorage) return null;
+        try {
+            const raw = window.localStorage.getItem(storageKey);
+            return raw ? JSON.parse(raw) : null;
+        } catch (error) {
+            return null;
+        }
+    }
+
+    function slugifyProgramValue(value) {
+        return String(value || '')
+            .trim()
+            .toLowerCase()
+            .replace(/^ewu\s+/, 'ewu-')
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+/, '')
+            .replace(/-+$/, '');
+    }
+
+    function buildProgramCodeCandidates(context = {}) {
+        const candidates = [];
+        const addCandidate = (value) => {
+            const normalized = slugifyProgramValue(value);
+            if (!normalized || candidates.includes(normalized)) return;
+            candidates.push(normalized);
+        };
+
+        addCandidate(context?.selection?.id);
+        addCandidate(context?.selection?.departmentId);
+        addCandidate(context?.selection?.label);
+        addCandidate(context?.selection?.identityName);
+        addCandidate(context?.selection?.departmentLabel);
+        addCandidate(context?.selection?.suggestedCode);
+        addCandidate(context?.selection?.baseProfileId);
+        addCandidate(context?.profile?.id);
+        addCandidate(context?.profile?.identity?.displayName);
+        addCandidate(context?.profile?.identity?.name);
+        addCandidate(context?.profile?.identity?.code);
+        addCandidate(context?.suggestedIdentity?.displayName);
+        addCandidate(context?.suggestedIdentity?.name);
+        addCandidate(context?.suggestedIdentity?.code);
+
+        const identityCode = String(context?.suggestedIdentity?.code || context?.profile?.identity?.code || '').trim().toUpperCase();
+        const identityName = String(context?.suggestedIdentity?.name || context?.profile?.identity?.name || '').trim().toLowerCase();
+        if (identityCode === 'DESN' || identityName === 'design') {
+            addCandidate('ewu-design');
+        }
+
+        return candidates.length ? candidates : ['ewu-design'];
+    }
+
+    function getLocalRuntimeContext() {
+        if (typeof window !== 'undefined' && typeof window.getProgramCommandRuntimeContext === 'function') {
+            try {
+                return window.getProgramCommandRuntimeContext();
+            } catch (error) {
+                // fall back to local context discovery below
+            }
+        }
+
+        const selection = (typeof window !== 'undefined'
+            && window.ProgramCommandShell
+            && typeof window.ProgramCommandShell.readSelection === 'function')
+            ? window.ProgramCommandShell.readSelection()
+            : readJsonStorageKey('programCommandShellSelectionV1');
+
+        if (selection) {
+            return {
+                source: 'shell-selection',
+                programCodeCandidates: buildProgramCodeCandidates({
+                    selection,
+                    suggestedIdentity: selection.suggestedIdentity || {
+                        code: selection.suggestedCode,
+                        name: selection.identityName || selection.label || selection.departmentLabel,
+                        displayName: selection.identityDisplayName
+                    }
+                })
+            };
+        }
+
+        const onboardingContext = (typeof window !== 'undefined'
+            && window.ProgramCommandShell
+            && typeof window.ProgramCommandShell.readOnboardingContext === 'function')
+            ? window.ProgramCommandShell.readOnboardingContext()
+            : readJsonStorageKey('programCommandOnboardingContextV1');
+
+        if (onboardingContext) {
+            return {
+                source: 'onboarding-context',
+                programCodeCandidates: buildProgramCodeCandidates({
+                    selection: onboardingContext,
+                    suggestedIdentity: onboardingContext.suggestedIdentity || {
+                        code: onboardingContext.suggestedCode,
+                        name: onboardingContext.identityName || onboardingContext.label || onboardingContext.departmentLabel,
+                        displayName: onboardingContext.identityDisplayName
+                    }
+                })
+            };
+        }
+
+        const activeProfile = (typeof globalThis !== 'undefined' && globalThis.__PROGRAM_COMMAND_ACTIVE_PROFILE__)
+            ? globalThis.__PROGRAM_COMMAND_ACTIVE_PROFILE__
+            : null;
+
+        if (activeProfile && isObject(activeProfile)) {
+            return {
+                source: 'active-profile',
+                programCodeCandidates: buildProgramCodeCandidates({
+                    profile: activeProfile
+                })
+            };
+        }
+
+        return {
+            source: 'design-bootstrap-default',
+            programCodeCandidates: ['ewu-design']
+        };
+    }
+
     async function resolveProgramId(explicitProgramId = null) {
         if (explicitProgramId) return String(explicitProgramId);
 
@@ -117,6 +238,52 @@ const ProfileLoader = (function() {
         } catch (error) {
             return null;
         }
+    }
+
+    async function resolveProgramTarget(explicitProgramId = null) {
+        const explicitId = explicitProgramId ? String(explicitProgramId) : null;
+        if (explicitId) {
+            return {
+                programId: explicitId,
+                programCodes: [],
+                source: 'explicit-program-id'
+            };
+        }
+
+        const authProgramId = await resolveProgramId(explicitProgramId);
+        if (authProgramId) {
+            return {
+                programId: authProgramId,
+                programCodes: [],
+                source: 'auth-program-id'
+            };
+        }
+
+        const authService = (typeof window !== 'undefined' && window.AuthService) ? window.AuthService : null;
+        if (authService && typeof authService.getUser === 'function') {
+            try {
+                const user = await authService.getUser();
+                const metadataProgramCode = user?.app_metadata?.program_code || user?.user_metadata?.program_code || null;
+                if (metadataProgramCode) {
+                    return {
+                        programId: null,
+                        programCodes: [slugifyProgramValue(metadataProgramCode)],
+                        source: 'auth-program-code'
+                    };
+                }
+            } catch (error) {
+                // ignore auth metadata failures
+            }
+        }
+
+        const runtimeContext = getLocalRuntimeContext();
+        return {
+            programId: null,
+            programCodes: Array.isArray(runtimeContext.programCodeCandidates) && runtimeContext.programCodeCandidates.length
+                ? runtimeContext.programCodeCandidates
+                : ['ewu-design'],
+            source: runtimeContext.source || 'runtime-context'
+        };
     }
 
     function normalizeLoadedProfile(rawProgramConfig) {
@@ -170,28 +337,57 @@ const ProfileLoader = (function() {
             return null;
         }
 
-        const resolvedProgramId = await resolveProgramId(explicitProgramId);
-        let query = client.from('programs').select('id, code, config');
-        if (resolvedProgramId) {
-            query = query.eq('id', resolvedProgramId);
-        } else {
-            query = query.eq('code', 'ewu-design');
+        const target = await resolveProgramTarget(explicitProgramId);
+        if (target.programId) {
+            const { data, error } = await client
+                .from('programs')
+                .select('id, code, config')
+                .eq('id', target.programId)
+                .maybeSingle();
+
+            if (error || !data) {
+                return null;
+            }
+
+            const profile = normalizeLoadedProfile(data.config);
+            if (!isObject(profile)) {
+                return null;
+            }
+
+            return {
+                programId: data.id || target.programId || null,
+                programCode: data.code || null,
+                profile
+            };
         }
 
-        const { data, error } = await query.maybeSingle();
-        if (error || !data) {
-            return null;
+        const candidateCodes = Array.isArray(target.programCodes) && target.programCodes.length
+            ? target.programCodes
+            : ['ewu-design'];
+
+        for (const code of candidateCodes) {
+            const { data, error } = await client
+                .from('programs')
+                .select('id, code, config')
+                .eq('code', code)
+                .maybeSingle();
+
+            if (error && error.code !== 'PGRST116') {
+                return null;
+            }
+
+            if (!data) continue;
+            const profile = normalizeLoadedProfile(data.config);
+            if (!isObject(profile)) continue;
+
+            return {
+                programId: data.id || null,
+                programCode: data.code || code,
+                profile
+            };
         }
 
-        const profile = normalizeLoadedProfile(data.config);
-        if (!isObject(profile)) {
-            return null;
-        }
-
-        return {
-            programId: data.id || resolvedProgramId || null,
-            profile
-        };
+        return null;
     }
 
     function resolveRuntimeDefaultProfile() {
@@ -227,9 +423,10 @@ const ProfileLoader = (function() {
             let profile = resolveRuntimeDefaultProfile();
             let source = 'fallback-default';
             let resolvedProgramId = requestedProgramId;
+            let fromSupabase = null;
 
             try {
-                const fromSupabase = await loadFromSupabase(requestedProgramId);
+                fromSupabase = await loadFromSupabase(requestedProgramId);
                 if (fromSupabase && isObject(fromSupabase.profile)) {
                     profile = deepMerge(profile, fromSupabase.profile);
                     resolvedProgramId = fromSupabase.programId || resolvedProgramId;
@@ -243,6 +440,7 @@ const ProfileLoader = (function() {
             state.profile = profile;
             state.source = source;
             state.programId = resolvedProgramId || null;
+            state.programCode = fromSupabase?.programCode || null;
             state.loaded = true;
             return getSnapshot();
         })();
@@ -259,6 +457,7 @@ const ProfileLoader = (function() {
             loaded: state.loaded,
             source: state.source,
             programId: state.programId,
+            programCode: state.programCode,
             profile: deepClone(state.profile)
         };
     }
@@ -294,6 +493,7 @@ const ProfileLoader = (function() {
         state.profile = deepClone(DEFAULT_PROFILE);
         state.source = 'fallback-default';
         state.programId = null;
+        state.programCode = null;
     }
 
     return {

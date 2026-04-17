@@ -12,6 +12,8 @@
 
 const SUPABASE_ENV_STORAGE_KEY = 'program-command.supabase-env';
 const SUPABASE_QUERY_PARAM = 'supabaseEnv';
+const PROGRAM_SHELL_SELECTION_STORAGE_KEY = 'programCommandShellSelectionV1';
+const PROGRAM_ONBOARDING_CONTEXT_STORAGE_KEY = 'programCommandOnboardingContextV1';
 
 const SUPABASE_ENVIRONMENTS = {
     production: {
@@ -53,6 +55,25 @@ function getSearchParams() {
     return new URLSearchParams(search || '');
 }
 
+function getSafeLocalStorage() {
+    if (typeof window !== 'undefined' && window.localStorage) {
+        return window.localStorage;
+    }
+    return null;
+}
+
+function readJsonStorageKey(storageKey) {
+    const storage = getSafeLocalStorage();
+    if (!storage) return null;
+
+    try {
+        const raw = storage.getItem(storageKey);
+        return raw ? JSON.parse(raw) : null;
+    } catch (error) {
+        return null;
+    }
+}
+
 function readSupabaseEnvironmentOverride() {
     const queryOverride = getSearchParams().get(SUPABASE_QUERY_PARAM);
     if (queryOverride && SUPABASE_ENVIRONMENTS[queryOverride]) {
@@ -63,9 +84,9 @@ function readSupabaseEnvironmentOverride() {
         return globalThis.__PROGRAM_COMMAND_SUPABASE_ENV__;
     }
 
-    if (typeof window !== 'undefined' && window.localStorage) {
+    if (getSafeLocalStorage()) {
         try {
-            const storedValue = window.localStorage.getItem(SUPABASE_ENV_STORAGE_KEY);
+            const storedValue = getSafeLocalStorage().getItem(SUPABASE_ENV_STORAGE_KEY);
             if (storedValue && SUPABASE_ENVIRONMENTS[storedValue]) {
                 return storedValue;
             }
@@ -124,8 +145,8 @@ function setSupabaseEnvironment(environmentName, { persist = true } = {}) {
         globalThis.__PROGRAM_COMMAND_SUPABASE_ENV__ = environmentName;
     }
 
-    if (persist && typeof window !== 'undefined' && window.localStorage) {
-        window.localStorage.setItem(SUPABASE_ENV_STORAGE_KEY, environmentName);
+    if (persist && getSafeLocalStorage()) {
+        getSafeLocalStorage().setItem(SUPABASE_ENV_STORAGE_KEY, environmentName);
     }
 
     resetSupabaseClient();
@@ -137,8 +158,8 @@ function clearSupabaseEnvironmentOverride() {
         delete globalThis.__PROGRAM_COMMAND_SUPABASE_ENV__;
     }
 
-    if (typeof window !== 'undefined' && window.localStorage) {
-        window.localStorage.removeItem(SUPABASE_ENV_STORAGE_KEY);
+    if (getSafeLocalStorage()) {
+        getSafeLocalStorage().removeItem(SUPABASE_ENV_STORAGE_KEY);
     }
 
     resetSupabaseClient();
@@ -179,15 +200,6 @@ function getSupabaseClient() {
     return supabaseClient;
 }
 
-function getSupabaseConfigSnapshot() {
-    const environment = getSupabaseEnvironment();
-    return {
-        environment: environment.name,
-        url: environment.url,
-        departmentCode: CURRENT_DEPARTMENT_CODE
-    };
-}
-
 function getActiveDepartmentProfile() {
     if (typeof globalThis !== 'undefined' && globalThis.__PROGRAM_COMMAND_ACTIVE_PROFILE__) {
         return globalThis.__PROGRAM_COMMAND_ACTIVE_PROFILE__;
@@ -198,13 +210,158 @@ function getActiveDepartmentProfile() {
     return null;
 }
 
-function getActiveDepartmentIdentity() {
-    const identity = getActiveDepartmentProfile()?.identity || {};
-    const code = String(identity.code || CURRENT_DEPARTMENT_CODE).trim().toUpperCase() || CURRENT_DEPARTMENT_CODE;
-    const name = String(identity.name || identity.shortName || CURRENT_DEPARTMENT_NAME).trim() || CURRENT_DEPARTMENT_NAME;
-    const displayName = String(identity.displayName || identity.name || `EWU ${name}`).trim() || `EWU ${name}`;
+function slugifyProgramValue(value) {
+    return String(value || '')
+        .trim()
+        .toLowerCase()
+        .replace(/^ewu\s+/, 'ewu-')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+/, '')
+        .replace(/-+$/, '');
+}
 
-    return { code, name, displayName };
+function buildProgramCodeCandidates({
+    selection = null,
+    suggestedIdentity = null,
+    profile = null
+} = {}) {
+    const candidates = [];
+    const addCandidate = (value) => {
+        const normalized = slugifyProgramValue(value);
+        if (!normalized || candidates.includes(normalized)) return;
+        candidates.push(normalized);
+    };
+
+    addCandidate(selection?.id);
+    addCandidate(selection?.departmentId);
+    addCandidate(selection?.label);
+    addCandidate(selection?.identityName);
+    addCandidate(selection?.departmentLabel);
+    addCandidate(selection?.suggestedCode);
+    addCandidate(selection?.baseProfileId);
+    addCandidate(suggestedIdentity?.displayName);
+    addCandidate(suggestedIdentity?.name);
+    addCandidate(suggestedIdentity?.code);
+    addCandidate(profile?.id);
+    addCandidate(profile?.identity?.displayName);
+    addCandidate(profile?.identity?.name);
+    addCandidate(profile?.identity?.code);
+
+    const identityCode = String(suggestedIdentity?.code || profile?.identity?.code || '').trim().toUpperCase();
+    const identityName = String(suggestedIdentity?.name || profile?.identity?.name || '').trim().toLowerCase();
+    if (identityCode === 'DESN' || identityName === 'design') {
+        addCandidate('ewu-design');
+    }
+
+    if (!candidates.length) {
+        addCandidate('ewu-design');
+    }
+
+    return candidates;
+}
+
+function readProgramShellSelection() {
+    if (typeof window !== 'undefined'
+        && window.ProgramCommandShell
+        && typeof window.ProgramCommandShell.readSelection === 'function') {
+        try {
+            return window.ProgramCommandShell.readSelection();
+        } catch (error) {
+            return null;
+        }
+    }
+
+    return readJsonStorageKey(PROGRAM_SHELL_SELECTION_STORAGE_KEY);
+}
+
+function readProgramOnboardingContext() {
+    if (typeof window !== 'undefined'
+        && window.ProgramCommandShell
+        && typeof window.ProgramCommandShell.readOnboardingContext === 'function') {
+        try {
+            return window.ProgramCommandShell.readOnboardingContext();
+        } catch (error) {
+            return null;
+        }
+    }
+
+    return readJsonStorageKey(PROGRAM_ONBOARDING_CONTEXT_STORAGE_KEY);
+}
+
+function createRuntimeContextFromSource(sourceName, {
+    selection = null,
+    suggestedIdentity = null,
+    profile = null
+} = {}) {
+    const identity = suggestedIdentity || profile?.identity || {};
+    const code = String(identity.code || selection?.suggestedCode || CURRENT_DEPARTMENT_CODE).trim().toUpperCase() || CURRENT_DEPARTMENT_CODE;
+    const name = String(identity.name || identity.shortName || selection?.identityName || selection?.label || selection?.departmentLabel || CURRENT_DEPARTMENT_NAME).trim() || CURRENT_DEPARTMENT_NAME;
+    const displayName = String(identity.displayName || selection?.identityDisplayName || `EWU ${name}`).trim() || `EWU ${name}`;
+
+    return {
+        source: sourceName,
+        selectionId: String(selection?.id || '').trim() || null,
+        departmentId: String(selection?.departmentId || '').trim() || null,
+        identity: { code, name, displayName },
+        programCodeCandidates: buildProgramCodeCandidates({ selection, suggestedIdentity, profile })
+    };
+}
+
+function getProgramCommandRuntimeContext() {
+    const activeProfile = getActiveDepartmentProfile();
+    if (activeProfile && activeProfile.identity) {
+        return createRuntimeContextFromSource('active-profile', {
+            profile: activeProfile
+        });
+    }
+
+    const shellSelection = readProgramShellSelection();
+    if (shellSelection) {
+        return createRuntimeContextFromSource('shell-selection', {
+            selection: shellSelection,
+            suggestedIdentity: shellSelection.suggestedIdentity || {
+                code: shellSelection.suggestedCode,
+                name: shellSelection.identityName || shellSelection.label || shellSelection.departmentLabel,
+                displayName: shellSelection.identityDisplayName
+            }
+        });
+    }
+
+    const onboardingContext = readProgramOnboardingContext();
+    if (onboardingContext) {
+        return createRuntimeContextFromSource('onboarding-context', {
+            selection: onboardingContext,
+            suggestedIdentity: onboardingContext.suggestedIdentity || {
+                code: onboardingContext.suggestedCode,
+                name: onboardingContext.identityName || onboardingContext.label || onboardingContext.departmentLabel,
+                displayName: onboardingContext.identityDisplayName
+            }
+        });
+    }
+
+    return createRuntimeContextFromSource('design-bootstrap-default', {
+        suggestedIdentity: {
+            code: CURRENT_DEPARTMENT_CODE,
+            name: CURRENT_DEPARTMENT_NAME,
+            displayName: `EWU ${CURRENT_DEPARTMENT_NAME}`
+        }
+    });
+}
+
+function getActiveDepartmentIdentity() {
+    return getProgramCommandRuntimeContext().identity;
+}
+
+function getSupabaseConfigSnapshot() {
+    const environment = getSupabaseEnvironment();
+    const runtimeContext = getProgramCommandRuntimeContext();
+    return {
+        environment: environment.name,
+        url: environment.url,
+        departmentCode: runtimeContext.identity.code,
+        departmentSource: runtimeContext.source,
+        programCodeCandidates: runtimeContext.programCodeCandidates.slice()
+    };
 }
 
 if (typeof window !== 'undefined') {
@@ -213,6 +370,7 @@ if (typeof window !== 'undefined') {
     window.setSupabaseEnvironment = setSupabaseEnvironment;
     window.clearSupabaseEnvironmentOverride = clearSupabaseEnvironmentOverride;
     window.getSupabaseConfigSnapshot = getSupabaseConfigSnapshot;
+    window.getProgramCommandRuntimeContext = getProgramCommandRuntimeContext;
 }
 
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
@@ -237,6 +395,7 @@ if (typeof module !== 'undefined' && module.exports) {
         setSupabaseEnvironment,
         clearSupabaseEnvironmentOverride,
         getSupabaseConfigSnapshot,
-        getActiveDepartmentIdentity
+        getActiveDepartmentIdentity,
+        getProgramCommandRuntimeContext
     };
 }

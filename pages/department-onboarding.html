@@ -222,6 +222,14 @@
             </div>
         </section>
 
+        <section class="shell-card" id="runtimeContractCard">
+            <h2>Runtime Source Of Truth</h2>
+            <div id="runtimeContractStatus" class="onboarding-status info">Checking canonical vs bootstrap runtime state...</div>
+            <p id="runtimeContractSummary" style="margin-top: 10px; color: #475569;">
+                This page can bootstrap local profiles, but release-gated runtime config should come from canonical program data when it exists.
+            </p>
+        </section>
+
         <section class="shell-card">
             <h2 id="step1Title">Step 1: Entry + Base Profile</h2>
             <p id="step1Help">Select an existing profile as your base, then define department identity.</p>
@@ -290,6 +298,7 @@
     <script src="../js/department-profile.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../js/supabase-config.js"></script>
+    <script src="../js/profile-loader.js"></script>
     <script src="../js/auth-service.js"></script>
     <script src="../js/program-shell.js"></script>
     <script src="../js/auth-guard.js"></script>

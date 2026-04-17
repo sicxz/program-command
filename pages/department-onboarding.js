@@ -257,6 +257,18 @@
         statusEl.textContent = message;
     }
 
+    function setRuntimeContractStatus(kind, message, detail = '') {
+        const statusEl = qs('runtimeContractStatus');
+        const summaryEl = qs('runtimeContractSummary');
+        if (statusEl) {
+            statusEl.className = `onboarding-status ${kind}`;
+            statusEl.textContent = message;
+        }
+        if (summaryEl && detail) {
+            summaryEl.textContent = detail;
+        }
+    }
+
     function renderHealthChecks(checks) {
         const wrap = qs('healthCheckOutput');
         if (!wrap) return;
@@ -632,7 +644,39 @@
 
         state.manager = manager;
         state.handoffContext = readHandoffContext();
-        await manager.initialize();
+        const managerSnapshot = await manager.initialize();
+
+        if (window.ProfileLoader && typeof window.ProfileLoader.init === 'function') {
+            try {
+                const profileSnapshot = await window.ProfileLoader.init();
+                if (profileSnapshot?.source === 'supabase-programs') {
+                    setRuntimeContractStatus(
+                        'ok',
+                        'Canonical program config is available in Supabase.',
+                        `Profile loader resolved canonical program config from Supabase${profileSnapshot.programCode ? ` (${profileSnapshot.programCode})` : ''}. Local onboarding profiles remain bootstrap artifacts until promoted into the canonical runtime.`
+                    );
+                } else {
+                    setRuntimeContractStatus(
+                        'warn',
+                        'Onboarding is still in bootstrap mode.',
+                        `The active onboarding/runtime path is currently ${profileSnapshot?.source || managerSnapshot?.source || 'local bootstrap'}. That is acceptable for setup work, but it is not the release-gated canonical source of truth yet.`
+                    );
+                }
+            } catch (error) {
+                setRuntimeContractStatus(
+                    'warn',
+                    'Canonical program config could not be resolved.',
+                    'ProfileLoader could not confirm a Supabase-backed program config, so this page is operating in local bootstrap mode.'
+                );
+            }
+        } else {
+            setRuntimeContractStatus(
+                'warn',
+                'ProfileLoader is not available on this page.',
+                'Without ProfileLoader, onboarding can only speak to local bootstrap profile state.'
+            );
+        }
+
         bindEvents();
         await populateProfileSelect();
 

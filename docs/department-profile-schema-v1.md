@@ -8,6 +8,8 @@ This document describes the current v1 local profile runtime contract. It is sti
 
 Today the repo also contains a newer program-aware path through `js/profile-loader.js` and related Supabase-backed runtime behavior. During the production-readiness audit, treat this document as one side of a hybrid platform state rather than the final source of truth by itself.
 
+The runtime identity path is now more explicit than the original local-profile-only shell: active profile, Program Command shell selection, and onboarding context are consulted before the embedded Design bootstrap default is used.
+
 ## Top-Level Fields
 
 - `version` (number, required): schema version. Current runtime supports `1`.
@@ -66,6 +68,8 @@ The active profile id is stored in localStorage key:
 - `programCommandActiveDepartmentProfileId`
 
 If manifest/profile loading fails or validation fails, runtime falls back to the embedded default profile (`design-v1`) and emits warnings.
+
+For release-gated behavior, treat that embedded fallback as bootstrap-only. It is acceptable for setup and local preview work, but it is not the canonical platform contract for additional departments.
 
 ## Release-Gate Implication
 

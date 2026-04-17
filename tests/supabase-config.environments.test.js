@@ -48,7 +48,9 @@ describe('supabase environment selection', () => {
             expect(config.getSupabaseConfigSnapshot()).toEqual({
                 environment: 'develop',
                 url: 'https://cstcwplvioheazoghkgf.supabase.co',
-                departmentCode: 'DESN'
+                departmentCode: 'DESN',
+                departmentSource: 'design-bootstrap-default',
+                programCodeCandidates: ['ewu-design', 'design', 'desn']
             });
         } finally {
             restore();

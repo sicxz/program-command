@@ -123,4 +123,27 @@ describe('ProfileLoader', () => {
         expect(windowObject.AuthService.getUser).toHaveBeenCalledTimes(1);
         expect(query.eq).toHaveBeenCalledWith('id', 'program-auth');
     });
+
+    test('falls back to shell selection program codes before defaulting to ewu-design', async () => {
+        const { ProfileLoader, query, windowObject } = loadProfileLoader({
+            supabaseRow: {
+                id: 'program-cs',
+                code: 'computer-science',
+                config: {}
+            },
+            authUser: {}
+        });
+
+        windowObject.ProgramCommandShell = {
+            readSelection: jest.fn(() => ({
+                id: 'computer-science',
+                label: 'Computer Science',
+                suggestedCode: 'CSCD'
+            }))
+        };
+
+        await ProfileLoader.init();
+
+        expect(query.eq).toHaveBeenCalledWith('code', 'computer-science');
+    });
 });
