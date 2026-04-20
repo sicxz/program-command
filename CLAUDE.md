@@ -2,6 +2,13 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+Workflow source of truth: `AGENTS.md`.
+
+- Use `AGENTS.md` for branch strategy, autonomy defaults, verification expectations, and cross-machine workflow rules.
+- Use `startup.md` for the short getting-started questions when a new session begins without enough operating context.
+- Use this file for project architecture, runtime constraints, and development commands.
+- If this file conflicts with `AGENTS.md` on workflow, follow `AGENTS.md`.
+
 ## Project Overview
 
 EWU Design Schedule Analyzer — an analytics platform for enrollment trends, faculty workload, and capacity planning for the EWU Design program. Vanilla JavaScript frontend with a Node.js backend, Supabase (PostgreSQL) for persistence, and Chart.js for data visualization. No build tooling or bundler — HTML files load JS modules directly via `<script>` tags.
