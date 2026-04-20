@@ -6503,7 +6503,11 @@
                             block.onclick = function (e) {
                                 // Don't trigger click if we're dragging
                                 if (!block.classList.contains('dragging')) {
-                                    showCourseDetails(course.code, course.name, course.instructor, course.credits, course.room, courseId, quarter, day, time);
+                                    const canonicalTitle = getCanonicalCourseTitleByCode(
+                                        course.code,
+                                        String(course.name || course.title || '').trim()
+                                    );
+                                    showCourseDetails(course.code, canonicalTitle, course.instructor, course.credits, course.room, courseId, quarter, day, time);
                                 }
                             };
 
@@ -6535,7 +6539,10 @@
 
                             const titleDiv = document.createElement('div');
                             titleDiv.className = 'course-details';
-                            titleDiv.textContent = course.name;
+                            titleDiv.textContent = getCanonicalCourseTitleByCode(
+                                course.code,
+                                String(course.name || course.title || '').trim()
+                            );
 
                             const instructorDiv = document.createElement('div');
                             instructorDiv.className = 'course-details';
@@ -7283,6 +7290,16 @@
             return upper.replace(/^([A-Z]{2,5})\s*(\d)/, '$1 $2');
         }
 
+        function getCanonicalCourseTitleByCode(courseCode, fallbackTitle = '') {
+            const code = normalizeCourseCode(courseCode);
+            if (!code) return String(fallbackTitle || '').trim();
+            const overrideTitle = COURSE_TITLE_OVERRIDES[code];
+            if (overrideTitle) return String(overrideTitle).trim();
+            const catalogTitle = String(courseCatalogByCode?.[code]?.title || '').trim();
+            if (catalogTitle) return catalogTitle;
+            return String(fallbackTitle || '').trim();
+        }
+
         function normalizeScheduleCourseCodes(data) {
             const quarters = ['fall', 'winter', 'spring'];
 
@@ -7299,6 +7316,16 @@
                         courses.forEach((course) => {
                             if (course && typeof course === 'object') {
                                 course.code = normalizeCourseCode(course.code);
+                                const canonicalTitle = getCanonicalCourseTitleByCode(
+                                    course.code,
+                                    String(course.name || course.title || '').trim()
+                                );
+                                if (canonicalTitle) {
+                                    course.name = canonicalTitle;
+                                    if (!course.title) {
+                                        course.title = canonicalTitle;
+                                    }
+                                }
                             }
                         });
                     });
@@ -7310,7 +7337,7 @@
 
         function getCourseDisplayLabel(course) {
             const code = normalizeCourseCode(course.code);
-            const title = String(course.name || course.title || '').trim();
+            const title = getCanonicalCourseTitleByCode(code, String(course.name || course.title || '').trim());
             return title ? `${code} - ${title}` : code;
         }
 
