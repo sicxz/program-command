@@ -570,6 +570,9 @@
     </div>
 
     <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/supabase-config.js"></script>
+    <script src="../js/db-service.js"></script>
     <script src="../js/prerequisite-graph.js"></script>
     <script src="../js/demand-predictor.js"></script>
     <script>
@@ -586,8 +589,7 @@
             // Initialize predictor
             const result = await DemandPredictor.init({
                 graphPath: '../data/prerequisite-graph.json',
-                enrollmentPath: '../enrollment-dashboard-data.json',
-                catalogPath: '../data/course-catalog.json'
+                enrollmentPath: '../enrollment-dashboard-data.json'
             });
 
             if (!result.success) {

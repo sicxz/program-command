@@ -7,6 +7,47 @@
 const ScheduleManager = (function() {
     'use strict';
 
+    function getRuntimeDbService() {
+        if (typeof window !== 'undefined'
+            && window.dbService
+            && typeof window.dbService.getCourses === 'function') {
+            return window.dbService;
+        }
+
+        return null;
+    }
+
+    function normalizeCourseCatalogEntry(course = {}) {
+        const offeredQuarters = Array.isArray(course.offeredQuarters)
+            ? course.offeredQuarters
+            : Array.isArray(course.quarters_offered)
+                ? course.quarters_offered
+                : ['Fall', 'Winter', 'Spring'];
+
+        return {
+            code: String(course.code || '').trim(),
+            title: String(course.title || course.name || '').trim(),
+            defaultCredits: Number(course.defaultCredits ?? course.default_credits) || 5,
+            typicalEnrollmentCap: Number(course.typicalEnrollmentCap ?? course.typical_cap) || 24,
+            level: String(course.level || '').trim(),
+            offeredQuarters,
+            prerequisites: Array.isArray(course.prerequisites) ? course.prerequisites.slice() : [],
+            required: course.required === true,
+            workloadMultiplier: Number(course.workloadMultiplier ?? course.workload_multiplier) || 1,
+            isVariable: course.isVariable === true || course.is_variable === true,
+            standingRequired: String(course.standingRequired ?? course.standing_required ?? '').trim() || null,
+            notes: String(course.notes || '').trim() || null,
+            defaultModality: String(course.defaultModality ?? course.default_modality ?? '').trim() || null,
+            creditRange: String(course.creditRange ?? course.credit_range ?? '').trim() || null
+        };
+    }
+
+    function normalizeCourseCatalog(courses = []) {
+        return (Array.isArray(courses) ? courses : [])
+            .map((course) => normalizeCourseCatalogEntry(course))
+            .filter((course) => course.code);
+    }
+
     // Get constants if available
     const getConstants = () => {
         const profileLoader =
@@ -126,7 +167,7 @@ const ScheduleManager = (function() {
         loadFromStorage();
 
         // Load course catalog
-        if (options.catalogPath) {
+        if (options.catalogPath || getRuntimeDbService()) {
             await loadCourseCatalog(options.catalogPath);
         }
 
@@ -143,17 +184,34 @@ const ScheduleManager = (function() {
      * @param {string} path - Path to course-catalog.json
      */
     async function loadCourseCatalog(path = '../data/course-catalog.json') {
+        const runtimeDbService = getRuntimeDbService();
+
+        if (runtimeDbService) {
+            try {
+                const data = await runtimeDbService.getCourses();
+                courseCatalog = normalizeCourseCatalog(data);
+                console.log(`✅ Loaded ${courseCatalog.length} courses from shared runtime service`);
+                return courseCatalog;
+            } catch (error) {
+                console.warn('⚠️ Could not load course catalog from shared runtime service:', error.message);
+            }
+        }
+
         try {
             const response = await fetch(path);
             if (response.ok) {
                 const data = await response.json();
-                courseCatalog = data.courses || [];
+                courseCatalog = normalizeCourseCatalog(data.courses || data);
                 console.log(`✅ Loaded ${courseCatalog.length} courses from catalog`);
+            } else {
+                courseCatalog = [];
             }
         } catch (error) {
             console.warn('⚠️ Could not load course catalog:', error.message);
             courseCatalog = [];
         }
+
+        return courseCatalog;
     }
 
     /**

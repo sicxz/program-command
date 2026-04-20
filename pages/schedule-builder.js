@@ -613,27 +613,38 @@ document.addEventListener('DOMContentLoaded', async function() {
             console.log('Room constraints loaded:', roomConstraints);
         }
 
-        // Load course catalog for offering patterns
-        const catalogResponse = await fetch('../data/course-catalog.json');
-        if (catalogResponse.ok) {
-            courseCatalog = await catalogResponse.json();
-            console.log('Course catalog loaded:', courseCatalog.courses?.length, 'courses');
-        }
-
-        // Load courses from database for constraints (if dbService is available)
-        if (typeof dbService !== 'undefined') {
+        // Prefer shared DB service for catalog; keep JSON as fallback.
+        if (typeof dbService !== 'undefined' && typeof dbService.getCourses === 'function') {
             try {
                 dbCourses = await dbService.getCourses();
-                console.log('Database courses loaded:', dbCourses?.length || 0, 'courses');
+                if (dbCourses.length > 0) {
+                    courseCatalog = { courses: dbCourses };
+                    console.log('Course catalog loaded via dbService:', dbCourses.length, 'courses');
+                }
             } catch (err) {
                 console.warn('Could not load courses from database:', err);
             }
         }
 
+        if (!courseCatalog) {
+            const catalogResponse = await fetch('../data/course-catalog.json');
+            if (catalogResponse.ok) {
+                courseCatalog = await catalogResponse.json();
+                console.log('Course catalog loaded from fallback file:', courseCatalog.courses?.length, 'courses');
+            } else {
+                courseCatalog = { courses: [] };
+            }
+        }
+
+        // Ensure constraints engine can still consume DB courses when available.
+        if (!Array.isArray(dbCourses) || dbCourses.length === 0) {
+            dbCourses = Array.isArray(courseCatalog?.courses) ? courseCatalog.courses : [];
+        }
+
         if (typeof ScheduleGenerator !== 'undefined') {
             await ScheduleGenerator.init({
                 workloadPath: '../workload-data.json',
-                catalogPath: '../data/course-catalog.json',
+                catalogData: courseCatalog,
                 enrollmentPath: '../enrollment-dashboard-data.json'
             });
         }
@@ -642,7 +653,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             await DemandPredictor.init({
                 graphPath: '../data/prerequisite-graph.json',
                 enrollmentPath: '../enrollment-dashboard-data.json',
-                catalogPath: '../data/course-catalog.json'
+                catalogData: courseCatalog?.courses || []
             });
         }
 

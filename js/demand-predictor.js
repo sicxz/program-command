@@ -10,6 +10,36 @@ const DemandPredictor = (function() {
     let enrollmentData = null;
     let catalogData = null;
 
+    function getRuntimeDbService() {
+        if (typeof window !== 'undefined'
+            && window.dbService
+            && typeof window.dbService.getCourses === 'function') {
+            return window.dbService;
+        }
+
+        return null;
+    }
+
+    function normalizeCatalogEntry(course = {}) {
+        return {
+            code: String(course.code || '').trim(),
+            title: String(course.title || course.name || '').trim(),
+            typicalEnrollmentCap: Number(course.typicalEnrollmentCap ?? course.typical_cap) || CONFIG.defaultEnrollmentCap
+        };
+    }
+
+    function normalizeCatalogData(input) {
+        const courses = Array.isArray(input?.courses)
+            ? input.courses
+            : Array.isArray(input)
+                ? input
+                : [];
+
+        return courses
+            .map((course) => normalizeCatalogEntry(course))
+            .filter((course) => course.code);
+    }
+
     // Configuration
     const CONFIG = {
         defaultEnrollmentCap: 24,
@@ -39,20 +69,40 @@ const DemandPredictor = (function() {
                 });
             }
 
-            // Load enrollment data directly for additional analysis
-            const enrollmentPath = options.enrollmentPath || 'enrollment-dashboard-data.json';
-            const enrollmentResponse = await fetch(enrollmentPath);
-            if (enrollmentResponse.ok) {
-                const data = await enrollmentResponse.json();
-                enrollmentData = data.courseStats || {};
+            if (options.enrollmentData) {
+                enrollmentData = options.enrollmentData.courseStats || options.enrollmentData;
+            } else {
+                const enrollmentPath = options.enrollmentPath || 'enrollment-dashboard-data.json';
+                const enrollmentResponse = await fetch(enrollmentPath);
+                if (enrollmentResponse.ok) {
+                    const data = await enrollmentResponse.json();
+                    enrollmentData = data.courseStats || {};
+                }
             }
 
-            // Load course catalog
-            const catalogPath = options.catalogPath || 'data/course-catalog.json';
-            const catalogResponse = await fetch(catalogPath);
-            if (catalogResponse.ok) {
-                const data = await catalogResponse.json();
-                catalogData = data.courses || data;
+            if (options.catalogData) {
+                catalogData = normalizeCatalogData(options.catalogData);
+            } else {
+                const runtimeDbService = getRuntimeDbService();
+                if (runtimeDbService) {
+                    try {
+                        const courses = await runtimeDbService.getCourses();
+                        catalogData = normalizeCatalogData({ courses });
+                    } catch (error) {
+                        console.warn('Could not load demand predictor catalog from dbService:', error);
+                    }
+                }
+
+                if (!catalogData) {
+                    const catalogPath = options.catalogPath || 'data/course-catalog.json';
+                    const catalogResponse = await fetch(catalogPath);
+                    if (catalogResponse.ok) {
+                        const data = await catalogResponse.json();
+                        catalogData = normalizeCatalogData(data);
+                    } else {
+                        catalogData = [];
+                    }
+                }
             }
 
             initialized = true;
