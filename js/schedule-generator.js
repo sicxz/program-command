@@ -11,6 +11,47 @@ const ScheduleGenerator = (function() {
     let catalogData = null;
     let enrollmentData = null;
 
+    function getRuntimeDbService() {
+        if (typeof window !== 'undefined'
+            && window.dbService
+            && typeof window.dbService.getCourses === 'function') {
+            return window.dbService;
+        }
+
+        return null;
+    }
+
+    function normalizeCatalogCourse(course = {}) {
+        return {
+            code: String(course.code || '').trim(),
+            title: String(course.title || course.name || '').trim(),
+            defaultCredits: Number(course.defaultCredits ?? course.default_credits) || 5,
+            typicalEnrollmentCap: Number(course.typicalEnrollmentCap ?? course.typical_cap) || CONFIG.defaultEnrollmentCap,
+            level: String(course.level || '').trim(),
+            offeredQuarters: Array.isArray(course.offeredQuarters)
+                ? course.offeredQuarters
+                : Array.isArray(course.quarters_offered)
+                    ? course.quarters_offered
+                    : ['Fall', 'Winter', 'Spring'],
+            workloadMultiplier: Number(course.workloadMultiplier ?? course.workload_multiplier) || 1,
+            isVariable: course.isVariable === true || course.is_variable === true
+        };
+    }
+
+    function normalizeCatalogData(input) {
+        const courses = Array.isArray(input?.courses)
+            ? input.courses
+            : Array.isArray(input)
+                ? input
+                : [];
+
+        return {
+            courses: courses
+                .map((course) => normalizeCatalogCourse(course))
+                .filter((course) => course.code)
+        };
+    }
+
     // Configuration
     const CONFIG = {
         defaultEnrollmentCap: 24,
@@ -29,25 +70,48 @@ const ScheduleGenerator = (function() {
      */
     async function init(options = {}) {
         try {
-            // Load workload data
-            const workloadPath = options.workloadPath || '../workload-data.json';
-            const workloadResponse = await fetch(workloadPath);
-            if (workloadResponse.ok) {
-                workloadData = await workloadResponse.json();
+            if (options.workloadData) {
+                workloadData = options.workloadData;
+            } else {
+                const workloadPath = options.workloadPath || '../workload-data.json';
+                const workloadResponse = await fetch(workloadPath);
+                if (workloadResponse.ok) {
+                    workloadData = await workloadResponse.json();
+                }
             }
 
-            // Load course catalog
-            const catalogPath = options.catalogPath || '../data/course-catalog.json';
-            const catalogResponse = await fetch(catalogPath);
-            if (catalogResponse.ok) {
-                catalogData = await catalogResponse.json();
+            if (options.catalogData) {
+                catalogData = normalizeCatalogData(options.catalogData);
+            } else {
+                const runtimeDbService = getRuntimeDbService();
+                if (runtimeDbService) {
+                    try {
+                        const courses = await runtimeDbService.getCourses();
+                        catalogData = normalizeCatalogData({ courses });
+                    } catch (error) {
+                        console.warn('Could not load schedule generator catalog from dbService:', error);
+                    }
+                }
+
+                if (!catalogData) {
+                    const catalogPath = options.catalogPath || '../data/course-catalog.json';
+                    const catalogResponse = await fetch(catalogPath);
+                    if (catalogResponse.ok) {
+                        catalogData = normalizeCatalogData(await catalogResponse.json());
+                    } else {
+                        catalogData = { courses: [] };
+                    }
+                }
             }
 
-            // Load enrollment data
-            const enrollmentPath = options.enrollmentPath || '../enrollment-dashboard-data.json';
-            const enrollmentResponse = await fetch(enrollmentPath);
-            if (enrollmentResponse.ok) {
-                enrollmentData = await enrollmentResponse.json();
+            if (options.enrollmentData) {
+                enrollmentData = options.enrollmentData;
+            } else {
+                const enrollmentPath = options.enrollmentPath || '../enrollment-dashboard-data.json';
+                const enrollmentResponse = await fetch(enrollmentPath);
+                if (enrollmentResponse.ok) {
+                    enrollmentData = await enrollmentResponse.json();
+                }
             }
 
             initialized = true;

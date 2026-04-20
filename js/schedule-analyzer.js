@@ -6,6 +6,47 @@
 const ScheduleAnalyzer = (function() {
     'use strict';
 
+    function getRuntimeDbService() {
+        if (typeof window !== 'undefined'
+            && window.dbService
+            && typeof window.dbService.getCourses === 'function') {
+            return window.dbService;
+        }
+
+        return null;
+    }
+
+    function normalizeCourseCatalogEntry(course = {}) {
+        return {
+            code: String(course.code || '').trim(),
+            title: String(course.title || course.name || '').trim(),
+            defaultCredits: Number(course.defaultCredits ?? course.default_credits) || 5,
+            typicalEnrollmentCap: Number(course.typicalEnrollmentCap ?? course.typical_cap) || CONFIG.defaultEnrollmentCap,
+            level: String(course.level || '').trim(),
+            offeredQuarters: Array.isArray(course.offeredQuarters)
+                ? course.offeredQuarters
+                : Array.isArray(course.quarters_offered)
+                    ? course.quarters_offered
+                    : ['Fall', 'Winter', 'Spring'],
+            required: course.required === true,
+            prerequisites: Array.isArray(course.prerequisites) ? course.prerequisites.slice() : []
+        };
+    }
+
+    function normalizeCourseCatalog(input) {
+        const courses = Array.isArray(input?.courses)
+            ? input.courses
+            : Array.isArray(input)
+                ? input
+                : [];
+
+        return {
+            courses: courses
+                .map((course) => normalizeCourseCatalogEntry(course))
+                .filter((course) => course.code)
+        };
+    }
+
     // Configuration
     const CONFIG = {
         enrollmentThresholds: {
@@ -27,32 +68,56 @@ const ScheduleAnalyzer = (function() {
     /**
      * Initialize analyzer with data sources
      */
-    async function init() {
+    async function init(options = {}) {
         try {
-            // Load enrollment dashboard data
-            const enrollmentResponse = await fetch('../enrollment-dashboard-data.json');
-            if (enrollmentResponse.ok) {
-                enrollmentData = await enrollmentResponse.json();
+            if (options.enrollmentData) {
+                enrollmentData = options.enrollmentData;
                 console.log('Enrollment data loaded for analyzer');
+            } else {
+                const enrollmentResponse = await fetch('../enrollment-dashboard-data.json');
+                if (enrollmentResponse.ok) {
+                    enrollmentData = await enrollmentResponse.json();
+                    console.log('Enrollment data loaded for analyzer');
+                }
             }
 
-            // Load course catalog
-            const catalogResponse = await fetch('../data/course-catalog.json');
-            if (catalogResponse.ok) {
-                courseCatalog = await catalogResponse.json();
+            if (options.courseCatalogData) {
+                courseCatalog = normalizeCourseCatalog(options.courseCatalogData);
                 console.log('Course catalog loaded for analyzer');
+            } else {
+                const runtimeDbService = getRuntimeDbService();
+                if (runtimeDbService) {
+                    try {
+                        const courses = await runtimeDbService.getCourses();
+                        courseCatalog = normalizeCourseCatalog({ courses });
+                    } catch (error) {
+                        console.warn('Could not load analyzer catalog from dbService:', error);
+                    }
+                }
+
+                if (!courseCatalog) {
+                    const catalogResponse = await fetch('../data/course-catalog.json');
+                    if (catalogResponse.ok) {
+                        courseCatalog = normalizeCourseCatalog(await catalogResponse.json());
+                        console.log('Course catalog loaded for analyzer');
+                    }
+                }
             }
 
-            // Load prerequisite graph
-            const prereqResponse = await fetch('../data/prerequisite-graph.json');
-            if (prereqResponse.ok) {
-                prerequisiteGraph = await prereqResponse.json();
+            if (options.prerequisiteGraphData) {
+                prerequisiteGraph = options.prerequisiteGraphData;
                 console.log('Prerequisite graph loaded for analyzer');
+            } else {
+                const prereqResponse = await fetch('../data/prerequisite-graph.json');
+                if (prereqResponse.ok) {
+                    prerequisiteGraph = await prereqResponse.json();
+                    console.log('Prerequisite graph loaded for analyzer');
+                }
             }
 
             // Initialize constraints engine if available
             if (typeof ConstraintsEngine !== 'undefined') {
-                await ConstraintsEngine.init('../data/scheduling-rules.json');
+                await ConstraintsEngine.init(options.constraintRules || '../data/scheduling-rules.json');
                 console.log('Constraints engine loaded for analyzer');
             }
 
