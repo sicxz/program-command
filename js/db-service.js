@@ -1355,6 +1355,10 @@ const dbService = {
     }
 };
 
+if (typeof window !== 'undefined') {
+    window.dbService = dbService;
+}
+
 // Export for use in other scripts
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = dbService;

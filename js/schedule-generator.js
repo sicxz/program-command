@@ -11,6 +11,47 @@ const ScheduleGenerator = (function() {
     let catalogData = null;
     let enrollmentData = null;
 
+    function getRuntimeDbService() {
+        if (typeof window !== 'undefined'
+            && window.dbService
+            && typeof window.dbService.getCourses === 'function') {
+            return window.dbService;
+        }
+
+        return null;
+    }
+
+    function normalizeCatalogCourse(course = {}) {
+        return {
+            code: String(course.code || '').trim(),
+            title: String(course.title || course.name || '').trim(),
+            defaultCredits: Number(course.defaultCredits ?? course.default_credits) || 5,
+            typicalEnrollmentCap: Number(course.typicalEnrollmentCap ?? course.typical_cap) || CONFIG.defaultEnrollmentCap,
+            level: String(course.level || '').trim(),
+            offeredQuarters: Array.isArray(course.offeredQuarters)
+                ? course.offeredQuarters
+                : Array.isArray(course.quarters_offered)
+                    ? course.quarters_offered
+                    : ['Fall', 'Winter', 'Spring'],
+            workloadMultiplier: Number(course.workloadMultiplier ?? course.workload_multiplier) || 1,
+            isVariable: course.isVariable === true || course.is_variable === true
+        };
+    }
+
+    function normalizeCatalogData(input) {
+        const courses = Array.isArray(input?.courses)
+            ? input.courses
+            : Array.isArray(input)
+                ? input
+                : [];
+
+        return {
+            courses: courses
+                .map((course) => normalizeCatalogCourse(course))
+                .filter((course) => course.code)
+        };
+    }
+
     // Configuration
     const CONFIG = {
         defaultEnrollmentCap: 24,
@@ -40,12 +81,26 @@ const ScheduleGenerator = (function() {
             }
 
             if (options.catalogData) {
-                catalogData = options.catalogData;
+                catalogData = normalizeCatalogData(options.catalogData);
             } else {
-                const catalogPath = options.catalogPath || '../data/course-catalog.json';
-                const catalogResponse = await fetch(catalogPath);
-                if (catalogResponse.ok) {
-                    catalogData = await catalogResponse.json();
+                const runtimeDbService = getRuntimeDbService();
+                if (runtimeDbService) {
+                    try {
+                        const courses = await runtimeDbService.getCourses();
+                        catalogData = normalizeCatalogData({ courses });
+                    } catch (error) {
+                        console.warn('Could not load schedule generator catalog from dbService:', error);
+                    }
+                }
+
+                if (!catalogData) {
+                    const catalogPath = options.catalogPath || '../data/course-catalog.json';
+                    const catalogResponse = await fetch(catalogPath);
+                    if (catalogResponse.ok) {
+                        catalogData = normalizeCatalogData(await catalogResponse.json());
+                    } else {
+                        catalogData = { courses: [] };
+                    }
                 }
             }
 

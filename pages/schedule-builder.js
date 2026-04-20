@@ -432,6 +432,57 @@ function buildCourseCatalogFromDbCourses(courses = []) {
     };
 }
 
+async function loadCourseCatalogForBuilder() {
+    if (typeof dbService !== 'undefined' && typeof dbService.getCourses === 'function') {
+        try {
+            dbCourses = await dbService.getCourses();
+            courseCatalog = buildCourseCatalogFromDbCourses(dbCourses);
+            syncRuntimeDataSourcesFromDbService();
+
+            const courseSource = typeof dbService.getRuntimeSourceStatus === 'function'
+                ? dbService.getRuntimeSourceStatus()?.entries?.courses || null
+                : null;
+
+            setRuntimeDataSourceStatus('courseCatalog', {
+                source: courseSource?.source || 'unknown',
+                canonical: courseSource?.canonical === true,
+                fallback: courseSource ? courseSource.fallback !== false : true,
+                detail: courseSource?.canonical
+                    ? 'courses (normalized for builder)'
+                    : courseSource?.detail || '../data/course-catalog.json',
+                count: Array.isArray(courseCatalog?.courses) ? courseCatalog.courses.length : 0,
+                message: courseSource?.canonical
+                    ? 'Course catalog inputs for builder analysis now normalize from the Supabase courses table.'
+                    : 'Course catalog inputs for builder analysis now normalize through the shared runtime fallback.'
+            });
+
+            console.log('Course catalog loaded via dbService:', courseCatalog.courses?.length || 0, 'courses');
+            return courseCatalog;
+        } catch (error) {
+            console.warn('Could not load builder course catalog from dbService:', error);
+            syncRuntimeDataSourcesFromDbService();
+        }
+    }
+
+    const catalogResponse = await fetch('../data/course-catalog.json');
+    if (catalogResponse.ok) {
+        courseCatalog = buildCourseCatalogFromDbCourses((await catalogResponse.json()).courses || []);
+        console.log('Course catalog loaded:', courseCatalog.courses?.length, 'courses');
+        setRuntimeDataSourceStatus('courseCatalog', {
+            source: 'local-file',
+            canonical: false,
+            fallback: true,
+            detail: '../data/course-catalog.json',
+            count: Array.isArray(courseCatalog?.courses) ? courseCatalog.courses.length : null,
+            message: 'Offering patterns and course metadata still come from the local catalog file.'
+        });
+        return courseCatalog;
+    }
+
+    courseCatalog = { courses: [] };
+    return courseCatalog;
+}
+
 function getDepartmentIdentity() {
     const identity = activeDepartmentProfile && activeDepartmentProfile.identity
         ? activeDepartmentProfile.identity
@@ -1055,43 +1106,17 @@ document.addEventListener('DOMContentLoaded', async function() {
             });
         }
 
-        // Load course catalog for offering patterns
-        const catalogResponse = await fetch('../data/course-catalog.json');
-        if (catalogResponse.ok) {
-            courseCatalog = await catalogResponse.json();
-            console.log('Course catalog loaded:', courseCatalog.courses?.length, 'courses');
-            setRuntimeDataSourceStatus('courseCatalog', {
-                source: 'local-file',
-                canonical: false,
-                fallback: true,
-                detail: '../data/course-catalog.json',
-                count: Array.isArray(courseCatalog?.courses) ? courseCatalog.courses.length : null,
-                message: 'Offering patterns and course metadata still come from the local catalog file.'
-            });
-        }
+        // Load course catalog through the shared DB-aware service
+        await loadCourseCatalogForBuilder();
 
-        // Load courses from database for constraints (if dbService is available)
+        // Load rooms and constraints from database (if dbService is available)
         if (typeof dbService !== 'undefined') {
             try {
-                [dbCourses, dbRooms, dbSchedulingConstraints] = await Promise.all([
-                    dbService.getCourses(),
+                [dbRooms, dbSchedulingConstraints] = await Promise.all([
                     dbService.getRooms(),
                     dbService.getConstraints()
                 ]);
-                console.log('Database courses loaded:', dbCourses?.length || 0, 'courses');
                 syncRuntimeDataSourcesFromDbService();
-
-                if (dbCourses.length > 0) {
-                    courseCatalog = buildCourseCatalogFromDbCourses(dbCourses);
-                    setRuntimeDataSourceStatus('courseCatalog', {
-                        source: 'database',
-                        canonical: true,
-                        fallback: false,
-                        detail: 'courses (normalized for builder)',
-                        count: courseCatalog.courses.length,
-                        message: 'Course catalog inputs for builder analysis now normalize from the Supabase courses table.'
-                    });
-                }
 
                 if (dbRooms.length > 0) {
                     roomConstraints = buildRoomMetadataFromInventory(dbRooms, roomConstraints);
@@ -1108,12 +1133,12 @@ document.addEventListener('DOMContentLoaded', async function() {
             } catch (err) {
                 console.warn('Could not load builder bootstrap data from database:', err);
                 syncRuntimeDataSourcesFromDbService();
-                setRuntimeDataSourceStatus('courses', {
+                setRuntimeDataSourceStatus('schedulingRules', {
                     source: 'database-error',
                     canonical: false,
                     fallback: false,
                     detail: err.message || 'Unknown database error',
-                    message: 'Course verification against Supabase failed during builder startup.'
+                    message: 'Room and constraint verification against Supabase failed during builder startup.'
                 });
             }
         }
@@ -1122,7 +1147,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             await ScheduleGenerator.init({
                 workloadPath: '../workload-data.json',
                 catalogData: courseCatalog,
-                catalogPath: '../data/course-catalog.json',
                 enrollmentPath: '../enrollment-dashboard-data.json'
             });
         }
@@ -1131,8 +1155,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             await DemandPredictor.init({
                 graphPath: '../data/prerequisite-graph.json',
                 enrollmentPath: '../enrollment-dashboard-data.json',
-                catalogData: courseCatalog?.courses || courseCatalog,
-                catalogPath: '../data/course-catalog.json'
+                catalogData: courseCatalog?.courses || courseCatalog
             });
         }
 

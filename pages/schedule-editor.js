@@ -38,11 +38,8 @@ document.addEventListener('DOMContentLoaded', async () => {
  */
 async function loadData() {
     try {
-        // Initialize ScheduleManager with catalog
-        await ScheduleManager.init({ catalogPath: '../data/course-catalog.json' });
-
-        // Also load catalog explicitly to ensure it's available
-        await ScheduleManager.loadCourseCatalog('../data/course-catalog.json');
+        // Initialize ScheduleManager with the shared DB-aware course loader
+        await ScheduleManager.init();
 
         // Load workload data
         workloadData = await loadWorkloadData('../data/workload-data.json');

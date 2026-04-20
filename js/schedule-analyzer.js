@@ -6,6 +6,47 @@
 const ScheduleAnalyzer = (function() {
     'use strict';
 
+    function getRuntimeDbService() {
+        if (typeof window !== 'undefined'
+            && window.dbService
+            && typeof window.dbService.getCourses === 'function') {
+            return window.dbService;
+        }
+
+        return null;
+    }
+
+    function normalizeCourseCatalogEntry(course = {}) {
+        return {
+            code: String(course.code || '').trim(),
+            title: String(course.title || course.name || '').trim(),
+            defaultCredits: Number(course.defaultCredits ?? course.default_credits) || 5,
+            typicalEnrollmentCap: Number(course.typicalEnrollmentCap ?? course.typical_cap) || CONFIG.defaultEnrollmentCap,
+            level: String(course.level || '').trim(),
+            offeredQuarters: Array.isArray(course.offeredQuarters)
+                ? course.offeredQuarters
+                : Array.isArray(course.quarters_offered)
+                    ? course.quarters_offered
+                    : ['Fall', 'Winter', 'Spring'],
+            required: course.required === true,
+            prerequisites: Array.isArray(course.prerequisites) ? course.prerequisites.slice() : []
+        };
+    }
+
+    function normalizeCourseCatalog(input) {
+        const courses = Array.isArray(input?.courses)
+            ? input.courses
+            : Array.isArray(input)
+                ? input
+                : [];
+
+        return {
+            courses: courses
+                .map((course) => normalizeCourseCatalogEntry(course))
+                .filter((course) => course.code)
+        };
+    }
+
     // Configuration
     const CONFIG = {
         enrollmentThresholds: {
@@ -41,15 +82,25 @@ const ScheduleAnalyzer = (function() {
             }
 
             if (options.courseCatalogData) {
-                courseCatalog = options.courseCatalogData.courses
-                    ? options.courseCatalogData
-                    : { courses: options.courseCatalogData };
+                courseCatalog = normalizeCourseCatalog(options.courseCatalogData);
                 console.log('Course catalog loaded for analyzer');
             } else {
-                const catalogResponse = await fetch('../data/course-catalog.json');
-                if (catalogResponse.ok) {
-                    courseCatalog = await catalogResponse.json();
-                    console.log('Course catalog loaded for analyzer');
+                const runtimeDbService = getRuntimeDbService();
+                if (runtimeDbService) {
+                    try {
+                        const courses = await runtimeDbService.getCourses();
+                        courseCatalog = normalizeCourseCatalog({ courses });
+                    } catch (error) {
+                        console.warn('Could not load analyzer catalog from dbService:', error);
+                    }
+                }
+
+                if (!courseCatalog) {
+                    const catalogResponse = await fetch('../data/course-catalog.json');
+                    if (catalogResponse.ok) {
+                        courseCatalog = normalizeCourseCatalog(await catalogResponse.json());
+                        console.log('Course catalog loaded for analyzer');
+                    }
                 }
             }
 

@@ -365,9 +365,14 @@ function getSupabaseConfigSnapshot() {
 if (typeof window !== 'undefined') {
     window.getSupabaseEnvironmentName = getSupabaseEnvironmentName;
     window.getSupabaseEnvironment = getSupabaseEnvironment;
+    window.getSupabaseUrl = getSupabaseUrl;
+    window.getSupabaseAnonKey = getSupabaseAnonKey;
+    window.isSupabaseConfigured = isSupabaseConfigured;
+    window.getSupabaseClient = getSupabaseClient;
     window.setSupabaseEnvironment = setSupabaseEnvironment;
     window.clearSupabaseEnvironmentOverride = clearSupabaseEnvironmentOverride;
     window.getSupabaseConfigSnapshot = getSupabaseConfigSnapshot;
+    window.getActiveDepartmentIdentity = getActiveDepartmentIdentity;
     window.getProgramCommandRuntimeContext = getProgramCommandRuntimeContext;
 }
 
