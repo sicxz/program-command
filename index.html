@@ -12709,10 +12709,23 @@
             }
         }
 
+        function formatFacultyDisplayName(rawName) {
+            const name = String(rawName || '').trim();
+            if (!name) return '';
+            const parts = name.split(',').map((part) => part.trim()).filter(Boolean);
+            if (parts.length === 2) {
+                return `${parts[1]} ${parts[0]}`;
+            }
+            return name;
+        }
+
         async function loadFacultyFromSupabase() {
-            const select = document.getElementById('addFaculty');
+            const selects = [
+                document.getElementById('addFaculty'),
+                document.getElementById('editFaculty')
+            ].filter(Boolean);
             const client = getDatabaseClient();
-            if (!client) return; // Keep hardcoded fallback if Supabase not configured
+            if (!client || selects.length === 0) return; // Keep hardcoded fallback if Supabase not configured
 
             try {
                 const { data: faculty, error } = await client
@@ -12723,27 +12736,36 @@
                 if (error) throw error;
 
                 if (faculty && faculty.length > 0) {
-                    // Clear existing options except the placeholder
-                    select.innerHTML = '<option value="">Select Instructor...</option>';
+                    selects.forEach((select) => {
+                        const currentValue = select.value;
+                        select.innerHTML = '<option value="">Select Instructor...</option>';
 
-                    // Add faculty from database
-                    faculty.forEach(f => {
-                        const option = document.createElement('option');
-                        // Format name as "F.Lastname"
-                        const nameParts = f.name.split(', ');
-                        const shortName = nameParts.length > 1
-                            ? `${nameParts[1].charAt(0)}.${nameParts[0]}`
-                            : f.name;
-                        option.value = shortName;
-                        option.textContent = f.name;
-                        select.appendChild(option);
+                        faculty.forEach((f) => {
+                            const option = document.createElement('option');
+                            const canonical = String(f.name || '').trim();
+                            const nameParts = canonical.split(',').map((part) => part.trim());
+                            const shortName = nameParts.length > 1 && nameParts[1]
+                                ? `${nameParts[1].charAt(0)}.${nameParts[0]}`
+                                : canonical;
+                            option.value = shortName;
+                            option.textContent = formatFacultyDisplayName(canonical);
+                            select.appendChild(option);
+                        });
+
+                        const tbdOption = document.createElement('option');
+                        tbdOption.value = 'TBD';
+                        tbdOption.textContent = 'TBD';
+                        select.appendChild(tbdOption);
+
+                        const addNewOpt = document.createElement('option');
+                        addNewOpt.value = '__add_new__';
+                        addNewOpt.textContent = '+ Add New Faculty...';
+                        select.appendChild(addNewOpt);
+
+                        if (currentValue) {
+                            select.value = currentValue;
+                        }
                     });
-
-                    // Add TBD option
-                    const tbdOption = document.createElement('option');
-                    tbdOption.value = 'TBD';
-                    tbdOption.textContent = 'TBD';
-                    select.appendChild(tbdOption);
 
                     console.log(`Loaded ${faculty.length} faculty from Supabase`);
                 }
@@ -13430,18 +13452,18 @@
         // Default faculty roster
         const defaultFaculty = {
             'Professors': [
-                { name: 'T.Masingale', rank: 'Professor' },
-                { name: 'G.Hustrulid', rank: 'Professor' },
-                { name: 'M.Breen', rank: 'Professor' },
-                { name: 'C.Manikoth', rank: 'Professor' }
+                { name: 'T.Masingale', displayName: 'Travis Masingale', rank: 'Professor' },
+                { name: 'G.Hustrulid', displayName: 'Ginelle Hustrulid', rank: 'Professor' },
+                { name: 'M.Breen', displayName: 'Melinda Breen', rank: 'Professor' },
+                { name: 'C.Manikoth', displayName: 'Colin Manikoth', rank: 'Professor' }
             ],
             'Lecturers': [
-                { name: 'S.Mills', rank: 'Lecturer' },
-                { name: 'A.Sopu', rank: 'Lecturer' },
-                { name: 'S.Durr', rank: 'Lecturer' }
+                { name: 'S.Mills', displayName: 'Simeon Mills', rank: 'Lecturer' },
+                { name: 'A.Sopu', displayName: 'Ariel Sopu', rank: 'Lecturer' },
+                { name: 'S.Durr', displayName: 'Sonja Durr', rank: 'Lecturer' }
             ],
             'Adjuncts': [
-                { name: 'J.Braukmann', rank: 'Adjunct' }
+                { name: 'J.Braukmann', displayName: 'John Braukmann', rank: 'Adjunct' }
             ]
         };
 
@@ -13465,7 +13487,7 @@
                     members.forEach(f => {
                         const opt = document.createElement('option');
                         opt.value = f.name;
-                        opt.textContent = f.name + ' (' + f.rank + ')';
+                        opt.textContent = (f.displayName || f.name) + ' (' + f.rank + ')';
                         optgroup.appendChild(opt);
                     });
                     select.appendChild(optgroup);
@@ -13776,18 +13798,18 @@
                         <select id="editFaculty" class="form-select">
                             <option value="">Select Instructor...</option>
                             <optgroup label="Professors">
-                                <option value="T.Masingale">T.Masingale (Professor)</option>
-                                <option value="G.Hustrulid">G.Hustrulid (Professor)</option>
-                                <option value="M.Breen">M.Breen (Professor)</option>
-                                <option value="C.Manikoth">C.Manikoth (Professor)</option>
+                                <option value="T.Masingale">Travis Masingale (Professor)</option>
+                                <option value="G.Hustrulid">Ginelle Hustrulid (Professor)</option>
+                                <option value="M.Breen">Melinda Breen (Professor)</option>
+                                <option value="C.Manikoth">Colin Manikoth (Professor)</option>
                             </optgroup>
                             <optgroup label="Lecturers">
-                                <option value="S.Mills">S.Mills (Lecturer)</option>
-                                <option value="A.Sopu">A.Sopu (Lecturer)</option>
-                                <option value="S.Durr">S.Durr (Lecturer)</option>
+                                <option value="S.Mills">Simeon Mills (Lecturer)</option>
+                                <option value="A.Sopu">Ariel Sopu (Lecturer)</option>
+                                <option value="S.Durr">Sonja Durr (Lecturer)</option>
                             </optgroup>
                             <optgroup label="Adjuncts">
-                                <option value="J.Braukmann">J.Braukmann (Adjunct)</option>
+                                <option value="J.Braukmann">John Braukmann (Adjunct)</option>
                             </optgroup>
                             <option value="TBD">TBD</option>
                             <option value="__add_new__">+ Add New Faculty...</option>
@@ -14112,18 +14134,18 @@
                         <select id="addFaculty" class="form-select">
                             <option value="">Select Instructor...</option>
                             <optgroup label="Professors">
-                                <option value="T.Masingale">T.Masingale (Professor)</option>
-                                <option value="G.Hustrulid">G.Hustrulid (Professor)</option>
-                                <option value="M.Breen">M.Breen (Professor)</option>
-                                <option value="C.Manikoth">C.Manikoth (Professor)</option>
+                                <option value="T.Masingale">Travis Masingale (Professor)</option>
+                                <option value="G.Hustrulid">Ginelle Hustrulid (Professor)</option>
+                                <option value="M.Breen">Melinda Breen (Professor)</option>
+                                <option value="C.Manikoth">Colin Manikoth (Professor)</option>
                             </optgroup>
                             <optgroup label="Lecturers">
-                                <option value="S.Mills">S.Mills (Lecturer)</option>
-                                <option value="A.Sopu">A.Sopu (Lecturer)</option>
-                                <option value="S.Durr">S.Durr (Lecturer)</option>
+                                <option value="S.Mills">Simeon Mills (Lecturer)</option>
+                                <option value="A.Sopu">Ariel Sopu (Lecturer)</option>
+                                <option value="S.Durr">Sonja Durr (Lecturer)</option>
                             </optgroup>
                             <optgroup label="Adjuncts">
-                                <option value="J.Braukmann">J.Braukmann (Adjunct)</option>
+                                <option value="J.Braukmann">John Braukmann (Adjunct)</option>
                             </optgroup>
                             <option value="TBD">TBD</option>
                             <option value="__add_new__">+ Add New Faculty...</option>
