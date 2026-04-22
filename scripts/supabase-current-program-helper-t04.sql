@@ -150,7 +150,33 @@ CREATE TRIGGER trg_sync_user_program_claims
     FOR EACH ROW
     EXECUTE FUNCTION public.sync_user_program_claims_from_membership();
 
+ALTER TABLE public.programs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_programs ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "programs_select_current_or_platform_admin" ON public.programs;
+CREATE POLICY "programs_select_current_or_platform_admin"
+    ON public.programs
+    FOR SELECT TO authenticated
+    USING (id = public.current_program() OR public.is_platform_admin());
+
+DROP POLICY IF EXISTS "programs_insert_platform_admin_only" ON public.programs;
+CREATE POLICY "programs_insert_platform_admin_only"
+    ON public.programs
+    FOR INSERT TO authenticated
+    WITH CHECK (public.is_platform_admin());
+
+DROP POLICY IF EXISTS "programs_update_platform_admin_only" ON public.programs;
+CREATE POLICY "programs_update_platform_admin_only"
+    ON public.programs
+    FOR UPDATE TO authenticated
+    USING (public.is_platform_admin())
+    WITH CHECK (public.is_platform_admin());
+
+DROP POLICY IF EXISTS "programs_delete_platform_admin_only" ON public.programs;
+CREATE POLICY "programs_delete_platform_admin_only"
+    ON public.programs
+    FOR DELETE TO authenticated
+    USING (public.is_platform_admin());
 
 DROP POLICY IF EXISTS "user_programs_select_self_or_platform_admin" ON public.user_programs;
 CREATE POLICY "user_programs_select_self_or_platform_admin"

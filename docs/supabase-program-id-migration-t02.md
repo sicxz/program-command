@@ -13,12 +13,13 @@ Execute the first tenantization migration by adding `program_id` to all program-
 ## What The Migration Does
 1. Creates `public.programs` (if missing).
 2. Inserts/updates EWU Design tenant row (`code='ewu-design'`).
-3. Adds `program_id` to all scoped tables.
-4. Backfills existing rows based on current FK hierarchy.
-5. Applies transition default (`program_id = EWU Design`) for backward-compatible inserts.
-6. Sets `program_id` to `NOT NULL`.
-7. Adds `program_id` FK constraints to `public.programs(id)`.
-8. Adds required indexes on every `program_id` column plus high-value query indexes.
+3. Enables RLS on `public.programs` so the tenant root is not left publicly exposed.
+4. Adds `program_id` to all scoped tables.
+5. Backfills existing rows based on current FK hierarchy.
+6. Applies transition default (`program_id = EWU Design`) for backward-compatible inserts.
+7. Sets `program_id` to `NOT NULL`.
+8. Adds `program_id` FK constraints to `public.programs(id)`.
+9. Adds required indexes on every `program_id` column plus high-value query indexes.
 
 ## Program-Scoped Tables Updated
 - `departments`
@@ -87,6 +88,16 @@ order by s.table_name;
 Expected:
 - `is_nullable = NO` for all rows.
 - `column_default` resolves to EWU Design UUID for transition compatibility.
+
+### 2b) Confirm `programs` now has RLS enabled
+```sql
+select schemaname, tablename, rowsecurity
+from pg_tables
+where schemaname = 'public'
+  and tablename = 'programs';
+```
+
+Expected: `rowsecurity = true`
 
 ### 3) Check data backfill completed
 ```sql

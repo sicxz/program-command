@@ -9,6 +9,7 @@ function loadMigrationSql() {
 describe('T-04 current_program migration contract', () => {
     test('creates user_programs mapping table and default-membership index', () => {
         const sql = loadMigrationSql();
+        expect(sql).toMatch(/ALTER TABLE public\.programs ENABLE ROW LEVEL SECURITY/i);
         expect(sql).toMatch(/CREATE TABLE IF NOT EXISTS public\.user_programs/i);
         expect(sql).toMatch(/CREATE UNIQUE INDEX IF NOT EXISTS idx_user_programs_single_default/i);
     });
@@ -29,5 +30,14 @@ describe('T-04 current_program migration contract', () => {
         expect(sql).toMatch(/UPDATE auth\.users/i);
         expect(sql).toMatch(/DROP TRIGGER IF EXISTS trg_sync_user_program_claims ON public\.user_programs/i);
         expect(sql).toMatch(/CREATE TRIGGER trg_sync_user_program_claims/i);
+    });
+
+    test('adds scoped programs policies for config reads and admin-only writes', () => {
+        const sql = loadMigrationSql();
+        expect(sql).toMatch(/CREATE POLICY "programs_select_current_or_platform_admin"/i);
+        expect(sql).toMatch(/id = public\.current_program\(\) OR public\.is_platform_admin\(\)/i);
+        expect(sql).toMatch(/CREATE POLICY "programs_insert_platform_admin_only"/i);
+        expect(sql).toMatch(/CREATE POLICY "programs_update_platform_admin_only"/i);
+        expect(sql).toMatch(/CREATE POLICY "programs_delete_platform_admin_only"/i);
     });
 });
