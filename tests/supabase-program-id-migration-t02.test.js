@@ -13,6 +13,7 @@ describe('T-02 program_id migration contract', () => {
         expect(sql).toMatch(/INSERT INTO public\.programs/i);
         expect(sql).toMatch(/VALUES \('EWU Design', 'ewu-design'/i);
         expect(sql).toMatch(/ON CONFLICT \(code\) DO UPDATE/i);
+        expect(sql).toMatch(/ALTER TABLE public\.programs ENABLE ROW LEVEL SECURITY/i);
     });
 
     test('forward migration adds program_id columns, constraints, defaults, and indexes', () => {

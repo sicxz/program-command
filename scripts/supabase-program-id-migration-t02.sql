@@ -24,6 +24,9 @@ SET
     name = EXCLUDED.name,
     updated_at = NOW();
 
+-- Keep the tenant root table out of the public Data API until T-04 adds scoped policies.
+ALTER TABLE public.programs ENABLE ROW LEVEL SECURITY;
+
 -- 3) Add program_id to scoped tables, backfill, enforce constraints and defaults
 DO $$
 DECLARE

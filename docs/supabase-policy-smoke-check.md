@@ -4,6 +4,7 @@
 
 Quickly verify RLS behavior after C-06 migration:
 
+- anonymous reads cannot see `programs`
 - anonymous writes are denied
 - authorized writes are allowed
 - output is explicit pass/fail
@@ -43,10 +44,12 @@ npm run check:rls
 
 The smoke check uses `academic_years` for a temporary probe row and runs:
 
-1. anon insert (expect denied)
-2. authorized insert (expect allowed)
-3. anon update/delete against probe row (expect denied)
-4. authorized update/delete (expect allowed)
+1. anon `programs` read (expect denied or empty result)
+2. authorized `programs` read (expect allowed)
+3. anon insert (expect denied)
+4. authorized insert (expect allowed)
+5. anon update/delete against probe row (expect denied)
+6. authorized update/delete (expect allowed)
 
 The script attempts cleanup even if a later check fails.
 

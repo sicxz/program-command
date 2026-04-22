@@ -115,6 +115,7 @@ async function main() {
         : authorizedClient;
 
     let departmentId = null;
+    let authorizedProgramId = null;
     let insertedAnonYearId = null;
     let insertedAuthYearId = null;
 
@@ -133,6 +134,34 @@ async function main() {
 
         departmentId = deptRow.id;
         logPass('resolve target department', `${TARGET_DEPARTMENT_CODE} -> ${departmentId}`);
+
+        {
+            const { data, error } = await anonClient
+                .from('programs')
+                .select('id, code')
+                .eq('code', 'ewu-design');
+
+            if (hasPermissionError(error) || !Array.isArray(data) || data.length === 0) {
+                logPass('anon programs read denied');
+            } else {
+                logFail('anon programs read denied', 'program config row was visible to anon');
+            }
+        }
+
+        {
+            const { data, error } = await authorizedClient
+                .from('programs')
+                .select('id, code')
+                .eq('code', 'ewu-design')
+                .maybeSingle();
+
+            if (error || !data?.id) {
+                logFail('authorized programs read allowed', error?.message || 'program config row not visible');
+            } else {
+                authorizedProgramId = data.id;
+                logPass('authorized programs read allowed', `program id=${authorizedProgramId}`);
+            }
+        }
 
         const anonSmokeYear = makeSmokeYear('A');
         const authSmokeYear = makeSmokeYear('B');
