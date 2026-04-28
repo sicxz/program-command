@@ -1,7 +1,10 @@
 const {
+    buildScheduleDataFromDatabaseRecords,
+    createEmptyAcademicYearScheduleData,
     ensureOnlineCourseBucketForQuarter,
     getOnlineCoursesForQuarter,
-    flattenQuarterData
+    flattenQuarterData,
+    scheduleHasCourses
 } = require('../js/schedule-data-utils.js');
 
 describe('schedule data utils online bucket normalization', () => {
@@ -81,5 +84,80 @@ describe('schedule data utils online bucket normalization', () => {
         });
         expect(quarterData.async).toBeUndefined();
         expect(quarterData.ONLINE.async).toHaveLength(1);
+    });
+
+    test('builds scheduler buckets from Supabase scheduled course rows', () => {
+        const scheduleData = buildScheduleDataFromDatabaseRecords([
+            {
+                quarter: 'fall',
+                day_pattern: 'MW',
+                time_slot: '10:00-12:20',
+                section: '001',
+                projected_enrollment: 24,
+                course: { code: 'desn 216', title: 'Digital Foundations', default_credits: 5 },
+                faculty: { name: 'A. Faculty' },
+                room: { room_code: '206' }
+            },
+            {
+                quarter: 'fall',
+                day_pattern: 'online',
+                time_slot: 'async',
+                section: '002',
+                course: { code: 'DESN 316', title: 'UI Systems', default_credits: 5 },
+                faculty: { name: 'B. Faculty' }
+            },
+            {
+                quarter: 'winter',
+                day_pattern: 'arranged',
+                time_slot: 'arranged',
+                section: '003',
+                course: { code: 'DESN 490', title: 'Capstone', default_credits: 5 },
+                faculty: { name: 'C. Faculty' }
+            }
+        ], {
+            dayPatterns: ['MW', 'TR'],
+            normalizeCourseCode: (value) => String(value || '').trim().toUpperCase().replace(/\s+/g, ' '),
+            normalizeInstructor: (value) => String(value || '').trim() || 'TBD'
+        });
+
+        expect(scheduleData.fall.MW['10:00-12:20']).toEqual([
+            expect.objectContaining({
+                code: 'DESN 216',
+                room: '206',
+                instructor: 'A. Faculty',
+                enrollmentCap: 24
+            })
+        ]);
+        expect(scheduleData.fall.ONLINE.async).toEqual([
+            expect.objectContaining({
+                code: 'DESN 316',
+                room: 'ONLINE',
+                instructor: 'B. Faculty'
+            })
+        ]);
+        expect(scheduleData.winter.ARRANGED.arranged).toEqual([
+            expect.objectContaining({
+                code: 'DESN 490',
+                room: 'ARRANGED',
+                instructor: 'C. Faculty'
+            })
+        ]);
+    });
+
+    test('scheduleHasCourses distinguishes empty and populated schedule snapshots', () => {
+        const emptySchedule = createEmptyAcademicYearScheduleData({ dayPatterns: ['MW', 'TR'] });
+        const populatedSchedule = buildScheduleDataFromDatabaseRecords([
+            {
+                quarter: 'spring',
+                day_pattern: 'ONLINE',
+                time_slot: 'async',
+                course: { code: 'DESN 379', title: 'Web Dev 2', default_credits: 5 }
+            }
+        ], {
+            dayPatterns: ['MW', 'TR']
+        });
+
+        expect(scheduleHasCourses(emptySchedule)).toBe(false);
+        expect(scheduleHasCourses(populatedSchedule)).toBe(true);
     });
 });
