@@ -232,6 +232,10 @@
         };
     }
 
+    function cloneJson(value) {
+        return JSON.parse(JSON.stringify(value));
+    }
+
     function sanitizeDepartmentId(value) {
         return String(value || '')
             .trim()
@@ -239,6 +243,41 @@
             .replace(/[^a-z0-9]+/g, '-')
             .replace(/^-+/, '')
             .replace(/-+$/, '');
+    }
+
+    function buildStorageKeyPrefix(identity) {
+        const base = sanitizeDepartmentId(identity?.code || identity?.shortName || identity?.name || 'department');
+        return `${base}SchedulerData_`;
+    }
+
+    function getNextAcademicYearLabel(yearLabel) {
+        const normalized = String(yearLabel || '').trim();
+        const match = normalized.match(/^(\d{4})-(\d{2})$/);
+        if (!match) return '';
+        const startYear = Number(match[1]);
+        if (!Number.isFinite(startYear)) return '';
+        return `${startYear + 1}-${String(startYear + 2).slice(-2)}`;
+    }
+
+    function remapDepartmentCourseCodes(courseMap, nextCode, previousCode) {
+        if (!courseMap || typeof courseMap !== 'object' || Array.isArray(courseMap)) {
+            return courseMap;
+        }
+
+        const nextPrefix = String(nextCode || '').trim().toUpperCase();
+        const previousPrefix = String(previousCode || '').trim().toUpperCase();
+        if (!nextPrefix) return cloneJson(courseMap);
+
+        return Object.entries(courseMap).reduce((result, [courseCode, details]) => {
+            const normalizedCode = String(courseCode || '').trim();
+            let nextCourseCode = normalizedCode;
+            if (previousPrefix) {
+                const previousPattern = new RegExp(`^${previousPrefix}(\\s+\\d)`, 'i');
+                nextCourseCode = normalizedCode.replace(previousPattern, `${nextPrefix}$1`);
+            }
+            result[nextCourseCode] = cloneJson(details);
+            return result;
+        }, {});
     }
 
     function createProgramSelection(program) {
@@ -427,6 +466,12 @@
         const artifactBatch = options.artifactBatch && typeof options.artifactBatch === 'object'
             ? buildScreenshotArtifactBatch(options.artifactBatch.files || [], options.artifactBatch)
             : null;
+        const spreadsheetImport = options.spreadsheetImport && typeof options.spreadsheetImport === 'object'
+            ? JSON.parse(JSON.stringify(options.spreadsheetImport))
+            : null;
+        const screenshotImport = options.screenshotImport && typeof options.screenshotImport === 'object'
+            ? JSON.parse(JSON.stringify(options.screenshotImport))
+            : null;
 
         return {
             ...(selection || {}),
@@ -434,6 +479,106 @@
             suggestedIdentity: buildSuggestedIdentity(program),
             artifact,
             artifactBatch,
+            spreadsheetImport,
+            screenshotImport,
+            createdAt: new Date().toISOString()
+        };
+    }
+
+    function buildAutomaticProgramProfile(baseProfile, program, options = {}) {
+        const draft = cloneJson(baseProfile && typeof baseProfile === 'object' ? baseProfile : {});
+        const identity = buildSuggestedIdentity(program);
+        const previousCode = String(draft.identity?.code || '').trim();
+
+        draft.id = sanitizeDepartmentId(identity.code || identity.name || program?.id || 'program');
+        draft.version = Number(draft.version) || 1;
+        draft.identity = {
+            ...draft.identity,
+            name: String(identity.name || program?.label || draft.identity?.name || 'Program').trim(),
+            code: String(identity.code || draft.identity?.code || '').trim().toUpperCase(),
+            displayName: String(identity.displayName || draft.identity?.displayName || identity.name || program?.label || 'Program Command').trim(),
+            shortName: String(identity.shortName || identity.name || program?.label || draft.identity?.shortName || 'Program').trim()
+        };
+
+        draft.branding = draft.branding || {};
+        draft.branding.appTitle = `Program Command - ${draft.identity.displayName}`;
+        draft.branding.headerEyebrow = `${String(draft.identity.displayName || '').trim().toUpperCase()} · PROGRAM COMMAND`;
+        draft.branding.headerSubtitle = `${draft.identity.shortName} Program Planning and Schedule Operations`;
+
+        draft.scheduler = draft.scheduler || {};
+        draft.scheduler.storageKeyPrefix = buildStorageKeyPrefix(draft.identity);
+        const allowedRooms = Array.isArray(draft.scheduler.allowedRooms)
+            ? draft.scheduler.allowedRooms.map((room) => String(room || '').trim()).filter(Boolean)
+            : [];
+        draft.scheduler.allowedRooms = allowedRooms;
+        const roomLabels = draft.scheduler.roomLabels && typeof draft.scheduler.roomLabels === 'object'
+            ? draft.scheduler.roomLabels
+            : {};
+        const nextRoomLabels = {};
+        allowedRooms.forEach((room) => {
+            nextRoomLabels[room] = String(roomLabels[room] || room).trim() || room;
+        });
+        draft.scheduler.roomLabels = nextRoomLabels;
+
+        draft.import = draft.import || {};
+        draft.import.clss = draft.import.clss || {};
+        if (!Array.isArray(draft.import.clss.roomMatchPriority) || !draft.import.clss.roomMatchPriority.length) {
+            draft.import.clss.roomMatchPriority = allowedRooms.slice();
+        }
+        if (!draft.import.clss.facultyAliases || typeof draft.import.clss.facultyAliases !== 'object') {
+            draft.import.clss.facultyAliases = {};
+        }
+        if (!draft.import.clss.courseAliases || typeof draft.import.clss.courseAliases !== 'object') {
+            draft.import.clss.courseAliases = {};
+        }
+
+        draft.workload = draft.workload || {};
+        draft.workload.dashboardTitle = String(draft.workload.dashboardTitle || 'Faculty Workload Dashboard').trim() || 'Faculty Workload Dashboard';
+        draft.workload.dashboardSubtitleBase = `${draft.identity.displayName} Department - Academic Workload Analysis`;
+        const resetYear = getNextAcademicYearLabel(draft.academic?.defaultSchedulerYear);
+        if (resetYear) {
+            draft.workload.productionResetDefaultScheduleYear = resetYear;
+        }
+        if (draft.workload.appliedLearningCourses && typeof draft.workload.appliedLearningCourses === 'object' && !Array.isArray(draft.workload.appliedLearningCourses)) {
+            draft.workload.appliedLearningCourses = remapDepartmentCourseCodes(
+                draft.workload.appliedLearningCourses,
+                draft.identity.code,
+                previousCode
+            );
+        }
+
+        draft.onboardingMeta = {
+            ...(draft.onboardingMeta && typeof draft.onboardingMeta === 'object' ? draft.onboardingMeta : {}),
+            basedOn: String(options.baseProfileId || '').trim() || null,
+            generatedAt: new Date().toISOString(),
+            generatedBy: 'program-shell-direct-import-v1',
+            catalogProgramId: String(program?.id || '').trim() || null,
+            catalogProgramLabel: String(program?.label || '').trim() || null,
+            catalogDepartmentId: String(program?.departmentId || '').trim() || null,
+            catalogDepartmentLabel: String(program?.departmentLabel || '').trim() || null,
+            catalogWorkspaceKind: String(program?.workspaceKind || 'program').trim() || 'program',
+            catalogMemberProgramIds: Array.isArray(program?.memberProgramIds)
+                ? program.memberProgramIds.map((id) => String(id || '').trim()).filter(Boolean)
+                : [],
+            previousCode: previousCode || null
+        };
+
+        return {
+            profile: draft,
+            baseId: sanitizeDepartmentId(draft.identity?.code || draft.identity?.name || program?.id || 'program')
+        };
+    }
+
+    function createPendingImportPayload(source, program, profileId, intake = {}) {
+        return {
+            source: String(source || '').trim() || 'spreadsheet',
+            programId: String(program?.id || '').trim() || null,
+            label: String(program?.label || '').trim() || null,
+            profileId: String(profileId || program?.profileId || '').trim() || null,
+            artifact: intake.artifact || null,
+            artifactBatch: intake.artifactBatch || null,
+            spreadsheetImport: intake.spreadsheetImport || null,
+            screenshotImport: intake.screenshotImport || null,
             createdAt: new Date().toISOString()
         };
     }
@@ -462,6 +607,68 @@
         return parentLabel ? `${parentLabel} / ${label}` : label;
     }
 
+    function canImportIntoProgram(program) {
+        return Boolean(program && String(program.workspaceKind || 'program').trim() === 'program');
+    }
+
+    function getImportRestrictionMessage(program) {
+        const label = formatProgramLabel(program);
+        return `${label} is a shared workspace. Import one program at a time, then use department or combined views to see programs together in the grid.`;
+    }
+
+    function profileMatchesProgram(profile, program) {
+        if (!profile || typeof profile !== 'object' || !program || typeof program !== 'object') {
+            return false;
+        }
+
+        const targetProgramId = normalizeProgramMatchValue(program.id);
+        const targetCode = normalizeProgramMatchValue(program.suggestedCode);
+        const targetLabel = normalizeProgramMatchValue(program.label);
+        const onboardingMeta = profile.onboardingMeta && typeof profile.onboardingMeta === 'object'
+            ? profile.onboardingMeta
+            : {};
+        const identity = profile.identity && typeof profile.identity === 'object'
+            ? profile.identity
+            : {};
+
+        const catalogProgramId = normalizeProgramMatchValue(onboardingMeta.catalogProgramId);
+        if (catalogProgramId && catalogProgramId === targetProgramId) {
+            return true;
+        }
+
+        const identityCode = normalizeProgramMatchValue(identity.code);
+        const identityName = normalizeProgramMatchValue(identity.name);
+        const identityShortName = normalizeProgramMatchValue(identity.shortName);
+        const catalogProgramLabel = normalizeProgramMatchValue(onboardingMeta.catalogProgramLabel);
+
+        return Boolean(
+            (targetCode && identityCode === targetCode)
+            || (targetLabel && (
+                catalogProgramLabel === targetLabel ||
+                identityName === targetLabel ||
+                identityShortName === targetLabel
+            ))
+        );
+    }
+
+    async function loadMatchingProfile(program, profileId, manager, source) {
+        if (!profileId || !manager || typeof manager.loadProfile !== 'function') {
+            return null;
+        }
+
+        const loaded = await manager.loadProfile(profileId);
+        const profile = loaded?.profile;
+        if (!profileMatchesProgram(profile, program)) {
+            return null;
+        }
+
+        return {
+            profileId,
+            profile,
+            source
+        };
+    }
+
     function normalizeProgramMatchValue(value) {
         return String(value || '')
             .trim()
@@ -476,60 +683,12 @@
         }
 
         try {
-            const targetProgramId = normalizeProgramMatchValue(program.id);
-            const targetCode = normalizeProgramMatchValue(program.suggestedCode);
-            const targetLabel = normalizeProgramMatchValue(program.label);
             const storedActiveProfileId = typeof manager.getStoredProfileId === 'function'
                 ? String(manager.getStoredProfileId() || '').trim()
                 : '';
 
-            async function loadCandidate(profileId, source) {
-                if (!profileId) return null;
-                const loaded = await manager.loadProfile(profileId);
-                const profile = loaded?.profile;
-                if (!profile || typeof profile !== 'object') return null;
-
-                const onboardingMeta = profile.onboardingMeta && typeof profile.onboardingMeta === 'object'
-                    ? profile.onboardingMeta
-                    : {};
-                const identity = profile.identity && typeof profile.identity === 'object'
-                    ? profile.identity
-                    : {};
-
-                const catalogProgramId = normalizeProgramMatchValue(onboardingMeta.catalogProgramId);
-                if (catalogProgramId && catalogProgramId === targetProgramId) {
-                    return {
-                        profileId,
-                        profile,
-                        source
-                    };
-                }
-
-                const identityCode = normalizeProgramMatchValue(identity.code);
-                const identityName = normalizeProgramMatchValue(identity.name);
-                const identityShortName = normalizeProgramMatchValue(identity.shortName);
-                const catalogProgramLabel = normalizeProgramMatchValue(onboardingMeta.catalogProgramLabel);
-
-                if (
-                    (targetCode && identityCode === targetCode) ||
-                    (targetLabel && (
-                        catalogProgramLabel === targetLabel ||
-                        identityName === targetLabel ||
-                        identityShortName === targetLabel
-                    ))
-                ) {
-                    return {
-                        profileId,
-                        profile,
-                        source: `${source}-fallback`
-                    };
-                }
-
-                return null;
-            }
-
             if (storedActiveProfileId) {
-                const activeMatch = await loadCandidate(storedActiveProfileId, 'active-profile');
+                const activeMatch = await loadMatchingProfile(program, storedActiveProfileId, manager, 'active-profile');
                 if (activeMatch) return activeMatch;
             }
 
@@ -541,7 +700,7 @@
 
             let fallbackMatch = null;
             for (const entry of candidates) {
-                const candidateMatch = await loadCandidate(entry.id, 'custom-profile');
+                const candidateMatch = await loadMatchingProfile(program, entry.id, manager, 'custom-profile');
                 if (!candidateMatch) continue;
                 if (candidateMatch.source === 'custom-profile') {
                     return candidateMatch;
@@ -633,6 +792,170 @@
         return { hasData: false, source: 'none' };
     }
 
+    async function ensureProgramProfile(program, options = {}) {
+        if (!program || typeof program !== 'object') {
+            throw new Error('Choose a program before starting import.');
+        }
+        if (!canImportIntoProgram(program)) {
+            throw new Error(getImportRestrictionMessage(program));
+        }
+
+        const manager = options.profileManager || global.DepartmentProfileManager || null;
+        if (!manager || typeof manager.loadProfile !== 'function' || typeof manager.saveCustomProfile !== 'function') {
+            throw new Error('Department profile manager is unavailable for import setup.');
+        }
+
+        const existing = await findExistingProgramProfile(program, { profileManager: manager });
+        if (existing?.profileId) {
+            if (typeof manager.setActiveProfile === 'function') {
+                await manager.setActiveProfile(existing.profileId);
+            }
+            return {
+                profileId: existing.profileId,
+                profile: existing.profile,
+                source: existing.source || 'existing-profile'
+            };
+        }
+
+        const baseProfileId = String(
+            options.baseProfileId
+            || program.baseProfileId
+            || program.profileId
+            || manager.getStoredProfileId?.()
+            || 'design-v1'
+        ).trim() || 'design-v1';
+        const loadedBase = await manager.loadProfile(baseProfileId);
+        const baseProfile = loadedBase?.profile || manager.getDefaultProfile?.();
+        if (!baseProfile || typeof baseProfile !== 'object') {
+            throw new Error(`Could not load base profile ${baseProfileId} for import setup.`);
+        }
+
+        const draft = buildAutomaticProgramProfile(baseProfile, program, { baseProfileId });
+        const saved = await manager.saveCustomProfile(draft.profile, {
+            baseId: draft.baseId,
+            activate: true
+        });
+
+        return {
+            profileId: saved.profileId,
+            profile: saved.profile,
+            source: 'auto-bootstrap'
+        };
+    }
+
+    async function collectProgramWorkspaceDebug(program, options = {}) {
+        const manager = options.profileManager || global.DepartmentProfileManager || null;
+        const importApi = options.importApi || global.ProgramCommandImport || null;
+        const storage = safeLocalStorage();
+        const selection = readSelection();
+        const pendingImport = importApi && typeof importApi.readPendingOnboardingImport === 'function'
+            ? importApi.readPendingOnboardingImport()
+            : null;
+        const activeProfileId = manager && typeof manager.getStoredProfileId === 'function'
+            ? String(manager.getStoredProfileId() || '').trim() || null
+            : null;
+        const existing = program
+            ? await findExistingProgramProfile(program, { profileManager: manager })
+            : null;
+
+        return {
+            timestamp: new Date().toISOString(),
+            program: program ? createProgramSelection(program) : null,
+            selection,
+            activeProfileId,
+            existingWorkspace: existing ? {
+                profileId: existing.profileId,
+                source: existing.source,
+                storageKeyPrefix: String(existing.profile?.scheduler?.storageKeyPrefix || '').trim() || null
+            } : null,
+            pendingImport: pendingImport ? {
+                source: pendingImport.source || null,
+                programId: pendingImport.programId || null,
+                profileId: pendingImport.profileId || null
+            } : null,
+            storageKeys: storage ? Object.keys(storage).filter((key) => /programCommand|SchedulerData_/.test(key)).sort() : []
+        };
+    }
+
+    async function resetProgramWorkspace(program, options = {}) {
+        if (!program || typeof program !== 'object') {
+            throw new Error('Choose a program before resetting workspace state.');
+        }
+        if (!canImportIntoProgram(program)) {
+            throw new Error(getImportRestrictionMessage(program));
+        }
+
+        const manager = options.profileManager || global.DepartmentProfileManager || null;
+        const importApi = options.importApi || global.ProgramCommandImport || null;
+        const storage = safeLocalStorage();
+        if (!manager || typeof manager.listProfiles !== 'function' || typeof manager.loadProfile !== 'function') {
+            throw new Error('Department profile manager is unavailable for debug reset.');
+        }
+        if (!storage) {
+            throw new Error('Local storage is unavailable for debug reset.');
+        }
+
+        const listing = await manager.listProfiles();
+        const profiles = Array.isArray(listing?.profiles) ? listing.profiles : [];
+        const customEntries = profiles.filter((entry) => entry && entry.id && entry.source === 'custom-local');
+        const matchingProfiles = [];
+
+        for (const entry of customEntries) {
+            const loaded = await loadMatchingProfile(program, entry.id, manager, 'custom-profile');
+            if (!loaded) continue;
+            matchingProfiles.push(loaded);
+        }
+
+        const customProfilesKey = String(manager.CUSTOM_PROFILES_STORAGE_KEY || 'programCommandCustomDepartmentProfilesV1').trim();
+        const activeProfileStorageKey = String(manager.ACTIVE_PROFILE_STORAGE_KEY || 'programCommandActiveDepartmentProfileId').trim();
+        const defaultProfileId = String(manager.DEFAULT_PROFILE_ID || 'design-v1').trim() || 'design-v1';
+        const store = readJsonStorage(customProfilesKey) || {};
+        const removedProfileIds = [];
+        const removedScheduleKeys = [];
+
+        matchingProfiles.forEach((entry) => {
+            if (store && Object.prototype.hasOwnProperty.call(store, entry.profileId)) {
+                delete store[entry.profileId];
+                removedProfileIds.push(entry.profileId);
+            }
+
+            const prefix = String(entry.profile?.scheduler?.storageKeyPrefix || '').trim();
+            if (!prefix) return;
+            Object.keys(storage)
+                .filter((key) => String(key).startsWith(prefix))
+                .forEach((key) => {
+                    storage.removeItem(key);
+                    removedScheduleKeys.push(key);
+                });
+        });
+
+        writeJsonStorage(customProfilesKey, store);
+
+        const activeProfileId = String(manager.getStoredProfileId?.() || '').trim();
+        if (removedProfileIds.includes(activeProfileId)) {
+            storage.setItem(activeProfileStorageKey, defaultProfileId);
+        }
+
+        if (importApi && typeof importApi.readPendingOnboardingImport === 'function') {
+            const pendingImport = importApi.readPendingOnboardingImport();
+            if (pendingImport && String(pendingImport.programId || '').trim() === String(program.id || '').trim()) {
+                importApi.clearPendingOnboardingImport?.();
+            }
+        }
+
+        clearOnboardingContext();
+        persistSelection(createProgramSelection({
+            ...program,
+            profileId: null,
+            seededDefault: Boolean(program.seededDefault)
+        }));
+
+        return {
+            removedProfileIds,
+            removedScheduleKeys
+        };
+    }
+
     function bootstrap(options = {}) {
         if (!global.document) {
             return Promise.resolve(false);
@@ -652,10 +975,16 @@
         const manager = options.profileManager || global.DepartmentProfileManager || null;
         const onboardingUrl = String(options.onboardingUrl || 'pages/department-onboarding.html').trim() || 'pages/department-onboarding.html';
         const groups = Array.isArray(options.programGroups) ? options.programGroups : DEFAULT_PROGRAM_GROUPS;
+        const importApi = global.ProgramCommandImport || null;
+        const pendingOnboardingImport = importApi && typeof importApi.readPendingOnboardingImport === 'function'
+            ? importApi.readPendingOnboardingImport()
+            : null;
+        const pendingProgram = findProgramById(pendingOnboardingImport?.programId, groups);
 
         const elements = {
             overlay,
-            programList: global.document.getElementById('programShellProgramList'),
+            programSelect: global.document.getElementById('programShellProgramSelect'),
+            programMeta: global.document.getElementById('programShellProgramMeta'),
             summary: global.document.getElementById('programShellSummary'),
             authForm: global.document.getElementById('programShellAuthForm'),
             email: global.document.getElementById('programShellEmail'),
@@ -667,6 +996,7 @@
             continueButton: global.document.getElementById('programShellContinueButton'),
             backButton: global.document.getElementById('programShellBackButton'),
             chooser: global.document.getElementById('programShellChooser'),
+            chooserTitle: global.document.getElementById('programShellChooserTitle'),
             manualButton: global.document.getElementById('programShellManualButton'),
             spreadsheetButton: global.document.getElementById('programShellSpreadsheetButton'),
             screenshotDirectoryButton: global.document.getElementById('programShellScreenshotDirectoryButton'),
@@ -676,17 +1006,37 @@
             screenshotInput: global.document.getElementById('programShellScreenshotInput'),
             screenshotSupportText: global.document.getElementById('programShellScreenshotSupportText'),
             chooserMeta: global.document.getElementById('programShellChooserMeta'),
+            existingPanel: global.document.getElementById('programShellExistingPanel'),
+            existingMeta: global.document.getElementById('programShellExistingMeta'),
+            openExistingButton: global.document.getElementById('programShellOpenExistingButton'),
+            newWorkspacePanel: global.document.getElementById('programShellNewWorkspacePanel'),
+            debugPanel: global.document.getElementById('programShellDebugPanel'),
+            debugSummary: global.document.getElementById('programShellDebugSummary'),
+            resetProgramButton: global.document.getElementById('programShellResetProgramButton'),
+            clearPendingImportButton: global.document.getElementById('programShellClearPendingImportButton'),
+            copyDebugButton: global.document.getElementById('programShellCopyDebugButton'),
             status: global.document.getElementById('programShellStatus')
         };
 
         const state = {
-            selectedProgram: resolveStoredSelection(groups),
+            selectedProgram: pendingProgram || resolveStoredSelection(groups),
             session: null,
             previewMode: false,
             chooserVisible: false,
+            chooserMode: null,
+            detectedData: null,
             runtimeLaunched: false,
-            directoryUploadSupported: Boolean(elements.screenshotDirectoryInput && ('webkitdirectory' in elements.screenshotDirectoryInput))
+            pendingOnboardingImport,
+            directoryUploadSupported: Boolean(elements.screenshotDirectoryInput && ('webkitdirectory' in elements.screenshotDirectoryInput)),
+            debugSnapshot: null
         };
+
+        if (pendingProgram && pendingOnboardingImport?.profileId) {
+            persistSelection(createProgramSelection({
+                ...pendingProgram,
+                profileId: String(pendingOnboardingImport.profileId || '').trim() || null
+            }));
+        }
 
         function authSatisfied() {
             return Boolean(state.session || state.previewMode);
@@ -709,133 +1059,153 @@
 
         function resetChooserDetails() {
             state.chooserVisible = false;
+            state.chooserMode = null;
+            state.detectedData = null;
             if (elements.chooserMeta) {
                 elements.chooserMeta.textContent = '';
             }
+            if (elements.chooserTitle) {
+                elements.chooserTitle.textContent = 'Choose workspace path';
+            }
+            if (elements.existingMeta) {
+                elements.existingMeta.textContent = '';
+            }
         }
 
-        function renderProgramList() {
-            if (!elements.programList) return;
-            elements.programList.innerHTML = '';
+        function renderProgramSelect() {
+            if (!elements.programSelect) return;
 
-            groups.forEach((group) => {
-                const card = global.document.createElement('section');
-                card.className = 'program-shell-catalog';
-
-                const heading = global.document.createElement('div');
-                heading.className = 'program-shell-catalog-heading';
-                heading.textContent = String(group?.title || '').trim() || 'Programs';
-                card.appendChild(heading);
-
-                const entryWrap = global.document.createElement('div');
-                entryWrap.className = 'program-shell-catalog-list';
-
-                const entries = Array.isArray(group?.entries) ? group.entries : [];
-                entries.forEach((entry) => {
-                    if (!entry || typeof entry !== 'object') return;
-                    if (entry.type === 'section') {
-                        const section = global.document.createElement('div');
-                        section.className = 'program-shell-subsection';
-
-                        const sectionTitle = global.document.createElement('div');
-                        sectionTitle.className = 'program-shell-subsection-title';
-                        sectionTitle.textContent = String(entry.title || '').trim() || 'Programs';
-                        section.appendChild(sectionTitle);
-
-                        const sectionList = global.document.createElement('div');
-                        sectionList.className = 'program-shell-subsection-list';
-
-                        (Array.isArray(entry.items) ? entry.items : []).forEach((item) => {
-                            const itemButton = buildProgramButton({
-                                ...item,
-                                parentLabel: String(item?.parentLabel || entry.title || '').trim() || null
-                            });
-                            sectionList.appendChild(itemButton);
-                        });
-
-                        section.appendChild(sectionList);
-                        entryWrap.appendChild(section);
-                        return;
-                    }
-                    if (entry.type === 'department') {
-                        const section = global.document.createElement('div');
-                        section.className = 'program-shell-subsection';
-
-                        const sectionTitle = global.document.createElement('div');
-                        sectionTitle.className = 'program-shell-subsection-title';
-                        sectionTitle.textContent = String(entry.title || '').trim() || 'Department';
-                        section.appendChild(sectionTitle);
-
-                        const sectionList = global.document.createElement('div');
-                        sectionList.className = 'program-shell-subsection-list';
-
-                        (Array.isArray(entry.items) ? entry.items : []).forEach((item) => {
-                            const itemButton = buildProgramButton({
-                                ...item,
-                                parentLabel: String(item?.parentLabel || entry.title || '').trim() || null,
-                                departmentId: String(item?.departmentId || sanitizeDepartmentId(entry.title || entry.id || '')).trim() || null,
-                                departmentLabel: String(item?.departmentLabel || entry.title || '').trim() || null
-                            });
-                            sectionList.appendChild(itemButton);
-                        });
-
-                        section.appendChild(sectionList);
-                        entryWrap.appendChild(section);
-                        return;
-                    }
-
-                    entryWrap.appendChild(buildProgramButton(entry));
+            if (!elements.programSelect.dataset.ready) {
+                flattenPrograms(groups).forEach((program) => {
+                    if (!program || typeof program !== 'object') return;
+                    const option = global.document.createElement('option');
+                    option.value = String(program.id || '').trim();
+                    option.textContent = formatProgramLabel(program);
+                    elements.programSelect.appendChild(option);
                 });
-
-                card.appendChild(entryWrap);
-                elements.programList.appendChild(card);
-            });
-        }
-
-        function buildProgramButton(program) {
-            const button = global.document.createElement('button');
-            button.type = 'button';
-            button.className = 'program-shell-program-button';
-            button.dataset.programId = String(program.id || '');
-            button.setAttribute('aria-pressed', state.selectedProgram?.id === program.id ? 'true' : 'false');
-
-            if (state.selectedProgram?.id === program.id) {
-                button.classList.add('selected');
+                elements.programSelect.dataset.ready = 'true';
             }
 
-            const label = global.document.createElement('span');
-            label.className = 'program-shell-program-label';
-            label.textContent = String(program.label || '').trim();
-            button.appendChild(label);
+            elements.programSelect.value = String(state.selectedProgram?.id || '').trim();
+        }
 
-            const meta = global.document.createElement('span');
-            meta.className = 'program-shell-program-meta';
-            meta.textContent = program.seededDefault
-                ? 'Seeded workspace available'
-                : String(program.workspaceSummary || '').trim() || 'Start with onboarding';
-            button.appendChild(meta);
+        function buildProgramMetaText(program) {
+            if (!program) {
+                return 'Choose a program to unlock the right workspace path.';
+            }
 
-            button.addEventListener('click', () => {
-                persistSelectedProgram(program, { profileId: String(program.profileId || '').trim() || null });
-                state.previewMode = false;
-                resetChooserDetails();
-                setStatus('info', `${formatProgramLabel(program)} selected. Authenticate to continue.`);
-                updateUi();
-                if (elements.email) {
-                    elements.email.focus();
+            const code = String(program.suggestedCode || '').trim();
+            if (program.seededDefault) {
+                return `${formatProgramLabel(program)} is already seeded. Authenticate, then open the existing workspace.`;
+            }
+            if (!canImportIntoProgram(program)) {
+                return `${formatProgramLabel(program)} is a shared workspace. Import one program at a time, then use shared views to see programs together in the grid.`;
+            }
+
+            const parts = ['Single program workspace'];
+            if (code) {
+                parts.push(`Code ${code}`);
+            }
+            parts.push('If a workspace exists, you will open it. If not, you can start a new one.');
+            return parts.join(' · ');
+        }
+
+        function describeExistingWorkspace() {
+            if (!state.selectedProgram || !state.detectedData?.hasData) {
+                return 'An existing program workspace was detected for this selection.';
+            }
+
+            const source = String(state.detectedData.source || '').trim();
+            const profileId = String(state.detectedData.profileId || state.selectedProgram.profileId || '').trim();
+            const sourceLabel = source ? source.replace(/-/g, ' ') : 'existing data';
+
+            if (source === 'embedded-runtime') {
+                return `${formatProgramLabel(state.selectedProgram)} already ships with a seeded workspace.`;
+            }
+            if (profileId) {
+                return `${formatProgramLabel(state.selectedProgram)} already has a workspace from ${sourceLabel}. Active profile: ${profileId}.`;
+            }
+            return `${formatProgramLabel(state.selectedProgram)} already has workspace data from ${sourceLabel}.`;
+        }
+
+        async function refreshDebugPanel() {
+            if (!elements.debugPanel || !elements.debugSummary) {
+                return;
+            }
+
+            const showDebug = Boolean(isLocalPreviewHost() && authSatisfied() && state.chooserVisible);
+            elements.debugPanel.hidden = !showDebug;
+            if (!showDebug) {
+                return;
+            }
+
+            const pendingImport = importApi && typeof importApi.readPendingOnboardingImport === 'function'
+                ? importApi.readPendingOnboardingImport()
+                : null;
+            state.pendingOnboardingImport = pendingImport;
+
+            if (!state.selectedProgram) {
+                elements.debugSummary.textContent = 'Choose a program to inspect workspace state.';
+                if (elements.resetProgramButton) {
+                    elements.resetProgramButton.disabled = true;
                 }
-            });
+                if (elements.clearPendingImportButton) {
+                    elements.clearPendingImportButton.disabled = !pendingImport;
+                }
+                if (elements.copyDebugButton) {
+                    elements.copyDebugButton.disabled = true;
+                }
+                return;
+            }
 
-            return button;
+            const requestedProgramId = String(state.selectedProgram.id || '').trim();
+            const snapshot = await collectProgramWorkspaceDebug(state.selectedProgram, {
+                profileManager: manager,
+                importApi
+            });
+            if (requestedProgramId !== String(state.selectedProgram?.id || '').trim()) {
+                return;
+            }
+
+            state.debugSnapshot = snapshot;
+            const lines = [
+                `Program: ${snapshot.program?.label || 'None'}`,
+                `Workspace detected: ${snapshot.existingWorkspace ? 'yes' : 'no'}`,
+                `Active profile: ${snapshot.activeProfileId || 'none'}`,
+                `Pending review: ${snapshot.pendingImport ? `${snapshot.pendingImport.source || 'unknown'} (${snapshot.pendingImport.programId || 'unknown'})` : 'none'}`,
+                `Storage keys: ${Array.isArray(snapshot.storageKeys) ? snapshot.storageKeys.length : 0}`
+            ];
+            elements.debugSummary.textContent = lines.join('\n');
+
+            if (elements.resetProgramButton) {
+                const canReset = canImportIntoProgram(state.selectedProgram);
+                elements.resetProgramButton.disabled = !canReset;
+                elements.resetProgramButton.title = canReset
+                    ? 'Remove the current local workspace for the selected program'
+                    : getImportRestrictionMessage(state.selectedProgram);
+            }
+            if (elements.clearPendingImportButton) {
+                elements.clearPendingImportButton.disabled = !snapshot.pendingImport;
+            }
+            if (elements.copyDebugButton) {
+                elements.copyDebugButton.disabled = false;
+            }
         }
 
         function updateUi() {
-            renderProgramList();
+            renderProgramSelect();
+            const canImportSelection = canImportIntoProgram(state.selectedProgram);
+            const showChooser = Boolean(state.chooserVisible && authSatisfied());
+            const showExistingPanel = showChooser && state.chooserMode === 'existing';
+            const showNewWorkspacePanel = showChooser && state.chooserMode === 'new';
 
             if (elements.summary) {
                 elements.summary.textContent = state.selectedProgram
-                    ? `${formatProgramLabel(state.selectedProgram)} selected.`
+                    ? `${formatProgramLabel(state.selectedProgram)} selected. Authenticate, then continue to check for an existing workspace.`
                     : 'Choose a program to unlock the correct entry path.';
+            }
+            if (elements.programMeta) {
+                elements.programMeta.textContent = buildProgramMetaText(state.selectedProgram);
             }
 
             const showSessionPanel = authSatisfied();
@@ -863,26 +1233,69 @@
                 elements.continueButton.disabled = !state.selectedProgram || !authSatisfied();
             }
 
+            if (elements.spreadsheetButton) {
+                elements.spreadsheetButton.disabled = !canImportSelection;
+                elements.spreadsheetButton.title = canImportSelection
+                    ? 'Import this program from an EagleNET spreadsheet'
+                    : getImportRestrictionMessage(state.selectedProgram);
+            }
+
             if (elements.screenshotDirectoryButton) {
                 elements.screenshotDirectoryButton.hidden = !state.directoryUploadSupported;
+                elements.screenshotDirectoryButton.disabled = !canImportSelection;
+                elements.screenshotDirectoryButton.title = canImportSelection
+                    ? 'Choose an EagleNET screenshot folder for this program'
+                    : getImportRestrictionMessage(state.selectedProgram);
             }
             if (elements.screenshotSupportText) {
-                elements.screenshotSupportText.textContent = state.directoryUploadSupported
+                const supportText = state.directoryUploadSupported
                     ? 'Folder upload keeps nested quarter folders when the browser supports directory selection.'
                     : 'This browser does not expose directory selection here, so use multiple screenshot files instead.';
+                elements.screenshotSupportText.textContent = canImportSelection
+                    ? supportText
+                    : `${supportText} Import stays disabled until you choose a single program workspace.`;
             }
             if (elements.screenshotButton) {
                 elements.screenshotButton.textContent = state.directoryUploadSupported
-                    ? 'Choose screenshot files'
-                    : 'Choose screenshots';
+                    ? 'Choose EagleNET screenshot files'
+                    : 'Choose EagleNET screenshots';
+                elements.screenshotButton.disabled = !canImportSelection;
+                elements.screenshotButton.title = canImportSelection
+                    ? 'Choose EagleNET screenshots for this program'
+                    : getImportRestrictionMessage(state.selectedProgram);
             }
 
             if (elements.chooser) {
-                elements.chooser.hidden = !state.chooserVisible || !authSatisfied();
+                elements.chooser.hidden = !showChooser;
             }
             if (elements.backButton) {
-                elements.backButton.hidden = !state.chooserVisible || !authSatisfied();
+                elements.backButton.hidden = !showChooser;
             }
+            if (elements.chooserTitle) {
+                if (state.chooserMode === 'existing') {
+                    elements.chooserTitle.textContent = 'Open existing workspace';
+                } else if (state.chooserMode === 'new') {
+                    elements.chooserTitle.textContent = 'Start a new program workspace';
+                } else if (state.chooserMode === 'unavailable') {
+                    elements.chooserTitle.textContent = 'Shared workspace requires a source program';
+                } else {
+                    elements.chooserTitle.textContent = 'Choose workspace path';
+                }
+            }
+            if (elements.existingPanel) {
+                elements.existingPanel.hidden = !showExistingPanel;
+            }
+            if (elements.existingMeta) {
+                elements.existingMeta.textContent = showExistingPanel ? describeExistingWorkspace() : '';
+            }
+            if (elements.openExistingButton) {
+                elements.openExistingButton.disabled = !showExistingPanel || !state.selectedProgram;
+            }
+            if (elements.newWorkspacePanel) {
+                elements.newWorkspacePanel.hidden = !showNewWorkspacePanel;
+            }
+
+            void refreshDebugPanel();
         }
 
         async function refreshSessionFromAuth() {
@@ -940,6 +1353,46 @@
             updateUi();
         }
 
+        async function openProgramWorkspace(program = state.selectedProgram, options = {}) {
+            if (!program) {
+                setStatus('error', 'Choose a program before opening a workspace.');
+                return false;
+            }
+
+            const nextProfileId = String(
+                options.profileId
+                || state.detectedData?.profileId
+                || program.profileId
+                || ''
+            ).trim();
+
+            if (nextProfileId) {
+                persistSelectedProgram(program, { profileId: nextProfileId });
+            }
+
+            if (manager && typeof manager.setActiveProfile === 'function' && nextProfileId) {
+                try {
+                    await manager.setActiveProfile(nextProfileId);
+                } catch (error) {
+                    setStatus('error', error?.message || 'Could not activate the selected profile.');
+                    return false;
+                }
+            }
+
+            clearOnboardingContext();
+            state.chooserVisible = false;
+            state.chooserMode = null;
+            updateUi();
+            setStatus('ok', options.statusMessage || `Opening ${formatProgramLabel(program)} in Program Command...`);
+
+            if (!state.runtimeLaunched) {
+                state.runtimeLaunched = true;
+                overlay.hidden = true;
+                await launchRuntime();
+            }
+            return true;
+        }
+
         async function handleContinue() {
             if (!state.selectedProgram) {
                 setStatus('error', 'Choose a program before continuing.');
@@ -950,44 +1403,131 @@
                 return;
             }
 
+            const requestedProgramId = String(state.selectedProgram.id || '').trim();
             setStatus('info', `Checking ${formatProgramLabel(state.selectedProgram)} for existing program data...`);
             const dataState = await detectProgramData(state.selectedProgram, {
                 profileManager: manager
             });
+            if (requestedProgramId !== String(state.selectedProgram?.id || '').trim()) {
+                return;
+            }
+
+            state.detectedData = dataState;
+            state.chooserVisible = true;
 
             if (dataState.hasData) {
                 const nextProfileId = String(dataState.profileId || state.selectedProgram.profileId || '').trim();
                 if (nextProfileId) {
                     persistSelectedProgram(state.selectedProgram, { profileId: nextProfileId });
                 }
-                if (manager && typeof manager.setActiveProfile === 'function' && nextProfileId) {
-                    try {
-                        await manager.setActiveProfile(nextProfileId);
-                    } catch (error) {
-                        setStatus('error', error?.message || 'Could not activate the selected profile.');
-                        return;
-                    }
+                state.chooserMode = 'existing';
+                if (elements.chooserMeta) {
+                    elements.chooserMeta.textContent = `${formatProgramLabel(state.selectedProgram)} already has a workspace. Open it to continue planning.`;
                 }
-
-                clearOnboardingContext();
-                state.chooserVisible = false;
                 updateUi();
-                setStatus('ok', `Opening ${formatProgramLabel(state.selectedProgram)} in Program Command...`);
-
-                if (!state.runtimeLaunched) {
-                    state.runtimeLaunched = true;
-                    overlay.hidden = true;
-                    await launchRuntime();
-                }
+                setStatus('ok', `${formatProgramLabel(state.selectedProgram)} already has a workspace. Open it to continue.`);
                 return;
             }
 
-            state.chooserVisible = true;
             if (elements.chooserMeta) {
-                elements.chooserMeta.textContent = `${formatProgramLabel(state.selectedProgram)} does not have seeded data yet. Start with manual setup or capture the import artifacts for the follow-on import slice.`;
+                elements.chooserMeta.textContent = canImportIntoProgram(state.selectedProgram)
+                    ? `${formatProgramLabel(state.selectedProgram)} does not have seeded data yet. Start with manual setup or upload EagleNET screenshots/spreadsheets so we can ask for any missing clarification before building the grid.`
+                    : `${getImportRestrictionMessage(state.selectedProgram)} Choose a specific program like Computer Science or Cybersecurity to create the first workspace.`;
             }
-            setStatus('info', `${formatProgramLabel(state.selectedProgram)} is empty. Choose how you want to start onboarding.`);
+            state.chooserMode = canImportIntoProgram(state.selectedProgram) ? 'new' : 'unavailable';
+            setStatus(
+                canImportIntoProgram(state.selectedProgram) ? 'info' : 'warn',
+                canImportIntoProgram(state.selectedProgram)
+                    ? `${formatProgramLabel(state.selectedProgram)} is empty. Choose manual setup or upload data to start the first grid build.`
+                    : `${formatProgramLabel(state.selectedProgram)} is a shared view. Start from a single program workspace first.`
+            );
             updateUi();
+        }
+
+        async function maybeResumePendingOnboardingImport() {
+            if (!state.pendingOnboardingImport || state.runtimeLaunched) {
+                return false;
+            }
+
+            const resumedProgram = findProgramById(state.pendingOnboardingImport.programId, groups);
+            if (!resumedProgram) {
+                return false;
+            }
+
+            persistSelectedProgram(resumedProgram, {
+                profileId: String(state.pendingOnboardingImport.profileId || resumedProgram.profileId || '').trim() || null
+            });
+
+            if (!authSatisfied()) {
+                if (isLocalPreviewHost()) {
+                    activatePreviewMode();
+                } else {
+                    setStatus('info', `${formatProgramLabel(resumedProgram)} is ready. Sign in to resume the pending import handoff.`);
+                    return false;
+                }
+            }
+
+            state.detectedData = {
+                hasData: true,
+                source: 'pending-import',
+                profileId: String(state.pendingOnboardingImport.profileId || resumedProgram.profileId || '').trim() || null
+            };
+            setStatus('info', `Resuming ${formatProgramLabel(resumedProgram)} import handoff...`);
+            await openProgramWorkspace(resumedProgram, {
+                profileId: String(state.pendingOnboardingImport.profileId || resumedProgram.profileId || '').trim() || null,
+                statusMessage: `Resuming ${formatProgramLabel(resumedProgram)} import handoff...`
+            });
+            return true;
+        }
+
+        async function launchPendingImportReview(source, intake = {}) {
+            if (!state.selectedProgram) {
+                setStatus('error', 'Choose a program before starting an upload review.');
+                return;
+            }
+            if (!authSatisfied()) {
+                setStatus('error', 'Authenticate before opening the upload review.');
+                return;
+            }
+            if (!state.chooserVisible || state.chooserMode !== 'new') {
+                setStatus('error', 'Continue into the selected program before choosing an upload path.');
+                return;
+            }
+            if (!canImportIntoProgram(state.selectedProgram)) {
+                handleImportRestriction();
+                return;
+            }
+
+            if (!importApi || typeof importApi.writePendingOnboardingImport !== 'function') {
+                setStatus('error', 'Import review handoff is unavailable on this page.');
+                return;
+            }
+
+            try {
+                const sourceLabel = source === 'screenshot' ? 'screenshot' : 'spreadsheet';
+                setStatus('info', `Preparing ${formatProgramLabel(state.selectedProgram)} ${sourceLabel} review...`);
+
+                const ensuredProfile = await ensureProgramProfile(state.selectedProgram, {
+                    profileManager: manager
+                });
+                const nextProfileId = String(ensuredProfile?.profileId || '').trim();
+                if (!nextProfileId) {
+                    throw new Error('Could not activate a program profile for this import.');
+                }
+
+                persistSelectedProgram(state.selectedProgram, {
+                    profileId: nextProfileId,
+                    seededDefault: false
+                });
+
+                importApi.writePendingOnboardingImport(
+                    createPendingImportPayload(source, state.selectedProgram, nextProfileId, intake)
+                );
+                clearOnboardingContext();
+                global.location.href = global.location.pathname;
+            } catch (error) {
+                setStatus('error', error?.message || 'Could not open the upload review.');
+            }
         }
 
         function navigateToOnboarding(source, intake = {}) {
@@ -999,7 +1539,7 @@
                 setStatus('error', 'Authenticate before entering onboarding.');
                 return;
             }
-            if (!state.chooserVisible) {
+            if (!state.chooserVisible || state.chooserMode !== 'new') {
                 setStatus('error', 'Continue into the selected program before choosing an onboarding path.');
                 return;
             }
@@ -1007,10 +1547,16 @@
             const context = createOnboardingContext(state.selectedProgram, {
                 source,
                 artifact: intake.artifact || null,
-                artifactBatch: intake.artifactBatch || null
+                artifactBatch: intake.artifactBatch || null,
+                spreadsheetImport: intake.spreadsheetImport || null,
+                screenshotImport: intake.screenshotImport || null
             });
             persistOnboardingContext(context);
             global.location.href = `${onboardingUrl}?source=${encodeURIComponent(source)}&program=${encodeURIComponent(context.id || '')}`;
+        }
+
+        function handleImportRestriction() {
+            setStatus('warn', getImportRestrictionMessage(state.selectedProgram));
         }
 
         function handleScreenshotSelection(files, mode) {
@@ -1019,14 +1565,75 @@
             });
 
             if (!artifactBatch.count) {
-                setStatus('error', 'Choose one or more screenshot files to continue.');
+                setStatus('error', 'Choose one or more EagleNET screenshot files to continue.');
                 return;
             }
 
-            navigateToOnboarding('screenshot', { artifactBatch });
+            if (!canImportIntoProgram(state.selectedProgram)) {
+                handleImportRestriction();
+                return;
+            }
+
+            const importApi = global.ProgramCommandImport;
+            if (!importApi || typeof importApi.readScreenshotTextImportFromFiles !== 'function') {
+                setStatus('error', 'Screenshot OCR import runtime is unavailable on this page.');
+                return;
+            }
+
+            setStatus('info', `Running OCR on ${artifactBatch.count} EagleNET screenshot file${artifactBatch.count === 1 ? '' : 's'} before review...`);
+            importApi.readScreenshotTextImportFromFiles(files, {
+                onProgress: ({ index, total, fileName }) => {
+                    setStatus('info', `OCR ${index + 1}/${total}: ${fileName}`);
+                }
+            })
+                .then((screenshotImport) => {
+                    if (!screenshotImport?.meta?.extractedTextCount) {
+                        setStatus('error', 'OCR did not detect any readable source text in the selected EagleNET screenshots.');
+                        return;
+                    }
+
+                    launchPendingImportReview('screenshot', {
+                        artifactBatch,
+                        screenshotImport
+                    });
+                })
+                .catch((error) => {
+                    setStatus('error', error?.message || 'Could not OCR the selected EagleNET screenshots.');
+                });
         }
 
-        renderProgramList();
+        renderProgramSelect();
+
+        elements.programSelect?.addEventListener('change', (event) => {
+            const nextProgramId = String(event.target?.value || '').trim();
+            const nextProgram = findProgramById(nextProgramId, groups);
+
+            if (!nextProgram) {
+                state.selectedProgram = null;
+                state.debugSnapshot = null;
+                resetChooserDetails();
+                clearStorageKey(SHELL_SELECTION_STORAGE_KEY);
+                setStatus('info', 'Choose a program to begin.');
+                updateUi();
+                return;
+            }
+
+            persistSelectedProgram(nextProgram, {
+                profileId: String(nextProgram.profileId || '').trim() || null
+            });
+            state.debugSnapshot = null;
+            resetChooserDetails();
+            setStatus(
+                'info',
+                authSatisfied()
+                    ? `${formatProgramLabel(nextProgram)} selected. Continue to check for an existing workspace.`
+                    : `${formatProgramLabel(nextProgram)} selected. Authenticate to continue.`
+            );
+            updateUi();
+            if (!authSatisfied() && elements.email) {
+                elements.email.focus();
+            }
+        });
 
         elements.authForm?.addEventListener('submit', (event) => {
             event.preventDefault();
@@ -1051,44 +1658,167 @@
             updateUi();
         });
         elements.continueButton?.addEventListener('click', handleContinue);
+        elements.openExistingButton?.addEventListener('click', () => {
+            openProgramWorkspace(state.selectedProgram);
+        });
         elements.backButton?.addEventListener('click', () => {
             resetChooserDetails();
-            setStatus('info', 'Choose a different program or continue into onboarding when ready.');
+            setStatus('info', 'Choose a different program or continue with the selected one when ready.');
             updateUi();
         });
         elements.manualButton?.addEventListener('click', () => {
             navigateToOnboarding('manual', null);
         });
         elements.spreadsheetButton?.addEventListener('click', () => {
+            if (!canImportIntoProgram(state.selectedProgram)) {
+                handleImportRestriction();
+                return;
+            }
             elements.spreadsheetInput?.click();
         });
         elements.screenshotDirectoryButton?.addEventListener('click', () => {
+            if (!canImportIntoProgram(state.selectedProgram)) {
+                handleImportRestriction();
+                return;
+            }
             elements.screenshotDirectoryInput?.click();
         });
         elements.screenshotButton?.addEventListener('click', () => {
+            if (!canImportIntoProgram(state.selectedProgram)) {
+                handleImportRestriction();
+                return;
+            }
             elements.screenshotInput?.click();
+        });
+        elements.resetProgramButton?.addEventListener('click', async () => {
+            if (!state.selectedProgram) {
+                setStatus('error', 'Choose a program before resetting a workspace.');
+                return;
+            }
+            if (!canImportIntoProgram(state.selectedProgram)) {
+                handleImportRestriction();
+                return;
+            }
+
+            const confirmed = typeof global.confirm === 'function'
+                ? global.confirm(`Reset the local ${formatProgramLabel(state.selectedProgram)} workspace? This removes local profiles and schedule data for that program.`)
+                : true;
+            if (!confirmed) {
+                return;
+            }
+
+            try {
+                const result = await resetProgramWorkspace(state.selectedProgram, {
+                    profileManager: manager,
+                    importApi
+                });
+                const freshProgram = findProgramById(state.selectedProgram.id, groups) || state.selectedProgram;
+                persistSelectedProgram(freshProgram, {
+                    profileId: null,
+                    seededDefault: Boolean(freshProgram.seededDefault)
+                });
+                resetChooserDetails();
+                setStatus(
+                    'warn',
+                    `Reset ${formatProgramLabel(freshProgram)}. Removed ${result.removedProfileIds.length} profile${result.removedProfileIds.length === 1 ? '' : 's'} and ${result.removedScheduleKeys.length} storage key${result.removedScheduleKeys.length === 1 ? '' : 's'}.`
+                );
+                updateUi();
+                if (authSatisfied()) {
+                    await handleContinue();
+                }
+            } catch (error) {
+                setStatus('error', error?.message || 'Could not reset the selected workspace.');
+            }
+        });
+        elements.clearPendingImportButton?.addEventListener('click', () => {
+            if (!importApi || typeof importApi.clearPendingOnboardingImport !== 'function') {
+                setStatus('error', 'Pending upload review storage is unavailable.');
+                return;
+            }
+            importApi.clearPendingOnboardingImport();
+            state.pendingOnboardingImport = null;
+            setStatus('warn', 'Cleared the pending upload review handoff for this browser.');
+            updateUi();
+        });
+        elements.copyDebugButton?.addEventListener('click', async () => {
+            if (!state.selectedProgram) {
+                setStatus('error', 'Choose a program before copying debug state.');
+                return;
+            }
+
+            try {
+                const snapshot = await collectProgramWorkspaceDebug(state.selectedProgram, {
+                    profileManager: manager,
+                    importApi
+                });
+                state.debugSnapshot = snapshot;
+                if (!global.navigator?.clipboard || typeof global.navigator.clipboard.writeText !== 'function') {
+                    throw new Error('Clipboard access is unavailable in this browser.');
+                }
+                await global.navigator.clipboard.writeText(JSON.stringify(snapshot, null, 2));
+                setStatus('ok', 'Copied the shell debug snapshot to the clipboard.');
+                updateUi();
+            } catch (error) {
+                setStatus('error', error?.message || 'Could not copy the debug snapshot.');
+            }
         });
         elements.spreadsheetInput?.addEventListener('change', (event) => {
             const file = event.target?.files?.[0];
             if (!file) return;
-            navigateToOnboarding('spreadsheet', {
-                artifact: {
-                    name: file.name,
-                    size: file.size,
-                    type: file.type,
-                    capturedAt: new Date().toISOString()
-                }
-            });
+
+            if (!canImportIntoProgram(state.selectedProgram)) {
+                event.target.value = '';
+                handleImportRestriction();
+                return;
+            }
+            const artifact = {
+                name: file.name,
+                size: file.size,
+                type: file.type,
+                capturedAt: new Date().toISOString()
+            };
+
+            const importApi = global.ProgramCommandImport;
+            if (!importApi || typeof importApi.readTabularRowsFromFile !== 'function') {
+                setStatus('error', 'Spreadsheet import runtime is unavailable on this page.');
+                event.target.value = '';
+                return;
+            }
+
+            setStatus('info', `Parsing ${file.name} before review...`);
+            importApi.readTabularRowsFromFile(file)
+                .then((spreadsheetImport) => {
+                    if (!spreadsheetImport?.rows?.length) {
+                        const warning = Array.isArray(spreadsheetImport?.meta?.warnings) && spreadsheetImport.meta.warnings.length
+                            ? spreadsheetImport.meta.warnings[0]
+                            : 'Spreadsheet did not contain any importable rows.';
+                        setStatus('error', warning);
+                        return;
+                    }
+
+                    launchPendingImportReview('spreadsheet', {
+                        artifact,
+                        spreadsheetImport
+                    });
+                })
+                .catch((error) => {
+                    setStatus('error', error?.message || 'Could not parse the selected spreadsheet.');
+                })
+                .finally(() => {
+                    event.target.value = '';
+                });
         });
         elements.screenshotDirectoryInput?.addEventListener('change', (event) => {
             const files = Array.from(event.target?.files || []);
             if (!files.length) return;
             handleScreenshotSelection(files, 'directory');
+            event.target.value = '';
         });
         elements.screenshotInput?.addEventListener('change', (event) => {
             const files = Array.from(event.target?.files || []);
             if (!files.length) return;
             handleScreenshotSelection(files, 'files');
+            event.target.value = '';
         });
 
         if (authService && typeof authService.onAuthStateChange === 'function') {
@@ -1106,10 +1836,10 @@
             ? `${formatProgramLabel(state.selectedProgram)} selected. Authenticate to continue.`
             : 'Welcome to Program Command. Choose a program to begin.');
 
-        return refreshSessionFromAuth();
+        return refreshSessionFromAuth().then(() => maybeResumePendingOnboardingImport());
     }
 
-    const api = {
+        const api = {
         SHELL_SELECTION_STORAGE_KEY,
         ONBOARDING_CONTEXT_STORAGE_KEY,
         DEFAULT_PROGRAM_GROUPS,
@@ -1119,6 +1849,13 @@
         createProgramSelection,
         buildScreenshotArtifactBatch,
         createOnboardingContext,
+        buildAutomaticProgramProfile,
+        createPendingImportPayload,
+        ensureProgramProfile,
+        profileMatchesProgram,
+        collectProgramWorkspaceDebug,
+        resetProgramWorkspace,
+        canImportIntoProgram,
         detectProgramData,
         readSelection,
         persistSelection,
