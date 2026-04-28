@@ -75,6 +75,7 @@ Meeting patterns (day patterns and time slots) are now fully driven by the activ
 - Profiles live in `department-profiles/<program>-v1.json`
 - Each profile defines `scheduler.dayPatterns` and `scheduler.timeSlots` (with `startMinutes`/`endMinutes`)
 - Both Program Command and the Schedule Builder read from this configuration, so changing meeting patterns for a program only requires editing the profile JSON.
+- When an academic year is created in Supabase, the active scheduler contract is frozen onto that `academic_years` row and saved schedule rows store the canonical pattern ids for that year. See `/docs/scheduler-pattern-storage-contract.md`.
 
 CLSS import is considered **deprecated** as a source of truth for time/meeting patterns; any remaining CLSS tooling is review-only and should not be relied on for defining patterns going forward.
 
