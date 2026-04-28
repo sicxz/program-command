@@ -109,6 +109,16 @@
         const artifactBatch = context.artifactBatch && typeof context.artifactBatch === 'object'
             ? context.artifactBatch
             : null;
+        const spreadsheetImport = context.spreadsheetImport && typeof context.spreadsheetImport === 'object'
+            ? context.spreadsheetImport
+            : null;
+        const screenshotImport = context.screenshotImport && typeof context.screenshotImport === 'object'
+            ? context.screenshotImport
+            : null;
+        const spreadsheetRowCount = Number(spreadsheetImport?.meta?.rowCount) || Number(Array.isArray(spreadsheetImport?.rows) ? spreadsheetImport.rows.length : 0) || 0;
+        const spreadsheetQuarterCounts = spreadsheetImport?.meta?.quarterCounts && typeof spreadsheetImport.meta.quarterCounts === 'object'
+            ? spreadsheetImport.meta.quarterCounts
+            : null;
         const sourceLabel = source === 'spreadsheet'
             ? 'Spreadsheet handoff'
             : source === 'screenshot'
@@ -133,18 +143,39 @@
             }
         }
         if (artifact) {
-            if (source === 'screenshot' && artifactBatch?.count) {
+            if (source === 'spreadsheet' && spreadsheetRowCount) {
+                const quarterSummary = spreadsheetQuarterCounts
+                    ? Object.entries(spreadsheetQuarterCounts)
+                        .filter(([, count]) => Number(count) > 0)
+                        .map(([quarter, count]) => `${quarter.charAt(0).toUpperCase() + quarter.slice(1)} ${count}`)
+                        .join(', ')
+                    : '';
+                const intro = artifactName
+                    ? `Captured spreadsheet: ${artifactName}. Parsed ${spreadsheetRowCount} import row${spreadsheetRowCount === 1 ? '' : 's'}.`
+                    : `Parsed ${spreadsheetRowCount} import row${spreadsheetRowCount === 1 ? '' : 's'} from the spreadsheet handoff.`;
+                artifact.textContent = quarterSummary
+                    ? `${intro} Quarter detection: ${quarterSummary}.`
+                    : `${intro} Quarter detection will stay editable during CLSS review after activation.`;
+            } else if (source === 'screenshot' && artifactBatch?.count) {
                 const rootFolderName = String(artifactBatch.rootFolderName || '').trim();
                 const groupedCount = Array.isArray(artifactBatch.groups)
                     ? artifactBatch.groups.filter((group) => String(group.key || '') !== 'unassigned').length
                     : 0;
+                const extractedTextCount = Number(screenshotImport?.meta?.extractedTextCount) || 0;
+                const warningCount = Array.isArray(screenshotImport?.meta?.warnings) ? screenshotImport.meta.warnings.length : 0;
                 const intro = rootFolderName
                     ? `Captured ${artifactBatch.count} screenshot files from ${rootFolderName}.`
                     : `Captured ${artifactBatch.count} screenshot files for this onboarding handoff.`;
                 const grouping = groupedCount
                     ? ` The shell inferred ${groupedCount} term group${groupedCount === 1 ? '' : 's'} for downstream parsing.`
                     : ' The shell preserved the files, but term grouping still needs manual review before parsing.';
-                artifact.textContent = `${intro}${grouping}`;
+                const ocrSummary = extractedTextCount
+                    ? ` OCR extracted text from ${extractedTextCount} file${extractedTextCount === 1 ? '' : 's'}.`
+                    : ' OCR did not detect text yet.';
+                const warningSummary = warningCount
+                    ? ` ${warningCount} OCR warning${warningCount === 1 ? '' : 's'} will carry into CLSS review.`
+                    : '';
+                artifact.textContent = `${intro}${grouping}${ocrSummary}${warningSummary}`;
             } else {
                 artifact.textContent = artifactName
                     ? `Captured artifact: ${artifactName}. Parsing and seeded schedule generation continue in the follow-on import slice.`
@@ -207,16 +238,18 @@
         const label = String(context.label || 'selected program').trim() || 'selected program';
         const source = String(context.source || 'manual').trim() || 'manual';
         if (source === 'spreadsheet') {
-            setStatus('info', `Spreadsheet handoff ready for ${label}. Finish the profile setup here before the import mapping slice lands.`);
+            const parsedRows = Number(context.spreadsheetImport?.meta?.rowCount) || Number(Array.isArray(context.spreadsheetImport?.rows) ? context.spreadsheetImport.rows.length : 0) || 0;
+            setStatus('info', `Spreadsheet handoff ready for ${label}${parsedRows ? ` with ${parsedRows} parsed row${parsedRows === 1 ? '' : 's'}` : ''}. Save + activate this profile to continue into CLSS review.`);
         } else if (source === 'screenshot') {
             const screenshotCount = Number(context.artifactBatch?.count) || 0;
             const groupedCount = Array.isArray(context.artifactBatch?.groups)
                 ? context.artifactBatch.groups.filter((group) => String(group.key || '') !== 'unassigned').length
                 : 0;
+            const extractedTextCount = Number(context.screenshotImport?.meta?.extractedTextCount) || 0;
             const screenshotSummary = screenshotCount
                 ? `${screenshotCount} file${screenshotCount === 1 ? '' : 's'}${groupedCount ? ` across ${groupedCount} inferred term group${groupedCount === 1 ? '' : 's'}` : ''}`
                 : 'the captured screenshot set';
-            setStatus('warn', `Screenshot handoff ready for ${label}: ${screenshotSummary}. OCR/import parsing is staged after the spreadsheet path, but program context is preserved here.`);
+            setStatus('info', `Screenshot handoff ready for ${label}: ${screenshotSummary}${extractedTextCount ? `, OCR text from ${extractedTextCount} screenshot${extractedTextCount === 1 ? '' : 's'}` : ''}. Save + activate this profile to continue into CLSS review.`);
         } else {
             setStatus('info', `Manual setup handoff ready for ${label}.`);
         }
@@ -610,11 +643,83 @@
                     activate: true
                 });
 
+                const handoffContext = state.handoffContext && typeof state.handoffContext === 'object'
+                    ? state.handoffContext
+                    : null;
+                const importApi = window.ProgramCommandImport;
+                const shellApi = window.ProgramCommandShell;
+                const shouldResumeSpreadsheetImport = Boolean(
+                    handoffContext
+                    && handoffContext.source === 'spreadsheet'
+                    && Array.isArray(handoffContext.spreadsheetImport?.rows)
+                    && handoffContext.spreadsheetImport.rows.length
+                    && importApi
+                    && typeof importApi.writePendingOnboardingImport === 'function'
+                );
+                const shouldResumeScreenshotImport = Boolean(
+                    handoffContext
+                    && handoffContext.source === 'screenshot'
+                    && handoffContext.screenshotImport
+                    && importApi
+                    && typeof importApi.writePendingOnboardingImport === 'function'
+                );
+
+                if (shellApi && typeof shellApi.persistSelection === 'function') {
+                    const nextSelection = shellApi.readSelection && typeof shellApi.readSelection === 'function'
+                        ? shellApi.readSelection()
+                        : {};
+                    shellApi.persistSelection({
+                        ...nextSelection,
+                        id: String(handoffContext?.id || nextSelection?.id || '').trim() || nextSelection?.id || null,
+                        label: String(handoffContext?.label || nextSelection?.label || '').trim() || nextSelection?.label || null,
+                        parentLabel: handoffContext?.parentLabel || nextSelection?.parentLabel || null,
+                        departmentId: handoffContext?.departmentId || nextSelection?.departmentId || null,
+                        departmentLabel: handoffContext?.departmentLabel || nextSelection?.departmentLabel || null,
+                        baseProfileId: String(handoffContext?.baseProfileId || nextSelection?.baseProfileId || saved.profileId || '').trim() || saved.profileId,
+                        profileId: saved.profileId,
+                        suggestedCode: String(handoffContext?.suggestedCode || nextSelection?.suggestedCode || result.draft.profile.identity?.code || '').trim() || null,
+                        workspaceKind: String(handoffContext?.workspaceKind || nextSelection?.workspaceKind || 'program').trim() || 'program',
+                        workspaceSummary: handoffContext?.workspaceSummary || nextSelection?.workspaceSummary || null,
+                        memberProgramIds: Array.isArray(handoffContext?.memberProgramIds)
+                            ? handoffContext.memberProgramIds
+                            : (Array.isArray(nextSelection?.memberProgramIds) ? nextSelection.memberProgramIds : []),
+                        seededDefault: false,
+                        selectedAt: new Date().toISOString()
+                    });
+                }
+
+                if (shouldResumeSpreadsheetImport) {
+                    importApi.writePendingOnboardingImport({
+                        source: 'spreadsheet',
+                        programId: String(handoffContext.id || '').trim() || null,
+                        label: String(handoffContext.label || '').trim() || null,
+                        profileId: saved.profileId,
+                        artifact: handoffContext.artifact || null,
+                        spreadsheetImport: handoffContext.spreadsheetImport,
+                        createdAt: new Date().toISOString()
+                    });
+                } else if (shouldResumeScreenshotImport) {
+                    importApi.writePendingOnboardingImport({
+                        source: 'screenshot',
+                        programId: String(handoffContext.id || '').trim() || null,
+                        label: String(handoffContext.label || '').trim() || null,
+                        profileId: saved.profileId,
+                        artifactBatch: handoffContext.artifactBatch || null,
+                        screenshotImport: handoffContext.screenshotImport,
+                        createdAt: new Date().toISOString()
+                    });
+                }
+
                 clearHandoffContext();
                 qs('activationResult').textContent = `Activated profile ${saved.profileId}.`;
                 setStatus('ok', `Profile ${saved.profileId} saved and activated.`);
                 await populateProfileSelect();
                 qs('baseProfileSelect').value = saved.profileId;
+
+                if (shouldResumeSpreadsheetImport || shouldResumeScreenshotImport) {
+                    setStatus('info', `Profile ${saved.profileId} activated. Opening the ${shouldResumeSpreadsheetImport ? 'spreadsheet' : 'screenshot'} import review...`);
+                    window.location.href = `../index.html?onboardingImport=${encodeURIComponent(shouldResumeSpreadsheetImport ? 'spreadsheet' : 'screenshot')}`;
+                }
             } catch (error) {
                 setStatus('error', error?.message || 'Could not save profile.');
             } finally {
