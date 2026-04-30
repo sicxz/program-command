@@ -62,6 +62,16 @@ npm run serve
 
 ## 📊 Dashboards
 
+### Public Schedule
+**`public-schedule.html`**
+
+Read-only production schedule view for signed-out visitors.
+
+- Defaults to AY `2026-27`, Fall
+- Reads through the `public.get_public_schedule` Supabase RPC
+- Does not load editor, save, import, dirty-state, presence, or auth-guard scripts
+- Requires the `scripts/supabase-public-schedule-read.sql` migration to be applied before sharing the URL
+
 ### Schedule Analyzer (Main)
 **`index.html`**
 

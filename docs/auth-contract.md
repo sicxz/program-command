@@ -122,6 +122,7 @@ Those are handled in subsequent A/T issues.
 
 ## 9) Environment Auth Enforcement
 - Production/staging hosts enforce auth guard by default.
+- `public-schedule.html` is the intentional no-login exception. It must not load `auth-guard.js`; its data access is limited to the read-only `public.get_public_schedule` RPC and must not grant anonymous table writes or broad table reads.
 - Local development hosts (`localhost`, `127.0.0.1`, `::1`) bypass auth guard by default.
 - Optional override controls:
   - query param: `?auth=required` or `?auth=disabled`

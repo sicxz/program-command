@@ -17,6 +17,7 @@ Current status:
 - Viewing preliminary workload impact by faculty
 - Exporting a draft workload sheet for one faculty at a time
 - Meeting-time planning and "what if" conversations
+- Sharing a read-only public schedule view after the production schedule has been verified
 
 ## What to treat as preliminary (not final)
 
@@ -74,12 +75,22 @@ Then open:
   - TBD/unassigned sections (excluded from faculty totals)
 - Use the `⬇️` button in a faculty row to export an **Export Workload Sheet (.xlsx)** draft.
 
+6. Verify the public read-only schedule
+
+- Apply `scripts/supabase-public-schedule-read.sql` to dev first, then production after review.
+- Open `public-schedule.html` in a signed-out/private browser window.
+- Confirm the first view is `AY 2026-27` and `Fall 2026`.
+- Confirm the public grid matches the authenticated scheduler for AY 2026-27 Fall.
+- Confirm no Save, Add Course, import, dashboard, workload, or admin controls are visible.
+- Confirm the authenticated scheduler (`index.html`) still requires login in production/staging.
+
 ## Recommended chair workflow (meeting-safe)
 
 - Use the scheduler for draft planning decisions.
 - Treat the workload numbers as preliminary planning estimates.
 - Confirm release time / assigned time / manual workload lines before using exported sheets as final.
 - Keep a dated version note (for example: "AY26-27 draft as of Feb 26 meeting").
+- Share the public schedule URL only after the read-only view has been checked against the authenticated scheduler.
 - After the meeting, confirm release-time assumptions and any special assignments.
 
 ## Copy/paste response (send to chair)
