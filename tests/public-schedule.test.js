@@ -183,4 +183,11 @@ describe('public schedule page', () => {
         expect(html).toContain('href="login.html"');
         expect(html).toContain('Program Command');
     });
+
+    test('places the faculty key below the schedule content', () => {
+        const html = fs.readFileSync(path.resolve(__dirname, '..', 'public-schedule.html'), 'utf8');
+
+        expect(html.indexOf('id="publicFacultyLegend"')).toBeGreaterThan(html.indexOf('id="publicSpecialSections"'));
+        expect(html.indexOf('id="publicFacultyLegend"')).toBeGreaterThan(html.indexOf('id="publicScheduleGrid"'));
+    });
 });
