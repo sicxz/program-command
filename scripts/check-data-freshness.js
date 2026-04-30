@@ -8,10 +8,10 @@ import { createClient } from '@supabase/supabase-js';
 const TABLE_CONFIG = [
   { table: 'academic_years', scope: 'department', timestampColumn: 'created_at' },
   { table: 'rooms', scope: 'department', timestampColumn: 'created_at' },
-  { table: 'courses', scope: 'department', timestampColumn: 'created_at' },
+  { table: 'courses', scope: 'department', timestampColumn: 'created_at', fingerprint: 'courses' },
   { table: 'faculty', scope: 'department', timestampColumn: 'created_at' },
   { table: 'scheduling_constraints', scope: 'department', timestampColumn: 'created_at' },
-  { table: 'scheduled_courses', scope: 'academic_year', timestampColumn: 'updated_at' },
+  { table: 'scheduled_courses', scope: 'academic_year', timestampColumn: 'updated_at', fingerprint: 'scheduled_courses' },
   { table: 'release_time', scope: 'academic_year', timestampColumn: 'created_at' }
 ];
 
@@ -57,6 +57,102 @@ function withScopeFilter(query, scope, scopeIds) {
     return query.eq('academic_year_id', scopeIds.academicYearId);
   }
   return query;
+}
+
+function normalizeText(value) {
+  return String(value || '').trim();
+}
+
+function normalizeNullableText(value) {
+  const normalized = normalizeText(value);
+  return normalized || null;
+}
+
+function pickEmbeddedRow(value) {
+  return Array.isArray(value) ? value[0] || null : value || null;
+}
+
+function hashContent(value) {
+  return crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex');
+}
+
+async function fetchCourseFingerprint(client, scopeIds) {
+  const { data, error } = await client
+    .from('courses')
+    .select('code,title,default_credits,typical_cap,level')
+    .eq('department_id', scopeIds.departmentId)
+    .order('code');
+
+  if (error) throw new Error(`courses fingerprint failed: ${error.message}`);
+
+  const rows = (data || []).map((row) => ({
+    code: normalizeText(row.code).toUpperCase(),
+    title: normalizeText(row.title),
+    defaultCredits: Number(row.default_credits) || 0,
+    typicalCap: Number(row.typical_cap) || 0,
+    level: normalizeNullableText(row.level)
+  }));
+
+  return {
+    contentHash: hashContent(rows),
+    contentRows: rows.length
+  };
+}
+
+async function fetchScheduledCoursesFingerprint(client, scopeIds) {
+  const { data, error } = await client
+    .from('scheduled_courses')
+    .select(`
+      quarter,
+      day_pattern,
+      time_slot,
+      section,
+      projected_enrollment,
+      course:courses(code,title,default_credits),
+      faculty:faculty(name),
+      room:rooms(room_code)
+    `)
+    .eq('academic_year_id', scopeIds.academicYearId)
+    .order('quarter')
+    .order('day_pattern')
+    .order('time_slot')
+    .order('section');
+
+  if (error) throw new Error(`scheduled_courses fingerprint failed: ${error.message}`);
+
+  const rows = (data || []).map((row) => {
+    const course = pickEmbeddedRow(row.course);
+    const faculty = pickEmbeddedRow(row.faculty);
+    const room = pickEmbeddedRow(row.room);
+
+    return {
+      quarter: normalizeText(row.quarter).toLowerCase(),
+      dayPattern: normalizeNullableText(row.day_pattern),
+      timeSlot: normalizeNullableText(row.time_slot),
+      section: normalizeNullableText(row.section),
+      projectedEnrollment: Number(row.projected_enrollment) || 0,
+      courseCode: normalizeText(course?.code).toUpperCase(),
+      courseTitle: normalizeText(course?.title),
+      courseCredits: Number(course?.default_credits) || 0,
+      facultyName: normalizeNullableText(faculty?.name),
+      roomCode: normalizeNullableText(room?.room_code)
+    };
+  });
+
+  return {
+    contentHash: hashContent(rows),
+    contentRows: rows.length
+  };
+}
+
+async function fetchContentFingerprint(client, config, scopeIds) {
+  if (config.fingerprint === 'courses') {
+    return fetchCourseFingerprint(client, scopeIds);
+  }
+  if (config.fingerprint === 'scheduled_courses') {
+    return fetchScheduledCoursesFingerprint(client, scopeIds);
+  }
+  return {};
 }
 
 async function getDepartment(client, departmentCode) {
@@ -122,10 +218,15 @@ async function fetchTableDigest(client, config, scopeIds) {
     }
   }
 
+  const fingerprint = config.fingerprint
+    ? await fetchContentFingerprint(client, config, scopeIds)
+    : {};
+
   return {
     count: Number(countResult.count) || 0,
     latestChangeAt,
-    timestampColumn: config.timestampColumn || null
+    timestampColumn: config.timestampColumn || null,
+    ...fingerprint
   };
 }
 
@@ -188,6 +289,8 @@ function compareSnapshots(prod, dev) {
     let freshness = 'in-sync';
     if ((p.count || 0) !== (d.count || 0)) {
       freshness = countDelta > 0 ? 'dev-has-more' : 'prod-has-more';
+    } else if (p.contentHash && d.contentHash && p.contentHash !== d.contentHash) {
+      freshness = 'content-diff';
     } else if ((p.latestChangeAt || '') !== (d.latestChangeAt || '')) {
       if (prodDate && devDate) {
         freshness = prodDate > devDate ? 'prod-newer' : 'dev-newer';
@@ -202,6 +305,7 @@ function compareSnapshots(prod, dev) {
       production: p,
       dev: d,
       countDelta,
+      contentMatch: p.contentHash && d.contentHash ? p.contentHash === d.contentHash : null,
       freshness,
       inSync
     };
@@ -247,6 +351,7 @@ function printComparison(comparison, prodLabel, devLabel) {
     'Table'.padEnd(24),
     `${prodLabel} count`.padStart(12),
     `${devLabel} count`.padStart(12),
+    'Content'.padStart(10),
     'Freshness'.padStart(14),
     `${prodLabel} latest`.padStart(24),
     `${devLabel} latest`.padStart(24)
@@ -259,6 +364,7 @@ function printComparison(comparison, prodLabel, devLabel) {
       row.table.padEnd(24),
       String(row.production.count ?? 0).padStart(12),
       String(row.dev.count ?? 0).padStart(12),
+      (row.contentMatch === null ? '-' : row.contentMatch ? 'match' : 'diff').padStart(10),
       row.freshness.padStart(14),
       fmtDate(row.production.latestChangeAt).padStart(24),
       fmtDate(row.dev.latestChangeAt).padStart(24)
