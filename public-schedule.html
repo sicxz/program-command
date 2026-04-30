@@ -5,9 +5,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Program Command Public Schedule</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/design-system.css">
     <link rel="stylesheet" href="css/public-schedule.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -16,11 +13,15 @@
     <script src="pages/public-schedule.js"></script>
 </head>
 
-<body>
+<body class="foundry">
     <div class="public-shell">
         <header class="public-header">
             <div class="public-header-copy">
-                <h1>Program Command</h1>
+                <span class="public-header-mark" aria-hidden="true">PC</span>
+                <div>
+                    <p class="public-header-label">EWU Design</p>
+                    <h1>Program Command</h1>
+                </div>
             </div>
             <a class="public-login-link" href="login.html">Login</a>
         </header>

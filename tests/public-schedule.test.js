@@ -298,6 +298,18 @@ describe('public schedule page', () => {
         expect(html).toContain('Program Command');
     });
 
+    test('public HTML and CSS use the Foundry surface contract', () => {
+        const html = fs.readFileSync(path.resolve(__dirname, '..', 'public-schedule.html'), 'utf8');
+        const css = fs.readFileSync(path.resolve(__dirname, '..', 'css', 'public-schedule.css'), 'utf8');
+
+        expect(html).toContain('<body class="foundry">');
+        expect(html).not.toContain('fonts.googleapis.com');
+        expect(css).toContain('--f-bg: #F7F7F8;');
+        expect(css).toContain('--f-mono: "SFMono-Regular", "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;');
+        expect(css).toContain('.public-status::before');
+        expect(css).toContain('border-left: 4px solid var(--faculty-accent');
+    });
+
     test('places the faculty key below the schedule content', () => {
         const html = fs.readFileSync(path.resolve(__dirname, '..', 'public-schedule.html'), 'utf8');
 
