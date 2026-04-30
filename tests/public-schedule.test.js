@@ -77,6 +77,18 @@ describe('public schedule page', () => {
                 },
                 {
                     academic_year: '2026-27',
+                    quarter: 'fall',
+                    day_pattern: 'MW',
+                    time_slot: '10:00-12:20',
+                    section: '003',
+                    course_code: 'DESN 999',
+                    course_title: 'Hidden Media Lab Section',
+                    credits: 5,
+                    instructor_name: 'TBD',
+                    room_code: '207'
+                },
+                {
+                    academic_year: '2026-27',
                     quarter: 'winter',
                     day_pattern: 'TR',
                     time_slot: '10:00-12:20',
@@ -110,10 +122,17 @@ describe('public schedule page', () => {
         expect(document.getElementById('publicPanelCount').textContent).toBe('2 sections');
         expect(document.getElementById('publicStatus').textContent).toBe('Live schedule');
         expect(document.getElementById('publicScheduleGrid').textContent).toContain('DESN 368');
+        expect(document.getElementById('publicScheduleGrid').textContent).not.toContain('DESN 999');
         expect(document.getElementById('publicSpecialSections').textContent).toContain('DESN 216');
         expect(document.querySelector('.public-course-block').className).toContain('faculty-masingale');
         expect(document.getElementById('publicFacultyLegend').textContent).toContain('T.Masingale');
         expect(document.getElementById('publicFacultyLegend').textContent).not.toMatch(/\bcr\b/i);
+
+        const headers = Array.from(document.querySelectorAll('.public-grid-header')).map((header) => header.textContent);
+        expect(headers).toEqual(['Time', 'UX Lab', 'Mac Lab 1', 'Mac Lab 2', 'Mac Lab 3', 'Design Studio', 'Mac Lab 4']);
+        expect(headers).not.toContain('207 Media Lab');
+        expect(headers).not.toContain('CEB 102');
+        expect(headers).not.toContain('CEB 104');
 
         document.querySelector('[data-quarter="winter"]').click();
 

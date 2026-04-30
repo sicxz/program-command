@@ -31,16 +31,17 @@
         { id: 'TR', label: 'Tuesday / Thursday' }
     ]);
     const TIME_SLOTS = Object.freeze(['10:00-12:20', '13:00-15:20', '16:00-18:20']);
-    const ROOM_ORDER = Object.freeze(['206', '207', '209', '210', '212', 'CEB 102', 'CEB 104']);
+    const ROOM_ORDER = Object.freeze(['206', '209', '210', '212', 'CEB 102', 'CEB 104']);
     const ROOM_LABELS = Object.freeze({
-        '206': '206 UX Lab',
-        '207': '207 Media Lab',
-        '209': '209 Mac Lab',
-        '210': '210 Mac Lab',
-        '212': '212 Project Lab',
-        'CEB 102': 'CEB 102',
-        'CEB 104': 'CEB 104'
+        '206': 'UX Lab',
+        '209': 'Mac Lab 1',
+        '210': 'Mac Lab 2',
+        '212': 'Mac Lab 3',
+        'CEB 104': 'Mac Lab 4',
+        'CEB 102': 'Design Studio'
     });
+    const PUBLIC_ROOM_SET = new Set(ROOM_ORDER);
+    const PUBLIC_SPECIAL_ROOM_SET = new Set(['ONLINE', 'ARRANGED']);
     const FACULTY_COLORS = Object.freeze({
         'T.Masingale': { className: 'faculty-masingale', color: '#667eea', name: 'T.Masingale' },
         'S.Durr': { className: 'faculty-durr', color: '#e67e22', name: 'S.Durr' },
@@ -237,7 +238,16 @@
     }
 
     function countQuarterCourses(scheduleData, quarter, options = {}) {
-        return getQuarterCourses(scheduleData, quarter, resolveScheduleDataUtils(options)).length;
+        return getPublicQuarterCourses(scheduleData, quarter, resolveScheduleDataUtils(options)).length;
+    }
+
+    function isPubliclyVisibleCourse(course) {
+        const room = String(course?.room || '').trim().toUpperCase();
+        return PUBLIC_ROOM_SET.has(room) || PUBLIC_SPECIAL_ROOM_SET.has(room);
+    }
+
+    function getPublicQuarterCourses(scheduleData, quarter, utils) {
+        return getQuarterCourses(scheduleData, quarter, utils).filter(isPubliclyVisibleCourse);
     }
 
     function setText(documentRef, id, value) {
@@ -292,14 +302,7 @@
     }
 
     function getKnownRooms(scheduleData, quarter) {
-        const seen = new Set(ROOM_ORDER);
-        getQuarterCourses(scheduleData, quarter, { flattenQuarterData: null }).forEach((course) => {
-            const room = String(course.room || '').trim();
-            if (room && room !== 'ONLINE' && room !== 'ARRANGED' && room !== 'TBD') {
-                seen.add(room);
-            }
-        });
-        return Array.from(seen);
+        return ROOM_ORDER;
     }
 
     function renderQuarterTabs(state) {
@@ -388,7 +391,7 @@
     }
 
     function getFacultyLegendEntries(state) {
-        const courses = getQuarterCourses(state.scheduleData, state.activeQuarter, state.utils);
+        const courses = getPublicQuarterCourses(state.scheduleData, state.activeQuarter, state.utils);
         const summaries = new Map();
 
         courses.forEach((course) => {
