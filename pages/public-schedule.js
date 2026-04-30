@@ -41,6 +41,61 @@
         'CEB 104': 'Mac Lab 4',
         'CEB 102': 'Design Studio'
     });
+    const COURSE_CATALOG_PATH = 'data/course-catalog.json';
+    const COURSE_TITLE_OVERRIDES = Object.freeze({
+        'DESN 100': 'Drawing for Communication',
+        'DESN 200': 'Visual Thinking + Making',
+        'DESN 210': 'Design Lab',
+        'DESN 213': 'Photoshop',
+        'DESN 214': 'Illustrator',
+        'DESN 215': 'Indesign',
+        'DESN 216': 'Digital Foundations',
+        'DESN 217': 'Figma',
+        'DESN 243': 'Typography',
+        'DESN 263': 'Visual Communication Design',
+        'DESN 301': 'Visual Storytelling',
+        'DESN 305': 'Social Media Design and Management',
+        'DESN 325': 'Emergent Design',
+        'DESN 326': 'Introduction to Animation',
+        'DESN 335': 'Board Game Design',
+        'DESN 336': '3D Animation',
+        'DESN 338': 'User Experience Design 1',
+        'DESN 343': 'Typography 2',
+        'DESN 345': 'Digital Game Design',
+        'DESN 348': 'User Experience Design 2',
+        'DESN 350': 'Digital Photography',
+        'DESN 351': 'Advanced Photography',
+        'DESN 355': 'Motion Design',
+        'DESN 359': 'Histories of Design',
+        'DESN 360': 'Zine and Publication Design',
+        'DESN 365': 'Motion Design 2',
+        'DESN 366': 'Production Design',
+        'DESN 368': 'Code + Design 1',
+        'DESN 369': 'Web Development 1',
+        'DESN 374': 'AI + Design',
+        'DESN 375': 'Digital Video',
+        'DESN 378': 'Code + Design 2',
+        'DESN 379': 'Web Development 2',
+        'DESN 384': 'Digital Sound',
+        'DESN 396': 'Experimental Course',
+        'DESN 398': 'Seminar',
+        'DESN 399': 'Directed Study',
+        'DESN 401': 'Imaginary Worlds',
+        'DESN 446': '4D Animation',
+        'DESN 458': 'User Experience Design 3',
+        'DESN 463': 'Community-Driven Design',
+        'DESN 468': 'Code + Design 3',
+        'DESN 469': 'Web Development 3',
+        'DESN 480': 'Professional Practice',
+        'DESN 490': 'Senior Capstone',
+        'DESN 491': 'Senior Project',
+        'DESN 493': 'Portfolio Practice',
+        'DESN 495': 'Internship',
+        'DESN 496': 'Experimental',
+        'DESN 497': 'Workshop, Short Course, Conference, Seminar',
+        'DESN 498': 'Seminar',
+        'DESN 499': 'Directed Study'
+    });
     const PUBLIC_ROOM_SET = new Set(ROOM_ORDER);
     const PUBLIC_SPECIAL_ROOM_SET = new Set(['ONLINE', 'ARRANGED']);
     const FACULTY_COLORS = Object.freeze({
@@ -96,6 +151,65 @@
 
     function normalizeCourseCode(value) {
         return String(value || '').trim().toUpperCase().replace(/\s+/g, ' ');
+    }
+
+    function normalizeCatalogCourse(course) {
+        const code = normalizeCourseCode(course?.code);
+        if (!code) return null;
+        return {
+            code,
+            title: String(course?.title || '').trim(),
+            defaultCredits: Number(course?.defaultCredits ?? course?.default_credits)
+        };
+    }
+
+    function createCourseCatalogByCode(catalog) {
+        const byCode = {};
+        const courses = Array.isArray(catalog?.courses)
+            ? catalog.courses
+            : Array.isArray(catalog)
+                ? catalog
+                : [];
+
+        courses.forEach((course) => {
+            const normalized = normalizeCatalogCourse(course);
+            if (!normalized) return;
+            byCode[normalized.code] = normalized;
+        });
+
+        return byCode;
+    }
+
+    function normalizeCourseCatalogByCode(value) {
+        const byCode = {};
+        if (!value || typeof value !== 'object') return byCode;
+        Object.entries(value).forEach(([code, course]) => {
+            const normalized = normalizeCatalogCourse({
+                ...course,
+                code: course?.code || code
+            });
+            if (!normalized) return;
+            byCode[normalized.code] = normalized;
+        });
+        return byCode;
+    }
+
+    function getCanonicalCourseTitleByCode(courseCode, fallbackTitle = '', courseCatalogByCode = {}) {
+        const code = normalizeCourseCode(courseCode);
+        if (!code) return String(fallbackTitle || '').trim();
+        const overrideTitle = COURSE_TITLE_OVERRIDES[code];
+        if (overrideTitle) return overrideTitle;
+        const catalogTitle = String(courseCatalogByCode?.[code]?.title || '').trim();
+        if (catalogTitle) return catalogTitle;
+        return String(fallbackTitle || '').trim();
+    }
+
+    function getCanonicalCourseCreditsByCode(courseCode, fallbackCredits, courseCatalogByCode = {}) {
+        const code = normalizeCourseCode(courseCode);
+        const catalogCredits = Number(courseCatalogByCode?.[code]?.defaultCredits);
+        if (Number.isFinite(catalogCredits) && catalogCredits > 0) return catalogCredits;
+        const credits = Number(fallbackCredits);
+        return Number.isFinite(credits) && credits > 0 ? credits : 5;
     }
 
     function normalizeFacultyKey(value) {
@@ -181,7 +295,8 @@
         return QUARTERS.includes(quarter) ? quarter : DEFAULTS.quarter;
     }
 
-    function normalizePublicScheduleRows(rows) {
+    function normalizePublicScheduleRows(rows, options = {}) {
+        const courseCatalogByCode = options.courseCatalogByCode || {};
         return (Array.isArray(rows) ? rows : []).map((row) => ({
             quarter: row.quarter,
             day_pattern: row.day_pattern,
@@ -190,8 +305,8 @@
             projected_enrollment: row.projected_enrollment,
             course: {
                 code: row.course_code,
-                title: row.course_title,
-                default_credits: row.credits
+                title: getCanonicalCourseTitleByCode(row.course_code, row.course_title, courseCatalogByCode),
+                default_credits: getCanonicalCourseCreditsByCode(row.course_code, row.credits, courseCatalogByCode)
             },
             faculty: {
                 name: row.instructor_name
@@ -223,7 +338,9 @@
 
     function buildScheduleFromPublicRows(rows, options = {}) {
         const utils = resolveScheduleDataUtils(options);
-        const normalizedRows = normalizePublicScheduleRows(rows);
+        const normalizedRows = normalizePublicScheduleRows(rows, {
+            courseCatalogByCode: options.courseCatalogByCode || {}
+        });
 
         if (typeof utils.buildScheduleDataFromDatabaseRecords === 'function') {
             return utils.buildScheduleDataFromDatabaseRecords(normalizedRows, {
@@ -544,6 +661,32 @@
         if (state) status.dataset.state = state;
     }
 
+    async function loadCourseCatalog(options = {}) {
+        if (options.courseCatalogByCode) {
+            return normalizeCourseCatalogByCode(options.courseCatalogByCode);
+        }
+        if (options.courseCatalog) {
+            return createCourseCatalogByCode(options.courseCatalog);
+        }
+
+        const fetchCatalog = options.fetchCourseCatalog
+            || (typeof root.fetch === 'function'
+                ? (catalogPath) => root.fetch(catalogPath).then((response) => {
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    return response.json();
+                })
+                : null);
+
+        if (!fetchCatalog) return {};
+
+        try {
+            return createCourseCatalogByCode(await fetchCatalog(options.catalogPath || COURSE_CATALOG_PATH));
+        } catch (error) {
+            console.warn('Could not load public course catalog. Falling back to RPC course titles.', error);
+            return {};
+        }
+    }
+
     function createPublicScheduleApp(options = {}) {
         const documentRef = resolveDocument(options);
         const utils = resolveScheduleDataUtils(options);
@@ -562,9 +705,19 @@
             year: normalizePublicYear(options.year || DEFAULTS.year),
             programCode,
             activeQuarter: normalizePublicQuarter(options.quarter || DEFAULTS.quarter),
+            courseCatalogByCode: {},
             scheduleData: createEmptySchedule(utils),
             onYearChange: null
         };
+        let catalogPromise = null;
+
+        async function ensureCourseCatalogLoaded() {
+            if (!catalogPromise) {
+                catalogPromise = loadCourseCatalog(options);
+            }
+            state.courseCatalogByCode = await catalogPromise;
+            return state.courseCatalogByCode;
+        }
 
         async function load(yearToLoad) {
             const client = getClient();
@@ -572,6 +725,7 @@
                 throw new Error('Public schedule data service is not available.');
             }
 
+            const courseCatalogByCode = await ensureCourseCatalogLoaded();
             const { data, error } = await client.rpc('get_public_schedule', {
                 p_academic_year: yearToLoad,
                 p_program_code: programCode,
@@ -579,7 +733,10 @@
             });
 
             if (error) throw error;
-            return buildScheduleFromPublicRows(data || [], { scheduleDataUtils: utils });
+            return buildScheduleFromPublicRows(data || [], {
+                scheduleDataUtils: utils,
+                courseCatalogByCode
+            });
         }
 
         async function loadSelectedYear() {
@@ -632,12 +789,15 @@
         ROOM_ORDER,
         FACULTY_COLORS,
         buildScheduleFromPublicRows,
+        createCourseCatalogByCode,
         countQuarterCourses,
         createPublicScheduleApp,
         formatQuarterTitle,
+        getCanonicalCourseTitleByCode,
         getCanonicalFacultyName,
         getFallbackFacultyColor,
         getFacultyInfo,
+        loadCourseCatalog,
         formatTimeSlot,
         normalizePublicYear,
         normalizePublicScheduleRows

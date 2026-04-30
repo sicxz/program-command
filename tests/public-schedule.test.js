@@ -49,6 +49,40 @@ describe('public schedule page', () => {
         expect(PublicSchedulePage.getFallbackFacultyColor('M.Breen')).toBe(breen.color);
     });
 
+    test('uses canonical course titles instead of stale Supabase titles', () => {
+        const scheduleData = PublicSchedulePage.buildScheduleFromPublicRows([
+            {
+                academic_year: '2026-27',
+                quarter: 'fall',
+                day_pattern: 'MW',
+                time_slot: '10:00-12:20',
+                section: '001',
+                course_code: 'DESN 368',
+                course_title: 'Interaction Design',
+                credits: 5,
+                instructor_name: 'T. Masingale',
+                room_code: '206',
+                projected_enrollment: 24
+            },
+            {
+                academic_year: '2026-27',
+                quarter: 'spring',
+                day_pattern: 'TR',
+                time_slot: '10:00-12:20',
+                section: '001',
+                course_code: 'DESN 379',
+                course_title: 'Advanced Data Visualization',
+                credits: 5,
+                instructor_name: 'C.Manikoth',
+                room_code: '206',
+                projected_enrollment: 24
+            }
+        ], { scheduleDataUtils: ScheduleDataUtils });
+
+        expect(scheduleData.fall.MW['10:00-12:20'][0].name).toBe('Code + Design 1');
+        expect(scheduleData.spring.TR['10:00-12:20'][0].name).toBe('Web Development 2');
+    });
+
     test('loads public schedule rows through the RPC and renders the Fall grid', async () => {
         const rpc = jest.fn().mockResolvedValue({
             data: [
@@ -59,7 +93,7 @@ describe('public schedule page', () => {
                     time_slot: '10:00-12:20',
                     section: '001',
                     course_code: 'DESN 368',
-                    course_title: 'Code + Design 1',
+                    course_title: 'Interaction Design',
                     credits: 5,
                     instructor_name: 'T. Masingale',
                     room_code: '206',
@@ -96,7 +130,7 @@ describe('public schedule page', () => {
                     time_slot: '10:00-12:20',
                     section: '001',
                     course_code: 'DESN 379',
-                    course_title: 'Web Development 2',
+                    course_title: 'Advanced Data Visualization',
                     credits: 5,
                     instructor_name: 'C.Manikoth',
                     room_code: '206',
@@ -126,6 +160,8 @@ describe('public schedule page', () => {
         expect(document.querySelector('[data-year="2026-27"]').getAttribute('aria-selected')).toBe('true');
         expect(document.getElementById('publicYearTabs').textContent).toContain('2023-24');
         expect(document.getElementById('publicScheduleGrid').textContent).toContain('DESN 368');
+        expect(document.getElementById('publicScheduleGrid').textContent).toContain('Code + Design 1');
+        expect(document.getElementById('publicScheduleGrid').textContent).not.toContain('Interaction Design');
         expect(document.getElementById('publicScheduleGrid').textContent).not.toContain('DESN 999');
         expect(document.getElementById('publicSpecialSections').textContent).toContain('DESN 216');
         expect(document.querySelector('.public-course-block').className).toContain('faculty-masingale');
@@ -147,6 +183,8 @@ describe('public schedule page', () => {
 
         expect(document.getElementById('publicScheduleTitle').textContent).toBe('Winter 2027');
         expect(document.getElementById('publicScheduleGrid').textContent).toContain('DESN 379');
+        expect(document.getElementById('publicScheduleGrid').textContent).toContain('Web Development 2');
+        expect(document.getElementById('publicScheduleGrid').textContent).not.toContain('Advanced Data Visualization');
         expect(document.querySelector('.public-course-block').className).toContain('faculty-manikoth');
         expect(document.getElementById('publicFacultyLegend').textContent).toContain('C.Manikoth');
         expect(document.getElementById('publicFacultyLegend').textContent).not.toMatch(/\bcr\b/i);
@@ -181,7 +219,7 @@ describe('public schedule page', () => {
                         time_slot: '13:00-15:20',
                         section: '001',
                         course_code: 'DESN 263',
-                        course_title: 'Typography',
+                        course_title: 'User Experience Design I',
                         credits: 5,
                         instructor_name: 'S.Durr',
                         room_code: '209',
@@ -212,6 +250,8 @@ describe('public schedule page', () => {
         expect(document.getElementById('publicScheduleTitle').textContent).toBe('Fall 2025');
         expect(document.querySelector('[data-year="2025-26"]').getAttribute('aria-selected')).toBe('true');
         expect(document.getElementById('publicScheduleGrid').textContent).toContain('DESN 263');
+        expect(document.getElementById('publicScheduleGrid').textContent).toContain('Visual Communication Design');
+        expect(document.getElementById('publicScheduleGrid').textContent).not.toContain('User Experience Design I');
         expect(document.getElementById('publicScheduleGrid').textContent).not.toContain('DESN 368');
     });
 

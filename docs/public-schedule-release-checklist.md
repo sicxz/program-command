@@ -11,7 +11,7 @@ Use this before sharing `public-schedule.html` outside the authenticated Program
 - Confirm anon cannot insert, update, or delete `academic_years` or `scheduled_courses`.
 - Open `public-schedule.html` signed out.
 - Confirm the default view is `AY 2026-27`, `Fall 2026`.
-- Confirm displayed course titles match `data/course-catalog.json`.
+- Confirm displayed course titles match the authenticated scheduler, including canonical catalog titles such as `DESN 368` -> `Code + Design 1`.
 - Confirm the public schedule rows match the authenticated scheduler for AY 2026-27 Fall.
 - Confirm the academic-year selector can switch to AY `2025-26`, `2024-25`, and `2023-24`.
 - Open `index.html` signed out on a production-like host or with `?auth=required`; confirm it redirects to login.
