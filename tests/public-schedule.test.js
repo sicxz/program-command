@@ -8,6 +8,8 @@ function setupDom() {
         <div id="publicStatus"></div>
         <span id="publicAcademicYearLabel"></span>
         <span id="publicQuarterLabel"></span>
+        <div id="publicQuarterTabs"></div>
+        <section id="publicFacultyLegend"></section>
         <h2 id="publicScheduleTitle"></h2>
         <p id="publicScheduleSubtitle"></p>
         <div id="publicPanelCount"></div>
@@ -29,6 +31,20 @@ describe('public schedule page', () => {
         expect(PublicSchedulePage.DEFAULTS.year).toBe('2026-27');
         expect(PublicSchedulePage.DEFAULTS.quarter).toBe('fall');
         expect(PublicSchedulePage.formatQuarterTitle('2026-27', 'fall')).toBe('Fall 2026');
+    });
+
+    test('maps known and unmapped faculty to stable color-coded blocks', () => {
+        expect(PublicSchedulePage.getFacultyInfo('T. Masingale')).toMatchObject({
+            className: 'faculty-masingale',
+            color: '#667eea',
+            name: 'T.Masingale'
+        });
+
+        const breen = PublicSchedulePage.getFacultyInfo('M.Breen');
+        expect(breen.className).toBe('faculty-generated');
+        expect(breen.name).toBe('M.Breen');
+        expect(breen.color).toMatch(/^#[0-9a-f]{6}$/i);
+        expect(PublicSchedulePage.getFallbackFacultyColor('M.Breen')).toBe(breen.color);
     });
 
     test('loads public schedule rows through the RPC and renders the Fall grid', async () => {
@@ -58,6 +74,19 @@ describe('public schedule page', () => {
                     credits: 5,
                     instructor_name: 'Barton/Pettigrew',
                     room_code: 'ONLINE'
+                },
+                {
+                    academic_year: '2026-27',
+                    quarter: 'winter',
+                    day_pattern: 'TR',
+                    time_slot: '10:00-12:20',
+                    section: '001',
+                    course_code: 'DESN 379',
+                    course_title: 'Web Development 2',
+                    credits: 5,
+                    instructor_name: 'C.Manikoth',
+                    room_code: '206',
+                    projected_enrollment: 24
                 }
             ],
             error: null
@@ -75,13 +104,22 @@ describe('public schedule page', () => {
         expect(rpc).toHaveBeenCalledWith('get_public_schedule', {
             p_academic_year: '2026-27',
             p_program_code: 'ewu-design',
-            p_quarter: 'fall'
+            p_quarter: null
         });
         expect(document.getElementById('publicScheduleTitle').textContent).toBe('Fall 2026');
         expect(document.getElementById('publicPanelCount').textContent).toBe('2 sections');
         expect(document.getElementById('publicStatus').textContent).toBe('Live schedule');
         expect(document.getElementById('publicScheduleGrid').textContent).toContain('DESN 368');
         expect(document.getElementById('publicSpecialSections').textContent).toContain('DESN 216');
+        expect(document.querySelector('.public-course-block').className).toContain('faculty-masingale');
+        expect(document.getElementById('publicFacultyLegend').textContent).toContain('T.Masingale');
+
+        document.querySelector('[data-quarter="winter"]').click();
+
+        expect(document.getElementById('publicScheduleTitle').textContent).toBe('Winter 2027');
+        expect(document.getElementById('publicScheduleGrid').textContent).toContain('DESN 379');
+        expect(document.querySelector('.public-course-block').className).toContain('faculty-manikoth');
+        expect(document.getElementById('publicFacultyLegend').textContent).toContain('C.Manikoth');
     });
 
     test('shows an unavailable state when the public RPC fails', async () => {

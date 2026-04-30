@@ -41,6 +41,46 @@
         'CEB 102': 'CEB 102',
         'CEB 104': 'CEB 104'
     });
+    const FACULTY_COLORS = Object.freeze({
+        'T.Masingale': { className: 'faculty-masingale', color: '#667eea', name: 'T.Masingale' },
+        'S.Durr': { className: 'faculty-durr', color: '#e67e22', name: 'S.Durr' },
+        'C.Manikoth': { className: 'faculty-manikoth', color: '#27ae60', name: 'C.Manikoth' },
+        'S.Mills': { className: 'faculty-mills', color: '#9b59b6', name: 'S.Mills' },
+        'M.Lybbert': { className: 'faculty-lybbert', color: '#e74c3c', name: 'M.Lybbert' },
+        'G.Hustrulid': { className: 'faculty-hustrulid', color: '#f39c12', name: 'G.Hustrulid' },
+        'A.Sopu': { className: 'faculty-sopu', color: '#3498db', name: 'A.Sopu' },
+        'E.Norris': { className: 'faculty-norris', color: '#1abc9c', name: 'E.Norris' },
+        'J.Braukmann': { className: 'faculty-braukmann', color: '#34495e', name: 'J.Braukmann' },
+        'S.Allison': { className: 'faculty-allison', color: '#d35400', name: 'S.Allison' },
+        'Barton/Pettigrew': { className: 'faculty-online', color: '#7f8c8d', name: 'Barton/Pettigrew' },
+        'Adjunct': { className: 'faculty-adjunct', color: '#95a5a6', name: 'Adjunct' },
+        'TBD': { className: 'faculty-tbd', color: '#bdc3c7', name: 'TBD' }
+    });
+    const FALLBACK_FACULTY_COLORS = Object.freeze([
+        '#0ea5e9',
+        '#14b8a6',
+        '#84cc16',
+        '#f97316',
+        '#ec4899',
+        '#8b5cf6',
+        '#64748b',
+        '#ca8a04'
+    ]);
+    const FACULTY_ALIASES = Object.freeze([
+        { canonical: 'T.Masingale', keys: ['tmasingale', 'tmasingal', 'travismasingale', 'masingale'] },
+        { canonical: 'S.Durr', keys: ['sdurr', 'sarahdurr', 'durr'] },
+        { canonical: 'C.Manikoth', keys: ['cmanikoth', 'colinmanikoth', 'manikoth'] },
+        { canonical: 'S.Mills', keys: ['smills', 'sarahmills', 'mills'] },
+        { canonical: 'M.Lybbert', keys: ['mlybbert', 'mattlybbert', 'lybbert'] },
+        { canonical: 'G.Hustrulid', keys: ['ghustrulid', 'ginahustrulid', 'hustrulid'] },
+        { canonical: 'A.Sopu', keys: ['asopu', 'arianasopu', 'sopu'] },
+        { canonical: 'E.Norris', keys: ['enorris', 'evannorris', 'norris'] },
+        { canonical: 'J.Braukmann', keys: ['jbraukmann', 'jessicabraukmann', 'braukmann'] },
+        { canonical: 'S.Allison', keys: ['sallison', 'scottallison', 'allison'] },
+        { canonical: 'Barton/Pettigrew', keys: ['bartonpettigrew', 'barton', 'pettigrew', 'online'] },
+        { canonical: 'Adjunct', keys: ['adjunct'] },
+        { canonical: 'TBD', keys: ['tbd'] }
+    ]);
 
     function resolveScheduleDataUtils(options) {
         return options.scheduleDataUtils
@@ -54,6 +94,43 @@
 
     function normalizeCourseCode(value) {
         return String(value || '').trim().toUpperCase().replace(/\s+/g, ' ');
+    }
+
+    function normalizeFacultyKey(value) {
+        return String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    }
+
+    function getCanonicalFacultyName(value) {
+        const raw = String(value || '').trim();
+        if (!raw) return 'TBD';
+
+        const exact = FACULTY_COLORS[raw];
+        if (exact) return exact.name;
+
+        const compact = normalizeFacultyKey(raw);
+        const match = FACULTY_ALIASES.find((entry) => entry.keys.some((key) => compact.includes(key) || key.includes(compact)));
+        return match ? match.canonical : raw;
+    }
+
+    function getFallbackFacultyColor(name) {
+        const key = normalizeFacultyKey(name);
+        if (!key) return FACULTY_COLORS.TBD.color;
+        let hash = 0;
+        for (let index = 0; index < key.length; index += 1) {
+            hash = (hash * 31 + key.charCodeAt(index)) % 9973;
+        }
+        return FALLBACK_FACULTY_COLORS[hash % FALLBACK_FACULTY_COLORS.length];
+    }
+
+    function getFacultyInfo(value) {
+        const canonical = getCanonicalFacultyName(value);
+        const known = FACULTY_COLORS[canonical];
+        if (known) return known;
+        return {
+            className: 'faculty-generated',
+            color: getFallbackFacultyColor(canonical),
+            name: canonical || 'TBD'
+        };
     }
 
     function formatClock(value) {
@@ -183,11 +260,18 @@
     }
 
     function createCourseBlock(documentRef, course) {
-        const block = createElement(documentRef, 'article', 'public-course-block');
+        const facultyInfo = getFacultyInfo(course.instructor);
+        const block = createElement(documentRef, 'article', `public-course-block ${facultyInfo.className}`);
+        block.dataset.faculty = facultyInfo.name;
+        block.style.setProperty('--faculty-accent', facultyInfo.color);
 
         const code = createElement(documentRef, 'div', 'public-course-code', normalizeCourseCode(course.code));
         const title = createElement(documentRef, 'div', 'public-course-title', String(course.name || course.title || 'Untitled course').trim());
-        const instructor = createElement(documentRef, 'div', 'public-course-meta', String(course.instructor || 'TBD').trim());
+        const instructor = createElement(documentRef, 'div', 'public-course-meta');
+        const color = createElement(documentRef, 'span', 'public-faculty-dot');
+        color.style.backgroundColor = facultyInfo.color;
+        instructor.appendChild(color);
+        instructor.appendChild(documentRef.createTextNode(facultyInfo.name));
         const details = [];
         if (course.section) details.push(`Section ${course.section}`);
         if (course.credits) details.push(`${course.credits} cr`);
@@ -216,6 +300,31 @@
             }
         });
         return Array.from(seen);
+    }
+
+    function renderQuarterTabs(state) {
+        const { documentRef, scheduleData, activeQuarter, year } = state;
+        const tabs = documentRef.getElementById('publicQuarterTabs');
+        clearElement(tabs);
+
+        QUARTERS.forEach((quarter) => {
+            const button = createElement(documentRef, 'button', 'public-quarter-tab');
+            const quarterTitle = formatQuarterTitle(year, quarter);
+            const count = countQuarterCourses(scheduleData, quarter, { scheduleDataUtils: state.utils });
+            button.type = 'button';
+            button.setAttribute('role', 'tab');
+            button.setAttribute('aria-selected', quarter === activeQuarter ? 'true' : 'false');
+            button.dataset.quarter = quarter;
+            button.appendChild(createElement(documentRef, 'span', 'public-quarter-name', QUARTER_LABELS[quarter]));
+            button.appendChild(createElement(documentRef, 'span', 'public-quarter-year', getDisplayYear(year, quarter)));
+            button.appendChild(createElement(documentRef, 'span', 'public-quarter-count', `${count} ${count === 1 ? 'section' : 'sections'}`));
+            button.title = quarterTitle;
+            button.addEventListener('click', () => {
+                state.activeQuarter = quarter;
+                render(state);
+            });
+            tabs.appendChild(button);
+        });
     }
 
     function renderScheduleGrid(state) {
@@ -278,12 +387,68 @@
         });
     }
 
+    function getFacultyLegendEntries(state) {
+        const courses = getQuarterCourses(state.scheduleData, state.activeQuarter, state.utils);
+        const summaries = new Map();
+
+        courses.forEach((course) => {
+            const info = getFacultyInfo(course.instructor || 'TBD');
+            if (!summaries.has(info.name)) {
+                summaries.set(info.name, {
+                    name: info.name,
+                    className: info.className,
+                    color: info.color,
+                    sections: 0,
+                    credits: 0
+                });
+            }
+
+            const summary = summaries.get(info.name);
+            summary.sections += 1;
+            summary.credits += Number(course.credits) || 5;
+        });
+
+        return Array.from(summaries.values()).sort((a, b) => {
+            if (b.sections !== a.sections) return b.sections - a.sections;
+            return a.name.localeCompare(b.name);
+        });
+    }
+
+    function renderFacultyLegend(state) {
+        const legend = state.documentRef.getElementById('publicFacultyLegend');
+        clearElement(legend);
+        if (!legend) return;
+
+        const entries = getFacultyLegendEntries(state);
+        const header = createElement(state.documentRef, 'div', 'public-faculty-legend-header');
+        header.appendChild(createElement(state.documentRef, 'strong', '', 'Faculty key'));
+        header.appendChild(createElement(state.documentRef, 'span', '', `${formatQuarterTitle(state.year, state.activeQuarter)} | ${entries.length} faculty`));
+        legend.appendChild(header);
+
+        if (!entries.length) {
+            legend.appendChild(createElement(state.documentRef, 'div', 'public-faculty-legend-empty', 'No faculty assigned for this quarter yet.'));
+            return;
+        }
+
+        const list = createElement(state.documentRef, 'div', 'public-faculty-legend-list');
+        entries.forEach((entry) => {
+            const item = createElement(state.documentRef, 'div', `public-faculty-legend-item ${entry.className}`);
+            item.style.setProperty('--faculty-accent', entry.color);
+            item.appendChild(createElement(state.documentRef, 'span', 'public-faculty-swatch'));
+            item.appendChild(createElement(state.documentRef, 'span', 'public-faculty-name', entry.name));
+            item.appendChild(createElement(state.documentRef, 'span', 'public-faculty-meta', `${entry.sections} sec | ${entry.credits} cr`));
+            list.appendChild(item);
+        });
+        legend.appendChild(list);
+    }
+
     function renderEmptyState(state) {
         const grid = state.documentRef.getElementById('publicScheduleGrid');
         clearElement(grid);
         grid.style.gridTemplateColumns = '1fr';
         grid.appendChild(createElement(state.documentRef, 'div', 'public-empty', 'No public schedule rows are available for this quarter.'));
         clearElement(state.documentRef.getElementById('publicSpecialSections'));
+        renderFacultyLegend(state);
     }
 
     function renderErrorState(state, message) {
@@ -292,6 +457,7 @@
         grid.style.gridTemplateColumns = '1fr';
         grid.appendChild(createElement(state.documentRef, 'div', 'public-error', message || 'The public schedule could not be loaded.'));
         clearElement(state.documentRef.getElementById('publicSpecialSections'));
+        clearElement(state.documentRef.getElementById('publicFacultyLegend'));
     }
 
     function render(state) {
@@ -305,6 +471,8 @@
         setText(state.documentRef, 'publicScheduleSubtitle', `AY ${state.year}`);
         setText(state.documentRef, 'publicPanelCount', countLabel);
 
+        renderQuarterTabs(state);
+        renderFacultyLegend(state);
         if (count === 0) {
             renderEmptyState(state);
             return;
@@ -350,7 +518,7 @@
             const { data, error } = await client.rpc('get_public_schedule', {
                 p_academic_year: year,
                 p_program_code: programCode,
-                p_quarter: state.activeQuarter
+                p_quarter: null
             });
 
             if (error) throw error;
@@ -382,10 +550,14 @@
         DAY_PATTERNS,
         TIME_SLOTS,
         ROOM_ORDER,
+        FACULTY_COLORS,
         buildScheduleFromPublicRows,
         countQuarterCourses,
         createPublicScheduleApp,
         formatQuarterTitle,
+        getCanonicalFacultyName,
+        getFallbackFacultyColor,
+        getFacultyInfo,
         formatTimeSlot,
         normalizePublicScheduleRows
     };
