@@ -150,6 +150,14 @@
         return `${formatClock(start)} - ${formatClock(end)}`;
     }
 
+    function getTimeSlotParts(value) {
+        const [start, end] = String(value || '').split('-');
+        if (!start || !end) {
+            return { start: String(value || '').trim(), end: '' };
+        }
+        return { start: formatClock(start), end: formatClock(end) };
+    }
+
     function getDisplayYear(year, quarter) {
         const [startYearText] = String(year || DEFAULTS.year).split('-');
         const startYear = Number(startYearText);
@@ -295,6 +303,17 @@
         return block;
     }
 
+    function createTimeSlotElement(documentRef, time) {
+        const parts = getTimeSlotParts(time);
+        const slot = createElement(documentRef, 'div', 'public-time-slot');
+        slot.setAttribute('aria-label', parts.end ? `${parts.start} to ${parts.end}` : parts.start);
+        slot.appendChild(createElement(documentRef, 'span', 'public-time-start', parts.start));
+        if (parts.end) {
+            slot.appendChild(createElement(documentRef, 'span', 'public-time-end', parts.end));
+        }
+        return slot;
+    }
+
     function getCoursesForCell(scheduleData, quarter, day, time, room) {
         const list = scheduleData?.[quarter]?.[day]?.[time];
         if (!Array.isArray(list)) return [];
@@ -347,7 +366,7 @@
             grid.appendChild(divider);
 
             TIME_SLOTS.forEach((time) => {
-                grid.appendChild(createElement(documentRef, 'div', 'public-time-slot', formatTimeSlot(time)));
+                grid.appendChild(createTimeSlotElement(documentRef, time));
 
                 rooms.forEach((room) => {
                     const cell = createElement(documentRef, 'div', 'public-schedule-cell');

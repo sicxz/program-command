@@ -365,18 +365,26 @@ body {
 
 .public-time-slot {
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    align-items: flex-start;
     justify-content: center;
+    gap: 3px;
     min-height: 126px;
-    padding: 10px;
+    padding: 10px 12px;
     background: var(--public-black);
     color: var(--public-paper);
     font-family: var(--public-mono);
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.6px;
-    text-align: center;
+    text-align: left;
     text-transform: uppercase;
+}
+
+.public-time-start,
+.public-time-end {
+    display: block;
+    line-height: 1.2;
 }
 
 .public-schedule-cell {

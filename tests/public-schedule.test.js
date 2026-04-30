@@ -134,6 +134,11 @@ describe('public schedule page', () => {
         expect(headers).not.toContain('CEB 102');
         expect(headers).not.toContain('CEB 104');
 
+        const timeSlot = document.querySelector('.public-time-slot');
+        expect(timeSlot.getAttribute('aria-label')).toBe('10:00 AM to 12:20 PM');
+        expect(timeSlot.querySelector('.public-time-start').textContent).toBe('10:00 AM');
+        expect(timeSlot.querySelector('.public-time-end').textContent).toBe('12:20 PM');
+
         document.querySelector('[data-quarter="winter"]').click();
 
         expect(document.getElementById('publicScheduleTitle').textContent).toBe('Winter 2027');
