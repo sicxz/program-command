@@ -8,8 +8,6 @@ function setupDom() {
         <div id="publicStatus"></div>
         <span id="publicAcademicYearLabel"></span>
         <span id="publicQuarterLabel"></span>
-        <div id="publicQuarterTabs"></div>
-        <div id="publicSummary"></div>
         <h2 id="publicScheduleTitle"></h2>
         <p id="publicScheduleSubtitle"></p>
         <div id="publicPanelCount"></div>
@@ -77,10 +75,10 @@ describe('public schedule page', () => {
         expect(rpc).toHaveBeenCalledWith('get_public_schedule', {
             p_academic_year: '2026-27',
             p_program_code: 'ewu-design',
-            p_quarter: null
+            p_quarter: 'fall'
         });
         expect(document.getElementById('publicScheduleTitle').textContent).toBe('Fall 2026');
-        expect(document.getElementById('publicSummary').textContent).toBe('2 sections');
+        expect(document.getElementById('publicPanelCount').textContent).toBe('2 sections');
         expect(document.getElementById('publicStatus').textContent).toBe('Live schedule');
         expect(document.getElementById('publicScheduleGrid').textContent).toContain('DESN 368');
         expect(document.getElementById('publicSpecialSections').textContent).toContain('DESN 216');
@@ -114,5 +112,16 @@ describe('public schedule page', () => {
         expect(html).not.toMatch(/save/i);
         expect(html).not.toMatch(/import/i);
         expect(html).not.toMatch(/Add Course/i);
+        expect(html).not.toMatch(/Copy to Next Year/i);
+        expect(html).not.toMatch(/Settings/i);
+    });
+
+    test('public HTML exposes only the login link as navigation', () => {
+        const html = fs.readFileSync(path.resolve(__dirname, '..', 'public-schedule.html'), 'utf8');
+
+        const anchors = html.match(/<a\b/gi) || [];
+        expect(anchors).toHaveLength(1);
+        expect(html).toContain('href="login.html"');
+        expect(html).toContain('Program Command');
     });
 });

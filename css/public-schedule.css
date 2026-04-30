@@ -38,9 +38,9 @@ body {
 .public-header {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: center;
     gap: 24px;
-    padding: 28px 32px;
+    padding: 18px 28px;
     color: #ffffff;
     background: linear-gradient(180deg, var(--public-red) 0%, var(--public-red-dark) 100%);
 }
@@ -49,113 +49,96 @@ body {
     min-width: 0;
 }
 
-.public-eyebrow {
-    margin: 0 0 6px;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0;
-    text-transform: uppercase;
-    opacity: 0.84;
-}
-
 .public-header h1 {
     margin: 0;
     color: #ffffff;
-    font-size: 28px;
+    font-size: 22px;
     font-weight: 700;
     line-height: 1.12;
 }
 
-.public-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 12px;
-}
-
-.public-meta span,
-.public-status {
+.public-login-link {
     display: inline-flex;
     align-items: center;
-    min-height: 28px;
-    padding: 4px 10px;
+    justify-content: center;
+    min-height: 36px;
+    padding: 7px 14px;
     border: 1px solid rgba(255, 255, 255, 0.28);
-    border-radius: 999px;
+    border-radius: 6px;
     color: #ffffff;
     background: rgba(255, 255, 255, 0.12);
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 14px;
+    font-weight: 700;
+    text-decoration: none;
 }
 
-.public-status {
-    flex-shrink: 0;
+.public-login-link:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.public-login-link:focus-visible {
+    outline: 3px solid rgba(255, 255, 255, 0.44);
+    outline-offset: 2px;
 }
 
 .public-status[data-state="ready"] {
-    background: rgba(26, 127, 55, 0.28);
+    color: var(--public-green);
+    background: rgba(26, 127, 55, 0.12);
+    border-color: rgba(26, 127, 55, 0.26);
 }
 
 .public-status[data-state="error"] {
-    background: rgba(154, 103, 0, 0.34);
+    color: var(--public-yellow);
+    background: rgba(154, 103, 0, 0.12);
+    border-color: rgba(154, 103, 0, 0.28);
 }
 
 .public-main {
     padding: 24px 28px 32px;
 }
 
-.public-toolbar {
+.public-context {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-end;
     gap: 16px;
     margin-bottom: 18px;
 }
 
-.public-quarter-tabs {
-    display: inline-grid;
-    grid-template-columns: repeat(3, minmax(112px, 1fr));
-    gap: 6px;
-    padding: 6px;
-    background: var(--public-surface-muted);
-    border: 1px solid var(--public-border);
-    border-radius: var(--public-radius);
-}
-
-.public-quarter-tab {
-    display: inline-flex;
-    justify-content: center;
-    align-items: baseline;
-    gap: 6px;
-    min-height: 36px;
-    padding: 7px 12px;
-    border: 0;
-    border-radius: 6px;
-    background: transparent;
+.public-eyebrow {
+    margin: 0 0 6px;
     color: var(--public-muted);
-    font: inherit;
-    font-weight: 700;
-    cursor: pointer;
-}
-
-.public-quarter-tab:hover {
-    color: var(--public-text);
-    background: #ffffff;
-}
-
-.public-quarter-tab:focus-visible {
-    outline: 3px solid rgba(9, 105, 218, 0.28);
-    outline-offset: 2px;
-}
-
-.public-quarter-tab[aria-selected="true"] {
-    color: #ffffff;
-    background: var(--public-blue);
-}
-
-.public-quarter-tab span {
     font-size: 12px;
-    font-weight: 600;
-    opacity: 0.8;
+    font-weight: 800;
+    letter-spacing: 0;
+    text-transform: uppercase;
+}
+
+.public-context h2 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 750;
+}
+
+.public-meta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.public-meta span,
+.public-status {
+    display: inline-flex;
+    align-items: center;
+    min-height: 30px;
+    padding: 5px 10px;
+    border: 1px solid var(--public-border);
+    border-radius: 999px;
+    color: var(--public-muted);
+    background: var(--public-surface);
+    font-size: 13px;
+    font-weight: 700;
 }
 
 .public-summary,
@@ -359,7 +342,7 @@ body {
     }
 
     .public-header,
-    .public-toolbar,
+    .public-context,
     .public-panel-heading {
         flex-direction: column;
         align-items: stretch;
@@ -369,9 +352,8 @@ body {
         padding: 18px 14px 28px;
     }
 
-    .public-quarter-tabs {
-        width: 100%;
-        grid-template-columns: 1fr;
+    .public-meta {
+        justify-content: flex-start;
     }
 
     .public-special-sections {

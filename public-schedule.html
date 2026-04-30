@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EWU Design Public Schedule</title>
+    <title>Program Command Public Schedule</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -20,26 +20,27 @@
     <div class="public-shell">
         <header class="public-header">
             <div class="public-header-copy">
-                <p class="public-eyebrow">EWU Design</p>
-                <h1>Program Schedule</h1>
-                <div class="public-meta" aria-label="Schedule context">
-                    <span id="publicAcademicYearLabel">AY 2026-27</span>
-                    <span id="publicQuarterLabel">Fall 2026</span>
-                </div>
+                <h1>Program Command</h1>
             </div>
-            <div class="public-status" id="publicStatus" role="status" aria-live="polite">Loading</div>
+            <a class="public-login-link" href="login.html">Login</a>
         </header>
 
         <main class="public-main">
-            <section class="public-toolbar" aria-label="Schedule controls">
-                <div class="public-quarter-tabs" id="publicQuarterTabs" role="tablist" aria-label="Quarter"></div>
-                <div class="public-summary" id="publicSummary">0 sections</div>
+            <section class="public-context" aria-label="Schedule context">
+                <div>
+                    <p class="public-eyebrow">Public schedule</p>
+                    <h2 id="publicScheduleTitle">Fall 2026</h2>
+                </div>
+                <div class="public-meta">
+                    <span id="publicAcademicYearLabel">AY 2026-27</span>
+                    <span id="publicQuarterLabel">Fall 2026</span>
+                    <span class="public-status" id="publicStatus" role="status" aria-live="polite">Loading</span>
+                </div>
             </section>
 
             <section class="public-schedule-panel" aria-labelledby="publicScheduleTitle">
                 <div class="public-panel-heading">
                     <div>
-                        <h2 id="publicScheduleTitle">Fall 2026</h2>
                         <p id="publicScheduleSubtitle">AY 2026-27</p>
                     </div>
                     <div class="public-panel-count" id="publicPanelCount">0 sections</div>

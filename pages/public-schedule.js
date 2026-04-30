@@ -218,27 +218,6 @@
         return Array.from(seen);
     }
 
-    function renderQuarterTabs(state) {
-        const { documentRef, scheduleData, activeQuarter, year, utils, onQuarterChange } = state;
-        const tabs = documentRef.getElementById('publicQuarterTabs');
-        clearElement(tabs);
-
-        QUARTERS.forEach((quarter) => {
-            const button = createElement(documentRef, 'button', 'public-quarter-tab');
-            button.type = 'button';
-            button.setAttribute('role', 'tab');
-            button.setAttribute('aria-selected', quarter === activeQuarter ? 'true' : 'false');
-            button.dataset.quarter = quarter;
-            button.textContent = QUARTER_LABELS[quarter];
-
-            const yearSpan = createElement(documentRef, 'span', '', getDisplayYear(year, quarter));
-            button.appendChild(yearSpan);
-            button.title = `${formatQuarterTitle(year, quarter)} (${countQuarterCourses(scheduleData, quarter, { scheduleDataUtils: utils })} sections)`;
-            button.addEventListener('click', () => onQuarterChange(quarter));
-            tabs.appendChild(button);
-        });
-    }
-
     function renderScheduleGrid(state) {
         const { documentRef, scheduleData, activeQuarter } = state;
         const grid = documentRef.getElementById('publicScheduleGrid');
@@ -324,10 +303,8 @@
         setText(state.documentRef, 'publicQuarterLabel', quarterTitle);
         setText(state.documentRef, 'publicScheduleTitle', quarterTitle);
         setText(state.documentRef, 'publicScheduleSubtitle', `AY ${state.year}`);
-        setText(state.documentRef, 'publicSummary', countLabel);
         setText(state.documentRef, 'publicPanelCount', countLabel);
 
-        renderQuarterTabs(state);
         if (count === 0) {
             renderEmptyState(state);
             return;
@@ -361,11 +338,7 @@
             year,
             programCode,
             activeQuarter: options.quarter || DEFAULTS.quarter,
-            scheduleData: createEmptySchedule(utils),
-            onQuarterChange: (quarter) => {
-                state.activeQuarter = quarter;
-                render(state);
-            }
+            scheduleData: createEmptySchedule(utils)
         };
 
         async function load() {
@@ -377,7 +350,7 @@
             const { data, error } = await client.rpc('get_public_schedule', {
                 p_academic_year: year,
                 p_program_code: programCode,
-                p_quarter: null
+                p_quarter: state.activeQuarter
             });
 
             if (error) throw error;
