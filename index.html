@@ -4593,45 +4593,373 @@
             padding: 20px;
         }
 
-        body.foundry-production .schedule-grid-header {
-            border-bottom: 1px solid var(--f-hairline);
-            padding-bottom: 12px;
-            margin-bottom: 14px;
-        }
-
-        body.foundry-production .schedule-grid-title {
-            color: var(--f-ink);
-            font-size: 1.25rem;
-            font-weight: 800;
-            letter-spacing: 0;
-        }
-
-        body.foundry-production .schedule-grid {
-            background: var(--f-hairline);
+        body.foundry-production .schedule-view-panel {
+            background: var(--f-surface);
             border: 1px solid var(--f-hairline);
             border-radius: 0;
             overflow: hidden;
         }
 
+        body.foundry-production .schedule-grid-header {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 18px;
+            background: var(--f-surface-subtle);
+            border-bottom: 3px solid var(--f-rule);
+            padding: 14px 18px;
+            margin: 0;
+        }
+
+        body.foundry-production .schedule-grid-header::before {
+            display: inline-grid;
+            place-items: center;
+            width: 42px;
+            min-width: 42px;
+            height: 30px;
+            background: var(--f-rule);
+            color: var(--f-ink-inverse);
+            content: "01";
+            font-family: var(--f-mono);
+            font-size: 11px;
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        body.foundry-production .schedule-grid-title {
+            color: var(--f-ink);
+            font-size: 1.25rem;
+            font-weight: 850;
+            letter-spacing: 0;
+            margin: 0;
+        }
+
+        body.foundry-production .schedule-grid-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        body.foundry-production .schedule-grid-scroll {
+            overflow-x: auto;
+        }
+
+        body.foundry-production .schedule-grid {
+            display: grid;
+            min-width: 1050px;
+            background: var(--f-hairline);
+            border: 0;
+            border-radius: 0;
+            border-top: 1px solid var(--f-hairline);
+            margin: 0;
+            overflow: visible;
+        }
+
         body.foundry-production .grid-header,
-        body.foundry-production .time-slot {
+        body.foundry-production .time-slot,
+        body.foundry-production .schedule-cell,
+        body.foundry-production .day-divider {
+            border-right: 1px solid var(--f-hairline);
+            border-bottom: 1px solid var(--f-hairline);
+        }
+
+        body.foundry-production .grid-header {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            min-height: 44px;
+            padding: 12px 10px;
             background: var(--f-rule);
             color: var(--f-ink-inverse);
             font-family: var(--f-mono);
             font-size: 11px;
             font-weight: 850;
+            letter-spacing: 0;
+            text-align: center;
             text-transform: uppercase;
         }
 
+        body.foundry-production .day-divider {
+            grid-column: 1 / -1;
+            height: auto;
+            margin: 0;
+            padding: 8px 12px;
+            background: var(--f-surface-subtle);
+            color: var(--f-ink);
+            font-family: var(--f-mono);
+            font-size: 10px;
+            font-weight: 900;
+            letter-spacing: 0;
+            text-align: center;
+            text-transform: uppercase;
+        }
+
+        body.foundry-production .day-divider::after {
+            content: none;
+        }
+
+        body.foundry-production .time-slot {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: flex-start;
+            gap: 5px;
+            min-height: 126px;
+            padding: 16px 12px 10px;
+            background: var(--f-rule);
+            color: var(--f-ink-inverse);
+            font-family: var(--f-mono);
+            font-size: 11px;
+            font-weight: 850;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 0;
+            text-align: left;
+            text-transform: uppercase;
+        }
+
+        body.foundry-production .schedule-time-start,
+        body.foundry-production .schedule-time-end {
+            display: grid;
+            grid-template-columns: 6ch 2.2ch;
+            align-items: baseline;
+            column-gap: 0.55ch;
+            line-height: 1.2;
+            white-space: nowrap;
+        }
+
+        body.foundry-production .schedule-time-clock {
+            min-width: 6ch;
+            text-align: right;
+        }
+
+        body.foundry-production .schedule-time-period {
+            text-align: left;
+        }
+
         body.foundry-production .schedule-cell {
+            min-height: 126px;
+            padding: 8px;
             background: var(--f-surface);
+            transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
         }
 
         body.foundry-production .schedule-cell:hover {
             background: var(--f-surface-subtle);
         }
 
-        body.foundry-production .course-block,
+        body.foundry-production .schedule-cell.single-course-cell {
+            display: block;
+            padding: 8px;
+        }
+
+        body.foundry-production .single-course-cell .course-block.single-course-block {
+            min-height: 88px;
+            margin-bottom: 0;
+            border-radius: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            padding: 8px 10px;
+        }
+
+        body.foundry-production .course-block {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-height: 88px;
+            padding: 8px 10px;
+            background: var(--f-surface);
+            border: 1px solid var(--f-hairline);
+            border-left: 4px solid var(--faculty-accent, var(--f-blue));
+            border-radius: 0;
+            box-shadow: none;
+            cursor: pointer;
+            transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+        }
+
+        body.foundry-production .course-block + .course-block {
+            margin-top: 8px;
+        }
+
+        body.foundry-production .course-block:hover {
+            background: var(--f-surface);
+            border-color: var(--faculty-accent, var(--f-hairline));
+            box-shadow: none;
+            transform: translateY(-1px);
+        }
+
+        body.foundry-production .course-block.conflict-0,
+        body.foundry-production .course-block.conflict-1,
+        body.foundry-production .course-block.conflict-2 {
+            background: var(--f-surface);
+        }
+
+        body.foundry-production .course-block.conflict-0 {
+            border-left-color: var(--f-red);
+        }
+
+        body.foundry-production .course-block.conflict-1 {
+            border-left-color: var(--f-amber);
+        }
+
+        body.foundry-production .course-block.conflict-2 {
+            border-left-color: var(--faculty-accent, var(--f-blue));
+        }
+
+        body.foundry-production .course-name {
+            color: var(--f-ink);
+            font-size: 13px;
+            font-weight: 850;
+            line-height: 1.25;
+            margin: 0;
+        }
+
+        body.foundry-production .course-details {
+            color: var(--f-ink);
+            font-size: 12px;
+            font-weight: 650;
+            line-height: 1.25;
+        }
+
+        body.foundry-production .course-block .course-details:last-child {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--f-muted);
+            font-weight: 650;
+        }
+
+        body.foundry-production .course-block .course-details:last-child::before {
+            content: "";
+            flex: 0 0 auto;
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            background: var(--faculty-accent, var(--f-blue));
+        }
+
+        body.foundry-production .enrollment-badge {
+            color: var(--f-muted) !important;
+            font-family: var(--f-mono);
+            font-size: 11px;
+            font-weight: 850;
+        }
+
+        body.foundry-production .course-block .delete-btn {
+            top: 5px;
+            right: 5px;
+            width: 20px;
+            height: 20px;
+            border: 1px solid var(--f-hairline);
+            border-radius: 0;
+            background: var(--f-surface);
+            color: var(--f-muted);
+        }
+
+        body.foundry-production .course-block:hover .delete-btn {
+            opacity: 0.78;
+        }
+
+        body.foundry-production .course-block .delete-btn:hover {
+            background: var(--f-red-wash);
+            border-color: var(--f-red);
+            color: var(--f-red);
+        }
+
+        body.foundry-production .schedule-cell.drag-over {
+            background: var(--f-blue-wash) !important;
+            border: 2px dashed var(--f-blue);
+            box-shadow: inset 0 0 0 2px rgba(9, 105, 218, 0.16);
+        }
+
+        body.foundry-production .schedule-cell.drop-highlight {
+            background: var(--f-green-wash) !important;
+            border: 2px solid var(--f-green);
+        }
+
+        body.foundry-production .faculty-legend {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin: 18px 0 0;
+            padding: 14px 12px;
+            background: var(--f-surface-subtle);
+            border: 1px solid var(--f-hairline);
+            border-left: 6px solid var(--f-rule);
+            border-radius: 0;
+        }
+
+        body.foundry-production .faculty-legend-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            color: var(--f-muted);
+            font-size: 12px;
+        }
+
+        body.foundry-production .faculty-legend-header strong {
+            color: var(--f-ink);
+            font-family: var(--f-mono);
+            font-size: 11px;
+            font-weight: 850;
+            letter-spacing: 0;
+            text-transform: uppercase;
+        }
+
+        body.foundry-production .faculty-legend-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        body.foundry-production .faculty-legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            min-height: 28px;
+            padding: 4px 8px;
+            border: 1px solid var(--f-hairline);
+            border-left: 4px solid var(--faculty-accent, #bdc3c7);
+            background: var(--f-surface);
+            color: var(--f-ink);
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        body.foundry-production .faculty-legend-item:hover {
+            background: var(--f-surface);
+            border-color: var(--f-hairline);
+            border-left-color: var(--faculty-accent, #bdc3c7);
+            transform: translateY(-1px);
+        }
+
+        body.foundry-production .faculty-color-bar {
+            display: inline-block;
+            flex: 0 0 auto;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--faculty-accent, #bdc3c7);
+        }
+
+        body.foundry-production .faculty-legend-name {
+            color: var(--f-ink);
+            font-weight: 700;
+        }
+
+        body.foundry-production .faculty-legend-meta,
+        body.foundry-production .faculty-legend-empty {
+            color: var(--f-muted);
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        body.foundry-production .conflict-legend {
+            margin-top: 16px;
+        }
+
         body.foundry-production .arranged-course-block,
         body.foundry-production .conflict-item,
         body.foundry-production .annual-pattern-item,
@@ -4646,58 +4974,49 @@
             box-shadow: none;
         }
 
-        body.foundry-production .course-block:hover,
         body.foundry-production .conflict-item:hover {
             background: var(--f-surface-subtle);
             box-shadow: none;
             transform: none;
         }
 
-        body.foundry-production .course-block.conflict-0,
         body.foundry-production .conflict-item.critical,
         body.foundry-production .annual-pattern-item.critical {
             background: var(--f-red-wash);
             border-left-color: var(--f-red);
         }
 
-        body.foundry-production .course-block.conflict-1,
         body.foundry-production .conflict-item.high,
         body.foundry-production .annual-pattern-item.high {
             background: var(--f-amber-wash);
             border-left-color: var(--f-amber);
         }
 
-        body.foundry-production .course-block.conflict-2,
         body.foundry-production .conflict-item.medium,
         body.foundry-production .annual-pattern-item.medium {
             background: var(--f-blue-wash);
             border-left-color: var(--f-blue);
         }
 
-        body.foundry-production .course-name,
         body.foundry-production .conflict-time,
         body.foundry-production .faculty-legend-name {
             color: var(--f-ink);
             font-weight: 760;
         }
 
-        body.foundry-production .course-details,
         body.foundry-production .faculty-legend-meta,
         body.foundry-production .annual-pattern-meta {
             color: var(--f-muted);
         }
 
-        body.foundry-production .faculty-legend,
         body.foundry-production .legend {
             border-left: 4px solid var(--f-rule);
         }
 
-        body.foundry-production .faculty-legend-header,
         body.foundry-production .legend-item {
             color: var(--f-muted);
         }
 
-        body.foundry-production .faculty-legend-item,
         body.foundry-production .annual-conflict-stat,
         body.foundry-production .severity-badge,
         body.foundry-production .current-quarter-tag,
@@ -4729,18 +5048,6 @@
         body.foundry-production .scheduler-assistant-response,
         body.foundry-production .markdown-output pre {
             border-radius: 0;
-        }
-
-        body.foundry-production .day-divider {
-            background: var(--f-rule);
-            height: 1px;
-        }
-
-        body.foundry-production .day-divider::after {
-            border-radius: 0;
-            color: var(--f-ink);
-            font-family: var(--f-mono);
-            letter-spacing: 0;
         }
 
         body.foundry-production .displaced-tray {
@@ -4785,6 +5092,25 @@
 
             body.foundry-production .content {
                 padding: 14px;
+            }
+
+            body.foundry-production .schedule-grid-header {
+                grid-template-columns: 1fr;
+                align-items: stretch;
+                gap: 10px;
+            }
+
+            body.foundry-production .schedule-grid-header::before {
+                width: 38px;
+                min-width: 38px;
+            }
+
+            body.foundry-production .schedule-grid-actions {
+                justify-content: flex-start;
+            }
+
+            body.foundry-production .faculty-legend-header {
+                flex-direction: column;
             }
 
             body.foundry-production .stats-bar {
@@ -5060,38 +5386,44 @@
             <div id="minorInfoPanel"></div>
             <div id="trackSuggestionsPanel"></div>
 
-            <div class="schedule-grid-header">
-                <h2 class="schedule-grid-title">Program Schedule - <span id="quarterTitle">Spring 2026</span></h2>
-                <div class="schedule-grid-actions">
-                    <div class="swap-toggle-container"
-                        title="When ON: Dropping a course onto an occupied slot swaps them. When OFF: The existing course goes to the displaced tray.">
-                        <span class="swap-toggle-label" id="displaceLabel">Displace</span>
-                        <label class="swap-toggle">
-                            <input type="checkbox" id="swapModeToggle">
-                            <span class="swap-toggle-slider"></span>
-                        </label>
-                        <span class="swap-toggle-label" id="swapLabel">Swap</span>
+            <section class="schedule-view-panel" aria-labelledby="scheduleGridTitle">
+                <div class="schedule-grid-header">
+                    <h2 class="schedule-grid-title" id="scheduleGridTitle">Program Schedule - <span id="quarterTitle">Spring 2026</span></h2>
+                    <div class="schedule-grid-actions">
+                        <div class="swap-toggle-container"
+                            title="When ON: Dropping a course onto an occupied slot swaps them. When OFF: The existing course goes to the displaced tray.">
+                            <span class="swap-toggle-label" id="displaceLabel">Displace</span>
+                            <label class="swap-toggle">
+                                <input type="checkbox" id="swapModeToggle">
+                                <span class="swap-toggle-slider"></span>
+                            </label>
+                            <span class="swap-toggle-label" id="swapLabel">Swap</span>
+                        </div>
+                        <button type="button" id="saveDbButton" class="btn-ewu-accent btn-add-course-main btn-save-db" onclick="saveScheduleToDatabase()">
+                            <span class="save-dirty-dot" id="saveDirtyDot" aria-hidden="true"></span>
+                            <span id="saveDbButtonText">Save Schedule</span>
+                        </button>
+                        <div class="action-bar-attribution" id="saveDbStatus" aria-live="polite"></div>
+                        <button class="btn-ewu-accent btn-add-course-main" onclick="openAddCourseModal()">
+                            <span class="btn-add-icon">+</span> Add Course
+                        </button>
+                        <button class="btn-ewu-accent btn-add-course-main" onclick="openWorkloadReviewFromScheduler()">Make Workloads</button>
                     </div>
-                    <button type="button" id="saveDbButton" class="btn-ewu-accent btn-add-course-main btn-save-db" onclick="saveScheduleToDatabase()">
-                        <span class="save-dirty-dot" id="saveDirtyDot" aria-hidden="true"></span>
-                        <span id="saveDbButtonText">Save Schedule</span>
-                    </button>
-                    <div class="action-bar-attribution" id="saveDbStatus" aria-live="polite"></div>
-                    <button class="btn-ewu-accent btn-add-course-main" onclick="openAddCourseModal()">
-                        <span class="btn-add-icon">+</span> Add Course
-                    </button>
-                    <button class="btn-ewu-accent btn-add-course-main" onclick="openWorkloadReviewFromScheduler()">Make Workloads</button>
                 </div>
-            </div>
-            <div class="schedule-grid" id="scheduleGrid"></div>
+                <div class="schedule-grid-scroll">
+                    <div class="schedule-grid" id="scheduleGrid"></div>
+                </div>
 
-            <div id="onlineSection"></div>
+                <div id="onlineSection"></div>
 
-            <div class="special-sections-grid">
-                <div id="arrangedSection"></div>
-            </div>
+                <div class="special-sections-grid">
+                    <div id="arrangedSection"></div>
+                </div>
 
-            <div class="legend">
+                <div class="faculty-legend" id="facultyLegend"></div>
+            </section>
+
+            <div class="legend conflict-legend">
                 <div class="legend-item">
                     <div class="legend-color" style="background: #fff5f5; border: 2px solid #ff6b6b;"></div>
                     <span>Critical Conflict (3+ courses)</span>
@@ -5105,8 +5437,6 @@
                     <span>No Conflict</span>
                 </div>
             </div>
-
-            <div class="faculty-legend" id="facultyLegend"></div>
 
             <div id="enrollmentAnalytics"></div>
 
@@ -5206,6 +5536,15 @@
             '212': '212 Project Lab',
             'CEB 102': 'CEB 102',
             'CEB 104': 'CEB 104'
+        };
+        const SCHEDULE_VIEW_ROOM_LABELS = {
+            '206': 'UX Lab',
+            '207': 'Media Lab',
+            '209': 'Mac Lab 1',
+            '210': 'Mac Lab 2',
+            '212': 'Mac Lab 3',
+            'CEB 102': 'Design Studio',
+            'CEB 104': 'Mac Lab 4'
         };
         let schedulerDayPatterns = DEFAULT_SCHEDULER_DAY_PATTERNS.map((pattern) => ({
             ...pattern,
@@ -5614,6 +5953,44 @@
             return formatSchedulerTimeRange(rawLabel) || rawLabel;
         }
 
+        function getSchedulerTimeSlotDisplayParts(value) {
+            const displayText = getSchedulerTimeSlotDisplayText(value);
+            const [start, end] = displayText.split(/\s+-\s+/);
+            return {
+                start: String(start || displayText || '').trim(),
+                end: String(end || '').trim()
+            };
+        }
+
+        function createSchedulerTimeLabelElement(className, value) {
+            const label = document.createElement('span');
+            label.className = className;
+            const match = String(value || '').trim().match(/^(.+?)\s+(AM|PM)$/i);
+
+            if (!match) {
+                label.textContent = String(value || '').trim();
+                return label;
+            }
+
+            const clock = document.createElement('span');
+            clock.className = 'schedule-time-clock';
+            clock.textContent = match[1];
+            const period = document.createElement('span');
+            period.className = 'schedule-time-period';
+            period.textContent = match[2].toUpperCase();
+            label.appendChild(clock);
+            label.appendChild(period);
+            return label;
+        }
+
+        function appendSchedulerTimeSlotContent(timeSlot, value) {
+            const parts = getSchedulerTimeSlotDisplayParts(value);
+            timeSlot.appendChild(createSchedulerTimeLabelElement('schedule-time-start', parts.start));
+            if (parts.end) {
+                timeSlot.appendChild(createSchedulerTimeLabelElement('schedule-time-end', parts.end));
+            }
+        }
+
         function parseSchedulerClockValueToMinutes(value) {
             const match = String(value || '').trim().match(/^(\d{1,2}):(\d{2})$/);
             if (!match) return null;
@@ -5707,6 +6084,11 @@
                 extraRooms: options.extraRooms || []
             });
             return roomLabels[code] || code;
+        }
+
+        function getScheduleViewRoomHeaderLabel(roomCode, options = {}) {
+            const code = String(roomCode || '').trim();
+            return SCHEDULE_VIEW_ROOM_LABELS[code] || getSchedulerRoomHeaderLabel(code, options);
         }
 
         function getCurrentSchedulerQuarter() {
@@ -6121,7 +6503,7 @@
             }
 
             const chips = entries.map((entry) => `
-                <button class="faculty-legend-item" type="button" data-faculty="${escapeHtml(entry.lookupName)}" onclick="showFacultyModal(this.dataset.faculty)">
+                <button class="faculty-legend-item" type="button" data-faculty="${escapeHtml(entry.lookupName)}" style="--faculty-accent:${escapeHtml(entry.color)};" onclick="showFacultyModal(this.dataset.faculty)">
                     <span class="faculty-color-bar" style="background:${escapeHtml(entry.color)};"></span>
                     <span class="faculty-legend-name">${escapeHtml(entry.displayName)}</span>
                     <span class="faculty-legend-meta">${entry.sections} sec | ${entry.credits} cr</span>
@@ -6840,7 +7222,8 @@
             const times = getSchedulerTimeSlotIds();
             syncSchedulerRoomLabelsForYear(currentAcademicYear, { includeHistoricalRooms: true });
             const rooms = getSchedulerRoomOptionList({ year: currentAcademicYear, includeHistoricalRooms: true });
-            grid.style.gridTemplateColumns = `100px repeat(${rooms.length}, 1fr)`;
+            grid.style.setProperty('--scheduler-room-count', String(rooms.length));
+            grid.style.gridTemplateColumns = `104px repeat(${rooms.length}, minmax(132px, 1fr))`;
 
             // Clear grid safely
             while (grid.firstChild) {
@@ -6848,7 +7231,7 @@
             }
 
             // Header row - create elements safely
-            const headers = ['Time', ...rooms.map((room) => getSchedulerRoomHeaderLabel(room, { year: currentAcademicYear, includeHistoricalRooms: true }))];
+            const headers = ['Time', ...rooms.map((room) => getScheduleViewRoomHeaderLabel(room, { year: currentAcademicYear, includeHistoricalRooms: true }))];
             headers.forEach(text => {
                 const header = document.createElement('div');
                 header.className = 'grid-header';
@@ -6866,7 +7249,7 @@
                     const timeSlot = document.createElement('div');
                     timeSlot.className = 'time-slot';
                     const timeLabel = getSchedulerTimeSlotDisplayText(time);
-                    timeSlot.textContent = timeLabel;
+                    appendSchedulerTimeSlotContent(timeSlot, time);
                     timeSlot.setAttribute('aria-label', `${getSchedulerDayLabel(day)} ${timeLabel}`);
                     grid.appendChild(timeSlot);
 
