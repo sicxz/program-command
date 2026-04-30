@@ -41,9 +41,11 @@ describe('public schedule read migration contract', () => {
         expect(sql).not.toMatch(/CREATE POLICY .* TO anon/i);
     });
 
-    test('keeps the query scoped through program and academic year', () => {
+    test('keeps the tenantized query scoped through program and academic year', () => {
         const sql = loadMigrationSql();
 
+        expect(sql).toMatch(/information_schema\.columns/i);
+        expect(sql).toMatch(/v_has_program_scope/i);
         expect(sql).toMatch(/JOIN public\.programs p/i);
         expect(sql).toMatch(/p\.code = v_program_code/i);
         expect(sql).toMatch(/ay\.year = v_academic_year/i);
@@ -51,5 +53,18 @@ describe('public schedule read migration contract', () => {
         expect(sql).toMatch(/c\.program_id = sc\.program_id/i);
         expect(sql).toMatch(/f\.program_id = sc\.program_id/i);
         expect(sql).toMatch(/r\.program_id = sc\.program_id/i);
+    });
+
+    test('falls back to the legacy department schema used by current production', () => {
+        const sql = loadMigrationSql();
+
+        expect(sql).toMatch(/IF NOT v_has_program_scope THEN/i);
+        expect(sql).toMatch(/v_department_code := 'DESN'/i);
+        expect(sql).toMatch(/JOIN public\.departments d/i);
+        expect(sql).toMatch(/d\.id = ay\.department_id/i);
+        expect(sql).toMatch(/d\.code = v_department_code/i);
+        expect(sql).toMatch(/c\.department_id = d\.id/i);
+        expect(sql).toMatch(/f\.department_id = d\.id/i);
+        expect(sql).toMatch(/r\.department_id = d\.id/i);
     });
 });
