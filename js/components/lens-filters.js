@@ -149,40 +149,41 @@ class LensFilters extends HTMLElement {
                 :host {
                     display: block;
                     width: 100%;
-                    margin-bottom: 24px;
+                    margin-bottom: 16px;
+                    font-family: var(--f-sans, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif);
                 }
                 * { box-sizing: border-box; }
 
-                /* Primer style collapsible panel */
                 .filters-panel {
-                    background: #ffffff;
-                    border: 1px solid #d0d7de;
-                    border-radius: 6px;
+                    background: var(--f-surface, #ffffff);
+                    border: 1px solid var(--f-hairline, #c9d1d9);
+                    border-left: 4px solid var(--f-blue, #0969da);
+                    border-radius: 0;
                     overflow: hidden;
-                    box-shadow: 0 1px 3px rgba(27, 31, 36, 0.04);
+                    box-shadow: none;
                 }
 
                 .filters-toggle {
                     display: flex;
                     align-items: center;
                     justify-content: space-between;
-                    padding: 8px 16px;
-                    background: #f6f8fa;
+                    padding: 10px 14px;
+                    background: var(--f-surface-subtle, #f1f2f4);
                     cursor: pointer;
-                    font-weight: 600;
-                    font-size: 14px;
-                    color: #57606a;
+                    font-weight: 760;
+                    font-size: 13px;
+                    color: var(--f-muted, #3f4652);
                     border-bottom: 1px solid transparent;
-                    transition: background 0.15s ease;
+                    transition: background-color 0.15s ease, color 0.15s ease;
                 }
 
                 .filters-toggle:hover {
-                    background: #eaeef2;
-                    color: #24292f;
+                    background: var(--f-surface-inset, #e7e9ed);
+                    color: var(--f-ink, #0d1117);
                 }
 
                 .filters-panel:not(.collapsed) .filters-toggle {
-                    border-bottom-color: #d0d7de;
+                    border-bottom-color: var(--f-hairline, #c9d1d9);
                 }
 
                 .filters-toggle .toggle-icon {
@@ -195,8 +196,8 @@ class LensFilters extends HTMLElement {
                 }
 
                 .filters-content {
-                    padding: 16px;
-                    background: #ffffff;
+                    padding: 14px;
+                    background: var(--f-surface, #ffffff);
                     display: block;
                 }
 
@@ -218,25 +219,34 @@ class LensFilters extends HTMLElement {
                 }
 
                 .filter-group label {
-                    font-weight: 600;
-                    color: #24292f;
-                    font-size: 12px;
+                    font-family: var(--f-mono, "SFMono-Regular", "SF Mono", Consolas, "Liberation Mono", Menlo, monospace);
+                    font-weight: 850;
+                    color: var(--f-soft, #6a737d);
+                    font-size: 11px;
+                    letter-spacing: 0;
+                    text-transform: uppercase;
                 }
 
                 select {
                     width: 100%;
-                    padding: 6px 32px 6px 12px;
-                    border: 1px solid #d0d7de;
-                    border-radius: 6px;
-                    background-color: #f6f8fa;
+                    padding: 8px 32px 8px 10px;
+                    border: 1px solid var(--f-hairline, #c9d1d9);
+                    border-radius: 0;
+                    background-color: var(--f-surface-subtle, #f1f2f4);
                     font-size: 14px;
-                    color: #24292f;
+                    color: var(--f-ink, #0d1117);
                     appearance: none;
                     background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2324292f%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
                     background-repeat: no-repeat;
                     background-position: right 10px top 50%;
                     background-size: 10px auto;
                     cursor: pointer;
+                }
+
+                select:focus-visible {
+                    outline: none;
+                    box-shadow: var(--f-focus, 0 0 0 3px rgba(9, 105, 218, .22));
+                    border-color: var(--f-blue, #0969da);
                 }
 
                 .filters-actions {
@@ -247,29 +257,34 @@ class LensFilters extends HTMLElement {
                 }
 
                 .btn-clear-lens {
-                    padding: 5px 16px;
+                    padding: 8px 14px;
                     font-size: 13px;
-                    font-weight: 500;
+                    font-weight: 700;
                     background: transparent;
-                    border: 1px solid #d0d7de;
-                    border-radius: 6px;
-                    color: #57606a;
+                    border: 1px solid var(--f-hairline, #c9d1d9);
+                    border-radius: 0;
+                    color: var(--f-muted, #3f4652);
                     cursor: pointer;
-                    transition: 0.2s;
+                    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
                 }
 
                 .btn-clear-lens:hover {
-                    background: #f6f8fa;
-                    color: #24292f;
-                    border-color: #8b949e;
+                    background: var(--f-surface-subtle, #f1f2f4);
+                    color: var(--f-ink, #0d1117);
+                    border-color: var(--f-rule, #111827);
+                }
+
+                .btn-clear-lens:focus-visible {
+                    outline: none;
+                    box-shadow: var(--f-focus, 0 0 0 3px rgba(9, 105, 218, .22));
                 }
 
                 .lens-status {
                     margin-top: 16px;
                     padding-top: 12px;
-                    border-top: 1px solid #eaeef2;
+                    border-top: 1px solid var(--f-hairline, #c9d1d9);
                     font-size: 13px;
-                    color: #57606a;
+                    color: var(--f-muted, #3f4652);
                 }
             </style>
 
