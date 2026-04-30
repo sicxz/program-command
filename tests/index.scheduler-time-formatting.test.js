@@ -86,10 +86,10 @@ describe('index scheduler time formatting', () => {
         expect(source).toContain('<option value="18:20">6:20 PM</option>');
     });
 
-    test('grid time column shows time only while preserving day context for accessibility', () => {
+    test('grid time column uses stacked labels while preserving day context for accessibility', () => {
         const { source } = loadSchedulerTimeHelpers();
 
-        expect(source).toContain("timeSlot.textContent = timeLabel;");
+        expect(source).toContain('appendSchedulerTimeSlotContent(timeSlot, time);');
         expect(source).toContain("timeSlot.setAttribute('aria-label', `${getSchedulerDayLabel(day)} ${timeLabel}`);");
     });
 
