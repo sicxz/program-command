@@ -2,11 +2,11 @@
     --public-red: #B7142E;
     --public-red-dark: #8F0F24;
     --public-black: #1a1a1a;
-    --public-paper: #faf9f7;
-    --public-stone: #f0eeeb;
-    --public-muted: #6b6560;
-    --public-line: #ddd8d2;
-    --public-accent: #c4450c;
+    --public-paper: #f6f8fa;
+    --public-stone: #eef2f6;
+    --public-muted: #57606a;
+    --public-line: #d0d7de;
+    --public-accent: #B7142E;
     --public-success: #2a7d4f;
     --public-warning: #b45309;
     --public-surface: #ffffff;
@@ -405,7 +405,7 @@ body {
     gap: 4px;
     min-height: 88px;
     padding: 8px 10px;
-    border: 1px solid #e2ddd7;
+    border: 1px solid #d8dee4;
     border-left: 4px solid var(--faculty-accent, var(--public-red));
     border-radius: 0;
     background: #ffffff;
