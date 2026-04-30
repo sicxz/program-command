@@ -78,6 +78,7 @@ body {
 }
 
 .public-login-link:focus-visible,
+.public-year-tab:focus-visible,
 .public-quarter-tab:focus-visible {
     outline: 3px solid rgba(183, 20, 46, 0.28);
     outline-offset: 2px;
@@ -88,6 +89,7 @@ body {
 }
 
 .public-context,
+.public-year-tabs,
 .public-quarter-tabs,
 .public-faculty-legend,
 .public-schedule-panel,
@@ -158,12 +160,37 @@ body {
     background: #fff7ed;
 }
 
+.public-year-tabs {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    padding: 10px 10px 0;
+    border-bottom: 0;
+}
+
 .public-quarter-tabs {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
     padding: 10px;
     border-bottom: 0;
+}
+
+.public-year-tab {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 38px;
+    padding: 8px 10px;
+    border: 1px solid transparent;
+    border-radius: 0;
+    background: #ffffff;
+    color: var(--public-muted);
+    cursor: pointer;
+    font: inherit;
+    text-align: center;
 }
 
 .public-quarter-tab {
@@ -183,16 +210,23 @@ body {
     text-align: left;
 }
 
+.public-year-tab:hover,
 .public-quarter-tab:hover {
     background: #ffffff;
     color: var(--public-black);
 }
 
+.public-year-tab[aria-selected="true"],
 .public-quarter-tab[aria-selected="true"] {
     background: #ffffff;
     color: var(--public-black);
 }
 
+.public-year-tab[aria-selected="true"] {
+    border-color: rgba(183, 20, 46, 0.38);
+}
+
+.public-year-tab[aria-selected="true"]::after,
 .public-quarter-tab[aria-selected="true"]::after {
     position: absolute;
     right: 10px;
@@ -203,8 +237,25 @@ body {
     content: "";
 }
 
+.public-year-label,
+.public-year-value,
 .public-quarter-name {
     font-family: var(--public-mono);
+}
+
+.public-year-label,
+.public-year-value {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+}
+
+.public-year-label {
+    color: var(--public-accent);
+}
+
+.public-quarter-name {
     font-size: 13px;
     font-weight: 800;
     letter-spacing: 0.5px;
@@ -539,6 +590,10 @@ body {
 
     .public-main {
         padding: 16px 0 28px;
+    }
+
+    .public-year-tabs {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .public-quarter-tabs {

@@ -68,6 +68,7 @@ npm run serve
 Read-only production schedule view for signed-out visitors.
 
 - Defaults to AY `2026-27`, Fall
+- Lets visitors switch among AY `2026-27`, `2025-26`, `2024-25`, and `2023-24`
 - Reads through the `public.get_public_schedule` Supabase RPC
 - Does not load editor, save, import, dirty-state, presence, or auth-guard scripts
 - Requires the `scripts/supabase-public-schedule-read.sql` migration to be applied before sharing the URL

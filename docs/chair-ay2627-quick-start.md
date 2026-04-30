@@ -81,6 +81,7 @@ Then open:
 - Open `public-schedule.html` in a signed-out/private browser window.
 - Confirm the first view is `AY 2026-27` and `Fall 2026`.
 - Confirm the public grid matches the authenticated scheduler for AY 2026-27 Fall.
+- Confirm the public year selector can switch back to AY `2025-26`, `2024-25`, and `2023-24`.
 - Confirm no Save, Add Course, import, dashboard, workload, or admin controls are visible.
 - Confirm the authenticated scheduler (`index.html`) still requires login in production/staging.
 

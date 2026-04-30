@@ -7,14 +7,15 @@ function loadMigrationSql() {
 }
 
 describe('public schedule read migration contract', () => {
-    test('defines a security definer RPC allowlisted to AY 2026-27 Design', () => {
+    test('defines a security definer RPC allowlisted to published Design years', () => {
         const sql = loadMigrationSql();
 
         expect(sql).toMatch(/CREATE OR REPLACE FUNCTION public\.get_public_schedule/i);
         expect(sql).toMatch(/p_academic_year TEXT DEFAULT '2026-27'/i);
         expect(sql).toMatch(/p_program_code TEXT DEFAULT 'ewu-design'/i);
         expect(sql).toMatch(/SECURITY DEFINER/i);
-        expect(sql).toMatch(/v_academic_year <> '2026-27'/i);
+        expect(sql).toMatch(/v_allowed_years CONSTANT TEXT\[\] := ARRAY\['2026-27', '2025-26', '2024-25', '2023-24'\]/i);
+        expect(sql).toMatch(/NOT \(v_academic_year = ANY \(v_allowed_years\)\)/i);
         expect(sql).toMatch(/v_program_code <> 'ewu-design'/i);
     });
 

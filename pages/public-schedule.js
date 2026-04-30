@@ -20,6 +20,7 @@
         programCode: 'ewu-design'
     });
 
+    const PUBLIC_YEARS = Object.freeze(['2026-27', '2025-26', '2024-25', '2023-24']);
     const QUARTERS = Object.freeze(['fall', 'winter', 'spring']);
     const QUARTER_LABELS = Object.freeze({
         fall: 'Fall',
@@ -168,6 +169,16 @@
     function formatQuarterTitle(year, quarter) {
         const quarterKey = String(quarter || DEFAULTS.quarter).toLowerCase();
         return `${QUARTER_LABELS[quarterKey] || quarterKey} ${getDisplayYear(year, quarterKey)}`;
+    }
+
+    function normalizePublicYear(value) {
+        const year = String(value || '').trim();
+        return PUBLIC_YEARS.includes(year) ? year : DEFAULTS.year;
+    }
+
+    function normalizePublicQuarter(value) {
+        const quarter = String(value || '').trim().toLowerCase();
+        return QUARTERS.includes(quarter) ? quarter : DEFAULTS.quarter;
     }
 
     function normalizePublicScheduleRows(rows) {
@@ -322,6 +333,30 @@
 
     function getKnownRooms(scheduleData, quarter) {
         return ROOM_ORDER;
+    }
+
+    function renderYearTabs(state) {
+        const { documentRef, year } = state;
+        const tabs = documentRef.getElementById('publicYearTabs');
+        clearElement(tabs);
+        if (!tabs) return;
+
+        PUBLIC_YEARS.forEach((publicYear) => {
+            const button = createElement(documentRef, 'button', 'public-year-tab');
+            button.type = 'button';
+            button.setAttribute('role', 'tab');
+            button.setAttribute('aria-selected', publicYear === year ? 'true' : 'false');
+            button.dataset.year = publicYear;
+            button.appendChild(createElement(documentRef, 'span', 'public-year-label', 'AY'));
+            button.appendChild(createElement(documentRef, 'span', 'public-year-value', publicYear));
+            button.title = `Academic year ${publicYear}`;
+            button.addEventListener('click', () => {
+                if (typeof state.onYearChange === 'function') {
+                    state.onYearChange(publicYear);
+                }
+            });
+            tabs.appendChild(button);
+        });
     }
 
     function renderQuarterTabs(state) {
@@ -491,6 +526,7 @@
         setText(state.documentRef, 'publicScheduleSubtitle', `AY ${state.year}`);
         setText(state.documentRef, 'publicPanelCount', countLabel);
 
+        renderYearTabs(state);
         renderQuarterTabs(state);
         renderFacultyLegend(state);
         if (count === 0) {
@@ -511,7 +547,6 @@
     function createPublicScheduleApp(options = {}) {
         const documentRef = resolveDocument(options);
         const utils = resolveScheduleDataUtils(options);
-        const year = options.year || DEFAULTS.year;
         const programCode = options.programCode || DEFAULTS.programCode;
         const getClient = options.getClient || (() => {
             if (typeof root.getSupabaseClient === 'function') {
@@ -519,24 +554,26 @@
             }
             return null;
         });
+        let loadRequestId = 0;
 
         const state = {
             documentRef,
             utils,
-            year,
+            year: normalizePublicYear(options.year || DEFAULTS.year),
             programCode,
-            activeQuarter: options.quarter || DEFAULTS.quarter,
-            scheduleData: createEmptySchedule(utils)
+            activeQuarter: normalizePublicQuarter(options.quarter || DEFAULTS.quarter),
+            scheduleData: createEmptySchedule(utils),
+            onYearChange: null
         };
 
-        async function load() {
+        async function load(yearToLoad) {
             const client = getClient();
             if (!client || typeof client.rpc !== 'function') {
                 throw new Error('Public schedule data service is not available.');
             }
 
             const { data, error } = await client.rpc('get_public_schedule', {
-                p_academic_year: year,
+                p_academic_year: yearToLoad,
                 p_program_code: programCode,
                 p_quarter: null
             });
@@ -545,27 +582,50 @@
             return buildScheduleFromPublicRows(data || [], { scheduleDataUtils: utils });
         }
 
+        async function loadSelectedYear() {
+            const requestId = loadRequestId + 1;
+            const yearToLoad = state.year;
+            loadRequestId = requestId;
+            state.scheduleData = createEmptySchedule(utils);
+            setStatus(documentRef, 'Loading', 'loading');
+            render(state);
+
+            try {
+                const scheduleData = await load(yearToLoad);
+                if (requestId !== loadRequestId) return;
+                state.scheduleData = scheduleData;
+                setStatus(documentRef, 'Live schedule', 'ready');
+                render(state);
+            } catch (error) {
+                if (requestId !== loadRequestId) return;
+                setStatus(documentRef, 'Unavailable', 'error');
+                renderErrorState(state, error.message || 'The public schedule could not be loaded.');
+            }
+        }
+
+        async function setYear(nextYear) {
+            const publicYear = normalizePublicYear(nextYear);
+            if (publicYear === state.year) return;
+            state.year = publicYear;
+            state.activeQuarter = DEFAULTS.quarter;
+            await loadSelectedYear();
+        }
+
+        state.onYearChange = setYear;
+
         return {
             state,
+            setYear,
             async init() {
                 if (!documentRef) return;
-                setStatus(documentRef, 'Loading', 'loading');
-                render(state);
-
-                try {
-                    state.scheduleData = await load();
-                    setStatus(documentRef, 'Live schedule', 'ready');
-                    render(state);
-                } catch (error) {
-                    setStatus(documentRef, 'Unavailable', 'error');
-                    renderErrorState(state, error.message || 'The public schedule could not be loaded.');
-                }
+                await loadSelectedYear();
             }
         };
     }
 
     return {
         DEFAULTS,
+        PUBLIC_YEARS,
         QUARTERS,
         DAY_PATTERNS,
         TIME_SLOTS,
@@ -579,6 +639,7 @@
         getFallbackFacultyColor,
         getFacultyInfo,
         formatTimeSlot,
+        normalizePublicYear,
         normalizePublicScheduleRows
     };
 });

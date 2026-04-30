@@ -31,11 +31,12 @@ DECLARE
     v_program_code TEXT := lower(btrim(coalesce(p_program_code, '')));
     v_quarter TEXT := nullif(lower(btrim(coalesce(p_quarter, ''))), '');
     v_department_code TEXT;
+    v_allowed_years CONSTANT TEXT[] := ARRAY['2026-27', '2025-26', '2024-25', '2023-24'];
     v_has_program_scope BOOLEAN := false;
 BEGIN
-    -- First public release is intentionally allowlisted. Future public years should
-    -- be added through an explicit publishing model, not broad anonymous table reads.
-    IF v_academic_year <> '2026-27' OR v_program_code <> 'ewu-design' THEN
+    -- Public releases are intentionally allowlisted. Future public years should be
+    -- added through an explicit publishing model, not broad anonymous table reads.
+    IF NOT (v_academic_year = ANY (v_allowed_years)) OR v_program_code <> 'ewu-design' THEN
         RETURN;
     END IF;
 
@@ -82,7 +83,7 @@ BEGIN
 
     IF NOT v_has_program_scope THEN
         -- Current production still uses the legacy department_id schema. Keep this
-        -- fallback narrow to EWU Design and AY 2026-27, matching the public allowlist.
+        -- fallback narrow to EWU Design and the explicit public year allowlist.
         RETURN QUERY
         SELECT
             ay.year::TEXT AS academic_year,

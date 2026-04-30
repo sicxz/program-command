@@ -8,6 +8,7 @@ function setupDom() {
         <div id="publicStatus"></div>
         <span id="publicAcademicYearLabel"></span>
         <span id="publicQuarterLabel"></span>
+        <div id="publicYearTabs"></div>
         <div id="publicQuarterTabs"></div>
         <section id="publicFacultyLegend"></section>
         <h2 id="publicScheduleTitle"></h2>
@@ -30,6 +31,7 @@ describe('public schedule page', () => {
     test('uses AY 2026-27 Fall as the default context', () => {
         expect(PublicSchedulePage.DEFAULTS.year).toBe('2026-27');
         expect(PublicSchedulePage.DEFAULTS.quarter).toBe('fall');
+        expect(PublicSchedulePage.PUBLIC_YEARS).toEqual(['2026-27', '2025-26', '2024-25', '2023-24']);
         expect(PublicSchedulePage.formatQuarterTitle('2026-27', 'fall')).toBe('Fall 2026');
     });
 
@@ -121,6 +123,8 @@ describe('public schedule page', () => {
         expect(document.getElementById('publicScheduleTitle').textContent).toBe('Fall 2026');
         expect(document.getElementById('publicPanelCount').textContent).toBe('2 sections');
         expect(document.getElementById('publicStatus').textContent).toBe('Live schedule');
+        expect(document.querySelector('[data-year="2026-27"]').getAttribute('aria-selected')).toBe('true');
+        expect(document.getElementById('publicYearTabs').textContent).toContain('2023-24');
         expect(document.getElementById('publicScheduleGrid').textContent).toContain('DESN 368');
         expect(document.getElementById('publicScheduleGrid').textContent).not.toContain('DESN 999');
         expect(document.getElementById('publicSpecialSections').textContent).toContain('DESN 216');
@@ -146,6 +150,69 @@ describe('public schedule page', () => {
         expect(document.querySelector('.public-course-block').className).toContain('faculty-manikoth');
         expect(document.getElementById('publicFacultyLegend').textContent).toContain('C.Manikoth');
         expect(document.getElementById('publicFacultyLegend').textContent).not.toMatch(/\bcr\b/i);
+    });
+
+    test('reloads public schedule rows when an allowed academic year is selected', async () => {
+        const rpc = jest.fn()
+            .mockResolvedValueOnce({
+                data: [
+                    {
+                        academic_year: '2026-27',
+                        quarter: 'fall',
+                        day_pattern: 'MW',
+                        time_slot: '10:00-12:20',
+                        section: '001',
+                        course_code: 'DESN 368',
+                        course_title: 'Code + Design 1',
+                        credits: 5,
+                        instructor_name: 'T. Masingale',
+                        room_code: '206',
+                        projected_enrollment: 24
+                    }
+                ],
+                error: null
+            })
+            .mockResolvedValueOnce({
+                data: [
+                    {
+                        academic_year: '2025-26',
+                        quarter: 'fall',
+                        day_pattern: 'TR',
+                        time_slot: '13:00-15:20',
+                        section: '001',
+                        course_code: 'DESN 263',
+                        course_title: 'Typography',
+                        credits: 5,
+                        instructor_name: 'S.Durr',
+                        room_code: '209',
+                        projected_enrollment: 22
+                    }
+                ],
+                error: null
+            });
+
+        const app = PublicSchedulePage.createPublicScheduleApp({
+            document,
+            scheduleDataUtils: ScheduleDataUtils,
+            getClient: () => ({ rpc })
+        });
+
+        await app.init();
+
+        document.querySelector('[data-year="2025-26"]').click();
+        await flushPromises();
+        await flushPromises();
+
+        expect(rpc).toHaveBeenLastCalledWith('get_public_schedule', {
+            p_academic_year: '2025-26',
+            p_program_code: 'ewu-design',
+            p_quarter: null
+        });
+        expect(document.getElementById('publicAcademicYearLabel').textContent).toBe('AY 2025-26');
+        expect(document.getElementById('publicScheduleTitle').textContent).toBe('Fall 2025');
+        expect(document.querySelector('[data-year="2025-26"]').getAttribute('aria-selected')).toBe('true');
+        expect(document.getElementById('publicScheduleGrid').textContent).toContain('DESN 263');
+        expect(document.getElementById('publicScheduleGrid').textContent).not.toContain('DESN 368');
     });
 
     test('shows an unavailable state when the public RPC fails', async () => {
