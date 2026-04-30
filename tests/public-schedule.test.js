@@ -113,6 +113,7 @@ describe('public schedule page', () => {
         expect(document.getElementById('publicSpecialSections').textContent).toContain('DESN 216');
         expect(document.querySelector('.public-course-block').className).toContain('faculty-masingale');
         expect(document.getElementById('publicFacultyLegend').textContent).toContain('T.Masingale');
+        expect(document.getElementById('publicFacultyLegend').textContent).not.toMatch(/\bcr\b/i);
 
         document.querySelector('[data-quarter="winter"]').click();
 
@@ -120,6 +121,7 @@ describe('public schedule page', () => {
         expect(document.getElementById('publicScheduleGrid').textContent).toContain('DESN 379');
         expect(document.querySelector('.public-course-block').className).toContain('faculty-manikoth');
         expect(document.getElementById('publicFacultyLegend').textContent).toContain('C.Manikoth');
+        expect(document.getElementById('publicFacultyLegend').textContent).not.toMatch(/\bcr\b/i);
     });
 
     test('shows an unavailable state when the public RPC fails', async () => {

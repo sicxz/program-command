@@ -398,14 +398,12 @@
                     name: info.name,
                     className: info.className,
                     color: info.color,
-                    sections: 0,
-                    credits: 0
+                    sections: 0
                 });
             }
 
             const summary = summaries.get(info.name);
             summary.sections += 1;
-            summary.credits += Number(course.credits) || 5;
         });
 
         return Array.from(summaries.values()).sort((a, b) => {
@@ -436,7 +434,7 @@
             item.style.setProperty('--faculty-accent', entry.color);
             item.appendChild(createElement(state.documentRef, 'span', 'public-faculty-swatch'));
             item.appendChild(createElement(state.documentRef, 'span', 'public-faculty-name', entry.name));
-            item.appendChild(createElement(state.documentRef, 'span', 'public-faculty-meta', `${entry.sections} sec | ${entry.credits} cr`));
+            item.appendChild(createElement(state.documentRef, 'span', 'public-faculty-meta', `${entry.sections} ${entry.sections === 1 ? 'section' : 'sections'}`));
             list.appendChild(item);
         });
         legend.appendChild(list);
