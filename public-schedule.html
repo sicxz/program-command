@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Program Command Public Schedule</title>
+    <link rel="stylesheet" href="css/design-system.css">
+    <link rel="stylesheet" href="css/public-schedule.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/schedule-data-utils.js"></script>
+    <script src="pages/public-schedule.js"></script>
+</head>
+
+<body class="foundry">
+    <div class="public-shell">
+        <header class="public-header">
+            <div class="public-header-copy">
+                <span class="public-header-mark" aria-hidden="true">PC</span>
+                <div>
+                    <p class="public-header-label">EWU Design</p>
+                    <h1>Program Command</h1>
+                </div>
+            </div>
+            <a class="public-login-link" href="login.html">Login</a>
+        </header>
+
+        <main class="public-main">
+            <section class="public-context" aria-label="Schedule context">
+                <div>
+                    <p class="public-eyebrow">Public schedule</p>
+                    <h2 id="publicScheduleTitle">Fall 2026</h2>
+                </div>
+                <div class="public-meta">
+                    <span id="publicAcademicYearLabel">AY 2026-27</span>
+                    <span id="publicQuarterLabel">Fall 2026</span>
+                    <span class="public-status" id="publicStatus" role="status" aria-live="polite">Loading</span>
+                </div>
+            </section>
+
+            <section class="public-year-tabs" id="publicYearTabs" role="tablist" aria-label="Academic year"></section>
+
+            <section class="public-quarter-tabs" id="publicQuarterTabs" role="tablist" aria-label="Quarter"></section>
+
+            <section class="public-schedule-panel" aria-labelledby="publicScheduleTitle">
+                <div class="public-panel-heading">
+                    <div>
+                        <p id="publicScheduleSubtitle">AY 2026-27</p>
+                    </div>
+                    <div class="public-panel-count" id="publicPanelCount">0 sections</div>
+                </div>
+                <div class="public-grid-scroll">
+                    <div class="public-schedule-grid" id="publicScheduleGrid"></div>
+                </div>
+            </section>
+
+            <section class="public-special-sections" id="publicSpecialSections" aria-label="Additional sections"></section>
+
+            <section class="public-faculty-legend" id="publicFacultyLegend" aria-label="Faculty color key"></section>
+        </main>
+    </div>
+</body>
+
+</html>

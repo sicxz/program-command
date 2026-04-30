@@ -281,6 +281,26 @@ describe('Auth + Edit State Integration', () => {
         harness.cleanup();
     });
 
+    test('redirects signed-out users away from protected production routes', async () => {
+        const harness = loadAuthGuardHarness({
+            url: 'https://program-command.local/index.html',
+            session: null,
+            user: null,
+            canResult: false,
+            presenceService: null
+        });
+
+        await harness.triggerDomReady();
+
+        expect(harness.authService.getSession).toHaveBeenCalledTimes(1);
+        expect(harness.authService.getUser).not.toHaveBeenCalled();
+        expect(harness.location.replace).toHaveBeenCalledWith(
+            'login.html?next=%2Findex.html'
+        );
+
+        harness.cleanup();
+    });
+
     test('login timeout flow restores recovery draft after successful sign-in', async () => {
         localStorage.setItem(SESSION_RECOVERY_DRAFT_KEY, JSON.stringify({
             academicYear: '2026-27',

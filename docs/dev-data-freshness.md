@@ -18,6 +18,7 @@ For each table it reports:
 
 - row count
 - latest change timestamp (`updated_at` or `created_at`)
+- content fingerprint for course metadata and scheduled-course rows
 - freshness status (`in-sync`, `prod-newer`, `dev-newer`, `prod-has-more`, `dev-has-more`, etc.)
 
 ## Run (live compare)
@@ -49,5 +50,6 @@ npm run check:data-freshness -- \
 - `in-sync`: no action needed for that table.
 - `prod-newer` or `prod-has-more`: production changed after dev snapshot; carry-over likely needed.
 - `dev-newer` or `dev-has-more`: dev contains changes not yet in production.
+- `content-diff`: row counts match, but tracked content differs. For `courses`, this catches title/credit/cap drift; for `scheduled_courses`, this catches schedule row and joined course-title drift.
 
 If drift is reported, review the affected tables and plan a carry-over before merge/deploy.

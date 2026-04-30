@@ -25,6 +25,7 @@ npm run check:data-freshness -- --department DESN --year 2026-27 --output output
 ```
 
 If drift is detected, the command exits with code `2` and lists tables that need carry-over review.
+The check fingerprints course metadata and scheduled-course rows, so course-title drift is caught even when row counts match.
 See `/docs/dev-data-freshness.md` for full usage.
 
 ## ✅ Onboarding QA Gate
@@ -61,6 +62,19 @@ npm run serve
 ```
 
 ## 📊 Dashboards
+
+### Public Schedule
+**`public-schedule.html`**
+
+Read-only production schedule view for signed-out visitors.
+
+- Defaults to AY `2026-27`, Fall
+- Lets visitors switch among AY `2026-27`, `2025-26`, `2024-25`, and `2023-24`
+- Reads through the `public.get_public_schedule` Supabase RPC
+- Displays course titles from the same canonical catalog/title overrides used by the authenticated scheduler
+- Does not load editor, save, import, dirty-state, presence, or auth-guard scripts
+- Requires the `scripts/supabase-public-schedule-read.sql` migration to be applied before sharing the URL
+- If course titles drift, apply `scripts/supabase-sync-course-catalog.sql` to sync existing Supabase course rows to `data/course-catalog.json`
 
 ### Schedule Analyzer (Main)
 **`index.html`**
