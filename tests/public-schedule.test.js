@@ -176,8 +176,10 @@ describe('public schedule page', () => {
 
         const timeSlot = document.querySelector('.public-time-slot');
         expect(timeSlot.getAttribute('aria-label')).toBe('10:00 AM to 12:20 PM');
-        expect(timeSlot.querySelector('.public-time-start').textContent).toBe('10:00 AM');
-        expect(timeSlot.querySelector('.public-time-end').textContent).toBe('12:20 PM');
+        expect(timeSlot.querySelector('.public-time-start .public-time-clock').textContent).toBe('10:00');
+        expect(timeSlot.querySelector('.public-time-start .public-time-period').textContent).toBe('AM');
+        expect(timeSlot.querySelector('.public-time-end .public-time-clock').textContent).toBe('12:20');
+        expect(timeSlot.querySelector('.public-time-end .public-time-period').textContent).toBe('PM');
 
         document.querySelector('[data-quarter="winter"]').click();
 

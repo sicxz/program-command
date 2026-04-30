@@ -273,6 +273,20 @@
         return { start: formatClock(start), end: formatClock(end) };
     }
 
+    function createTimeLabelElement(documentRef, className, value) {
+        const match = String(value || '').trim().match(/^(.+?)\s+(AM|PM)$/i);
+        const label = createElement(documentRef, 'span', className);
+
+        if (!match) {
+            label.appendChild(documentRef.createTextNode(String(value || '').trim()));
+            return label;
+        }
+
+        label.appendChild(createElement(documentRef, 'span', 'public-time-clock', match[1]));
+        label.appendChild(createElement(documentRef, 'span', 'public-time-period', match[2].toUpperCase()));
+        return label;
+    }
+
     function getDisplayYear(year, quarter) {
         const [startYearText] = String(year || DEFAULTS.year).split('-');
         const startYear = Number(startYearText);
@@ -435,9 +449,9 @@
         const parts = getTimeSlotParts(time);
         const slot = createElement(documentRef, 'div', 'public-time-slot');
         slot.setAttribute('aria-label', parts.end ? `${parts.start} to ${parts.end}` : parts.start);
-        slot.appendChild(createElement(documentRef, 'span', 'public-time-start', parts.start));
+        slot.appendChild(createTimeLabelElement(documentRef, 'public-time-start', parts.start));
         if (parts.end) {
-            slot.appendChild(createElement(documentRef, 'span', 'public-time-end', parts.end));
+            slot.appendChild(createTimeLabelElement(documentRef, 'public-time-end', parts.end));
         }
         return slot;
     }
