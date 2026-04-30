@@ -4352,6 +4352,446 @@
             font-weight: 700;
         }
 
+        /* Foundry production shell */
+        body.foundry-production {
+            --f-bg: #f7f7f8;
+            --f-surface: #ffffff;
+            --f-surface-raised: #ffffff;
+            --f-surface-subtle: #f1f2f4;
+            --f-surface-inset: #e7e9ed;
+            --f-ink: #0d1117;
+            --f-ink-inverse: #ffffff;
+            --f-muted: #3f4652;
+            --f-soft: #6a737d;
+            --f-hairline: #c9d1d9;
+            --f-rule: #111827;
+            --f-blue: #0969da;
+            --f-blue-text: #0550ae;
+            --f-blue-wash: #ddf4ff;
+            --f-green: #1a7f37;
+            --f-green-wash: #dafbe1;
+            --f-amber: #9a6700;
+            --f-amber-wash: #fff8c5;
+            --f-red: #cf222e;
+            --f-red-wash: #ffebe9;
+            --f-focus: 0 0 0 3px rgba(9, 105, 218, .22);
+            --f-shadow: 0 1px 2px rgba(15, 23, 42, .05), 0 18px 45px rgba(15, 23, 42, .08);
+            --f-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            --f-mono: "SFMono-Regular", "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+            --ewu-red: var(--f-red);
+            --ewu-red-dark: #a40e1a;
+            --ewu-black: var(--f-ink);
+            --ewu-paper: var(--f-bg);
+            --ewu-stone: var(--f-surface-subtle);
+            --ewu-muted: var(--f-soft);
+            --ewu-line: var(--f-hairline);
+            --ewu-accent: var(--f-blue-text);
+            --ewu-success: var(--f-green);
+            --ewu-warning: var(--f-amber);
+            --ewu-mono: var(--f-mono);
+            --primer-fg-default: var(--f-ink);
+            --primer-fg-muted: var(--f-muted);
+            --primer-border-default: var(--f-hairline);
+            --primer-bg-default: var(--f-surface);
+            --primer-bg-subtle: var(--f-surface-subtle);
+            --primer-canvas: var(--f-bg);
+            --primer-shadow: none;
+            background: var(--f-bg);
+            color: var(--f-ink);
+            font-family: var(--f-sans);
+            letter-spacing: 0;
+            padding: 16px;
+        }
+
+        body.foundry-production * {
+            letter-spacing: 0;
+        }
+
+        body.foundry-production .container {
+            max-width: 1440px;
+            margin: 0 auto 40px;
+            background: transparent;
+            border: 0;
+            border-radius: 0;
+            box-shadow: none;
+            overflow: visible;
+        }
+
+        body.foundry-production button,
+        body.foundry-production select,
+        body.foundry-production input,
+        body.foundry-production textarea,
+        body.foundry-production .btn,
+        body.foundry-production .btn-primary,
+        body.foundry-production .btn-secondary,
+        body.foundry-production .btn-ewu-accent {
+            border-radius: 0 !important;
+            font-family: var(--f-sans);
+            box-shadow: none !important;
+        }
+
+        body.foundry-production button:focus-visible,
+        body.foundry-production select:focus-visible,
+        body.foundry-production input:focus-visible,
+        body.foundry-production textarea:focus-visible,
+        body.foundry-production a:focus-visible {
+            outline: none;
+            box-shadow: var(--f-focus) !important;
+        }
+
+        body.foundry-production .dashboard-nav {
+            background: var(--f-surface);
+            border: 1px solid var(--f-hairline);
+            border-left: 4px solid var(--f-rule);
+            margin-bottom: 16px;
+        }
+
+        body.foundry-production .nav-accordion-toggle {
+            background: var(--f-surface-subtle);
+            color: var(--f-ink);
+            border: 0;
+            border-bottom: 1px solid var(--f-hairline);
+            border-radius: 0;
+            font-family: var(--f-mono);
+            font-size: 11px;
+            font-weight: 850;
+            text-transform: uppercase;
+        }
+
+        body.foundry-production .nav-accordion-toggle:hover {
+            background: var(--f-surface-inset);
+        }
+
+        body.foundry-production .nav-accordion-content {
+            background: var(--f-surface);
+            padding: 12px 14px;
+        }
+
+        body.foundry-production .nav-row {
+            border-bottom: 1px solid var(--f-hairline);
+            gap: 14px;
+            padding: 10px 0;
+        }
+
+        body.foundry-production .nav-row-header {
+            min-width: 96px;
+            color: var(--f-soft);
+            font-family: var(--f-mono);
+            font-size: 11px;
+            font-weight: 850;
+            text-transform: uppercase;
+        }
+
+        body.foundry-production .nav-link {
+            background: var(--f-surface);
+            border: 1px solid var(--f-hairline);
+            border-radius: 0;
+            color: var(--f-ink);
+            min-height: 32px;
+            box-shadow: none;
+            transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        body.foundry-production .nav-link:hover {
+            background: var(--f-surface-subtle);
+            border-color: var(--f-rule);
+            box-shadow: inset 4px 0 0 var(--f-blue);
+            color: var(--f-ink);
+        }
+
+        body.foundry-production .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(120px, 1fr));
+            gap: 10px;
+            margin: 0 0 16px;
+            padding: 0;
+            background: transparent;
+            border: 0;
+        }
+
+        body.foundry-production .stat-item {
+            --stat-signal: var(--f-rule);
+            display: grid;
+            grid-template-columns: auto 1fr;
+            column-gap: 10px;
+            align-items: start;
+            background: var(--f-surface);
+            border: 1px solid var(--f-hairline);
+            border-left: 4px solid var(--stat-signal);
+            border-radius: 0;
+            padding: 12px;
+            box-shadow: none;
+        }
+
+        body.foundry-production .stat-item::before {
+            content: "";
+            width: 9px;
+            height: 9px;
+            margin-top: 5px;
+            border-radius: 999px;
+            background: var(--stat-signal);
+            grid-row: 1 / span 2;
+        }
+
+        body.foundry-production .stat-item .stat-number,
+        body.foundry-production .stat-item .stat-label {
+            grid-column: 2;
+        }
+
+        body.foundry-production .stat-item .stat-number {
+            color: var(--f-ink);
+            font-size: 1.22rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        body.foundry-production .stat-item .stat-label {
+            color: var(--f-soft);
+            font-family: var(--f-mono);
+            font-size: 11px;
+            font-weight: 850;
+            margin-top: 5px;
+            text-transform: uppercase;
+        }
+
+        body.foundry-production .stat-item.critical {
+            --stat-signal: var(--f-red);
+        }
+
+        body.foundry-production .stat-item.warning {
+            --stat-signal: var(--f-amber);
+        }
+
+        body.foundry-production .stat-item.success {
+            --stat-signal: var(--f-green);
+        }
+
+        body.foundry-production .stat-item.info {
+            --stat-signal: var(--f-blue);
+        }
+
+        body.foundry-production .content,
+        body.foundry-production .legend,
+        body.foundry-production .faculty-legend,
+        body.foundry-production .online-section,
+        body.foundry-production .conflicts-panel,
+        body.foundry-production .conflict-solver-panel,
+        body.foundry-production .recommendations,
+        body.foundry-production .minor-info-panel,
+        body.foundry-production .arranged-section,
+        body.foundry-production .modal,
+        body.foundry-production .faculty-modal,
+        body.foundry-production .confirm-dialog,
+        body.foundry-production .unsaved-modal {
+            background: var(--f-surface);
+            border: 1px solid var(--f-hairline);
+            border-radius: 0;
+            box-shadow: none;
+        }
+
+        body.foundry-production .content {
+            padding: 20px;
+        }
+
+        body.foundry-production .schedule-grid-header {
+            border-bottom: 1px solid var(--f-hairline);
+            padding-bottom: 12px;
+            margin-bottom: 14px;
+        }
+
+        body.foundry-production .schedule-grid-title {
+            color: var(--f-ink);
+            font-size: 1.25rem;
+            font-weight: 800;
+            letter-spacing: 0;
+        }
+
+        body.foundry-production .schedule-grid {
+            background: var(--f-hairline);
+            border: 1px solid var(--f-hairline);
+            border-radius: 0;
+            overflow: hidden;
+        }
+
+        body.foundry-production .grid-header,
+        body.foundry-production .time-slot {
+            background: var(--f-rule);
+            color: var(--f-ink-inverse);
+            font-family: var(--f-mono);
+            font-size: 11px;
+            font-weight: 850;
+            text-transform: uppercase;
+        }
+
+        body.foundry-production .schedule-cell {
+            background: var(--f-surface);
+        }
+
+        body.foundry-production .schedule-cell:hover {
+            background: var(--f-surface-subtle);
+        }
+
+        body.foundry-production .course-block,
+        body.foundry-production .arranged-course-block,
+        body.foundry-production .conflict-item,
+        body.foundry-production .annual-pattern-item,
+        body.foundry-production .recommendation-item,
+        body.foundry-production .faculty-schedule-item,
+        body.foundry-production .faculty-course-item,
+        body.foundry-production .displaced-course-card {
+            background: var(--f-surface);
+            border: 1px solid var(--f-hairline);
+            border-left: 4px solid var(--faculty-accent, var(--f-rule));
+            border-radius: 0;
+            box-shadow: none;
+        }
+
+        body.foundry-production .course-block:hover,
+        body.foundry-production .conflict-item:hover {
+            background: var(--f-surface-subtle);
+            box-shadow: none;
+            transform: none;
+        }
+
+        body.foundry-production .course-block.conflict-0,
+        body.foundry-production .conflict-item.critical,
+        body.foundry-production .annual-pattern-item.critical {
+            background: var(--f-red-wash);
+            border-left-color: var(--f-red);
+        }
+
+        body.foundry-production .course-block.conflict-1,
+        body.foundry-production .conflict-item.high,
+        body.foundry-production .annual-pattern-item.high {
+            background: var(--f-amber-wash);
+            border-left-color: var(--f-amber);
+        }
+
+        body.foundry-production .course-block.conflict-2,
+        body.foundry-production .conflict-item.medium,
+        body.foundry-production .annual-pattern-item.medium {
+            background: var(--f-blue-wash);
+            border-left-color: var(--f-blue);
+        }
+
+        body.foundry-production .course-name,
+        body.foundry-production .conflict-time,
+        body.foundry-production .faculty-legend-name {
+            color: var(--f-ink);
+            font-weight: 760;
+        }
+
+        body.foundry-production .course-details,
+        body.foundry-production .faculty-legend-meta,
+        body.foundry-production .annual-pattern-meta {
+            color: var(--f-muted);
+        }
+
+        body.foundry-production .faculty-legend,
+        body.foundry-production .legend {
+            border-left: 4px solid var(--f-rule);
+        }
+
+        body.foundry-production .faculty-legend-header,
+        body.foundry-production .legend-item {
+            color: var(--f-muted);
+        }
+
+        body.foundry-production .faculty-legend-item,
+        body.foundry-production .annual-conflict-stat,
+        body.foundry-production .severity-badge,
+        body.foundry-production .current-quarter-tag,
+        body.foundry-production .pref-tag,
+        body.foundry-production .faculty-pref-tag,
+        body.foundry-production .markdown-output code,
+        body.foundry-production .scheduler-assistant-eyebrow {
+            border-radius: 0;
+        }
+
+        body.foundry-production .scheduler-assistant-panel {
+            background: var(--f-surface);
+            border: 1px solid var(--f-hairline);
+            border-left: 4px solid var(--f-blue);
+            border-radius: 0;
+            box-shadow: none;
+        }
+
+        body.foundry-production .scheduler-assistant-eyebrow {
+            background: var(--f-blue-wash);
+            border: 1px solid var(--f-hairline);
+            color: var(--f-blue-text);
+            font-family: var(--f-mono);
+            font-weight: 850;
+            letter-spacing: 0;
+        }
+
+        body.foundry-production .scheduler-question-input,
+        body.foundry-production .scheduler-assistant-response,
+        body.foundry-production .markdown-output pre {
+            border-radius: 0;
+        }
+
+        body.foundry-production .day-divider {
+            background: var(--f-rule);
+            height: 1px;
+        }
+
+        body.foundry-production .day-divider::after {
+            border-radius: 0;
+            color: var(--f-ink);
+            font-family: var(--f-mono);
+            letter-spacing: 0;
+        }
+
+        body.foundry-production .displaced-tray {
+            background: rgba(255, 255, 255, 0.92);
+            border: 1px solid var(--f-hairline);
+            border-left: 4px solid var(--f-rule);
+            border-radius: 0;
+            box-shadow: var(--f-shadow);
+        }
+
+        body.foundry-production .displaced-tray-header {
+            background: var(--f-rule);
+            color: var(--f-ink-inverse);
+        }
+
+        body.foundry-production .displaced-tray-toggle {
+            background: var(--f-rule);
+            border: 1px solid var(--f-rule);
+            border-radius: 0;
+            box-shadow: none;
+        }
+
+        body.foundry-production .displaced-tray-toggle .toggle-affordance {
+            border-radius: 0;
+        }
+
+        body.foundry-production :focus-visible {
+            outline: none;
+            box-shadow: var(--f-focus);
+        }
+
+        @media (max-width: 900px) {
+            body.foundry-production .stats-bar {
+                grid-template-columns: repeat(2, minmax(130px, 1fr));
+            }
+        }
+
+        @media (max-width: 640px) {
+            body.foundry-production {
+                padding: 8px;
+            }
+
+            body.foundry-production .content {
+                padding: 14px;
+            }
+
+            body.foundry-production .stats-bar {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
         @media (max-width: 1220px) {
             body.tray-open .container {
                 margin-left: 20px;
@@ -4486,7 +4926,7 @@
 
 </head>
 
-<body>
+<body class="foundry-production">
     <!-- Displaced Course Tray Sidebar -->
     <div class="displaced-tray" id="displacedTray">
         <div class="displaced-tray-header">

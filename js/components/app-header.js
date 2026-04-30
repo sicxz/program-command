@@ -167,48 +167,65 @@ class AppHeader extends HTMLElement {
                 :host {
                     display: block;
                     width: 100%;
+                    font-family: var(--f-sans, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif);
                 }
                 * { box-sizing: border-box; }
 
                 header {
-                    background: linear-gradient(
-                        180deg,
-                        var(--pc-header-top, #3d444d) 0%,
-                        var(--pc-header-bottom, #24292f) 100%
-                    );
-                    color: var(--pc-header-foreground, #ffffff);
-                    padding: 1rem 1.25rem;
+                    background: var(--f-surface, #ffffff);
+                    color: var(--f-ink, #0d1117);
+                    border: 1px solid var(--f-hairline, #c9d1d9);
+                    border-top: 4px solid var(--f-rule, #111827);
+                    padding: 20px 24px;
                 }
 
                 .header-shell {
                     display: flex;
                     justify-content: space-between;
-                    align-items: center;
-                    max-width: 1400px;
+                    align-items: flex-start;
+                    gap: 24px;
+                    max-width: 1440px;
                     margin: 0 auto;
                 }
 
                 .header-eyebrow {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 8px;
+                    width: max-content;
                     font-size: 11px;
-                    letter-spacing: 0.5px;
-                    font-weight: 600;
-                    color: var(--pc-header-muted, #d0d7de);
+                    letter-spacing: 0;
+                    font-family: var(--f-mono, "SFMono-Regular", "SF Mono", Consolas, "Liberation Mono", Menlo, monospace);
+                    font-weight: 850;
+                    color: var(--f-soft, #6a737d);
                     text-transform: uppercase;
-                    margin-bottom: 4px;
+                    margin-bottom: 8px;
+                }
+
+                .header-eyebrow::before {
+                    content: "";
+                    width: 9px;
+                    height: 9px;
+                    border-radius: 999px;
+                    background: var(--f-green, #1a7f37);
+                    flex: 0 0 auto;
                 }
 
                 h1 {
-                    font-size: 1.8rem;
-                    font-weight: 800;
+                    font-size: clamp(1.55rem, 2.6vw, 2.1rem);
+                    font-weight: 760;
+                    line-height: 1.08;
                     margin: 0;
-                    letter-spacing: -0.5px;
+                    letter-spacing: 0;
+                    color: var(--f-ink, #0d1117);
                 }
 
                 .subtitle {
                     font-size: 14px;
-                    color: var(--pc-header-muted, #d0d7de);
+                    color: var(--f-muted, #3f4652);
                     font-weight: 400;
-                    margin: 4px 0 0 0;
+                    margin: 6px 0 0 0;
+                    max-width: 720px;
                 }
 
                 .header-actions {
@@ -216,23 +233,31 @@ class AppHeader extends HTMLElement {
                 }
 
                 .header-settings-button {
-                    background: var(--pc-header-action-bg, #24292f);
-                    color: var(--pc-header-muted, #c9d1d9);
-                    border: 1px solid var(--pc-header-action-border, #57606a);
-                    border-radius: 6px;
-                    padding: 6px 12px;
+                    background: var(--f-rule, #111827);
+                    color: var(--f-ink-inverse, #ffffff);
+                    border: 1px solid var(--f-rule, #111827);
+                    border-radius: 0;
+                    padding: 9px 14px;
                     font-size: 14px;
-                    font-weight: 500;
+                    font-weight: 760;
+                    line-height: 1;
                     cursor: pointer;
                     display: flex;
                     align-items: center;
                     gap: 6px;
-                    transition: 0.2s;
+                    min-height: 38px;
+                    transition: background-color 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
                 }
 
                 .header-settings-button:hover {
-                    background: var(--pc-header-action-hover-bg, #30363d);
-                    border-color: var(--pc-header-action-hover-border, #8b949e);
+                    background: var(--f-ink, #0d1117);
+                    border-color: var(--f-ink, #0d1117);
+                    transform: translateY(-1px);
+                }
+
+                .header-settings-button:focus-visible {
+                    outline: none;
+                    box-shadow: var(--f-focus, 0 0 0 3px rgba(9, 105, 218, .22));
                 }
 
                 .header-settings-menu {
@@ -240,29 +265,31 @@ class AppHeader extends HTMLElement {
                     right: 0;
                     top: calc(100% + 8px);
                     z-index: 1100;
-                    width: 250px;
-                    padding: 8px;
+                    width: 270px;
+                    padding: 6px;
                     display: none;
                     flex-direction: column;
-                    background: #ffffff;
-                    border: 1px solid #d0d7de;
-                    border-radius: 8px;
-                    box-shadow: 0 8px 24px rgba(140, 149, 159, 0.2);
-                    color: #24292f;
+                    background: var(--f-surface, #ffffff);
+                    border: 1px solid var(--f-hairline, #c9d1d9);
+                    border-radius: 0;
+                    box-shadow: var(--f-shadow, 0 1px 2px rgba(15, 23, 42, .05), 0 18px 45px rgba(15, 23, 42, .08));
+                    color: var(--f-ink, #0d1117);
                 }
 
                 .header-settings-section-label {
-                    font-size: 12px;
-                    font-weight: 600;
-                    color: #57606a;
-                    padding: 6px 8px;
+                    font-size: 11px;
+                    font-family: var(--f-mono, "SFMono-Regular", "SF Mono", Consolas, "Liberation Mono", Menlo, monospace);
+                    font-weight: 850;
+                    color: var(--f-soft, #6a737d);
+                    padding: 8px 9px 6px;
                     text-transform: uppercase;
+                    letter-spacing: 0;
                 }
 
                 .header-settings-divider {
                     height: 1px;
-                    background: #d0d7de;
-                    margin: 8px 0;
+                    background: var(--f-hairline, #c9d1d9);
+                    margin: 6px 0;
                 }
 
                 .header-settings-item {
@@ -270,25 +297,34 @@ class AppHeader extends HTMLElement {
                     align-items: center;
                     gap: 8px;
                     width: 100%;
-                    padding: 8px;
+                    padding: 9px 10px;
                     cursor: pointer;
                     background: transparent;
-                    border: none;
+                    border: 1px solid transparent;
+                    border-left: 3px solid transparent;
                     text-align: left;
                     font-size: 14px;
-                    font-weight: 500;
-                    color: #24292f;
-                    border-radius: 6px;
+                    font-weight: 650;
+                    color: var(--f-ink, #0d1117);
+                    border-radius: 0;
+                    transition: background-color 0.14s ease, border-color 0.14s ease;
                 }
 
                 .header-settings-item:hover {
-                    background: #f6f8fa;
+                    background: var(--f-surface-subtle, #f1f2f4);
+                    border-left-color: var(--f-blue, #0969da);
+                }
+
+                .header-settings-item:focus-visible {
+                    outline: none;
+                    box-shadow: var(--f-focus, 0 0 0 3px rgba(9, 105, 218, .22));
                 }
 
                 .header-settings-item-disabled,
                 .header-settings-item-disabled:hover {
                     opacity: 0.55;
-                    background: #f6f8fa;
+                    background: var(--f-surface-subtle, #f1f2f4);
+                    border-left-color: transparent;
                     cursor: not-allowed;
                 }
 

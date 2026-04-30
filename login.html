@@ -6,43 +6,81 @@
     <title>Login - Program Command</title>
     <link rel="stylesheet" href="css/design-system.css">
     <style>
+        :root {
+            --f-bg: #f7f7f8;
+            --f-surface: #ffffff;
+            --f-surface-subtle: #f1f2f4;
+            --f-surface-inset: #e7e9ed;
+            --f-ink: #0d1117;
+            --f-ink-inverse: #ffffff;
+            --f-muted: #3f4652;
+            --f-soft: #6a737d;
+            --f-hairline: #c9d1d9;
+            --f-rule: #111827;
+            --f-blue: #0969da;
+            --f-blue-text: #0550ae;
+            --f-blue-wash: #ddf4ff;
+            --f-red: #cf222e;
+            --f-red-wash: #ffebe9;
+            --f-focus: 0 0 0 3px rgba(9, 105, 218, .22);
+            --f-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            --f-mono: "SFMono-Regular", "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+        }
+
         body {
             margin: 0;
             min-height: 100vh;
             display: grid;
             place-items: center;
-            background: linear-gradient(180deg, #f6f8fa 0%, #ffffff 100%);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-            color: #1f2328;
+            background: var(--f-bg);
+            font-family: var(--f-sans);
+            color: var(--f-ink);
             padding: 24px;
+            letter-spacing: 0;
         }
 
         .login-shell {
             width: min(420px, 100%);
-            background: #ffffff;
-            border: 1px solid #d0d7de;
-            border-radius: 12px;
-            box-shadow: 0 16px 36px rgba(31, 35, 40, 0.12);
+            background: var(--f-surface);
+            border: 1px solid var(--f-hairline);
+            border-left: 4px solid var(--f-rule);
+            border-radius: 0;
+            box-shadow: none;
             padding: 24px;
         }
 
         .login-eyebrow {
-            font-size: 12px;
-            font-weight: 700;
-            letter-spacing: 0.8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            width: max-content;
+            font-family: var(--f-mono);
+            font-size: 11px;
+            font-weight: 850;
+            letter-spacing: 0;
             text-transform: uppercase;
-            color: #a10022;
+            color: var(--f-soft);
             margin-bottom: 8px;
+        }
+
+        .login-eyebrow::before {
+            content: "";
+            width: 9px;
+            height: 9px;
+            border-radius: 999px;
+            background: var(--f-blue);
         }
 
         h1 {
             font-size: 28px;
+            font-weight: 760;
+            letter-spacing: 0;
             margin: 0 0 8px;
         }
 
         .login-subtitle {
             margin: 0 0 20px;
-            color: #57606a;
+            color: var(--f-muted);
             font-size: 14px;
             line-height: 1.4;
         }
@@ -58,36 +96,40 @@
         }
 
         .login-field label {
-            font-size: 13px;
-            font-weight: 600;
+            color: var(--f-soft);
+            font-family: var(--f-mono);
+            font-size: 11px;
+            font-weight: 850;
+            letter-spacing: 0;
+            text-transform: uppercase;
         }
 
         .login-field input {
-            border: 1px solid #d0d7de;
-            border-radius: 8px;
+            border: 1px solid var(--f-hairline);
+            border-radius: 0;
             font-size: 14px;
             padding: 10px 12px;
         }
 
         .login-field input:focus {
             outline: none;
-            border-color: #a10022;
-            box-shadow: 0 0 0 3px rgba(161, 0, 34, 0.15);
+            border-color: var(--f-blue);
+            box-shadow: var(--f-focus);
         }
 
         .login-button {
-            background: #a10022;
-            color: #ffffff;
-            border: none;
-            border-radius: 8px;
+            background: var(--f-rule);
+            color: var(--f-ink-inverse);
+            border: 1px solid var(--f-rule);
+            border-radius: 0;
             font-size: 14px;
-            font-weight: 700;
+            font-weight: 760;
             padding: 10px 14px;
             cursor: pointer;
         }
 
         .login-button:hover {
-            background: #8a001d;
+            background: var(--f-ink);
         }
 
         .oauth-divider {
@@ -95,10 +137,12 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            color: #57606a;
-            font-size: 12px;
+            color: var(--f-soft);
+            font-family: var(--f-mono);
+            font-size: 11px;
+            font-weight: 850;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0;
         }
 
         .oauth-divider::before,
@@ -106,7 +150,7 @@
             content: '';
             flex: 1;
             height: 1px;
-            background: #d8dee4;
+            background: var(--f-hairline);
         }
 
         .oauth-buttons {
@@ -115,26 +159,28 @@
         }
 
         .oauth-button {
-            border: 1px solid #d0d7de;
-            background: #fff;
-            color: #1f2328;
-            border-radius: 8px;
+            border: 1px solid var(--f-hairline);
+            background: var(--f-surface);
+            color: var(--f-ink);
+            border-radius: 0;
             padding: 10px 12px;
             font-size: 14px;
-            font-weight: 600;
+            font-weight: 650;
             text-align: center;
             cursor: pointer;
         }
 
         .oauth-button:hover {
-            background: #f6f8fa;
+            background: var(--f-surface-subtle);
+            border-color: var(--f-rule);
         }
 
         .linking-panel {
             margin-top: 14px;
-            border: 1px solid #d0d7de;
-            border-radius: 8px;
-            background: #f6f8fa;
+            border: 1px solid var(--f-hairline);
+            border-left: 4px solid var(--f-blue);
+            border-radius: 0;
+            background: var(--f-surface-subtle);
             padding: 12px;
             display: none;
         }
@@ -146,14 +192,14 @@
         .linking-title {
             margin: 0 0 6px;
             font-size: 13px;
-            font-weight: 700;
-            color: #1f2328;
+            font-weight: 760;
+            color: var(--f-ink);
         }
 
         .linking-copy {
             margin: 0 0 8px;
             font-size: 12px;
-            color: #57606a;
+            color: var(--f-muted);
             line-height: 1.4;
         }
 
@@ -167,29 +213,41 @@
         }
 
         .linked-providers li {
-            border: 1px solid #b6d3ff;
-            background: #eef6ff;
-            color: #0b5394;
-            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid var(--f-hairline);
+            background: var(--f-blue-wash);
+            color: var(--f-blue-text);
+            border-radius: 0;
             padding: 2px 8px;
             font-size: 12px;
             font-weight: 600;
         }
 
+        .linked-providers li::before {
+            content: "";
+            width: 7px;
+            height: 7px;
+            border-radius: 999px;
+            background: currentColor;
+        }
+
         .login-error {
             display: none;
             margin-top: 12px;
-            border: 1px solid #f1b0b7;
-            border-radius: 8px;
-            background: #fff0f1;
-            color: #cf222e;
+            border: 1px solid var(--f-red);
+            border-left: 4px solid var(--f-red);
+            border-radius: 0;
+            background: var(--f-red-wash);
+            color: var(--f-red);
             font-size: 13px;
             padding: 10px 12px;
         }
 
         .login-help {
             margin-top: 14px;
-            color: #57606a;
+            color: var(--f-muted);
             font-size: 13px;
         }
     </style>
