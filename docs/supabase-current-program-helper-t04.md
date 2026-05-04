@@ -9,6 +9,7 @@ Run:
 
 This migration adds:
 
+- scoped RLS policies for `public.programs`
 - `public.user_programs` mapping table (`user_id` ↔ `program_id`)
 - `public.jwt_program_id()` helper (safe JWT claim parse)
 - `public.current_program()` helper for RLS policy usage
@@ -42,8 +43,22 @@ select user_id, program_id, role, is_default
 from public.user_programs
 order by updated_at desc
 limit 20;
+
+-- Confirm programs RLS is enabled and policies are present
+select tablename, policyname, cmd
+from pg_policies
+where schemaname = 'public'
+  and tablename = 'programs'
+order by policyname;
 ```
 
 Expected `provolatile`:
 
 - `s` for all helper functions above (`STABLE`).
+
+Expected program policies:
+
+- `programs_select_current_or_platform_admin`
+- `programs_insert_platform_admin_only`
+- `programs_update_platform_admin_only`
+- `programs_delete_platform_admin_only`
