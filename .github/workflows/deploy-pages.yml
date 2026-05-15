@@ -1,15 +1,16 @@
 name: Deploy GitHub Pages
 
+# Production publishes ONLY via manual workflow_dispatch (no auto-deploy on push).
+# Plan: docs/plans/2026-05-15-001-refactor-forward-operating-model-plan.md (Unit 2)
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 permissions:
   contents: read
   pages: write
   id-token: write
+  checks: read
+  statuses: read
 
 concurrency:
   group: pages
@@ -24,6 +25,45 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Require green CI on the exact deployed commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          SHA="$(git rev-parse HEAD)"
+          echo "Gating deploy on commit $SHA"
+          # Required check names must each have a latest check-run with conclusion=success.
+          RUNS="$(gh api --paginate \
+            "repos/${{ github.repository }}/commits/$SHA/check-runs?per_page=100" \
+            --jq '.check_runs[] | [.name, .status, (.conclusion // "pending")] | @tsv')"
+          echo "$RUNS"
+          for required in test onboarding; do
+            line="$(printf '%s\n' "$RUNS" | awk -F'\t' -v n="$required" '$1==n {print; exit}')"
+            if [ -z "$line" ]; then
+              echo "::error::Required check '$required' not found on $SHA — refusing to deploy."
+              exit 1
+            fi
+            conclusion="$(printf '%s' "$line" | awk -F'\t' '{print $3}')"
+            if [ "$conclusion" != "success" ]; then
+              echo "::error::Required check '$required' is '$conclusion' on $SHA — refusing to deploy."
+              exit 1
+            fi
+            echo "OK: $required = success"
+          done
+
+      - name: Stamp ORIENT prod-state marker
+        run: |
+          set -euo pipefail
+          ORIENT="docs/ORIENT.html"
+          STAMP="$(git rev-parse --short HEAD) @ $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          if [ -f "$ORIENT" ] && grep -q 'prod-state-as-of:' "$ORIENT"; then
+            # Unit 7 (ORIENT) must include a line/comment containing: prod-state-as-of: <value>
+            sed -i.bak -E "s|prod-state-as-of:[^<\"]*|prod-state-as-of: ${STAMP} |" "$ORIENT" && rm -f "$ORIENT.bak"
+            echo "ORIENT stamped: $STAMP"
+          else
+            echo "notice: $ORIENT absent or missing 'prod-state-as-of:' marker (created in Phase 1 Unit 7) — skipping stamp."
+          fi
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
