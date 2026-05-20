@@ -3,90 +3,207 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Phase 0 Runbook — RLS #246 + Manual Deploy Cutover</title>
+<title>Phase 0 Runbook — Outcome (Path B applied)</title>
 <link rel="stylesheet" href="../css/design-system.css">
 <style>
-  /* Minimal inline shell; the full docs design-system variant is Phase 1 Unit 6 (css/docs.css). */
+  /* Minimal inline shell; full docs design-system variant is Phase 1 Unit 6 (css/docs.css). */
   body { max-width: 60rem; margin: 2rem auto; padding: 0 1.25rem; line-height: 1.55;
          font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #1a1a1a; }
   h1 { color: #a10022; border-bottom: 3px solid #a10022; padding-bottom: .4rem; }
   h2 { color: #a10022; margin-top: 2rem; }
+  h3 { margin-top: 1.4rem; }
   code, pre { background: #f4f4f5; border-radius: 4px; }
   code { padding: .1rem .35rem; }
   pre { padding: .85rem 1rem; overflow-x: auto; border-left: 3px solid #a10022; }
-  .gate { background: #fff4f5; border: 1px solid #a10022; border-radius: 6px; padding: .85rem 1rem; }
+  .status-ok    { background: #ecfdf3; border: 1px solid #0a7d33; color: #0a4d20;
+                  border-radius: 6px; padding: .85rem 1rem; }
+  .status-note  { background: #fff8e1; border: 1px solid #c98a00; color: #553e00;
+                  border-radius: 6px; padding: .85rem 1rem; }
   .ok { color: #0a7d33; font-weight: 600; }
+  .changed { color: #c98a00; font-weight: 600; }
   ol li, ul li { margin: .35rem 0; }
   table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
-  th, td { border: 1px solid #ddd; padding: .5rem .65rem; text-align: left; font-size: .95rem; }
+  th, td { border: 1px solid #ddd; padding: .5rem .65rem; text-align: left; font-size: .95rem; vertical-align: top; }
   th { background: #fae9ec; }
+  details.appendix { margin-top: 2.5rem; padding: .85rem 1rem; background: #fafafa; border: 1px solid #ddd; border-radius: 6px; }
+  details.appendix > summary { cursor: pointer; font-weight: 600; }
+  details.appendix[open] > summary { margin-bottom: .8rem; }
 </style>
 </head>
 <body>
 
-<h1>Phase 0 Runbook — Stop the Bleeding</h1>
-<p><strong>Plan:</strong> <code>docs/plans/2026-05-15-001-refactor-forward-operating-model-plan.md</code>
-(Unit 1 + Unit 2). <strong>Branch with Unit 2 prepared:</strong> <code>feat/forward-operating-model-phase0</code>.
-This is the only acute data risk in the whole effort; it exists today and is hours to defuse.</p>
+<h1>Phase 0 Runbook — Outcome</h1>
 
-<h2>PR #246 review — verdict: <span class="ok">GO (merge)</span></h2>
-<ul>
-  <li>Enables <code>ROW LEVEL SECURITY</code> on <code>public.programs</code> and replaces select/insert/update/delete
-      policies with current-program / platform-admin scoping.</li>
-  <li>Ships <code>scripts/supabase-policy-smoke-check.js</code> (probes anon vs. authorized reads + write denial) and tests.</li>
-  <li>SQL is re-runnable: <code>DROP POLICY IF EXISTS</code> + <code>CREATE POLICY</code>, idempotent <code>ALTER TABLE … ENABLE RLS</code>.</li>
-  <li>State: <strong>MERGEABLE</strong>, base <code>main</code>, +125/−10, CI <strong>green</strong> (<code>test</code> + <code>onboarding</code>).</li>
-  <li>Caveat: scoped to <code>public.programs</code>. Confirm the public schedule surface reads via its RPC (not a direct
-      table read that the new policies would now deny) — covered by the smoke check + step 4 below.</li>
-</ul>
-
-<h2>Unit 1 — production execution (you run this; I have no Supabase access)</h2>
-<ol>
-  <li><strong>Snapshot (rollback baseline).</strong> In the Supabase dashboard for the <em>production</em> project
-      (<code>ohnrhjxc…</code>), export the current policies on <code>public.programs</code>
-      (Database → Policies, or <code>pg_policies</code> query) and save the SQL/screenshot somewhere durable.</li>
-  <li><strong>Merge #246.</strong> <code>gh pr merge 246 --squash</code> (or via GitHub UI) into <code>main</code>.</li>
-  <li><strong>Apply the migration.</strong> Run the policy SQL from <code>scripts/</code> (the
-      <code>supabase-*-t02 / t04</code> + RLS policy statements) against the <em>production</em> Supabase project
-      via the SQL editor or CLI.</li>
-  <li><strong>Verify.</strong> Run <code>node scripts/supabase-policy-smoke-check.js</code> pointed at production.
-      Pass criteria — <em>all</em> must hold:
-      <ul>
-        <li>anon read of the <code>programs</code> config row is <strong>denied</strong>;</li>
-        <li>authorized read is <strong>allowed</strong>;</li>
-        <li>anon insert/update/delete is <strong>denied</strong>;</li>
-        <li><code>public-schedule.html</code> loaded against production still renders the schedule correctly
-            (its read path is the RPC, not a denied table read).</li>
-      </ul>
-  </li>
-</ol>
-
-<div class="gate">
-  <strong>Gate.</strong> Unit 1 is complete <em>only</em> if every criterion passes <em>and no rollback was needed</em>.
-  Record the outcome in the decision log (Phase 1 Unit 8). Do not proceed to merging Unit 2 until this gate is green —
-  the plan sequences the manual-deploy cutover after RLS is verified in prod.
+<div class="status-ok">
+  <strong>Status: <span class="ok">Complete</span></strong> — applied 2026-05-19, verified clean, PR
+  <a href="https://github.com/sicxz/program-command/pull/251">#251</a> merged to <code>main</code>.
+  Phase 0's acute live-data risk is defused. Phase 1 may proceed.
 </div>
 
-<h2>Rollback (if any criterion fails)</h2>
-<ol>
-  <li>Re-apply the snapshot policy SQL from step 1 to restore the prior <code>public.programs</code> policy state.</li>
-  <li>Re-run the smoke check / reload <code>public-schedule.html</code> to confirm the public surface is healthy again.</li>
-  <li>Log the failed attempt + symptom in the decision log; treat #246 as needing rework before a second attempt.</li>
-  <li><code>main</code> still carries the merged #246 code, but production policy state is reverted — that is the safe
-      resting state until #246 is corrected.</li>
-</ol>
+<p><strong>Plan of record:</strong>
+<code>docs/plans/2026-05-15-001-refactor-forward-operating-model-plan.md</code> (Phase 0 = Units 1–2).
+This page documents what was actually done; the original
+<em>planned</em> approach is preserved at the bottom as the
+<a href="#appendix-path-a">audit-trail appendix</a>.</p>
 
-<h2>Unit 2 — already prepared on the branch (merge it AFTER the Unit 1 gate is green)</h2>
+<h2>What was applied (Path B — editor allowlist)</h2>
+
+<p>During the read-only production characterization (step 1), the original plan's
+target schema was found not to exist in either Supabase project. Rather than
+patch around a migration the codebase has never exercised end-to-end, Phase 0
+shifted to a smaller, focused change that closes the actual exploitable gap:
+the existing <code>auth_*</code> write policies allowed <strong>any signed-up account</strong>
+to write to every operational table.</p>
+
+<p>Path B replaces the write policies with an explicit editor allowlist while
+leaving the existing <code>"Public read"</code> SELECT policies untouched, so the
+public schedule and the editor's read paths continue to work.</p>
+
+<h3>Database changes (production project <code>ohnrhjxcjkrdtudpzjgn</code>)</h3>
+
+<table>
+  <tr><th>Change</th><th>Detail</th></tr>
+  <tr>
+    <td><span class="changed">New</span> <code>public.editors</code> allowlist</td>
+    <td>RLS enabled, no SELECT policy — readable only via <code>SECURITY DEFINER</code>. Columns: <code>user_id (PK, FK auth.users)</code>, <code>email</code>, <code>role ('editor' | 'admin')</code>, <code>added_at</code>, <code>added_by</code>.</td>
+  </tr>
+  <tr>
+    <td><span class="changed">New</span> <code>public.is_editor()</code></td>
+    <td><code>SECURITY DEFINER STABLE</code> helper returning true iff the caller's <code>auth.uid()</code> has a row in <code>editors</code>. <code>EXECUTE</code> granted only to <code>authenticated</code>.</td>
+  </tr>
+  <tr>
+    <td><span class="changed">Replaced</span> write policies on 9 tables</td>
+    <td>20 prior <code>auth_insert/update/delete_*</code> policies (gated only on <code>auth.uid() IS NOT NULL</code>) dropped and recreated as 27 <code>editor_*</code> policies gated on <code>public.is_editor()</code>. Tables: <code>academic_years, courses, departments, faculty, faculty_preferences, release_time, rooms, scheduled_courses, scheduling_constraints</code>.</td>
+  </tr>
+  <tr>
+    <td><span class="ok">Unchanged</span> <code>"Public read"</code> SELECT policies</td>
+    <td>Same 9 tables. Anon and authenticated reads continue to function as before. <code>public-schedule.html</code> path via <code>get_public_schedule</code> RPC is unaffected.</td>
+  </tr>
+  <tr>
+    <td>Seeded editors</td>
+    <td><code>tmasingale@ewu.edu</code>, <code>tmasingale@me.com</code>, <code>mbreen@ewu.edu</code>, <code>rhunton1@ewu.edu</code>.</td>
+  </tr>
+</table>
+
+<h3>Operational change (already taken)</h3>
+<ul>
+  <li><strong>Email signups disabled</strong> in the Supabase dashboard
+    (Authentication → Providers → Email → "Allow new users to sign up" = off).
+    Probe against <code>/auth/v1/signup</code> returns
+    <code>422 signup_disabled</code>. Existing accounts keep their sessions; no new accounts can register.</li>
+</ul>
+
+<h3>Deploy change (Unit 2, in the same PR)</h3>
 <table>
   <tr><th>Change in <code>.github/workflows/deploy-pages.yml</code></th><th>Effect</th></tr>
-  <tr><td>Removed <code>on: push: [main]</code>; only <code>workflow_dispatch</code></td><td>No auto-deploy; prod publishes only when you click it.</td></tr>
-  <tr><td>New step: resolve deployed <code>main</code> SHA, query its <code>test</code>+<code>onboarding</code> check-runs via <code>gh api</code>, abort unless both <code>success</code></td><td>A manual dispatch on a red / un-CI'd commit refuses to publish (no stale-green).</td></tr>
-  <tr><td>New step: stamp <code>docs/ORIENT.html</code> prod-state marker (tolerant — skips until Unit 7 creates ORIENT)</td><td>ORIENT freshness becomes mechanical, not a convention.</td></tr>
-  <tr><td>Added <code>checks: read</code> + <code>statuses: read</code> permissions</td><td>Lets the gate step read commit check status with the default token.</td></tr>
+  <tr><td>Removed <code>on: push: [main]</code>; only <code>workflow_dispatch</code></td><td>No auto-deploy; prod publishes only on manual dispatch.</td></tr>
+  <tr><td>New step: resolve deployed <code>main</code> SHA; query <code>test</code>+<code>onboarding</code> check-runs; abort unless both <code>success</code></td><td>A manual dispatch on a red / un-CI'd commit refuses to publish (no stale-green).</td></tr>
+  <tr><td>New step: stamp <code>docs/ORIENT.html</code> prod-state marker (tolerant — no-op until Phase 1 Unit 7 creates ORIENT)</td><td>ORIENT freshness becomes mechanical, not a convention.</td></tr>
+  <tr><td>Added <code>checks:read</code> + <code>statuses:read</code> permissions</td><td>Lets the gate step read commit check status with the default token.</td></tr>
 </table>
-<p>Open the Unit 2 PR from <code>feat/forward-operating-model-phase0</code> → <code>main</code>, but <strong>merge it
-only after the Unit 1 gate is green</strong>. Phase 0 is done when both are merged and verified; stop there for review
-before Phase 1.</p>
+
+<h2>Production verification (2026-05-19)</h2>
+<p>Ran <code>node --env-file=.env.local scripts/phase0-policy-verify.mjs</code>. Output:</p>
+<pre>
+PASS  anon read courses
+PASS  anon insert denied
+PASS  get_public_schedule rpc — 56 rows for 2026-27
+PASS  editor signIn — tmasingale@me.com
+PASS  editor read courses
+PASS  editor insert allowed
+PASS  non-editor insert denied   ← the gap this closes
+Result: PASS
+</pre>
+<p>Post-state confirmed:
+<code>editors_seeded = 4</code>,
+<code>policies_with_is_editor = 27</code>,
+<code>policies_still_on_auth_uid = 0</code>.</p>
+
+<h2>Artifacts</h2>
+<ul>
+  <li><code>scripts/phase0-rls-cutover.mjs</code> — <code>characterize</code> / <code>apply</code> / <code>verify</code> / <code>rollback</code> runner over <code>SUPABASE_DB_URL</code>.</li>
+  <li><code>scripts/phase0-policy-hardening.sql</code> — the migration that ran (idempotent; safe to re-run).</li>
+  <li><code>scripts/phase0-policy-verify.mjs</code> — the 4-path verification above (anon read, anon write, editor write, non-editor write) plus the public-schedule RPC check.</li>
+  <li><code>docs/phase0-snapshot-2026-05-19T21-51-35-228Z.sql</code> — captured <code>pg_policies</code> + <code>rowsecurity</code> rollback baseline.</li>
+  <li>PR <a href="https://github.com/sicxz/program-command/pull/251">#251</a> — Phase 0 in production.</li>
+</ul>
+
+<h2>Rollback</h2>
+<p>If anything regresses, the captured baseline restores the prior policy state verbatim:</p>
+<pre>node --env-file=.env.local scripts/phase0-rls-cutover.mjs rollback docs/phase0-snapshot-2026-05-19T21-51-35-228Z.sql</pre>
+<p>No data rows were modified at any point during Phase 0; the rollback only touches policies and the <code>rowsecurity</code> flag.</p>
+
+<h2>What is intentionally deferred</h2>
+<ul>
+  <li><strong>The program-scoped tenant migration</strong> (<code>t02 → t04 → t03</code>; PR
+    <a href="https://github.com/sicxz/program-command/pull/246">#246</a>). The SQL assumes tables
+    (<code>pathways</code>, <code>pathway_courses</code>, <code>programs</code>, <code>user_programs</code>) that
+    don't exist in production yet, and has never been exercised against a real
+    Supabase project (CI uses mocks). Re-scoping this is its own effort: stub or
+    drop the missing tables from the migration arrays, exercise the apply path
+    end-to-end against a real test database, then map the existing
+    <code>auth.users</code> accounts to <code>user_programs</code> rows <em>before</em>
+    enabling tenant-scoped RLS — otherwise the editor app silently returns zero
+    rows for users without a program claim.</li>
+  <li><strong>Tightening <code>"Public read"</code></strong>: anon currently reads all 9 operational tables
+    directly. The public schedule path goes through a <code>SECURITY DEFINER</code> RPC,
+    so anon-table-read can be revoked if/when nothing else relies on it. Out of
+    scope for Phase 0.</li>
+</ul>
+
+<details class="appendix" id="appendix-path-a">
+  <summary>Appendix — Original Path A plan and why it was abandoned (audit trail)</summary>
+
+  <p>This is preserved verbatim so the decision history remains visible. The
+     plan below was the runbook's content at the time PR
+     <a href="https://github.com/sicxz/program-command/pull/251">#251</a> was opened.
+     Characterization disproved its premises; Path B above is what actually shipped.</p>
+
+  <h3>What was planned (and why it didn't run)</h3>
+  <ol>
+    <li><strong>Snapshot prod <code>public.programs</code> policies.</strong>
+        <span class="changed">Why it didn't run:</span> <code>public.programs</code> does not exist
+        in production. The migration was to create it.</li>
+    <li><strong>Merge PR #246.</strong>
+        <span class="changed">Why it didn't run:</span> #246 only adds new files
+        (<code>t04</code> SQL, smoke check, docs, tests). The actual RLS policy SQL
+        (<code>t03</code>) was already on <code>main</code> and not part of #246's diff, so
+        merging alone changes nothing in prod. Risk lived entirely in the manual SQL apply
+        step, which was found to be unrunnable as written.</li>
+    <li><strong>Apply <code>t02 → t04 → t03</code> against the production Supabase project.</strong>
+        <span class="changed">Why it didn't run:</span> <code>t02</code> tries to
+        <code>ALTER TABLE</code> <code>pathways</code> and <code>pathway_courses</code> — neither
+        table exists in production. The entire transaction would fail on those statements.
+        The develop project (<code>cstcwplvioheazoghkgf</code>) is in the same state
+        (contains only an orphan <code>public.programs</code>), so no real environment had ever
+        exercised this SQL.</li>
+    <li><strong>Run the smoke check against production.</strong>
+        <span class="changed">Why it wasn't sufficient as written:</span> the script's
+        "authorized" client takes <code>SUPABASE_AUTH_KEY</code>, which the runbook
+        suggested could be the service role. Service role bypasses RLS, so the
+        "authorized allowed" assertion would have passed trivially without ever
+        exercising the real <code>authenticated</code> path. The Path B verification
+        (<code>scripts/phase0-policy-verify.mjs</code>) replaces it with a flow that signs in
+        a real editor JWT and tests a throwaway non-editor user from the admin API.</li>
+  </ol>
+
+  <h3>The real exploitable gap that was actually present</h3>
+  <p>Production RLS was already on for the 9 operational tables under an
+     undocumented scheme:</p>
+  <ul>
+    <li><code>"Public read"</code> SELECT TO <code>public</code> USING <code>true</code> — anon and everyone read freely.</li>
+    <li><code>auth_insert/update/delete_*</code> policies with <code>auth.uid() IS NOT NULL</code> — any signed-in account could write anything.</li>
+  </ul>
+  <p>Combined with <code>signUp</code> being enabled in <code>js/auth-service.js</code>, the actual
+     risk was <em>"any stranger who registers an account can write to any
+     operational table,"</em> not <em>"no RLS."</em> That is the gap Path B closes.</p>
+
+  <h3>Lesson for future runbooks</h3>
+  <p>Before any "apply this migration to prod" runbook is approved, run a read-only
+     characterize step against the target. SQL files that pass CI mocks have not
+     necessarily ever been executed against a real database, and the actual prod
+     state is often different from the prose description.</p>
+</details>
 
 </body>
 </html>
