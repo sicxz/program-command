@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase 0 to Phase 1 Handoff</title>
+<link rel="stylesheet" href="../css/design-system.css">
+<style>
+  body { max-width: 60rem; margin: 2rem auto; padding: 0 1.25rem; line-height: 1.55;
+         font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #1a1a1a; }
+  h1 { color: #a10022; border-bottom: 3px solid #a10022; padding-bottom: .4rem; }
+  h2 { color: #a10022; margin-top: 2rem; }
+  h3 { margin-top: 1.3rem; }
+  code, pre { background: #f4f4f5; border-radius: 4px; }
+  code { padding: .1rem .35rem; }
+  pre { padding: .85rem 1rem; overflow-x: auto; border-left: 3px solid #a10022; }
+  .stamp { background: #ecfdf3; border: 1px solid #0a7d33; color: #0a4d20;
+           border-radius: 6px; padding: .85rem 1rem; }
+  .ok { color: #0a7d33; font-weight: 600; }
+  .warn { color: #c98a00; font-weight: 600; }
+  ol li, ul li { margin: .35rem 0; }
+  table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+  th, td { border: 1px solid #ddd; padding: .5rem .65rem; text-align: left; font-size: .95rem; vertical-align: top; }
+  th { background: #fae9ec; }
+</style>
+</head>
+<body>
+
+<h1>Phase 0 to Phase 1 Handoff</h1>
+
+<div class="stamp">
+  <strong>Status:</strong> Phase 0 <span class="ok">complete</span> (2026-05-19).
+  Production hardened, manual-deploy gate active, runbook truthful, audit trail
+  on <code>main</code>. Phase 1 may proceed.
+</div>
+
+<p>This page exists so any human or agent picking up the project after Phase 0
+can get oriented in under five minutes without re-reading the whole plan. It
+is deliberately short and not a replacement for the plan or the runbook.</p>
+
+<h2>What shipped in Phase 0</h2>
+<ul>
+  <li><strong>PR #251</strong> (merged 2026-05-19) — Path B policy hardening in production + Unit 2 manual-deploy gate.</li>
+  <li><strong>PR #252</strong> (merged 2026-05-19) — runbook rewritten to reflect the actual Path B outcome.</li>
+  <li><strong>PR #246 closed</strong> — original Path A tenant-migration plan; closed in favor of #251 with a pointer comment. Branch <code>codex/supabase-programs-rls</code> deleted; commits remain reachable via <code>refs/pull/246/head</code>.</li>
+  <li><strong>Supabase dashboard:</strong> email signups disabled (verified by probe returning <code>422 signup_disabled</code>).</li>
+</ul>
+
+<h2>Production facts you need before touching anything</h2>
+<table>
+  <tr><th>Item</th><th>Value</th></tr>
+  <tr><td>Supabase production project ref</td><td><code>ohnrhjxcjkrdtudpzjgn</code> (us-west-2)</td></tr>
+  <tr><td>Develop project ref</td><td><code>cstcwplvioheazoghkgf</code> (stub, anon key empty in supabase-config.js, not wired into the frontend)</td></tr>
+  <tr><td>Production anon key</td><td>Public by design; in <code>js/supabase-config.js</code></td></tr>
+  <tr><td>RLS model in production</td><td><code>"Public read"</code> SELECT to <code>public</code> USING <code>true</code> on the 9 operational tables (anon and authenticated can read freely). Write policies <code>editor_insert/update/delete_*</code> require <code>public.is_editor()</code>.</td></tr>
+  <tr><td>Editor allowlist</td><td>4 rows in <code>public.editors</code>: <code>tmasingale@ewu.edu</code>, <code>tmasingale@me.com</code>, <code>mbreen@ewu.edu</code>, <code>rhunton1@ewu.edu</code>. Mutable only via direct SQL.</td></tr>
+  <tr><td>Deploy semantics</td><td>Manual <code>workflow_dispatch</code> only. Workflow refuses to publish unless the deployed commit's <code>test</code> + <code>onboarding</code> check-runs are both <code>success</code>.</td></tr>
+  <tr><td>Branch protection on <code>main</code></td><td>2 required status checks (<code>test</code>, <code>onboarding</code>); direct push to main is rejected. All changes via PR.</td></tr>
+  <tr><td>Production DB access (when needed)</td><td>Session pooler URL: <code>postgresql://postgres.ohnrhjxcjkrdtudpzjgn:PASSWORD@aws-0-us-west-2.pooler.supabase.com:5432/postgres</code>. Direct (<code>db.&lt;ref&gt;.supabase.co</code>) is IPv6-only and unreachable from many networks; do not use it.</td></tr>
+</table>
+
+<h2>Read these, in order, to onboard yourself</h2>
+<ol>
+  <li><code>docs/plans/2026-05-15-001-refactor-forward-operating-model-plan.md</code> — the multi-phase plan. Phase 0 is units 1–2 (now complete); Phase 1 is units 3 onward.</li>
+  <li><code>docs/phase0-rls-runbook.html</code> — what shipped in Phase 0, the verification output, and the appendix explaining why Path A was abandoned.</li>
+  <li><code>scripts/phase0-policy-hardening.sql</code> — the actual migration that ran in production. Idempotent; safe to re-read for state.</li>
+  <li><code>scripts/phase0-rls-cutover.mjs</code> — the runner. Its <code>characterize</code> subcommand is read-only and the template for any future "before I apply this to prod" check.</li>
+  <li><code>docs/phase0-snapshot-2026-05-19T21-51-35-228Z.sql</code> — the rollback baseline captured before the Path B apply.</li>
+</ol>
+
+<h2>What is intentionally deferred (do not start without re-scoping)</h2>
+<ul>
+  <li><strong>The full tenant migration</strong> (<code>t02 -> t04 -> t03</code>; PR #246 was its first attempt). Three preconditions before any retry: (1) patch the SQL so it does not assume <code>pathways</code> / <code>pathway_courses</code> exist; (2) exercise the migration end-to-end against a real Supabase project (the develop project is empty and available); (3) decide and seed <code>user_programs</code> rows for the existing 5 <code>auth.users</code> <em>before</em> enabling tenant-scoped RLS, otherwise the editor app silently returns zero rows.</li>
+  <li><strong>Tightening anon-read on operational tables.</strong> <code>"Public read"</code> is still <code>USING (true)</code>. The public-schedule path goes through a <code>SECURITY DEFINER</code> RPC and would survive a tighter SELECT policy, but nothing else has been audited for that change. Out of Phase 0 scope.</li>
+</ul>
+
+<h2>Suggested next move (Phase 1)</h2>
+<p>The plan's Phase 1 lists units 3–8. The dependency-sensible first move is
+<strong>Unit 7 (ORIENT.html)</strong>: the deploy workflow already attempts to
+stamp <code>docs/ORIENT.html</code> (tolerantly, no-ops until the file exists),
+and creating it now turns the prod-state stamp from a no-op into the
+authoritative "what is in production right now" page. ORIENT can absorb this
+handoff doc once it exists; this doc is throwaway scaffolding meant for the
+Phase 0 to Phase 1 transition.</p>
+
+<p>If you'd rather do Unit 5 (round out branch protection) first, that's also
+defensible — Phase 0 turned on the 2-check requirement, but the rest of the
+protection rules (required reviews, no force-push, etc.) per the plan are
+still open.</p>
+
+<h2>How to prompt a fresh session</h2>
+<p>For the next conversation, the minimal prompt is:</p>
+<pre>Read docs/phase0-handoff.html, then docs/plans/2026-05-15-001-refactor-forward-operating-model-plan.md.
+Phase 0 is complete; pick up Phase 1. Propose the first move and sequence the
+rest. Start read-only — do not touch prod or branch protection without confirmation.</pre>
+<p>The project-memory entry <code>phase0-shipped</code> auto-loads with that context already; the prompt only needs to point at this page and the plan.</p>
+
+</body>
+</html>
