@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase 1 Handoff — Program Command</title>
+<link rel="stylesheet" href="../css/design-system.css">
+<link rel="stylesheet" href="../css/docs.css">
+</head>
+<body class="foundry">
+
+<div class="docs-shell">
+
+  <header class="docs-header">
+    <div class="docs-header-copy">
+      <span class="docs-header-mark" aria-hidden="true">PC</span>
+      <div class="docs-header-title">
+        <p class="docs-eyebrow">Mid-phase handoff</p>
+        <h1>Phase 1 Handoff</h1>
+      </div>
+    </div>
+    <a class="docs-header-action" href="./ORIENT.html">ORIENT</a>
+  </header>
+
+  <nav class="docs-nav" aria-label="Reorientation">
+    <a href="./ORIENT.html">ORIENT</a>
+    <a href="./decision-log.html">Decision Log</a>
+    <a href="./ONBOARDING.html">Onboarding</a>
+    <a href="./phase0-handoff.html">Phase 0 Handoff</a>
+  </nav>
+
+  <main class="docs-content">
+
+    <p class="docs-stamp docs-stamp--stale">
+      <strong>Status:</strong> Phase 1 (Units 3–9 + Unit 4) is
+      <strong>built and verified</strong>. U3 is live on the repo; U4–U9 are
+      in PR&nbsp;#254; U5 is in PR&nbsp;#255. <strong>Finalization is not
+      done</strong> — two PRs are open and the forbidden-path guard is not
+      yet a required check. Pick up at "What's left" below.
+      <br><em>Written 2026-05-21. Throwaway scaffolding, like the Phase 0 handoff.</em>
+    </p>
+
+    <h2>What's left (do this next)</h2>
+    <p>All four steps touch shared state (merges, repo settings), so each was
+    deliberately left for a human decision.</p>
+
+    <table>
+      <thead>
+        <tr><th>#</th><th>Step</th><th>Notes</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td>Create the <code>allow-forbidden-paths</code> repo label</td>
+          <td>The guard's only override is this human-applied label; it must
+              exist before it can be applied. Low-risk prep.
+              <code>gh label create allow-forbidden-paths</code>.</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>Merge PR&nbsp;#254 (docs + Replit retirement)</td>
+          <td>All required checks green. You authored it, so GitHub blocks
+              self-approve — merge via your admin bypass, or have someone
+              approve.</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>Merge PR&nbsp;#255 (forbidden-path guard)</td>
+          <td>Its own <code>guard-forbidden-paths</code> check fails
+              <em>by design</em> (the PR adds a workflow file). Apply the
+              <code>allow-forbidden-paths</code> label to demonstrate the
+              override, then admin-bypass merge. This bootstrap is
+              unavoidable: the guard guards its own introduction.</td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td>Add <code>guard-forbidden-paths</code> to required checks</td>
+          <td>Only possible after #255 is on <code>main</code> (the check
+              must have run there once). Add it to the <code>protect-main</code>
+              ruleset's required status checks — this is what makes the guard
+              non-bypassable for agents.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <aside class="docs-callout docs-callout--note">
+      <p class="docs-callout-title">Recommended order</p>
+      <p>1 → 2 → 3 → 4. Step 1 unblocks step 3. Step 4 must come last.</p>
+    </aside>
+
+    <h2>Open PRs</h2>
+    <table>
+      <thead>
+        <tr><th>PR</th><th>Contents</th><th>CI</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><a href="https://github.com/sicxz/program-command/pull/254">#254</a></td>
+          <td>U6 docs variant, U7 ORIENT, U8 decision log, U9 ONBOARDING +
+              README/CLAUDE cold-start links, U4 Replit retirement</td>
+          <td><span class="docs-pill docs-pill--ok">test</span>
+              <span class="docs-pill docs-pill--ok">onboarding</span></td>
+        </tr>
+        <tr>
+          <td><a href="https://github.com/sicxz/program-command/pull/255">#255</a></td>
+          <td>U5 forbidden-path guard: <code>scripts/check-forbidden-paths.cjs</code>,
+              <code>tests/guard-forbidden-paths.test.js</code>,
+              <code>.github/workflows/guard-forbidden-paths.yml</code>,
+              <code>AGENTS.md</code> rules</td>
+          <td><span class="docs-pill docs-pill--ok">test</span>
+              <span class="docs-pill docs-pill--ok">onboarding</span>
+              <span class="docs-pill docs-pill--danger">guard (by design)</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>What is already live (U3)</h2>
+    <p>Applied directly to the repo on 2026-05-21. The <code>protect-main</code>
+    <strong>ruleset</strong> (not classic branch protection) now enforces:</p>
+    <ul>
+      <li>Required checks <code>test</code> + <code>onboarding</code>, strict
+          (branch must be up to date).</li>
+      <li>PR required before merge; <strong>1 approving review</strong>.</li>
+      <li>No direct push, no force-push, no branch deletion.</li>
+      <li>Repo-admin role is the <strong>sole bypass actor</strong> — you can
+          merge your own hotfix; agents (non-admin) cannot.</li>
+      <li>Merged head branches auto-delete.</li>
+    </ul>
+
+    <h2>What shipped in Phase 1</h2>
+    <table>
+      <thead>
+        <tr><th>Unit</th><th>What</th><th>Where</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>U3</td><td>Branch protection rounded out</td>
+            <td><span class="docs-pill docs-pill--ok">live</span></td></tr>
+        <tr><td>U4</td><td>Replit retired; <code>api-server.js</code> kept (Sheets export needed), rehost is a follow-up</td>
+            <td>PR #254</td></tr>
+        <tr><td>U5</td><td>Forbidden-path CI guard, verified failing on a workflow change</td>
+            <td>PR #255</td></tr>
+        <tr><td>U6</td><td><code>css/docs.css</code> + <code>docs/_docs-shell.html</code> Foundry docs variant</td>
+            <td>PR #254</td></tr>
+        <tr><td>U7</td><td><code>docs/ORIENT.html</code> with deploy-stamped <code>prod-state-as-of</code> marker</td>
+            <td>PR #254</td></tr>
+        <tr><td>U8</td><td><code>docs/decision-log.html</code>, seeded newest-first</td>
+            <td>PR #254</td></tr>
+        <tr><td>U9</td><td><code>docs/ONBOARDING.html</code> + cold-start links in README/CLAUDE</td>
+            <td>PR #254</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Deferred follow-up (not a plan unit)</h2>
+    <p>The Google Sheets export (<code>api-server.js</code> /
+    <code>POST /api/export-to-sheets</code>) is a real, needed function for
+    faculty workloads but only runs locally — it does not work on static
+    GitHub Pages. Decided 2026-05-21: <strong>keep + rehost</strong>.
+    Rehosting it for the static-Pages surface is an open follow-up.</p>
+
+    <h2>What comes after Phase 1 (Phase 2)</h2>
+    <p>Phase 2 was hard-locked behind the Phase 1 reorientation layer. Once
+    Phase 1 is finalized (4 steps above), Phase 2 is unblocked: rescue
+    <code>develop</code>'s forward work onto <code>main</code> (U10), delete
+    <code>develop</code> + clean CI triggers (U11), and retarget/triage the 8
+    strategic PRs (U12). See the plan:
+    <code>docs/plans/2026-05-15-001-refactor-forward-operating-model-plan.md</code>.</p>
+
+    <h2>How to resume in a fresh session</h2>
+    <p>Minimal prompt for the next conversation:</p>
+<pre><code>Read docs/phase1-handoff.html.
+Phase 1 is built (U3 live; U4-U9 in PR #254; U5 in PR #255) but not
+finalized. Pick up at "What's left": create the allow-forbidden-paths
+label, merge #254 and #255, then add guard-forbidden-paths to the
+protect-main ruleset's required checks. Confirm before each merge or
+repo-settings change.</code></pre>
+
+  </main>
+
+  <footer class="docs-footer">
+    <span>Last edited: 2026-05-21</span>
+    <span><a href="./ORIENT.html">ORIENT →</a></span>
+  </footer>
+
+</div>
+
+</body>
+</html>
