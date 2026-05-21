@@ -733,6 +733,29 @@
             return state.courseCatalogByCode;
         }
 
+        async function loadCurrentTerm() {
+            // Reads the admin-configured public default term. Resilient by design:
+            // if the RPC is missing (migration not yet applied) or errors, we keep
+            // the hardcoded DEFAULTS so the page never breaks.
+            const client = getClient();
+            if (!client || typeof client.rpc !== 'function') return null;
+
+            try {
+                const { data, error } = await client.rpc('get_public_current_term', {
+                    p_program_code: programCode
+                });
+                if (error) return null;
+                const row = Array.isArray(data) ? data[0] : data;
+                if (!row) return null;
+                return {
+                    year: normalizePublicYear(row.academic_year),
+                    quarter: normalizePublicQuarter(row.quarter)
+                };
+            } catch (termError) {
+                return null;
+            }
+        }
+
         async function load(yearToLoad) {
             const client = getClient();
             if (!client || typeof client.rpc !== 'function') {
@@ -789,6 +812,11 @@
             setYear,
             async init() {
                 if (!documentRef) return;
+                const term = await loadCurrentTerm();
+                if (term) {
+                    state.year = term.year;
+                    state.activeQuarter = term.quarter;
+                }
                 await loadSelectedYear();
             }
         };
