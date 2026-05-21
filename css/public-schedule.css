@@ -233,11 +233,40 @@ body {
 }
 
 .public-year-tabs {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
     padding: 10px 10px 0;
     border-bottom: 0;
+}
+
+.public-year-select-label {
+    font-family: var(--public-mono);
+    font-size: 11px;
+    font-weight: 850;
+    letter-spacing: 0;
+    text-transform: uppercase;
+    color: var(--public-muted);
+}
+
+.public-year-select {
+    min-height: 34px;
+    padding: 6px 28px 6px 10px;
+    border: 1px solid var(--public-line);
+    border-radius: 0;
+    background: #ffffff;
+    color: var(--public-black);
+    font-family: var(--public-mono);
+    font-size: 12px;
+    font-weight: 850;
+    letter-spacing: 0;
+    cursor: pointer;
+}
+
+.public-year-select:focus-visible {
+    outline: none;
+    border-color: var(--public-accent);
+    box-shadow: inset 3px 0 0 var(--public-accent);
 }
 
 .public-quarter-tabs {
@@ -700,10 +729,6 @@ body {
 
     .public-main {
         padding: 16px 0 28px;
-    }
-
-    .public-year-tabs {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .public-quarter-tabs {
