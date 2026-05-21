@@ -247,7 +247,7 @@ const AuthService = (function() {
 
     function resolveCurrentPathWithQuery() {
         if (typeof window === 'undefined' || !window.location) {
-            return '/index.html';
+            return '/program-command.html';
         }
         return `${window.location.pathname}${window.location.search}`;
     }
@@ -474,7 +474,7 @@ const AuthService = (function() {
         }
 
         const normalizedProvider = requireOAuthProvider(provider);
-        const nextPath = String(options.nextPath || '').trim() || '/index.html';
+        const nextPath = String(options.nextPath || '').trim() || '/program-command.html';
         const intent = {
             mode: 'signin',
             provider: normalizedProvider,
@@ -686,7 +686,7 @@ const AuthService = (function() {
             handled: true,
             mode: intent?.mode || 'signin',
             success: true,
-            nextPath: intent?.nextPath || '/index.html',
+            nextPath: intent?.nextPath || '/program-command.html',
             linkedIdentities
         };
     }

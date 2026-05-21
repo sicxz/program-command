@@ -13,9 +13,9 @@
 
     function normalizeNextPath(nextValue) {
         const next = String(nextValue || '').trim();
-        if (!next) return 'index.html';
+        if (!next) return 'program-command.html';
         if (/^https?:\/\//i.test(next) || next.startsWith('//')) {
-            return 'index.html';
+            return 'program-command.html';
         }
         return next;
     }
