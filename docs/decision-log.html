@@ -44,6 +44,33 @@
     <article class="docs-decision">
       <header class="docs-decision-head">
         <span class="docs-decision-date">2026-05-21</span>
+        <span class="docs-decision-title">Branch protection: 1 required review with repo-admin bypass</span>
+      </header>
+      <dl>
+        <dt>Chose</dt>
+        <dd>Set the <code>protect-main</code> ruleset to require 1 approving
+        review and added the repo-admin role as the sole bypass actor; also
+        enabled auto-delete of merged head branches. No-force-push,
+        no-deletion, PR-required, and strict <code>test</code>+<code>onboarding</code>
+        checks were already live.</dd>
+        <dt>Why</dt>
+        <dd>Forces human eyes on agent-authored PRs before merge while
+        keeping the solo maintainer able to land their own hotfixes
+        (GitHub blocks self-approval, so the admin bypass prevents lockout).
+        Agents are non-admin and stay fully bound.</dd>
+        <dt>Rejected</dt>
+        <dd>0 reviews (no human gate on agent work); 1 review with no bypass
+        (would lock the solo maintainer out of their own PRs).</dd>
+        <dt>Note</dt>
+        <dd>Protection is enforced via repository <em>rulesets</em>, not
+        classic branch protection — the classic
+        <code>branches/main/protection</code> API returns 404 by design.</dd>
+      </dl>
+    </article>
+
+    <article class="docs-decision">
+      <header class="docs-decision-head">
+        <span class="docs-decision-date">2026-05-21</span>
         <span class="docs-decision-title">Keep the Node API surface; rehost the Sheets export (do not cut)</span>
       </header>
       <dl>

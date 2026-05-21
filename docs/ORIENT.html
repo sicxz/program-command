@@ -63,10 +63,11 @@
         </tr>
         <tr>
           <th scope="row">Branch protection</th>
-          <td><code>main</code> requires 2 status checks
-              (<code>test</code>, <code>onboarding</code>); direct push is
-              rejected. <span class="docs-pill docs-pill--warn">partial</span>
-              Required reviews and other rules are open (Unit 3).</td>
+          <td><code>main</code> is governed by the <code>protect-main</code>
+              ruleset: required checks <code>test</code> + <code>onboarding</code>
+              (strict), 1 required review, no direct push, no force-push, no
+              deletion. Repo admin is the sole bypass actor. Merged head
+              branches auto-delete.</td>
         </tr>
         <tr>
           <th scope="row">Supabase — prod</th>
@@ -119,21 +120,22 @@
         <tr><td>U4</td><td>Retire Replit refs (needs keep/cut call on <code>api-server.js</code>)</td>
             <td><span class="docs-pill docs-pill--warn">deferred</span></td></tr>
         <tr><td>U3</td><td>Round out branch protection on <code>main</code></td>
-            <td><span class="docs-pill docs-pill--warn">needs go-ahead</span></td></tr>
+            <td><span class="docs-pill docs-pill--ok">complete</span></td></tr>
         <tr><td>U5</td><td>Forbidden-path CI guard (depends on U3)</td>
-            <td><span class="docs-pill docs-pill--warn">needs go-ahead</span></td></tr>
+            <td><span class="docs-pill docs-pill--neutral">next</span></td></tr>
       </tbody>
     </table>
 
     <h2>Next action</h2>
     <aside class="docs-callout docs-callout--note">
       <p class="docs-callout-title">Do this next</p>
-      <p>Write <code>docs/decision-log.html</code> (Unit 8). Seed it from
-      this effort's Key Decisions and the Phase 0 outcomes: trunk over
-      gitflow, data-safety = RLS not branch, manual deploy, docs-as-HTML,
-      Path B over Path A on RLS hardening, full reorientation up front.
-      After U8, write <code>docs/ONBOARDING.html</code> (Unit 9) and link
-      the trio from <code>README</code> and <code>CLAUDE.md</code>.</p>
+      <p>Unit 5 — the forbidden-path CI guard. Add a required,
+      non-bypassable check that fails when an agent-authored commit adds or
+      modifies <code>.github/workflows/**</code>, <code>ci.yml</code>,
+      <code>js/supabase-config.js</code>, <code>.env*</code>, or Supabase
+      policy SQL, plus the matching <code>AGENTS.md</code> rules. Test-first.
+      Phase 1 docs (U6–U9) + Replit retirement (U4) are in PR&nbsp;#254;
+      branch protection (U3) is live.</p>
     </aside>
 
     <h2>Do not touch without confirmation</h2>

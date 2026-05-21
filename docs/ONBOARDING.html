@@ -202,17 +202,23 @@ you ────┴─▶ short-lived branch ─▶ PR ─▶ [CI: test + onboar
     </ul>
 
     <h2>Branch protection on <code>main</code></h2>
-    <p>What's live today (Phase 0):</p>
+    <p>Enforced via the <code>protect-main</code> repository <strong>ruleset</strong>
+    (not classic branch protection — the classic
+    <code>branches/main/protection</code> API returns 404 by design):</p>
     <ul>
-      <li>Required status checks: <code>test</code> and <code>onboarding</code>
-          (the <code>onboarding</code> check is static-artifact validation —
-          never a live <code>/onboarding</code> skill invocation, so the
-          maintainer can never be locked out by external skill availability).</li>
-      <li>Direct push to <code>main</code> is rejected.</li>
+      <li>Required status checks: <code>test</code> and <code>onboarding</code>,
+          strict (branch must be up to date). The <code>onboarding</code>
+          check is static-artifact validation — never a live
+          <code>/onboarding</code> skill invocation, so the maintainer can
+          never be locked out by external skill availability.</li>
+      <li>Pull request required before merge; <strong>1 approving review</strong>
+          required. Direct push, force-push, and branch deletion are all
+          rejected.</li>
+      <li>The repo-admin role is the sole bypass actor — the solo maintainer
+          can merge their own hotfix (GitHub blocks self-approval); agents
+          are non-admin and stay fully bound.</li>
+      <li>Merged head branches auto-delete.</li>
     </ul>
-
-    <p>What's still open (Phase 1 Unit 3, needs explicit go-ahead):
-    required reviews, no force-push, auto-delete head branches on merge.</p>
 
     <h2>Autopilot rules and forbidden paths</h2>
     <p>Agents are expected to:</p>
