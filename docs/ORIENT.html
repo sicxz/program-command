@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ORIENT — Program Command</title>
+<link rel="stylesheet" href="../css/design-system.css">
+<link rel="stylesheet" href="../css/docs.css">
+</head>
+<body class="foundry">
+
+<div class="docs-shell">
+
+  <header class="docs-header">
+    <div class="docs-header-copy">
+      <span class="docs-header-mark" aria-hidden="true">PC</span>
+      <div class="docs-header-title">
+        <p class="docs-eyebrow">Reorientation compass</p>
+        <h1>ORIENT</h1>
+      </div>
+    </div>
+    <a class="docs-header-action" href="./ONBOARDING.html">Deep onboarding</a>
+  </header>
+
+  <nav class="docs-nav" aria-label="Reorientation">
+    <a href="./ORIENT.html" aria-current="page">ORIENT</a>
+    <a href="./decision-log.html">Decision Log</a>
+    <a href="./ONBOARDING.html">Onboarding</a>
+    <a href="./phase0-rls-runbook.html">Phase 0 Runbook</a>
+    <a href="./phase0-handoff.html">Phase 0 Handoff</a>
+  </nav>
+
+  <main class="docs-content">
+
+    <!--
+      The deploy workflow rewrites the stamp value inside the <code>
+      element below on every successful publish. See
+      .github/workflows/deploy-pages.yml step "Stamp ORIENT prod-state
+      marker". The marker token must appear ONLY once per line in this
+      file, and ONLY inside a <code> element, so the per-line sed regex
+      ends at the closing tag.
+    -->
+    <p class="docs-stamp docs-stamp--stale">
+      <strong>Prod state:</strong>
+      <code>prod-state-as-of: never (not yet stamped — first deploy after ORIENT lands will refresh this)</code>
+    </p>
+
+    <h2>What this project is</h2>
+    <p>Program Command is the EWU Design program's scheduling, workload, and
+    capacity-planning surface. Vanilla JS frontend, Supabase (Postgres) for
+    persistence, Chart.js for visuals, no build step. Production is a static
+    GitHub Pages site reading a public Supabase project; edits are gated by
+    a server-side editor allowlist.</p>
+
+    <h2>What is in production right now</h2>
+    <table>
+      <tbody>
+        <tr>
+          <th scope="row">Deploy</th>
+          <td>GitHub Pages, manual <code>workflow_dispatch</code> only.
+              The deploy job refuses to publish unless the deployed commit's
+              <code>test</code> + <code>onboarding</code> checks are both green.</td>
+        </tr>
+        <tr>
+          <th scope="row">Branch protection</th>
+          <td><code>main</code> requires 2 status checks
+              (<code>test</code>, <code>onboarding</code>); direct push is
+              rejected. <span class="docs-pill docs-pill--warn">partial</span>
+              Required reviews and other rules are open (Unit 3).</td>
+        </tr>
+        <tr>
+          <th scope="row">Supabase — prod</th>
+          <td><code>ohnrhjxcjkrdtudpzjgn</code> (us-west-2). Anon key is
+              public by design. Email signups disabled.</td>
+        </tr>
+        <tr>
+          <th scope="row">Supabase — develop</th>
+          <td><code>cstcwplvioheazoghkgf</code>. Stub; not wired into the
+              frontend.</td>
+        </tr>
+        <tr>
+          <th scope="row">RLS</th>
+          <td><code>"Public read"</code> SELECT to <code>public</code> USING
+              <code>true</code> on 9 operational tables. Writes require
+              <code>public.is_editor()</code>; editor allowlist is 4 rows in
+              <code>public.editors</code>, mutable only via direct SQL.</td>
+        </tr>
+        <tr>
+          <th scope="row">Prod DB access</th>
+          <td>Session pooler:
+<code>postgresql://postgres.ohnrhjxcjkrdtudpzjgn:&lt;password&gt;@aws-0-us-west-2.pooler.supabase.com:5432/postgres</code>
+              Direct (<code>db.&lt;ref&gt;.supabase.co</code>) is IPv6-only;
+              do not use.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Current focus</h2>
+    <p>Phase 1 of the
+    <a href="./plans/2026-05-15-001-refactor-forward-operating-model-plan.md">Forward Operating Model plan</a>
+    — operating model + reorientation layer. Phase 0 shipped 2026-05-19
+    (manual deploy + editor allowlist + RLS hardening). Phase 2 (rescue
+    <code>develop</code> + retarget the 8 strategic PRs) is hard-locked
+    behind Phase 1 docs.</p>
+
+    <table>
+      <thead>
+        <tr><th>Unit</th><th>What</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>U6</td><td>Docs design-system variant (<code>css/docs.css</code> + shell)</td>
+            <td><span class="docs-pill docs-pill--ok">complete</span></td></tr>
+        <tr><td>U7</td><td>ORIENT compass (this file)</td>
+            <td><span class="docs-pill docs-pill--ok">complete</span></td></tr>
+        <tr><td>U8</td><td>Decision log (<code>docs/decision-log.html</code>)</td>
+            <td><span class="docs-pill docs-pill--neutral">next</span></td></tr>
+        <tr><td>U9</td><td>ONBOARDING + cold-start links from README/CLAUDE.md</td>
+            <td><span class="docs-pill docs-pill--neutral">pending</span></td></tr>
+        <tr><td>U4</td><td>Retire Replit refs (needs keep/cut call on <code>api-server.js</code>)</td>
+            <td><span class="docs-pill docs-pill--warn">deferred</span></td></tr>
+        <tr><td>U3</td><td>Round out branch protection on <code>main</code></td>
+            <td><span class="docs-pill docs-pill--warn">needs go-ahead</span></td></tr>
+        <tr><td>U5</td><td>Forbidden-path CI guard (depends on U3)</td>
+            <td><span class="docs-pill docs-pill--warn">needs go-ahead</span></td></tr>
+      </tbody>
+    </table>
+
+    <h2>Next action</h2>
+    <aside class="docs-callout docs-callout--note">
+      <p class="docs-callout-title">Do this next</p>
+      <p>Write <code>docs/decision-log.html</code> (Unit 8). Seed it from
+      this effort's Key Decisions and the Phase 0 outcomes: trunk over
+      gitflow, data-safety = RLS not branch, manual deploy, docs-as-HTML,
+      Path B over Path A on RLS hardening, full reorientation up front.
+      After U8, write <code>docs/ONBOARDING.html</code> (Unit 9) and link
+      the trio from <code>README</code> and <code>CLAUDE.md</code>.</p>
+    </aside>
+
+    <h2>Do not touch without confirmation</h2>
+    <ul>
+      <li>Production Supabase (<code>ohnrhjxcjkrdtudpzjgn</code>) — schema,
+          policies, editor allowlist.</li>
+      <li>Branch protection on <code>main</code>.</li>
+      <li><code>.github/workflows/deploy-pages.yml</code> — the manual-deploy
+          gate is the only thing standing between agent work and prod.</li>
+      <li><code>js/supabase-config.js</code> — project routing.</li>
+    </ul>
+
+    <h2>Where to look next</h2>
+    <ul>
+      <li><a href="./decision-log.html">Decision log</a> — why current choices were made.</li>
+      <li><a href="./ONBOARDING.html">Onboarding</a> — architecture, data model, deploy flow, autopilot rules.</li>
+      <li><a href="./phase0-handoff.html">Phase 0 → Phase 1 handoff</a> — the throwaway transition doc; ORIENT supersedes it once stable.</li>
+      <li><a href="./phase0-rls-runbook.html">Phase 0 RLS runbook</a> — what shipped and why Path A was abandoned.</li>
+      <li><a href="./plans/2026-05-15-001-refactor-forward-operating-model-plan.md">Forward Operating Model plan</a> — the multi-phase plan being executed.</li>
+    </ul>
+
+    <h2>How to refresh this page</h2>
+    <p>The <code>prod-state-as-of</code> value at the top is rewritten
+    mechanically by the deploy workflow (<code>deploy-pages.yml</code>,
+    step "Stamp ORIENT prod-state marker"). The rest of this page is
+    hand-edited at decision time — when the answer to "current focus" or
+    "next action" changes, update it in the same PR that makes the change.</p>
+
+  </main>
+
+  <footer class="docs-footer">
+    <span>Last edited: 2026-05-21</span>
+    <span><a href="./decision-log.html">Decision log →</a></span>
+  </footer>
+
+</div>
+
+</body>
+</html>

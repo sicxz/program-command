@@ -3,6 +3,16 @@ https://sicxz.github.io/program-command/
 
 Interactive analytics dashboards for analyzing enrollment trends, faculty workload, and capacity planning for the EWU Design program.
 
+## 🧭 Cold Start
+
+New here, or returning after time away? Read the reorientation docs in order:
+
+1. [`docs/ORIENT.html`](docs/ORIENT.html) — what is in production right now and the next action.
+2. [`docs/decision-log.html`](docs/decision-log.html) — why current choices were made.
+3. [`docs/ONBOARDING.html`](docs/ONBOARDING.html) — architecture, data model, deploy flow, and autopilot rules.
+
+Serve locally (below) and open `http://localhost:8080/docs/ORIENT.html`.
+
 ## 🚀 Quick Start
 
 1. Clone the repository
@@ -40,21 +50,19 @@ Rollout checklist and SOP: `/docs/department-onboarding-qa-pack.md`.
 
 ## 🌐 GitHub Pages Deployment
 
-This repo now includes `/.github/workflows/deploy-pages.yml` to publish static dashboards to GitHub Pages on every push to `main`.
+Production is published by `/.github/workflows/deploy-pages.yml` to GitHub Pages. Deploys are **manual only** (`workflow_dispatch`) — pushing to `main` does **not** publish. The deploy job refuses to run unless the deployed commit's `test` and `onboarding` checks are both green, so production never publishes un-CI'd code.
 
-### One-time setup
+### Deploying
 
-1. Go to your repo: [https://github.com/sicxz/program-command/settings/pages](https://github.com/sicxz/program-command/settings/pages)
-2. Under **Build and deployment**, set **Source** to **GitHub Actions**
-3. Push to `main` (or run the workflow manually in Actions)
-4. Your site will publish at:
-   - [https://sicxz.github.io/program-command/](https://sicxz.github.io/program-command/)
+1. One-time: under **Settings → Pages → Build and deployment**, set **Source** to **GitHub Actions**.
+2. To publish: open the **Actions** tab, select **Deploy Pages**, and run the workflow manually against `main`.
+3. The site publishes at [https://sicxz.github.io/program-command/](https://sicxz.github.io/program-command/).
 
 ### Important limitation
 
 GitHub Pages is static-only. Features that depend on server routes (for example `/api/ai/*` and `/api/export-to-sheets`) require `api-server.js` and will not run on Pages.
 
-For full functionality (AI chat, Sheets export), run locally:
+The Sheets export (faculty workloads) is a real, needed function; today it only works when running locally. Rehosting it so it works against the static prod surface is a tracked follow-up. For full functionality locally:
 
 ```bash
 npm install

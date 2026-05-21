@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Onboarding — Program Command</title>
+<link rel="stylesheet" href="../css/design-system.css">
+<link rel="stylesheet" href="../css/docs.css">
+</head>
+<body class="foundry">
+
+<div class="docs-shell">
+
+  <header class="docs-header">
+    <div class="docs-header-copy">
+      <span class="docs-header-mark" aria-hidden="true">PC</span>
+      <div class="docs-header-title">
+        <p class="docs-eyebrow">Deep onboarding</p>
+        <h1>Onboarding</h1>
+      </div>
+    </div>
+    <a class="docs-header-action" href="./ORIENT.html">ORIENT</a>
+  </header>
+
+  <nav class="docs-nav" aria-label="Reorientation">
+    <a href="./ORIENT.html">ORIENT</a>
+    <a href="./decision-log.html">Decision Log</a>
+    <a href="./ONBOARDING.html" aria-current="page">Onboarding</a>
+    <a href="./phase0-rls-runbook.html">Phase 0 Runbook</a>
+    <a href="./phase0-handoff.html">Phase 0 Handoff</a>
+  </nav>
+
+  <main class="docs-content">
+
+    <p class="docs-stamp docs-stamp--fresh">
+      <strong>Cold start path:</strong>
+      <a href="./ORIENT.html">ORIENT</a> →
+      <a href="./decision-log.html">Decision Log</a> →
+      this page. ORIENT tells you <em>where prod is now</em>; the decision
+      log tells you <em>why current choices were made</em>; this page tells
+      you <em>how the system is shaped</em>.
+    </p>
+
+    <h2>What this is</h2>
+    <p>Program Command (a.k.a. EWU Design Schedule Analyzer) is the
+    scheduling, workload, and capacity-planning surface for the EWU Design
+    program. Vanilla JS frontend, Supabase (Postgres) for persistence,
+    Chart.js for visualization. Production is a static GitHub Pages site
+    that reads a public Supabase project; editing requires sign-in plus
+    membership in a server-side allowlist.</p>
+
+    <p>One maintainer (intermittent) supervises autonomous agents that
+    generate branches and PRs. The operating model — trunk-based, manual
+    deploy, RLS as the data-safety control, agents on a forbidden-path
+    leash — is shaped by that constraint, not by abstract preference.</p>
+
+    <h2>Get the app running locally</h2>
+
+<pre><code># Serve the static site (no build step)
+python3 -m http.server 8080
+# or: npm run serve
+
+# Optional: run the Node API server (Sheets export endpoint)
+node api-server.js          # port 5000
+
+# Tests
+npm test                    # Jest + jsdom
+npm run test:watch
+npm run test:coverage</code></pre>
+
+    <p>Tests live under <code>tests/</code> and match <code>**/*.test.js</code>.
+    Coverage collects from <code>js/**/*.js</code> excluding <code>js/config/</code>.</p>
+
+    <h2>Architecture at a glance</h2>
+
+    <h3>Frontend layers</h3>
+    <ul>
+      <li><strong>Pages</strong> (<code>pages/*.html</code> + <code>pages/*.js</code>) —
+          each dashboard pairs an HTML file with a controller JS file.
+          <code>public-schedule.html</code> lives at the repo root because
+          it is the public surface.</li>
+      <li><strong>Shared modules</strong> (<code>js/</code>) — domain
+          singletons in the IIFE pattern (<code>ScheduleManager</code>,
+          <code>FacultyManager</code>, <code>ReleaseTimeManager</code>,
+          <code>StateManager</code>, etc.). Loaded as global
+          <code>&lt;script&gt;</code> tags; do not convert to ES modules.</li>
+      <li><strong>StateManager</strong> (<code>js/state-manager.js</code>) —
+          central, subscription-based, with localStorage persistence.</li>
+      <li><strong>Engines</strong> — <code>ConflictEngine</code> and
+          <code>ConstraintsEngine</code> for schedule validation.</li>
+      <li><strong>Data access</strong> — <code>js/db-service.js</code>
+          wraps Supabase reads/writes with automatic fallback to static
+          JSON when Supabase is unreachable.</li>
+    </ul>
+
+    <h3>Persistence</h3>
+    <ul>
+      <li><strong>Supabase</strong> — primary store for courses, faculty,
+          constraints, release-time allocations.</li>
+      <li><strong>localStorage</strong> — schedule edits, placements, backup
+          snapshots. Prefix <code>ewu_schedule_</code>.</li>
+      <li><strong>Static JSON</strong> — fallback data
+          (<code>workload-data.json</code>,
+          <code>enrollment-dashboard-data.json</code>,
+          <code>data/*.json</code>).</li>
+    </ul>
+
+    <h3>Node surface</h3>
+    <p><code>api-server.js</code> serves static files on port 5000 and
+    exposes one endpoint, <code>POST /api/export-to-sheets</code>, backed by
+    <code>google-sheets-client.js</code>. <strong>It does not run on GitHub
+    Pages</strong>, so the Sheets export only works locally
+    (<code>npm run serve</code>). The export is a real, needed function for
+    faculty workloads; the decision (2026-05-21) is to <strong>keep it and
+    rehost</strong> it for the static-Pages surface — see the
+    <a href="./decision-log.html">decision log</a>. Do not delete it.</p>
+
+    <h2>Two-Supabase routing</h2>
+    <p>The frontend selects a Supabase project based on hostname and page,
+    via <code>js/supabase-config.js</code>:</p>
+
+    <table>
+      <thead>
+        <tr><th>Project</th><th>Ref</th><th>Role</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Production</td>
+          <td><code>ohnrhjxcjkrdtudpzjgn</code></td>
+          <td>Live data. Public anon key by design. Email signups disabled.</td>
+        </tr>
+        <tr>
+          <td>Develop</td>
+          <td><code>cstcwplvioheazoghkgf</code></td>
+          <td>Stub. Anon key is blank in <code>supabase-config.js</code>;
+              not wired into the frontend today.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>For direct DB access, use the <strong>session pooler</strong> URL —
+    the direct host (<code>db.&lt;ref&gt;.supabase.co</code>) is IPv6-only
+    and unreachable from many networks:</p>
+
+<pre><code>postgresql://postgres.ohnrhjxcjkrdtudpzjgn:&lt;password&gt;@aws-0-us-west-2.pooler.supabase.com:5432/postgres</code></pre>
+
+    <aside class="docs-callout docs-callout--danger">
+      <p class="docs-callout-title">Forbidden path</p>
+      <p><code>js/supabase-config.js</code> is on the agent forbidden-path
+      list. Project routing is a safety control; only humans edit it.</p>
+    </aside>
+
+    <h2>Row-level security and the editor allowlist</h2>
+    <p>The prod Supabase anon key is public by design. RLS is therefore the
+    real data-safety control:</p>
+
+    <ul>
+      <li><strong>Reads</strong> — <code>"Public read"</code> policy:
+          SELECT to <code>public</code> USING <code>true</code> on the
+          9 operational tables. Anon and authenticated can read freely.</li>
+      <li><strong>Writes</strong> — <code>editor_insert/update/delete_*</code>
+          policies require <code>public.is_editor()</code>, which checks
+          membership in the <code>public.editors</code> table.</li>
+      <li><strong>Allowlist</strong> — 4 rows in <code>public.editors</code>:
+          <code>tmasingale@ewu.edu</code>, <code>tmasingale@me.com</code>,
+          <code>mbreen@ewu.edu</code>, <code>rhunton1@ewu.edu</code>.
+          Mutable only via direct SQL on the prod DB.</li>
+    </ul>
+
+    <p>The public-schedule path additionally goes through a
+    <code>SECURITY DEFINER</code> RPC, so it would survive a future
+    tightening of anon SELECT. Tightening anon-read is explicitly out of
+    Phase 0 scope (see the
+    <a href="./phase0-rls-runbook.html">Phase 0 runbook</a> appendix).</p>
+
+    <h2>Deploy flow</h2>
+
+    <h3>The model</h3>
+
+<pre><code>agents ─┐
+you ────┴─▶ short-lived branch ─▶ PR ─▶ [CI: test + onboarding required] ─▶ main
+                                                                            │
+                                                                            ▼
+                                            YOU run "Deploy to Production"
+                                            (workflow_dispatch, per-SHA CI-green gate)
+                                                                            │
+                                                                            ▼
+                                            GitHub Pages ─▶ prod Supabase</code></pre>
+
+    <h3>What this means in practice</h3>
+    <ul>
+      <li>Nothing reaches production on a push to <code>main</code>. The
+          deploy workflow's only trigger is manual <code>workflow_dispatch</code>.</li>
+      <li>The deploy job's first step queries the GitHub API for the
+          deployed commit's <code>test</code> and <code>onboarding</code>
+          check-runs and aborts unless both are <code>success</code>. The
+          gate is keyed to the exact SHA being deployed — a later un-CI'd
+          commit cannot ride a stale green.</li>
+      <li>After publishing, the deploy job stamps
+          <code>docs/ORIENT.html</code>'s <code>prod-state-as-of</code>
+          marker. ORIENT's freshness is mechanical, not by convention.</li>
+    </ul>
+
+    <h2>Branch protection on <code>main</code></h2>
+    <p>What's live today (Phase 0):</p>
+    <ul>
+      <li>Required status checks: <code>test</code> and <code>onboarding</code>
+          (the <code>onboarding</code> check is static-artifact validation —
+          never a live <code>/onboarding</code> skill invocation, so the
+          maintainer can never be locked out by external skill availability).</li>
+      <li>Direct push to <code>main</code> is rejected.</li>
+    </ul>
+
+    <p>What's still open (Phase 1 Unit 3, needs explicit go-ahead):
+    required reviews, no force-push, auto-delete head branches on merge.</p>
+
+    <h2>Autopilot rules and forbidden paths</h2>
+    <p>Agents are expected to:</p>
+    <ul>
+      <li>Target <code>main</code> only. No <code>develop</code> work.</li>
+      <li>Use short-lived branches; one feature per PR.</li>
+      <li>Never trigger a production deploy.</li>
+      <li>Never edit any of the forbidden paths below.</li>
+    </ul>
+
+    <p>Forbidden paths (Phase 1 Unit 5 will enforce this with a required,
+    non-bypassable CI check; today it is policy-only in <code>AGENTS.md</code>):</p>
+
+    <ul>
+      <li><code>.github/workflows/**</code> — modification <em>and</em>
+          creation. Closes the "add a new auto-deploy workflow" bypass.</li>
+      <li><code>ci.yml</code></li>
+      <li><code>js/supabase-config.js</code></li>
+      <li><code>.env*</code></li>
+      <li>Supabase policy / migration SQL files</li>
+    </ul>
+
+    <aside class="docs-callout docs-callout--warning">
+      <p class="docs-callout-title">Override</p>
+      <p>When Unit 5 lands, the only override will be a human-applied PR
+      label that an agent cannot self-apply. Authorship is checked per
+      commit, not by PR author, so an agent cannot launder edits through a
+      delegated PR.</p>
+    </aside>
+
+    <h2>Repo layout</h2>
+    <table>
+      <thead>
+        <tr><th>Path</th><th>What lives there</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>pages/</code></td>
+            <td>Dashboard HTML + controller JS pairs (schedule builder,
+                workload, capacity, constraints, release time, applied
+                learning, etc.).</td></tr>
+        <tr><td><code>js/</code></td>
+            <td>Shared business logic singletons (~26 files). State
+                management, validation, chart utilities, scheduling engines.</td></tr>
+        <tr><td><code>js/config/constants.js</code></td>
+            <td>Centralized constants — workload multipliers, faculty
+                limits, thresholds, brand colors. Frozen at runtime.</td></tr>
+        <tr><td><code>scripts/</code></td>
+            <td>Node CLI tools (CSV validation, enrollment processing,
+                workload calculation) and SQL schema files.</td></tr>
+        <tr><td><code>data/</code></td>
+            <td>Static JSON (course catalog, prereq graph, room
+                constraints, scheduling rules).</td></tr>
+        <tr><td><code>css/</code></td>
+            <td><code>design-system.css</code> (EWU brand tokens),
+                <code>public-schedule.css</code> (Foundry shell),
+                <code>program-command-dashboard-theme.css</code> (dashboard
+                theme), <code>docs.css</code> (this docs variant).</td></tr>
+        <tr><td><code>enrollment-data/processed/</code></td>
+            <td>Source enrollment CSV data.</td></tr>
+        <tr><td><code>docs/</code></td>
+            <td>HTML reorientation docs (ORIENT, decision log, this page),
+                Phase 0 runbook + handoff, plans, brainstorms, schema
+                references.</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Domain conventions</h2>
+
+    <h3>Workload multipliers</h3>
+    <ul>
+      <li>Regular courses: credits × 1.0</li>
+      <li>DESN 495 (Internship): credits × 0.1</li>
+      <li>DESN 499 (Independent Study): credits × 0.2</li>
+      <li>DESN 491 (Practicum): credits × 0.15</li>
+    </ul>
+
+    <h3>Faculty annual credit limits</h3>
+    <ul>
+      <li>Professors (Full / Associate / Assistant): 36</li>
+      <li>Lecturers (Senior / Regular): 45</li>
+      <li>Adjunct: 15</li>
+    </ul>
+
+    <h3>Utilization thresholds</h3>
+    <ul>
+      <li><span class="docs-pill docs-pill--danger">over</span> &gt; 100%</li>
+      <li><span class="docs-pill docs-pill--ok">optimal</span> 60–100%</li>
+      <li><span class="docs-pill docs-pill--warn">under</span> &lt; 60%</li>
+    </ul>
+
+    <h3>Data formats</h3>
+    <ul>
+      <li>Course codes: <code>DESN XXX</code> (e.g. <code>DESN 499</code>)</li>
+      <li>Academic years: <code>YYYY-YY</code> (e.g. <code>2024-25</code>)</li>
+      <li>Quarters: Fall, Winter, Spring, Summer</li>
+      <li>Faculty configuration: <code>scripts/faculty-mapping.json</code></li>
+    </ul>
+
+    <h2>Where to look next</h2>
+    <ul>
+      <li><a href="./ORIENT.html">ORIENT</a> — what is in production right now.</li>
+      <li><a href="./decision-log.html">Decision log</a> — why current choices were made.</li>
+      <li><a href="./phase0-rls-runbook.html">Phase 0 RLS runbook</a> —
+          what shipped 2026-05-19 and why Path A was abandoned.</li>
+      <li><a href="./phase0-handoff.html">Phase 0 → Phase 1 handoff</a> —
+          throwaway transition doc; ORIENT supersedes it once stable.</li>
+      <li><a href="./plans/2026-05-15-001-refactor-forward-operating-model-plan.md">Forward Operating Model plan</a> —
+          the multi-phase plan in flight.</li>
+      <li><a href="../CLAUDE.md">CLAUDE.md</a> — the project instructions
+          Claude Code reads automatically.</li>
+      <li><a href="../README.md">README.md</a> — public-facing entry point
+          (dashboards, data processing, contributing).</li>
+    </ul>
+
+  </main>
+
+  <footer class="docs-footer">
+    <span>Last edited: 2026-05-21</span>
+    <span><a href="./ORIENT.html">Back to ORIENT</a></span>
+  </footer>
+
+</div>
+
+</body>
+</html>

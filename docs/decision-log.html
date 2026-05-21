@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Decision Log — Program Command</title>
+<link rel="stylesheet" href="../css/design-system.css">
+<link rel="stylesheet" href="../css/docs.css">
+</head>
+<body class="foundry">
+
+<div class="docs-shell">
+
+  <header class="docs-header">
+    <div class="docs-header-copy">
+      <span class="docs-header-mark" aria-hidden="true">PC</span>
+      <div class="docs-header-title">
+        <p class="docs-eyebrow">Why we chose what we chose</p>
+        <h1>Decision Log</h1>
+      </div>
+    </div>
+    <a class="docs-header-action" href="./ORIENT.html">ORIENT</a>
+  </header>
+
+  <nav class="docs-nav" aria-label="Reorientation">
+    <a href="./ORIENT.html">ORIENT</a>
+    <a href="./decision-log.html" aria-current="page">Decision Log</a>
+    <a href="./ONBOARDING.html">Onboarding</a>
+    <a href="./phase0-rls-runbook.html">Phase 0 Runbook</a>
+    <a href="./phase0-handoff.html">Phase 0 Handoff</a>
+  </nav>
+
+  <main class="docs-content">
+
+    <p class="docs-stamp docs-stamp--fresh">
+      <strong>How to use:</strong> Newest first. Append an entry the moment
+      a decision is made — never reconstruct from memory. Each entry is
+      three lines: what was <em>chosen</em>, the <em>why</em>, and what was
+      <em>rejected</em>. Link to a PR or runbook if useful. Keep it terse.
+    </p>
+
+    <h2>2026 — Q2</h2>
+
+    <article class="docs-decision">
+      <header class="docs-decision-head">
+        <span class="docs-decision-date">2026-05-21</span>
+        <span class="docs-decision-title">Keep the Node API surface; rehost the Sheets export (do not cut)</span>
+      </header>
+      <dl>
+        <dt>Chose</dt>
+        <dd>Keep <code>api-server.js</code> / <code>google-sheets-client.js</code>
+        / <code>POST /api/export-to-sheets</code> as a local/dev-only tool;
+        document it as not-in-prod; open a follow-up to rehost the export
+        so it works against the static Pages surface.</dd>
+        <dt>Why</dt>
+        <dd>The Sheets export is a real, needed function for faculty
+        workloads (and a desirable backup/institutional archive path for
+        schedules). Cutting it would delete a wanted capability; it is just
+        mis-hosted for a static-Pages world.</dd>
+        <dt>Rejected</dt>
+        <dd>Cut entirely (deletes a needed function); keep-as-is without a
+        rehost plan (leaves the export permanently broken in prod).</dd>
+      </dl>
+    </article>
+
+    <article class="docs-decision">
+      <header class="docs-decision-head">
+        <span class="docs-decision-date">2026-05-21</span>
+        <span class="docs-decision-title">Docs variant mirrors the Foundry shell, not the dashboard theme</span>
+      </header>
+      <dl>
+        <dt>Chose</dt>
+        <dd>System sans-serif, SF Mono, square edges, hairline borders,
+        blue interactive accent — matches <code>css/public-schedule.css</code>.</dd>
+        <dt>Why</dt>
+        <dd>Reorientation docs are read alongside the public surface; a
+        single visual vocabulary keeps the product feel coherent.</dd>
+        <dt>Rejected</dt>
+        <dd>Sora display font, dark-gradient header, EWU-red accent
+        (program-command dashboard theme) — wrong family for long-form reading.</dd>
+      </dl>
+    </article>
+
+    <article class="docs-decision">
+      <header class="docs-decision-head">
+        <span class="docs-decision-date">2026-05-19</span>
+        <span class="docs-decision-title">Path B over Path A on RLS hardening</span>
+      </header>
+      <dl>
+        <dt>Chose</dt>
+        <dd>Editor allowlist (<code>public.editors</code> + <code>is_editor()</code>)
+        on top of existing "Public read" policies; closed PR #246 with a pointer.</dd>
+        <dt>Why</dt>
+        <dd>Path A's tenant migration assumed tables that didn't exist in prod
+        (<code>pathways</code>, <code>pathway_courses</code>) and would have
+        zero-result'd the editor app without seeding <code>user_programs</code>
+        first. Path B locked writes the same week without that risk.</dd>
+        <dt>Rejected</dt>
+        <dd>Path A tenant migration (PR #246). Deferred, not abandoned —
+        retry requires SQL hardening, an end-to-end exercise against the
+        develop project, and a <code>user_programs</code> seed plan.</dd>
+      </dl>
+    </article>
+
+    <article class="docs-decision">
+      <header class="docs-decision-head">
+        <span class="docs-decision-date">2026-05-19</span>
+        <span class="docs-decision-title">Editor allowlist mutable only via direct SQL</span>
+      </header>
+      <dl>
+        <dt>Chose</dt>
+        <dd>Four rows in <code>public.editors</code>; no UI, no API, no
+        self-service add/remove.</dd>
+        <dt>Why</dt>
+        <dd>The allowlist is the only thing standing between an authenticated
+        user and write access to prod data; a UI surface would be a new
+        attack/mistake vector for a control with four total entries.</dd>
+        <dt>Rejected</dt>
+        <dd>Admin UI for editor management — explicitly out of scope until
+        editor count or churn justifies the complexity.</dd>
+      </dl>
+    </article>
+
+    <article class="docs-decision">
+      <header class="docs-decision-head">
+        <span class="docs-decision-date">2026-05-19</span>
+        <span class="docs-decision-title">Email signups disabled at Supabase project level</span>
+      </header>
+      <dl>
+        <dt>Chose</dt>
+        <dd>Toggle off in the Supabase dashboard; verified by probe returning
+        <code>422 signup_disabled</code>.</dd>
+        <dt>Why</dt>
+        <dd>The editor allowlist is the only write gate. Open signup would
+        let any address create an <code>auth.users</code> row — harmless on
+        its own, but a future bug that grants editor-by-default would
+        instantly become exploitable.</dd>
+        <dt>Rejected</dt>
+        <dd>Leave signups open and rely on the allowlist alone — defense in
+        depth is cheap here.</dd>
+      </dl>
+    </article>
+
+    <article class="docs-decision">
+      <header class="docs-decision-head">
+        <span class="docs-decision-date">2026-05-19</span>
+        <span class="docs-decision-title">Manual <code>workflow_dispatch</code> deploy, gated on per-SHA CI</span>
+      </header>
+      <dl>
+        <dt>Chose</dt>
+        <dd>Remove <code>push: branches: [main]</code> trigger; deploy job's
+        first step queries the deployed commit's <code>test</code> +
+        <code>onboarding</code> check-runs and aborts unless both are <code>success</code>.</dd>
+        <dt>Why</dt>
+        <dd>Auto-deploy-on-push is the load-bearing risk for a solo
+        maintainer supervising agents; a per-SHA gate also prevents a later
+        un-CI'd commit from riding a stale green.</dd>
+        <dt>Rejected</dt>
+        <dd>"Most recent CI run" gate — defeated by a second commit landing
+        between PR merge and dispatch.</dd>
+      </dl>
+    </article>
+
+    <h2>2026 — Q2 planning (2026-05-15)</h2>
+
+    <article class="docs-decision">
+      <header class="docs-decision-head">
+        <span class="docs-decision-date">2026-05-15</span>
+        <span class="docs-decision-title">Phase 2 hard-locked behind Phase 1 docs</span>
+      </header>
+      <dl>
+        <dt>Chose</dt>
+        <dd>Units 6–9 (docs variant, ORIENT, decision log, ONBOARDING)
+        complete before <code>develop</code> rescue or strategic-PR triage starts.</dd>
+        <dt>Why</dt>
+        <dd>Intermittent solo maintainer; cold-reorientation must be
+        guaranteed before the largest cross-branch merge work begins.
+        Adversarial review flagged a stall risk; risk accepted.</dd>
+        <dt>Rejected</dt>
+        <dd>"Minimum-viable docs" fallback that would let Phase 2 start
+        early — explicitly declined to keep the lock real.</dd>
+      </dl>
+    </article>
+
+    <article class="docs-decision">
+      <header class="docs-decision-head">
+        <span class="docs-decision-date">2026-05-15</span>
+        <span class="docs-decision-title">Reorientation docs as HTML in a docs design-system variant</span>
+      </header>
+      <dl>
+        <dt>Chose</dt>
+        <dd>Author ORIENT / decision-log / ONBOARDING as HTML under
+        <code>docs/</code>, styled by a new <code>css/docs.css</code> + the
+        existing <code>css/design-system.css</code>.</dd>
+        <dt>Why</dt>
+        <dd>Standing maintainer preference; consistent with the no-build
+        constraint; lets the prod-state stamp be rewritten mechanically by
+        the deploy job instead of a comment convention.</dd>
+        <dt>Rejected</dt>
+        <dd>Markdown in <code>docs/</code> — would not render in the
+        product's visual vocabulary and would require a separate viewer.</dd>
+      </dl>
+    </article>
+
+    <article class="docs-decision">
+      <header class="docs-decision-head">
+        <span class="docs-decision-date">2026-05-15</span>
+        <span class="docs-decision-title">Data safety lives at RLS + deploy, not at the branch boundary</span>
+      </header>
+      <dl>
+        <dt>Chose</dt>
+        <dd>Treat the prod Supabase anon key as public-by-design; rely on
+        RLS + the manual deploy gate as the data-safety controls.</dd>
+        <dt>Why</dt>
+        <dd>The anon key is committed in <code>js/supabase-config.js</code> —
+        a separate <code>develop</code> branch was never a real isolation
+        boundary, just a perceived one. Reality-aligned model.</dd>
+        <dt>Rejected</dt>
+        <dd>Keep gitflow under the belief that <code>develop</code> protects
+        production data.</dd>
+      </dl>
+    </article>
+
+    <article class="docs-decision">
+      <header class="docs-decision-head">
+        <span class="docs-decision-date">2026-05-15</span>
+        <span class="docs-decision-title">Trunk-based single <code>main</code>; retire <code>develop</code></span>
+      </header>
+      <dl>
+        <dt>Chose</dt>
+        <dd>Move agents and humans to short-lived branches off <code>main</code>;
+        delete <code>develop</code> after its forward work is rescued.</dd>
+        <dt>Why</dt>
+        <dd>Gitflow drifted <code>develop</code> ~2 months from <code>main</code>;
+        PRs rotted; the maintainer couldn't tell solved from stale. Trunk
+        removes the drift category entirely.</dd>
+        <dt>Rejected</dt>
+        <dd>Repair gitflow with discipline — declined as a non-structural
+        fix to a structural problem.</dd>
+      </dl>
+    </article>
+
+    <article class="docs-decision">
+      <header class="docs-decision-head">
+        <span class="docs-decision-date">2026-05-15</span>
+        <span class="docs-decision-title">Retire Replit references; GitHub Pages is the prod runtime</span>
+      </header>
+      <dl>
+        <dt>Chose</dt>
+        <dd>Documented prod path matches reality — GitHub Pages, static, no
+        Node server in production.</dd>
+        <dt>Why</dt>
+        <dd>Replit autoscale and <code>api-server.js</code> are not in the
+        production deploy; leaving them in <code>CLAUDE.md</code> /
+        <code>README</code> misleads cold readers.</dd>
+        <dt>Rejected</dt>
+        <dd>Keeping the Replit docs as historical context — superseded by
+        this log entry.</dd>
+        <dt>Resolved</dt>
+        <dd>Keep-or-cut decision on the Node API surface settled 2026-05-21
+        (keep + rehost) — see the top entry of this log.</dd>
+      </dl>
+    </article>
+
+  </main>
+
+  <footer class="docs-footer">
+    <span>Last edited: 2026-05-21</span>
+    <span><a href="./ONBOARDING.html">Onboarding →</a></span>
+  </footer>
+
+</div>
+
+</body>
+</html>

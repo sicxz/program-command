@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<!--
+  Reference template for HTML reorientation docs.
+
+  This file is NOT a live doc — it is the copy-paste starting point for new
+  pages under docs/ that use the docs design-system variant (Unit 6 of
+  docs/plans/2026-05-15-001-refactor-forward-operating-model-plan.md).
+
+  To create a new doc:
+    1. Copy this file to docs/<your-doc>.html
+    2. Update <title>, .docs-eyebrow, <h1>, and the .docs-header-mark initials
+    3. Replace the .docs-content body with real content
+    4. Update the docs-footer "last edited" line
+    5. Remove this comment block
+
+  Mirrors the Foundry shell used by public-schedule.html. Component classes
+  are documented in css/docs.css.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Docs Shell — Reference Template</title>
+<link rel="stylesheet" href="../css/design-system.css">
+<link rel="stylesheet" href="../css/docs.css">
+</head>
+<body class="foundry">
+
+<div class="docs-shell">
+
+  <header class="docs-header">
+    <div class="docs-header-copy">
+      <span class="docs-header-mark" aria-hidden="true">PC</span>
+      <div class="docs-header-title">
+        <p class="docs-eyebrow">Doc kind / section</p>
+        <h1>Page Title Goes Here</h1>
+      </div>
+    </div>
+    <a class="docs-header-action" href="./ORIENT.html">ORIENT</a>
+  </header>
+
+  <nav class="docs-nav" aria-label="Reorientation">
+    <a href="./ORIENT.html" aria-current="page">ORIENT</a>
+    <a href="./decision-log.html">Decision Log</a>
+    <a href="./ONBOARDING.html">Onboarding</a>
+    <a href="./phase0-rls-runbook.html">Phase 0 Runbook</a>
+  </nav>
+
+  <main class="docs-content">
+
+    <!-- Freshness / status stamp. Use exactly ONE of these per page. -->
+    <p class="docs-stamp docs-stamp--fresh">
+      <strong>Status:</strong> Example fresh stamp.
+      For ORIENT.html, this is also where the deploy workflow looks for the
+      literal token <code>prod-state-as-of:</code> followed by a value.
+    </p>
+
+    <h2>Section heading</h2>
+    <p>Body text. Keep lines under ~70ch — line-length is enforced by the
+    <code>max-width</code> on <code>.docs-content p</code>. Use a single
+    <code>&lt;h2&gt;</code> per major section; <code>&lt;h3&gt;</code> for
+    sub-sections.</p>
+
+    <p>Inline elements: <strong>bold</strong>, <em>emphasis</em>,
+    <code>code spans</code>, and <a href="#">links</a>.</p>
+
+    <h3>Lists</h3>
+    <ul>
+      <li>Use ordinary <code>&lt;ul&gt;</code> / <code>&lt;ol&gt;</code>.</li>
+      <li>List items have a comfortable line-length cap.</li>
+    </ul>
+
+    <h3>Tables</h3>
+    <table>
+      <thead>
+        <tr><th>Item</th><th>Value</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Example key</td><td><code>example-value</code></td></tr>
+        <tr><td>Another key</td><td>Plain text in a cell.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Code blocks</h3>
+<pre><code>node api-server.js
+# served on port 5000</code></pre>
+
+    <h4>Subsection eyebrow</h4>
+    <p>Use <code>&lt;h4&gt;</code> for short labels — it renders as a
+    monospace uppercase eyebrow, not a heavy heading.</p>
+
+    <h3>Callouts</h3>
+    <aside class="docs-callout docs-callout--note">
+      <p class="docs-callout-title">Note</p>
+      <p>Use for context the reader should hold in mind. Neutral severity.</p>
+    </aside>
+
+    <aside class="docs-callout docs-callout--warning">
+      <p class="docs-callout-title">Warning</p>
+      <p>Use when an action has a cost or a reversible side effect.</p>
+    </aside>
+
+    <aside class="docs-callout docs-callout--danger">
+      <p class="docs-callout-title">Danger</p>
+      <p>Use only for actions that touch production data, deploy semantics,
+      or branch protection.</p>
+    </aside>
+
+    <h3>Status pills</h3>
+    <p>
+      Inline status:
+      <span class="docs-pill docs-pill--ok">complete</span>
+      <span class="docs-pill docs-pill--warn">deferred</span>
+      <span class="docs-pill docs-pill--danger">blocked</span>
+      <span class="docs-pill docs-pill--neutral">n/a</span>
+    </p>
+
+    <h3>Decision-log entry (for docs/decision-log.html)</h3>
+    <article class="docs-decision">
+      <header class="docs-decision-head">
+        <span class="docs-decision-date">2026-05-21</span>
+        <span class="docs-decision-title">Short decision title</span>
+      </header>
+      <dl>
+        <dt>Chose</dt>
+        <dd>What was decided, in one line.</dd>
+        <dt>Why</dt>
+        <dd>The reason in one line; reference a PR/runbook if useful.</dd>
+        <dt>Rejected</dt>
+        <dd>What was considered and not picked, in one line.</dd>
+      </dl>
+    </article>
+
+  </main>
+
+  <footer class="docs-footer">
+    <span>Last edited: 2026-05-21</span>
+    <span><a href="./ORIENT.html">Back to ORIENT</a></span>
+  </footer>
+
+</div>
+
+</body>
+</html>
