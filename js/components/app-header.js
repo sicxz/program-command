@@ -112,7 +112,7 @@ class AppHeader extends HTMLElement {
 
             const action = e.currentTarget.dataset.action;
             if (action) {
-                // Dispatch a custom event that index.html can listen for
+                // Dispatch a custom event that program-command.html can listen for
                 this.dispatchEvent(new CustomEvent('header-action', {
                     detail: { action },
                     bubbles: true,

@@ -26,7 +26,7 @@ function extractFunction(source, name) {
 }
 
 function loadSchedulerTimeHelpers() {
-    const source = fs.readFileSync(path.resolve(__dirname, '..', 'index.html'), 'utf8');
+    const source = fs.readFileSync(path.resolve(__dirname, '..', 'program-command.html'), 'utf8');
     const sandbox = {
         getSchedulerTimeSlotByAlias: jest.fn(() => null),
         getSchedulerTimeSlots: jest.fn(() => []),
@@ -44,7 +44,7 @@ function loadSchedulerTimeHelpers() {
         'getSchedulerTimeSlotForClockInputs'
     ].forEach((name) => {
         const fnSource = extractFunction(source, name);
-        vm.runInContext(fnSource, sandbox, { filename: `index.html#${name}` });
+        vm.runInContext(fnSource, sandbox, { filename: `program-command.html#${name}` });
     });
 
     return { sandbox, source };

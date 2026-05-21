@@ -34,6 +34,7 @@ export default defineConfig({
         rollupOptions: {
             input: {
                 main: resolve(__dirname, 'index.html'),
+                programCommand: resolve(__dirname, 'program-command.html'),
                 login: resolve(__dirname, 'login.html'),
                 publicSchedule: resolve(__dirname, 'public-schedule.html')
             }

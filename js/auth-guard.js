@@ -61,8 +61,8 @@
 
     function homeUrl() {
         return window.location.pathname.includes('/pages/')
-            ? '../index.html'
-            : 'index.html';
+            ? '../program-command.html'
+            : 'program-command.html';
     }
 
     function can(action, resource, user) {

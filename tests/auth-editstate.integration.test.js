@@ -20,7 +20,7 @@ function createLocation(url) {
 }
 
 function loadAuthGuardHarness({
-    url = 'https://program-command.local/index.html',
+    url = 'https://program-command.local/program-command.html',
     session = { user: { id: 'user-self' } },
     user = { id: 'user-self', email: 'self@example.edu', role: 'chair' },
     canResult = true,
@@ -103,7 +103,7 @@ function loadAuthGuardHarness({
 }
 
 function loadLoginHarness({
-    url = 'https://program-command.local/login.html?timeout=1&next=%2Findex.html',
+    url = 'https://program-command.local/login.html?timeout=1&next=%2Fprogram-command.html',
     authService
 } = {}) {
     const source = fs.readFileSync(path.resolve(__dirname, '..', 'pages/login.js'), 'utf8');
@@ -235,7 +235,7 @@ describe('Auth + Edit State Integration', () => {
         };
 
         const harness = loadAuthGuardHarness({
-            url: 'https://program-command.local/index.html',
+            url: 'https://program-command.local/program-command.html',
             user: { id: 'self-user', email: 'self@example.edu', role: 'chair' },
             canResult: true,
             presenceService
@@ -244,7 +244,7 @@ describe('Auth + Edit State Integration', () => {
         await harness.triggerDomReady();
 
         expect(document.getElementById('authSessionIndicator')).not.toBeNull();
-        expect(presenceService.joinPage).toHaveBeenCalledWith('/index.html');
+        expect(presenceService.joinPage).toHaveBeenCalledWith('/program-command.html');
         expect(typeof presenceCallback).toBe('function');
 
         presenceCallback([
@@ -283,7 +283,7 @@ describe('Auth + Edit State Integration', () => {
 
     test('redirects signed-out users away from protected production routes', async () => {
         const harness = loadAuthGuardHarness({
-            url: 'https://program-command.local/index.html',
+            url: 'https://program-command.local/program-command.html',
             session: null,
             user: null,
             canResult: false,
@@ -295,7 +295,7 @@ describe('Auth + Edit State Integration', () => {
         expect(harness.authService.getSession).toHaveBeenCalledTimes(1);
         expect(harness.authService.getUser).not.toHaveBeenCalled();
         expect(harness.location.replace).toHaveBeenCalledWith(
-            'login.html?next=%2Findex.html'
+            'login.html?next=%2Fprogram-command.html'
         );
 
         harness.cleanup();
@@ -328,7 +328,7 @@ describe('Auth + Edit State Integration', () => {
             source: 'session-recovery-draft'
         });
         expect(importedPayload.scheduleData).toEqual({ Fall: [{ id: 'course-1' }] });
-        expect(harness.location.replace).toHaveBeenCalledWith('/index.html');
+        expect(harness.location.replace).toHaveBeenCalledWith('/program-command.html');
 
         harness.cleanup();
     });

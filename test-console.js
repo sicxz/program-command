@@ -10,8 +10,8 @@ const { chromium } = require('@playwright/test');
         }
     });
 
-    console.log('Navigating to http://localhost:3001/index.html...');
-    await page.goto('http://localhost:3001/index.html');
+    console.log('Navigating to http://localhost:3001/program-command.html...');
+    await page.goto('http://localhost:3001/program-command.html');
     await page.waitForTimeout(2000); // give it time to load
 
     await browser.close();
