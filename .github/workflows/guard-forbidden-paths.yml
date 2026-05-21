@@ -1,0 +1,44 @@
+name: Guard Forbidden Paths
+
+# Fails when a PR touches safety files that autopilot must never change
+# (.github/workflows/**, ci.yml, js/supabase-config.js, .env*, Supabase SQL).
+# The only override is the human-applied "allow-forbidden-paths" label, which
+# an agent cannot self-apply. Logic lives in scripts/check-forbidden-paths.cjs
+# (unit-tested in tests/guard-forbidden-paths.test.js).
+
+on:
+  pull_request:
+    branches: [main]
+    # Re-run when the label is added/removed so the override takes effect
+    # without needing a new commit.
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+jobs:
+  guard-forbidden-paths:
+    name: guard-forbidden-paths
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute changed files
+        run: |
+          set -euo pipefail
+          git diff --name-only \
+            "${{ github.event.pull_request.base.sha }}" \
+            "${{ github.event.pull_request.head.sha }}" > changed_files.txt
+          echo "Changed files in this PR:"
+          cat changed_files.txt
+
+      - name: Run forbidden-path guard
+        env:
+          ALLOW_FORBIDDEN_PATHS: ${{ contains(github.event.pull_request.labels.*.name, 'allow-forbidden-paths') }}
+        run: |
+          set -euo pipefail
+          mapfile -t files < changed_files.txt
+          node scripts/check-forbidden-paths.cjs "${files[@]}"
