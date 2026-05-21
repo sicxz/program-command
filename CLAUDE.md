@@ -2,6 +2,14 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Cold start
+
+Returning cold, or arriving for the first time? Read the reorientation docs in order before touching anything:
+
+1. [`docs/ORIENT.html`](docs/ORIENT.html) — what is in production right now and the single next action.
+2. [`docs/decision-log.html`](docs/decision-log.html) — why current choices were made.
+3. [`docs/ONBOARDING.html`](docs/ONBOARDING.html) — architecture, data model, two-Supabase routing, deploy flow, branch protection, and autopilot forbidden paths.
+
 ## Project Overview
 
 EWU Design Schedule Analyzer — an analytics platform for enrollment trends, faculty workload, and capacity planning for the EWU Design program. Vanilla JavaScript frontend with a Node.js backend, Supabase (PostgreSQL) for persistence, and Chart.js for data visualization. No build tooling or bundler — HTML files load JS modules directly via `<script>` tags.
@@ -91,4 +99,6 @@ Do not convert these to ES module `import/export` — the frontend loads them as
 
 ## Deployment
 
-Deployed on Replit with autoscale. Entry point: `node api-server.js`. Port 5000 internal → 80 external. Runtime: Node.js 20.
+Production is **static GitHub Pages** — published only by a manual `workflow_dispatch` run of `.github/workflows/deploy-pages.yml`, which refuses to publish unless the deployed commit's `test` and `onboarding` checks are both green. There is no Node server in production. See `docs/ONBOARDING.html` for the full deploy flow.
+
+`api-server.js` is a **local/dev-only** Node server (port 5000) that serves static files and the `POST /api/export-to-sheets` endpoint (Google Sheets export, used for faculty workloads). It does **not** run on GitHub Pages, so the Sheets export only works when running locally via `npm run serve`. Rehosting the export so it works against the static prod surface is tracked as a follow-up.
