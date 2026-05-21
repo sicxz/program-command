@@ -193,43 +193,44 @@ describe('public schedule page', () => {
     });
 
     test('reloads public schedule rows when an allowed academic year is selected', async () => {
-        const rpc = jest.fn()
-            .mockResolvedValueOnce({
-                data: [
-                    {
-                        academic_year: '2026-27',
-                        quarter: 'fall',
-                        day_pattern: 'MW',
-                        time_slot: '10:00-12:20',
-                        section: '001',
-                        course_code: 'DESN 368',
-                        course_title: 'Code + Design 1',
-                        credits: 5,
-                        instructor_name: 'T. Masingale',
-                        room_code: '206',
-                        projected_enrollment: 24
-                    }
-                ],
-                error: null
-            })
-            .mockResolvedValueOnce({
-                data: [
-                    {
-                        academic_year: '2025-26',
-                        quarter: 'fall',
-                        day_pattern: 'TR',
-                        time_slot: '13:00-15:20',
-                        section: '001',
-                        course_code: 'DESN 263',
-                        course_title: 'User Experience Design I',
-                        credits: 5,
-                        instructor_name: 'S.Durr',
-                        room_code: '209',
-                        projected_enrollment: 22
-                    }
-                ],
-                error: null
-            });
+        const fallRow = {
+            academic_year: '2026-27',
+            quarter: 'fall',
+            day_pattern: 'MW',
+            time_slot: '10:00-12:20',
+            section: '001',
+            course_code: 'DESN 368',
+            course_title: 'Code + Design 1',
+            credits: 5,
+            instructor_name: 'T. Masingale',
+            room_code: '206',
+            projected_enrollment: 24
+        };
+        const priorYearRow = {
+            academic_year: '2025-26',
+            quarter: 'fall',
+            day_pattern: 'TR',
+            time_slot: '13:00-15:20',
+            section: '001',
+            course_code: 'DESN 263',
+            course_title: 'User Experience Design I',
+            credits: 5,
+            instructor_name: 'S.Durr',
+            room_code: '209',
+            projected_enrollment: 22
+        };
+        // Keyed by RPC name so the init term-read does not consume the schedule
+        // response sequence: get_public_current_term resolves first, then the
+        // schedule load resolves per requested academic year.
+        const rpc = jest.fn((name, args = {}) => {
+            if (name === 'get_public_current_term') {
+                return Promise.resolve({ data: [{ academic_year: '2026-27', quarter: 'fall' }], error: null });
+            }
+            if (args.p_academic_year === '2025-26') {
+                return Promise.resolve({ data: [priorYearRow], error: null });
+            }
+            return Promise.resolve({ data: [fallRow], error: null });
+        });
 
         const app = PublicSchedulePage.createPublicScheduleApp({
             document,
@@ -274,6 +275,93 @@ describe('public schedule page', () => {
 
         expect(document.getElementById('publicStatus').textContent).toBe('Unavailable');
         expect(document.getElementById('publicScheduleGrid').textContent).toContain('permission denied');
+    });
+
+    test('opens to the admin-configured public default term', async () => {
+        const rpc = jest.fn((name) => {
+            if (name === 'get_public_current_term') {
+                return Promise.resolve({ data: [{ academic_year: '2025-26', quarter: 'winter' }], error: null });
+            }
+            return Promise.resolve({
+                data: [
+                    {
+                        academic_year: '2025-26',
+                        quarter: 'winter',
+                        day_pattern: 'MW',
+                        time_slot: '10:00-12:20',
+                        section: '001',
+                        course_code: 'DESN 368',
+                        course_title: 'Code + Design 1',
+                        credits: 5,
+                        instructor_name: 'T. Masingale',
+                        room_code: '206',
+                        projected_enrollment: 24
+                    }
+                ],
+                error: null
+            });
+        });
+
+        const app = PublicSchedulePage.createPublicScheduleApp({
+            document,
+            scheduleDataUtils: ScheduleDataUtils,
+            getClient: () => ({ rpc })
+        });
+
+        await app.init();
+        await flushPromises();
+
+        expect(rpc).toHaveBeenCalledWith('get_public_current_term', { p_program_code: 'ewu-design' });
+        expect(rpc).toHaveBeenCalledWith('get_public_schedule', {
+            p_academic_year: '2025-26',
+            p_program_code: 'ewu-design',
+            p_quarter: null
+        });
+        expect(document.getElementById('publicScheduleTitle').textContent).toBe('Winter 2026');
+        expect(document.querySelector('[data-year="2025-26"]').getAttribute('aria-selected')).toBe('true');
+        expect(document.querySelector('[data-quarter="winter"]').getAttribute('aria-selected')).toBe('true');
+    });
+
+    test('falls back to Fall 2026 when the public term RPC is unavailable', async () => {
+        const rpc = jest.fn((name) => {
+            if (name === 'get_public_current_term') {
+                return Promise.resolve({ data: null, error: { message: 'function does not exist' } });
+            }
+            return Promise.resolve({
+                data: [
+                    {
+                        academic_year: '2026-27',
+                        quarter: 'fall',
+                        day_pattern: 'MW',
+                        time_slot: '10:00-12:20',
+                        section: '001',
+                        course_code: 'DESN 368',
+                        course_title: 'Code + Design 1',
+                        credits: 5,
+                        instructor_name: 'T. Masingale',
+                        room_code: '206',
+                        projected_enrollment: 24
+                    }
+                ],
+                error: null
+            });
+        });
+
+        const app = PublicSchedulePage.createPublicScheduleApp({
+            document,
+            scheduleDataUtils: ScheduleDataUtils,
+            getClient: () => ({ rpc })
+        });
+
+        await app.init();
+        await flushPromises();
+
+        expect(document.getElementById('publicScheduleTitle').textContent).toBe('Fall 2026');
+        expect(rpc).toHaveBeenLastCalledWith('get_public_schedule', {
+            p_academic_year: '2026-27',
+            p_program_code: 'ewu-design',
+            p_quarter: null
+        });
     });
 
     test('public HTML does not load protected editor/auth scripts or save controls', () => {

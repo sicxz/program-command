@@ -508,6 +508,88 @@ function copyPreviousYear(options = {}) {
     }
 }
 
+const PUBLIC_TERM_PROGRAM_CODE = 'ewu-design';
+
+function setPublicTermStatus(message, isError = false) {
+    const node = document.getElementById('publicTermStatus');
+    if (!node) return;
+    node.textContent = message || '';
+    node.style.color = isError ? '#cf222e' : '';
+}
+
+function getTermSupabaseClient() {
+    if (typeof window === 'undefined' || typeof window.getSupabaseClient !== 'function') {
+        return null;
+    }
+    try {
+        return window.getSupabaseClient();
+    } catch (error) {
+        return null;
+    }
+}
+
+function labelForQuarter(quarter) {
+    const value = String(quarter || '').toLowerCase();
+    return value ? value.charAt(0).toUpperCase() + value.slice(1) : '';
+}
+
+async function loadPublicTerm() {
+    const yearSelect = document.getElementById('publicTermYear');
+    const quarterSelect = document.getElementById('publicTermQuarter');
+    if (!yearSelect || !quarterSelect) return;
+
+    const client = getTermSupabaseClient();
+    if (!client || typeof client.rpc !== 'function') {
+        setPublicTermStatus('Sign in on the deployed site to manage the public default.');
+        return;
+    }
+
+    setPublicTermStatus('Loading current default…');
+    try {
+        const { data, error } = await client.rpc('get_public_current_term', {
+            p_program_code: PUBLIC_TERM_PROGRAM_CODE
+        });
+        if (error) throw error;
+        const row = Array.isArray(data) ? data[0] : data;
+        if (row) {
+            if (row.academic_year) yearSelect.value = row.academic_year;
+            if (row.quarter) quarterSelect.value = String(row.quarter).toLowerCase();
+        }
+        setPublicTermStatus('');
+    } catch (error) {
+        setPublicTermStatus(`Could not load current default: ${error?.message || error}`, true);
+    }
+}
+
+async function savePublicTerm() {
+    const button = document.getElementById('savePublicTermBtn');
+    const yearSelect = document.getElementById('publicTermYear');
+    const quarterSelect = document.getElementById('publicTermQuarter');
+    if (!yearSelect || !quarterSelect) return;
+
+    const client = getTermSupabaseClient();
+    if (!client || typeof client.rpc !== 'function') {
+        setPublicTermStatus('Supabase is not available. Open this page on the deployed site while signed in.', true);
+        return;
+    }
+
+    if (button) button.disabled = true;
+    setPublicTermStatus('Saving…');
+    try {
+        const { error } = await client.rpc('set_public_current_term', {
+            p_program_code: PUBLIC_TERM_PROGRAM_CODE,
+            p_academic_year: yearSelect.value,
+            p_quarter: quarterSelect.value
+        });
+        if (error) throw error;
+        setPublicTermStatus(`Public schedule now opens to ${labelForQuarter(quarterSelect.value)} ${yearSelect.value}.`);
+    } catch (error) {
+        setPublicTermStatus(`Save failed: ${error?.message || error}`, true);
+    } finally {
+        if (button) button.disabled = false;
+    }
+}
+
 function wireEvents() {
     document.getElementById('academicYearSelect').addEventListener('change', (event) => {
         setActiveYear(event.target.value);
@@ -535,6 +617,11 @@ function wireEvents() {
         if (action === 'edit') startEdit(recordId);
         if (action === 'delete') deleteRecord(recordId);
     });
+
+    const savePublicTermBtn = document.getElementById('savePublicTermBtn');
+    if (savePublicTermBtn) {
+        savePublicTermBtn.addEventListener('click', savePublicTerm);
+    }
 }
 
 function init() {
@@ -543,6 +630,7 @@ function init() {
     wireEvents();
     renderYearData();
     resetForm();
+    loadPublicTerm();
 }
 
 init();
