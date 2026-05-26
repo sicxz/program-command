@@ -4417,6 +4417,36 @@
             overflow: visible;
         }
 
+        /* Schedule-first layout (UX audit follow-up)
+           Reorders existing children of .container via flex `order` so the
+           schedule grid leads, AY/quarter switching sits right above it as a
+           welded control strip, and the stats / lens / dashboard surfaces sit
+           below where they belong. DOM order intentionally unchanged. */
+        body.foundry-production .container.container--schedule-first {
+            display: flex;
+            flex-direction: column;
+        }
+        body.foundry-production .container--schedule-first > app-header       { order: 1; }
+        body.foundry-production .container--schedule-first > quarter-nav      { order: 2; margin-bottom: 0; }
+        body.foundry-production .container--schedule-first > .content         { order: 3; margin-top: 0; }
+        body.foundry-production .container--schedule-first > .stats-bar       { order: 4; margin-top: 16px; }
+        body.foundry-production .container--schedule-first > lens-filters     { order: 5; }
+        body.foundry-production .container--schedule-first > .dashboard-nav   { order: 6; }
+
+        /* Weld the quarter-nav strip to the schedule grid below: drop the
+           bottom rounding/border on quarter-nav and the top rounding on the
+           schedule panel so they read as a single attached unit. */
+        body.foundry-production .container--schedule-first > quarter-nav {
+            box-shadow: 0 1px 0 rgba(15, 23, 42, 0.06);
+        }
+        body.foundry-production .container--schedule-first .content {
+            margin-top: 0;
+        }
+        body.foundry-production .container--schedule-first .schedule-view-panel {
+            border-top: 0;
+            margin-top: 0;
+        }
+
         body.foundry-production button,
         body.foundry-production select,
         body.foundry-production input,
@@ -5294,7 +5324,14 @@
         </div>
     </div>
 
-    <div class="container">
+    <!-- Schedule-first layout
+         The container uses flexbox column with explicit `order` values on
+         children so the schedule grid leads and the stats / lenses / dashboard
+         navigation sit below — matching the UX audit's "primary content first"
+         finding. DOM order is preserved for backwards compatibility with the
+         many querySelector() calls in this 17k-line file; only visual order
+         changes. See .container in the body styles for the order tokens. -->
+    <div class="container container--schedule-first">
         <app-header></app-header>
 
         <!-- Year and Quarter Navigation Component -->
