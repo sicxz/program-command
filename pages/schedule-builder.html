@@ -310,7 +310,7 @@
             <div class="sidebar-panel">
                 <div class="panel-section">
                     <h3>Unassigned Courses</h3>
-                    <p class="helper-text">Drag courses to the grid to assign time slots</p>
+                    <p class="helper-text">Drag courses to the grid to assign time slots, or press <kbd>Enter</kbd>/<kbd>Space</kbd> to pick up and <kbd>Tab</kbd> to a target cell.</p>
                     <div class="unassigned-list" id="unassignedList">
                         <!-- Dynamically populated -->
                     </div>
@@ -375,6 +375,9 @@
         <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true">
             <span id="toastMessage"></span>
         </div>
+
+        <!-- Phase E — Keyboard-pickup announcer (visually hidden, read by SR) -->
+        <div id="kbdPickupAnnouncer" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
         <!-- Add Course Modal -->
         <div class="modal-overlay" id="addCourseModal">

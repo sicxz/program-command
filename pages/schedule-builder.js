@@ -75,6 +75,13 @@ const SAVE_ATTRIBUTION_STORAGE_KEY = 'schedule_builder_last_save_attribution_v1'
 let isDirty = false;
 let dirtyTrackingReady = false;
 
+// Phase E — keyboard drag-and-drop state.
+// When a course is "picked up" via Enter/Space, this holds enough info to
+// commit a move on the next Enter/Space against a schedule cell, identical
+// to what HTML5 drag/drop puts in dataTransfer.
+let keyboardPickedCourse = null;
+// { courseCode, section, fromDay, fromTime, fromRoom, sourceElementId }
+
 const DEFAULT_FACULTY_BUILD_SCENARIO = {
     faculty: [
         { name: 'Travis Masingale', included: true, annualCredits: 31, inloadCredits: 5, desn499PerQuarter: 2 },
@@ -699,6 +706,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Phase A — warn before unload if the user has unsaved edits.
         // Safe to attach unconditionally; the listener early-returns when not dirty.
         attachBeforeUnloadGuard();
+
+        // Phase E — global Escape cancels any keyboard pickup in progress.
+        attachKeyboardPickupCancelListener();
 
         const activeYear = document.getElementById('academicYear')?.value || '2026-27';
         refreshSaveAttributionLabelForYear(activeYear);
@@ -2184,6 +2194,16 @@ function createGridCell(day, timeKey, room, timeDisplay) {
         handleDrop(e, day, timeKey, room);
     });
 
+    // Phase E — keyboard drop. Cells only get tabindex when a course is picked
+    // (managed by setSchedulCellsTabbable). When focused with a pickup
+    // active, Enter/Space commits the drop here.
+    cell.addEventListener('keydown', (event) => {
+        if (!keyboardPickedCourse) return;
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        commitKeyboardDropToCell(day, timeKey, room);
+    });
+
     courses.forEach(course => {
         const block = createCourseBlock(course);
         cell.appendChild(block);
@@ -2228,6 +2248,13 @@ function createCourseBlock(course) {
     const block = document.createElement('div');
     block.className = `course-block priority-${course.priority}`;
     block.draggable = true;
+    block.tabIndex = 0;
+    block.setAttribute('role', 'button');
+    block.setAttribute(
+        'aria-label',
+        `${course.courseCode} section ${course.section}, ${course.courseTitle || 'untitled'}, taught by ${course.facultyName || 'TBD'}. ` +
+        `Press Enter or Space to pick up and move; press the delete button to remove.`
+    );
     block.dataset.courseCode = course.courseCode;
     block.dataset.section = course.section;
 
@@ -2242,9 +2269,11 @@ function createCourseBlock(course) {
 
     // Add delete button
     const deleteBtn = document.createElement('button');
+    deleteBtn.type = 'button';
     deleteBtn.className = 'course-delete-btn';
     deleteBtn.innerHTML = '×';
     deleteBtn.title = 'Remove course from schedule';
+    deleteBtn.setAttribute('aria-label', `Remove ${course.courseCode}-${course.section} from schedule`);
     deleteBtn.onclick = (e) => {
         e.stopPropagation();
         deleteCourse(course.courseCode, course.section, course.day, course.time, course.room);
@@ -2275,6 +2304,25 @@ function createCourseBlock(course) {
     // Click to show details
     block.onclick = () => showCourseDetails(course);
 
+    // Phase E — keyboard pickup. Enter/Space picks up (or drops if a target
+    // cell is focused). Esc handled by the global cancel listener.
+    block.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        // If the focus target is the delete button inside the card, let that
+        // button's own click semantics handle it — keydown on a <button>
+        // already fires click for Enter and Space.
+        if (event.target && event.target.classList.contains('course-delete-btn')) return;
+        event.preventDefault();
+        if (keyboardPickedCourse && keyboardPickedCourse.courseCode === course.courseCode && keyboardPickedCourse.section === course.section) {
+            cancelKeyboardPickup();
+            block.focus();
+        } else {
+            pickUpCourseForKeyboard(course, block);
+        }
+    });
+
+    // Make the delete button keyboard-discoverable (it's a real <button>, so
+    // it's already focusable — just give it an aria-label).
     return block;
 }
 
@@ -2404,8 +2452,11 @@ function renderUnassignedList() {
 
     let html = '';
     unassigned.forEach(course => {
+        const aria = `${course.courseCode} section ${course.section}, ${course.courseTitle || 'untitled'}. ` +
+                     `Currently unassigned. Press Enter or Space to pick up.`;
         html += `
             <div class="unassigned-item" draggable="true"
+                 role="button" tabindex="0" aria-label="${aria.replace(/"/g, '&quot;')}"
                  ondragstart="handleUnassignedDrag(event, '${course.courseCode}', '${course.section}')"
                  data-course="${course.courseCode}" data-section="${course.section}">
                 <div class="course-code">
@@ -2421,6 +2472,25 @@ function renderUnassignedList() {
     });
 
     container.innerHTML = html;
+
+    // Phase E — keyboard pickup on each unassigned item. innerHTML wipes out
+    // listeners, so we wire them after the render.
+    container.querySelectorAll('.unassigned-item').forEach((item) => {
+        const code = item.dataset.course;
+        const section = item.dataset.section;
+        const course = unassigned.find((c) => c.courseCode === code && c.section === section);
+        if (!course) return;
+        item.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            event.preventDefault();
+            if (keyboardPickedCourse && keyboardPickedCourse.courseCode === code && keyboardPickedCourse.section === section) {
+                cancelKeyboardPickup();
+                item.focus();
+            } else {
+                pickUpCourseForKeyboard(course, item);
+            }
+        });
+    });
 }
 
 /**
@@ -3300,6 +3370,181 @@ function attachBeforeUnloadGuard() {
         event.preventDefault();
         event.returnValue = '';
         return '';
+    });
+}
+
+// ============================================
+// PHASE E — KEYBOARD DRAG-AND-DROP
+// Lets keyboard / SR users complete the Edit Schedule Grid step without
+// mouse drag. Pattern: Enter/Space on a course "picks it up"; Tab cycles
+// through schedule cells; Enter/Space on a cell commits the move via the
+// same code path as handleDrop. Escape cancels.
+// ============================================
+
+function announceKbdMove(message) {
+    const node = document.getElementById('kbdPickupAnnouncer');
+    if (node) node.textContent = message;
+}
+
+function describeCellForAnnouncement(day, timeKey, room) {
+    const dayLabel = (day === 'MW') ? 'Monday/Wednesday' : (day === 'TR') ? 'Tuesday/Thursday' : day;
+    return `${dayLabel} ${timeKey} room ${room}`;
+}
+
+function setSchedulCellsTabbable(enabled) {
+    document.body.classList.toggle('kbd-pickup-active', enabled);
+    const cells = document.querySelectorAll('.schedule-cell');
+    cells.forEach((cell) => {
+        if (enabled) {
+            cell.setAttribute('tabindex', '0');
+            cell.setAttribute('role', 'button');
+            const day = cell.dataset.day;
+            const room = cell.dataset.room;
+            const time = cell.dataset.time;
+            cell.setAttribute('aria-label', `Drop here: ${describeCellForAnnouncement(day, time, room)}`);
+        } else {
+            cell.removeAttribute('tabindex');
+            cell.removeAttribute('role');
+            cell.removeAttribute('aria-label');
+        }
+    });
+}
+
+function pickUpCourseForKeyboard(course, sourceElement) {
+    // If something else is already picked, cancel it first.
+    if (keyboardPickedCourse) cancelKeyboardPickup({ silent: true });
+
+    keyboardPickedCourse = {
+        courseCode: course.courseCode,
+        section: course.section,
+        fromDay: course.day || null,
+        fromTime: course.time || null,
+        fromRoom: course.room || null,
+        sourceLabel: `${course.courseCode}-${course.section}`
+    };
+
+    if (sourceElement) sourceElement.classList.add('kbd-picked');
+    setSchedulCellsTabbable(true);
+
+    const fromText = course.day
+        ? `from ${describeCellForAnnouncement(course.day, course.time, course.room)}`
+        : 'from the unassigned list';
+    announceKbdMove(
+        `Picked up ${keyboardPickedCourse.sourceLabel} ${fromText}. ` +
+        `Tab to choose a destination cell, then press Enter or Space to drop. ` +
+        `Press Escape to cancel.`
+    );
+}
+
+function cancelKeyboardPickup({ silent = false } = {}) {
+    if (!keyboardPickedCourse) return;
+    const label = keyboardPickedCourse.sourceLabel;
+    keyboardPickedCourse = null;
+    setSchedulCellsTabbable(false);
+    document.querySelectorAll('.kbd-picked').forEach((el) => el.classList.remove('kbd-picked'));
+    if (!silent) announceKbdMove(`Cancelled. ${label} was not moved.`);
+}
+
+function commitKeyboardDropToCell(toDay, toTime, toRoom) {
+    if (!keyboardPickedCourse) return;
+    const picked = keyboardPickedCourse;
+    const fromKey = picked.fromDay
+        ? `${picked.fromDay}-${picked.fromTime}-${picked.fromRoom}`
+        : 'unassigned';
+    const toKey = `${toDay}-${toTime}-${toRoom}`;
+    if (fromKey === toKey) {
+        announceKbdMove('Same cell — no change.');
+        cancelKeyboardPickup({ silent: true });
+        return;
+    }
+
+    // Mirror the handleDrop move/swap logic so behavior matches mouse drag.
+    let movedCourse = null;
+    if (assignedCourses[fromKey]) {
+        const idx = assignedCourses[fromKey].findIndex(
+            (c) => c.courseCode === picked.courseCode && c.section === picked.section
+        );
+        if (idx > -1) movedCourse = assignedCourses[fromKey].splice(idx, 1)[0];
+    }
+    if (!movedCourse) {
+        announceKbdMove('Could not find the picked course — please try again.');
+        cancelKeyboardPickup({ silent: true });
+        return;
+    }
+
+    if (
+        movedCourse.facultyName &&
+        movedCourse.facultyName !== 'TBD' &&
+        hasFacultyTimeConflict(movedCourse.facultyName, toDay, toTime)
+    ) {
+        if (!assignedCourses[fromKey]) assignedCourses[fromKey] = [];
+        assignedCourses[fromKey].push(movedCourse);
+        showToast(`Cannot move: ${movedCourse.facultyName} is already teaching at that time`, 'warning');
+        announceKbdMove(`Move blocked: ${movedCourse.facultyName} has a conflict at ${describeCellForAnnouncement(toDay, toTime, toRoom)}.`);
+        cancelKeyboardPickup({ silent: true });
+        return;
+    }
+
+    let swappedCourse = null;
+    if (assignedCourses[toKey] && assignedCourses[toKey].length > 0) {
+        const targetIdx = assignedCourses[toKey].findIndex((c) => c.room === toRoom);
+        if (targetIdx > -1) {
+            swappedCourse = assignedCourses[toKey].splice(targetIdx, 1)[0];
+            if (fromKey !== 'unassigned' && picked.fromDay) {
+                swappedCourse.day = picked.fromDay;
+                swappedCourse.time = picked.fromTime;
+                swappedCourse.room = picked.fromRoom;
+                if (!assignedCourses[fromKey]) assignedCourses[fromKey] = [];
+                assignedCourses[fromKey].push(swappedCourse);
+            } else {
+                if (!assignedCourses['unassigned']) assignedCourses['unassigned'] = [];
+                swappedCourse.day = null;
+                swappedCourse.time = null;
+                swappedCourse.room = null;
+                assignedCourses['unassigned'].push(swappedCourse);
+            }
+        }
+    }
+
+    movedCourse.day = toDay;
+    movedCourse.time = toTime;
+    movedCourse.room = toRoom;
+    if (!assignedCourses[toKey]) assignedCourses[toKey] = [];
+    assignedCourses[toKey].push(movedCourse);
+
+    markDirty();
+
+    // Tear down pickup state BEFORE re-render so the new DOM is clean.
+    const sourceLabel = picked.sourceLabel;
+    keyboardPickedCourse = null;
+    setSchedulCellsTabbable(false);
+    document.querySelectorAll('.kbd-picked').forEach((el) => el.classList.remove('kbd-picked'));
+
+    renderScheduleGrid();
+    renderUnassignedList();
+    renderFacultySummary();
+
+    if (swappedCourse) {
+        const swappedLabel = `${swappedCourse.courseCode}-${swappedCourse.section}`;
+        showToast(`Swapped ${picked.courseCode} with ${swappedCourse.courseCode}`);
+        announceKbdMove(`${sourceLabel} dropped at ${describeCellForAnnouncement(toDay, toTime, toRoom)}, swapped with ${swappedLabel}.`);
+    } else {
+        showToast(`Moved ${picked.courseCode}-${picked.section} to ${toDay} ${toTime}`);
+        announceKbdMove(`${sourceLabel} dropped at ${describeCellForAnnouncement(toDay, toTime, toRoom)}.`);
+    }
+}
+
+/**
+ * Global Esc handler for cancelling a pickup. Installed once at DOMContentLoaded.
+ */
+function attachKeyboardPickupCancelListener() {
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && keyboardPickedCourse) {
+            // Don't fight modal Esc handlers — bail if a modal is open.
+            if (__modalControllers && __modalControllers.size > 0) return;
+            event.preventDefault();
+            cancelKeyboardPickup();
+        }
     });
 }
 

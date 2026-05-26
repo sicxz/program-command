@@ -2625,6 +2625,50 @@ body {
 }
 
 /* ============================================
+   PHASE E — KEYBOARD DRAG-AND-DROP
+   Pick-up / drop using Enter+Space; Tab between cells; Escape cancels.
+   ============================================ */
+
+.sr-only {
+    position: absolute !important;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Focusable cards announce themselves on Tab. */
+.course-block:focus-visible,
+.unassigned-item:focus-visible {
+    outline: 3px solid var(--brand-focus-ring);
+    outline-offset: 2px;
+}
+
+/* Picked card — clear "I am currently held" affordance. */
+.course-block.kbd-picked,
+.unassigned-item.kbd-picked {
+    outline: 3px solid var(--primary-color);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 6px var(--brand-focus-ring);
+}
+
+/* Cells are tabbable while pickup is active so Tab cycles through targets. */
+body.kbd-pickup-active .schedule-cell {
+    cursor: copy;
+    box-shadow: inset 0 0 0 1px var(--brand-focus-ring);
+}
+
+body.kbd-pickup-active .schedule-cell:focus-visible {
+    outline: 3px solid var(--primary-color);
+    outline-offset: -2px;
+    background: rgba(161, 0, 34, 0.04);
+}
+
+/* ============================================
    PHASE C — REVEAL SEQUENCE + COPY POLISH
    Inline Step-2 anchor + helper-text styling moved out of inline styles.
    ============================================ */
