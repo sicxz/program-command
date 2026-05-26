@@ -68,6 +68,13 @@ const FACULTY_BUILD_STORAGE_KEY = 'faculty_build_scenario_v1';
 const FACULTY_PREFERENCES_LOCAL_KEY = 'faculty_preferences_local_v1';
 const SAVE_ATTRIBUTION_STORAGE_KEY = 'schedule_builder_last_save_attribution_v1';
 
+// Phase A — Data safety: track unsaved edits so we can warn before unload
+// and tell the user (via the attribution label) that their work is not on the
+// server yet. Cleared on successful saveDraft / saveToDatabase. Set by every
+// mutation site (drop/swap/delete/add/apply-recommendations/generate).
+let isDirty = false;
+let dirtyTrackingReady = false;
+
 const DEFAULT_FACULTY_BUILD_SCENARIO = {
     faculty: [
         { name: 'Travis Masingale', included: true, annualCredits: 31, inloadCredits: 5, desn499PerQuarter: 2 },
@@ -134,7 +141,24 @@ function formatSaveAttributionDate(isoString) {
 function setSaveAttributionLabel(userLabel, savedAt) {
     const label = document.getElementById('saveAttributionLabel');
     if (!label) return;
-    label.textContent = `Last saved by ${userLabel || '--'} at ${formatSaveAttributionDate(savedAt)}`;
+
+    // Dirty wins — always tell the user their work isn't safe yet.
+    if (isDirty) {
+        label.textContent = 'Unsaved changes — Save to Cloud to commit, or Save Draft to keep them in this browser.';
+        label.dataset.state = 'dirty';
+        return;
+    }
+
+    // No save state for this year yet — produce a real empty-state sentence
+    // instead of "Last saved by -- at --".
+    if (!userLabel || !savedAt) {
+        label.textContent = 'Not yet saved to cloud — your edits live only in this browser.';
+        label.dataset.state = 'pristine';
+        return;
+    }
+
+    label.textContent = `Last saved by ${userLabel} at ${formatSaveAttributionDate(savedAt)}`;
+    label.dataset.state = 'saved';
 }
 
 function readSaveAttributionState() {
@@ -157,7 +181,7 @@ function writeSaveAttributionState(state) {
 function refreshSaveAttributionLabelForYear(targetYear) {
     const state = readSaveAttributionState();
     if (!state || state.year !== targetYear) {
-        setSaveAttributionLabel('--', null);
+        setSaveAttributionLabel(null, null);
         return;
     }
     setSaveAttributionLabel(state.userLabel, state.savedAt);
@@ -672,6 +696,10 @@ document.addEventListener('DOMContentLoaded', async function() {
         initializeFacultyBuildScenario();
         loadDraft();
 
+        // Phase A — warn before unload if the user has unsaved edits.
+        // Safe to attach unconditionally; the listener early-returns when not dirty.
+        attachBeforeUnloadGuard();
+
         const activeYear = document.getElementById('academicYear')?.value || '2026-27';
         refreshSaveAttributionLabelForYear(activeYear);
         const academicYearSelect = document.getElementById('academicYear');
@@ -703,6 +731,15 @@ function extractCoursesFromProgramCommandDraft(academicYear) {
         parsed = JSON.parse(raw);
     } catch (error) {
         console.warn(`Could not parse Program Command schedule draft for ${academicYear}:`, error);
+        showErrorBanner(
+            `The Program Command draft for ${academicYear} could not be parsed and was skipped. The builder will fall back to workload-data.json. Open the main scheduler to regenerate, or copy a different source year.`,
+            {
+                actions: [{
+                    label: 'Open main scheduler',
+                    onClick: () => { window.location.href = '../program-command.html'; }
+                }]
+            }
+        );
         return [];
     }
 
@@ -958,6 +995,9 @@ function applySelectedRecommendations() {
         }
     });
 
+    if (appliedCount > 0) {
+        markDirty();
+    }
     showToast(`Applied ${appliedCount} recommendations`);
 
     // Re-run analysis to update dashboard
@@ -1253,6 +1293,10 @@ async function handleGenerate() {
 
         // Auto-save placements after generation for future preservation
         updatePlacementsFromSchedule(previousYear);
+
+        // A freshly generated schedule lives only in memory until the user saves —
+        // mark dirty so the action bar tells them and beforeunload guards it.
+        markDirty();
 
         showToast(`Generated schedule for ${targetYear} based on ${previousYear} (${sourceSchedule.sourceLabel}) (${totalSections} total sections)`);
         updateScenarioAssignmentSummary();
@@ -2242,6 +2286,7 @@ function deleteCourse(courseCode, section, day, time, room) {
     const index = courses.findIndex(c => c.courseCode === courseCode && c.section === section);
     if (index > -1) {
         courses.splice(index, 1);
+        markDirty();
         showToast(`${courseCode}-${section} removed from schedule`);
         renderScheduleGrid();
         renderUnassignedList();
@@ -2322,6 +2367,8 @@ function handleDrop(e, toDay, toTime, toRoom) {
             if (!assignedCourses[toKey]) assignedCourses[toKey] = [];
             assignedCourses[toKey].push(movedCourse);
 
+            markDirty();
+
             // Re-render
             renderScheduleGrid();
             renderUnassignedList();
@@ -2336,6 +2383,7 @@ function handleDrop(e, toDay, toTime, toRoom) {
         }
     } catch (err) {
         console.error('Drop error:', err);
+        showToast('Drop failed — see console for details', 'error');
     }
 }
 
@@ -2548,12 +2596,24 @@ function saveDraft() {
         facultyBuildScenario: facultyBuildScenario
     };
 
-    localStorage.setItem('scheduleBuilderDraft', JSON.stringify(draft));
-    
+    try {
+        localStorage.setItem('scheduleBuilderDraft', JSON.stringify(draft));
+    } catch (error) {
+        console.error('Local draft save error:', error);
+        showToast('Could not save draft — browser storage may be full or disabled', 'error');
+        showErrorBanner('We could not save the local draft. Try freeing browser storage, or use "Save to Cloud" instead. Your edits are still in memory until you reload.', {
+            actions: [{ label: 'Dismiss', onClick: clearErrorBanner }]
+        });
+        return;
+    }
+
     // Also save placements for future use
     const targetYear = document.getElementById('academicYear')?.value || currentSchedule.year;
     updatePlacementsFromSchedule(targetYear);
-    
+
+    // The draft is now persisted in localStorage — for our purposes the in-memory
+    // state matches a saved snapshot. Cloud is a separate axis.
+    clearDirty();
     showToast('Draft saved successfully');
 }
 
@@ -2594,9 +2654,27 @@ function loadDraft() {
         renderFacultySummary();
         renderQuarterTabs();
 
+        // Loaded state matches what was last persisted — not dirty.
+        clearDirty();
         showToast('Draft loaded');
     } catch (error) {
         console.error('Error loading draft:', error);
+        showToast('Could not load your saved draft', 'error');
+        showErrorBanner(
+            'Your saved draft could not be loaded — it may be corrupt or from an older version. Your in-memory schedule has not been changed.',
+            {
+                actions: [
+                    {
+                        label: 'Discard draft',
+                        onClick: () => {
+                            try { localStorage.removeItem('scheduleBuilderDraft'); } catch (_) { /* noop */ }
+                            clearErrorBanner();
+                            showToast('Local draft discarded');
+                        }
+                    }
+                ]
+            }
+        );
     }
 }
 
@@ -2760,52 +2838,65 @@ async function saveToDatabase() {
         return;
     }
 
-    try {
-        showToast('Saving to database...');
-        const userAttribution = await resolveCurrentUserAttribution();
+    return withSaveButtonBusy('saveToCloudBtn', '☁️ Saving…', async () => {
+        try {
+            showToast('Saving to database…');
+            const userAttribution = await resolveCurrentUserAttribution();
 
-        // Initialize database service
-        await dbService.initialize();
+            // Initialize database service
+            await dbService.initialize();
 
-        const targetYear = document.getElementById('academicYear')?.value || currentSchedule.year;
+            const targetYear = document.getElementById('academicYear')?.value || currentSchedule.year;
 
-        // Get or create academic year
-        const yearRecord = await dbService.getOrCreateYear(targetYear);
-        if (!yearRecord) {
-            showToast('Failed to get academic year', 'error');
-            return;
+            // Get or create academic year
+            const yearRecord = await dbService.getOrCreateYear(targetYear);
+            if (!yearRecord) {
+                showToast('Failed to get academic year', 'error');
+                showErrorBanner(`Save failed for ${targetYear}: could not resolve the academic year record. Your edits are still in memory; retry, or contact an admin if it persists.`);
+                return;
+            }
+
+            const quarterSchedules = getAllQuarterSchedulesForSave();
+            const records = await buildYearScopedScheduleSyncRecords(quarterSchedules);
+            const recordsWithUserContext = records.map((record) => ({
+                ...record,
+                updated_by: userAttribution.id
+            }));
+            const syncResult = await dbService.syncScheduledCoursesForAcademicYear(yearRecord.id, recordsWithUserContext);
+
+            if (!syncResult) {
+                showToast('Error saving to database', 'error');
+                showErrorBanner(`Save failed for ${targetYear}: the database sync did not return a result. Your edits are still in memory; retry, or save a local draft to preserve them.`);
+                return;
+            }
+
+            const updatedCount = Number(syncResult.updated_count || 0);
+            const insertedCount = Number(syncResult.inserted_count || 0);
+            const deletedCount = Number(syncResult.deleted_count || 0);
+            const savedAt = new Date().toISOString();
+            writeSaveAttributionState({
+                year: targetYear,
+                userId: userAttribution.id,
+                userLabel: userAttribution.label,
+                savedAt
+            });
+            // clearDirty() first so the label renders the saved state, not the
+            // dirty state, when setSaveAttributionLabel inspects isDirty.
+            clearDirty();
+            setSaveAttributionLabel(userAttribution.label, savedAt);
+            clearErrorBanner();
+            showToast(`Saved ${targetYear}: ${updatedCount} updated, ${insertedCount} inserted, ${deletedCount} removed`);
+
+        } catch (error) {
+            console.error('Database save error:', error);
+            const friendly = buildDatabaseSaveErrorMessage(error);
+            showToast(friendly, 'error');
+            // Surface the same message persistently so it can't be missed in a
+            // 3-second toast window. Errors here often need user follow-up
+            // (auth, RLS, network).
+            showErrorBanner(friendly);
         }
-
-        const quarterSchedules = getAllQuarterSchedulesForSave();
-        const records = await buildYearScopedScheduleSyncRecords(quarterSchedules);
-        const recordsWithUserContext = records.map((record) => ({
-            ...record,
-            updated_by: userAttribution.id
-        }));
-        const syncResult = await dbService.syncScheduledCoursesForAcademicYear(yearRecord.id, recordsWithUserContext);
-
-        if (!syncResult) {
-            showToast('Error saving to database', 'error');
-            return;
-        }
-
-        const updatedCount = Number(syncResult.updated_count || 0);
-        const insertedCount = Number(syncResult.inserted_count || 0);
-        const deletedCount = Number(syncResult.deleted_count || 0);
-        const savedAt = new Date().toISOString();
-        writeSaveAttributionState({
-            year: targetYear,
-            userId: userAttribution.id,
-            userLabel: userAttribution.label,
-            savedAt
-        });
-        setSaveAttributionLabel(userAttribution.label, savedAt);
-        showToast(`Saved ${targetYear}: ${updatedCount} updated, ${insertedCount} inserted, ${deletedCount} removed`);
-
-    } catch (error) {
-        console.error('Database save error:', error);
-        showToast(buildDatabaseSaveErrorMessage(error), 'error');
-    }
+    });
 }
 
 /**
@@ -3064,6 +3155,133 @@ function exportToEditor() {
     setTimeout(() => {
         window.location.href = '../index.html?import=true';
     }, 500);
+}
+
+// ============================================
+// PHASE A — DATA SAFETY HELPERS
+// ============================================
+
+/**
+ * Mark the schedule as having unsaved changes. Updates the attribution label
+ * copy so the user can always see "Unsaved changes" in the action bar.
+ */
+function markDirty() {
+    if (isDirty) return;
+    isDirty = true;
+    refreshSaveAttributionForCurrentYear();
+}
+
+/**
+ * Clear the dirty flag after a successful save (cloud or local draft) or after
+ * loading a draft (loaded state matches the saved snapshot).
+ */
+function clearDirty() {
+    if (!isDirty) return;
+    isDirty = false;
+    refreshSaveAttributionForCurrentYear();
+}
+
+function refreshSaveAttributionForCurrentYear() {
+    const year = document.getElementById('academicYear')?.value;
+    if (year) {
+        refreshSaveAttributionLabelForYear(year);
+    } else {
+        setSaveAttributionLabel(null, null);
+    }
+}
+
+/**
+ * Show a persistent error banner above the action bar. Survives until the user
+ * dismisses it (or until clearErrorBanner is called). Used for recoverable but
+ * important failures that would otherwise be swallowed by a 3-second toast
+ * (e.g., corrupt draft on load, save errors).
+ */
+function showErrorBanner(message, { actions = [] } = {}) {
+    let banner = document.getElementById('builderRecoverableErrorBanner');
+    if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'builderRecoverableErrorBanner';
+        banner.className = 'builder-recoverable-error';
+        banner.setAttribute('role', 'alert');
+        banner.setAttribute('aria-live', 'assertive');
+        document.body.appendChild(banner);
+    }
+
+    // Clear and rebuild
+    while (banner.firstChild) banner.removeChild(banner.firstChild);
+
+    const text = document.createElement('div');
+    text.className = 'builder-recoverable-error__message';
+    text.textContent = message;
+    banner.appendChild(text);
+
+    const actionRow = document.createElement('div');
+    actionRow.className = 'builder-recoverable-error__actions';
+    actions.forEach(({ label, onClick }) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'builder-recoverable-error__btn';
+        btn.textContent = label;
+        btn.addEventListener('click', () => {
+            try { onClick && onClick(); } finally { /* keep banner unless cleared */ }
+        });
+        actionRow.appendChild(btn);
+    });
+    const dismiss = document.createElement('button');
+    dismiss.type = 'button';
+    dismiss.className = 'builder-recoverable-error__btn builder-recoverable-error__btn--dismiss';
+    dismiss.textContent = 'Dismiss';
+    dismiss.setAttribute('aria-label', 'Dismiss error');
+    dismiss.addEventListener('click', clearErrorBanner);
+    actionRow.appendChild(dismiss);
+    banner.appendChild(actionRow);
+
+    banner.classList.add('visible');
+}
+
+function clearErrorBanner() {
+    const banner = document.getElementById('builderRecoverableErrorBanner');
+    if (banner) banner.classList.remove('visible');
+}
+
+/**
+ * Wrap an async save action with button busy state: disables the trigger,
+ * swaps the label to a "saving" form, sets aria-busy, restores on resolve/reject.
+ * The caller still owns success/error toasts and clearDirty.
+ */
+async function withSaveButtonBusy(buttonId, busyLabel, action) {
+    const button = document.getElementById(buttonId);
+    if (!button) return action();
+
+    const originalLabel = button.innerHTML;
+    const wasDisabled = button.disabled;
+    button.disabled = true;
+    button.setAttribute('aria-busy', 'true');
+    button.innerHTML = busyLabel;
+
+    try {
+        return await action();
+    } finally {
+        button.disabled = wasDisabled;
+        button.removeAttribute('aria-busy');
+        button.innerHTML = originalLabel;
+    }
+}
+
+/**
+ * beforeunload guard — warn only when there are unsaved changes. The browser
+ * shows its generic confirm dialog; we just have to call preventDefault and
+ * set returnValue.
+ */
+function attachBeforeUnloadGuard() {
+    if (dirtyTrackingReady) return;
+    dirtyTrackingReady = true;
+    window.addEventListener('beforeunload', (event) => {
+        if (!isDirty) return;
+        event.preventDefault();
+        event.returnValue = '';
+        return '';
+    });
 }
 
 /**
@@ -3345,6 +3563,7 @@ function handleAddCourse(e) {
     // Add to assigned courses
     if (!assignedCourses[key]) assignedCourses[key] = [];
     assignedCourses[key].push(newCourse);
+    markDirty();
 
     // Close modal and refresh grid
     closeAddCourseModal();
