@@ -1,7 +1,12 @@
 /* Schedule Builder Styles */
 :root {
-    --primary-color: #b7142e;
-    --primary-dark: #8f1024;
+    /* EWU Design brand red — aligned with css/design-system.css and CLAUDE.md.
+       Previously this file ran on #b7142e / #8f1024, which read as off-brand
+       next to the rest of Program Command. */
+    --primary-color: #a10022;
+    --primary-dark: #760019;
+    --brand-focus-ring: rgba(161, 0, 34, 0.22);
+    --brand-shadow: rgba(161, 0, 34, 0.28);
     --secondary-color: #0969da;
     --success-color: #16a34a;
     --warning-color: #d97706;
@@ -21,15 +26,15 @@
 }
 
 :focus-visible {
-    outline: 3px solid rgba(15, 118, 110, 0.35);
+    outline: 3px solid var(--brand-focus-ring);
     outline-offset: 2px;
 }
 
 body {
     font-family: 'Sora', 'Avenir Next', 'Segoe UI', sans-serif;
     background:
-        radial-gradient(1200px 700px at 0% -10%, rgba(15, 118, 110, 0.08), transparent 55%),
-        radial-gradient(1100px 600px at 100% -8%, rgba(245, 158, 11, 0.08), transparent 55%),
+        radial-gradient(1200px 700px at 0% -10%, rgba(161, 0, 34, 0.06), transparent 55%),
+        radial-gradient(1100px 600px at 100% -8%, rgba(15, 23, 42, 0.04), transparent 55%),
         var(--bg-primary);
     color: var(--text-primary);
     line-height: 1.6;
@@ -41,17 +46,21 @@ body {
     padding: 20px;
 }
 
-/* Header */
+/* Header
+ * NOTE: program-command-dashboard-theme.css overrides this with a charcoal
+ * command-bar gradient and !important — that's the canonical look across
+ * Program Command. The base styles below stay in case the theme is removed,
+ * but the brand red is the accent the theme expects, not teal. */
 .builder-header {
     background:
-        linear-gradient(120deg, rgba(15, 118, 110, 0.96) 0%, rgba(21, 94, 89, 0.98) 100%),
+        linear-gradient(120deg, #a10022 0%, #760019 100%),
         repeating-linear-gradient(45deg, rgba(255,255,255,0.05) 0 10px, transparent 10px 20px);
     color: white;
     padding: 30px;
     border-radius: 20px;
     margin-bottom: 24px;
     position: relative;
-    box-shadow: 0 10px 30px rgba(15, 118, 110, 0.22);
+    box-shadow: 0 10px 30px var(--brand-shadow);
 }
 
 .builder-header-top {
@@ -217,7 +226,7 @@ body {
 .control-group select:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+    box-shadow: 0 0 0 3px var(--brand-focus-ring);
 }
 
 /* Buttons */
@@ -235,7 +244,7 @@ body {
 
 .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(15, 118, 110, 0.32);
+    box-shadow: 0 6px 16px var(--brand-shadow);
 }
 
 .btn-secondary {
@@ -581,8 +590,10 @@ body {
     position: absolute;
     top: 4px;
     right: 4px;
-    width: 20px;
-    height: 20px;
+    min-width: 24px;
+    min-height: 24px;
+    width: 24px;
+    height: 24px;
     border: none;
     background: rgba(255,255,255,0.8);
     color: #dc3545;
@@ -590,14 +601,18 @@ body {
     cursor: pointer;
     font-size: 14px;
     line-height: 1;
-    opacity: 0;
+    /* Visible at low opacity at rest so the affordance is discoverable;
+       full opacity when the parent card is hovered or has keyboard focus. */
+    opacity: 0.35;
     transition: opacity 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.course-block:hover .course-delete-btn {
+.course-block:hover .course-delete-btn,
+.course-block:focus-within .course-delete-btn,
+.course-delete-btn:focus-visible {
     opacity: 1;
 }
 
@@ -1530,7 +1545,7 @@ body {
 
 .recommendation-item:hover {
     border-color: var(--primary-color);
-    box-shadow: 0 2px 6px rgba(245, 158, 11, 0.15);
+    box-shadow: 0 2px 6px var(--brand-focus-ring);
 }
 
 .recommendation-item input[type="checkbox"] {
@@ -1660,10 +1675,21 @@ body {
     cursor: pointer;
     color: var(--text-secondary);
     line-height: 1;
+    /* WCAG 2.2 target size — at least 24×24. */
+    min-width: 32px;
+    min-height: 32px;
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
 }
 
-.modal-close:hover {
+.modal-close:hover,
+.modal-close:focus-visible {
     color: var(--text-primary);
+    background: rgba(15, 23, 42, 0.06);
 }
 
 .form-group {
@@ -1691,7 +1717,7 @@ body {
 .form-group input:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+    box-shadow: 0 0 0 3px var(--brand-focus-ring);
 }
 
 .modal-actions {
@@ -1703,21 +1729,9 @@ body {
     border-top: 1px solid var(--border-color);
 }
 
-/* Small button for sidebar */
-.btn-small {
-    padding: 4px 10px;
-    font-size: 12px;
-    background: var(--primary-color);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.btn-small:hover {
-    background: #d97706;
-}
+/* (.btn-small canonical definition lives further down. The earlier duplicate
+   with a solid-red bg and amber hover was deleted in Phase D — it was clearly
+   a copy-paste from a different surface and broke the ladder.) */
 
 /* Faculty Preferences Modal Styles */
 .preferences-grid {
@@ -1787,7 +1801,7 @@ body {
 .form-group textarea:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+    box-shadow: 0 0 0 3px var(--brand-focus-ring);
 }
 
 /* Constraint Indicators for Add Course Modal */
@@ -1827,7 +1841,7 @@ body {
 
 .btn-ai:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(15, 118, 110, 0.3);
+    box-shadow: 0 6px 16px var(--brand-shadow);
 }
 
 .btn-settings {
@@ -1877,7 +1891,7 @@ body {
 .api-key-input-group input:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+    box-shadow: 0 0 0 3px var(--brand-focus-ring);
 }
 
 /* API Key Status */
@@ -2272,9 +2286,12 @@ body {
     color: var(--text-secondary);
     cursor: pointer;
     transition: all 0.2s;
+    min-height: 28px;
+    min-width: 28px;
 }
 
-.btn-small:hover {
+.btn-small:hover,
+.btn-small:focus-visible {
     background: var(--bg-primary);
     border-color: var(--primary-color);
     color: var(--primary-color);
@@ -2549,7 +2566,7 @@ body {
 .scenario-table input[type="number"]:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.12);
+    box-shadow: 0 0 0 2px var(--brand-focus-ring);
 }
 
 .scenario-value {
@@ -2604,5 +2621,187 @@ body {
     .scenario-footer {
         flex-direction: column;
         align-items: flex-start;
+    }
+}
+
+/* ============================================
+   PHASE E — KEYBOARD DRAG-AND-DROP
+   Pick-up / drop using Enter+Space; Tab between cells; Escape cancels.
+   ============================================ */
+
+.sr-only {
+    position: absolute !important;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Focusable cards announce themselves on Tab. */
+.course-block:focus-visible,
+.unassigned-item:focus-visible {
+    outline: 3px solid var(--brand-focus-ring);
+    outline-offset: 2px;
+}
+
+/* Picked card — clear "I am currently held" affordance. */
+.course-block.kbd-picked,
+.unassigned-item.kbd-picked {
+    outline: 3px solid var(--primary-color);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 6px var(--brand-focus-ring);
+}
+
+/* Cells are tabbable while pickup is active so Tab cycles through targets. */
+body.kbd-pickup-active .schedule-cell {
+    cursor: copy;
+    box-shadow: inset 0 0 0 1px var(--brand-focus-ring);
+}
+
+body.kbd-pickup-active .schedule-cell:focus-visible {
+    outline: 3px solid var(--primary-color);
+    outline-offset: -2px;
+    background: rgba(161, 0, 34, 0.04);
+}
+
+/* ============================================
+   PHASE C — REVEAL SEQUENCE + COPY POLISH
+   Inline Step-2 anchor + helper-text styling moved out of inline styles.
+   ============================================ */
+
+.controls-step-badge--inline {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.helper-text--faculty-panel {
+    margin-bottom: 16px;
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.section-header-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+/* ============================================
+   PHASE B — ACCESSIBILITY FLOOR (required-field markers + focus rings)
+   ============================================ */
+
+.form-required-legend {
+    margin: 0 0 12px;
+    font-size: 12px;
+    color: var(--text-secondary, #475569);
+}
+
+.form-required-mark {
+    color: #b91c1c;
+    margin-left: 2px;
+    font-weight: 700;
+}
+
+/* ============================================
+   PHASE A — DATA SAFETY UI
+   Dirty pill on the action bar + persistent error banner for recoverable
+   failures (corrupt draft, save errors). Toned to be visible without
+   competing with the primary action bar.
+   ============================================ */
+
+.action-bar-attribution[data-state="dirty"] {
+    color: #8a4a00;
+    background: #fff7e6;
+    border: 1px solid #facc8a;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.action-bar-attribution[data-state="pristine"] {
+    color: var(--text-secondary, #475569);
+    font-style: italic;
+}
+
+.action-bar-attribution[data-state="saved"] {
+    color: var(--text-secondary, #475569);
+}
+
+button[aria-busy="true"] {
+    opacity: 0.75;
+    cursor: progress;
+}
+
+.builder-recoverable-error {
+    position: fixed;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-16px);
+    z-index: 1100;
+    max-width: 560px;
+    width: calc(100vw - 32px);
+    background: #fff;
+    border: 1px solid #dc2626;
+    border-left: 4px solid #dc2626;
+    border-radius: 10px;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
+    padding: 14px 18px;
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    font-size: 14px;
+    line-height: 1.4;
+    color: #1f2937;
+}
+
+.builder-recoverable-error.visible {
+    display: flex;
+    transform: translateX(-50%) translateY(0);
+}
+
+.builder-recoverable-error__message {
+    font-weight: 500;
+}
+
+.builder-recoverable-error__actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
+.builder-recoverable-error__btn {
+    background: white;
+    border: 1px solid var(--border-color, #d1d5db);
+    color: #1f2937;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    min-height: 28px;
+}
+
+.builder-recoverable-error__btn:hover {
+    background: #f3f4f6;
+}
+
+.builder-recoverable-error__btn--dismiss {
+    background: #1f2937;
+    color: white;
+    border-color: #1f2937;
+}
+
+.builder-recoverable-error__btn--dismiss:hover {
+    background: #111827;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .builder-recoverable-error {
+        transition: none !important;
     }
 }

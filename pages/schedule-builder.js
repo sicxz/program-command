@@ -68,6 +68,20 @@ const FACULTY_BUILD_STORAGE_KEY = 'faculty_build_scenario_v1';
 const FACULTY_PREFERENCES_LOCAL_KEY = 'faculty_preferences_local_v1';
 const SAVE_ATTRIBUTION_STORAGE_KEY = 'schedule_builder_last_save_attribution_v1';
 
+// Phase A — Data safety: track unsaved edits so we can warn before unload
+// and tell the user (via the attribution label) that their work is not on the
+// server yet. Cleared on successful saveDraft / saveToDatabase. Set by every
+// mutation site (drop/swap/delete/add/apply-recommendations/generate).
+let isDirty = false;
+let dirtyTrackingReady = false;
+
+// Phase E — keyboard drag-and-drop state.
+// When a course is "picked up" via Enter/Space, this holds enough info to
+// commit a move on the next Enter/Space against a schedule cell, identical
+// to what HTML5 drag/drop puts in dataTransfer.
+let keyboardPickedCourse = null;
+// { courseCode, section, fromDay, fromTime, fromRoom, sourceElementId }
+
 const DEFAULT_FACULTY_BUILD_SCENARIO = {
     faculty: [
         { name: 'Travis Masingale', included: true, annualCredits: 31, inloadCredits: 5, desn499PerQuarter: 2 },
@@ -134,7 +148,24 @@ function formatSaveAttributionDate(isoString) {
 function setSaveAttributionLabel(userLabel, savedAt) {
     const label = document.getElementById('saveAttributionLabel');
     if (!label) return;
-    label.textContent = `Last saved by ${userLabel || '--'} at ${formatSaveAttributionDate(savedAt)}`;
+
+    // Dirty wins — always tell the user their work isn't safe yet.
+    if (isDirty) {
+        label.textContent = 'Unsaved changes — Save to Cloud to commit, or Save Draft to keep them in this browser.';
+        label.dataset.state = 'dirty';
+        return;
+    }
+
+    // No save state for this year yet — produce a real empty-state sentence
+    // instead of "Last saved by -- at --".
+    if (!userLabel || !savedAt) {
+        label.textContent = 'Not yet saved to cloud — your edits live only in this browser.';
+        label.dataset.state = 'pristine';
+        return;
+    }
+
+    label.textContent = `Last saved by ${userLabel} at ${formatSaveAttributionDate(savedAt)}`;
+    label.dataset.state = 'saved';
 }
 
 function readSaveAttributionState() {
@@ -157,7 +188,7 @@ function writeSaveAttributionState(state) {
 function refreshSaveAttributionLabelForYear(targetYear) {
     const state = readSaveAttributionState();
     if (!state || state.year !== targetYear) {
-        setSaveAttributionLabel('--', null);
+        setSaveAttributionLabel(null, null);
         return;
     }
     setSaveAttributionLabel(state.userLabel, state.savedAt);
@@ -672,6 +703,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         initializeFacultyBuildScenario();
         loadDraft();
 
+        // Phase A — warn before unload if the user has unsaved edits.
+        // Safe to attach unconditionally; the listener early-returns when not dirty.
+        attachBeforeUnloadGuard();
+
+        // Phase E — global Escape cancels any keyboard pickup in progress.
+        attachKeyboardPickupCancelListener();
+
         const activeYear = document.getElementById('academicYear')?.value || '2026-27';
         refreshSaveAttributionLabelForYear(activeYear);
         const academicYearSelect = document.getElementById('academicYear');
@@ -703,6 +741,15 @@ function extractCoursesFromProgramCommandDraft(academicYear) {
         parsed = JSON.parse(raw);
     } catch (error) {
         console.warn(`Could not parse Program Command schedule draft for ${academicYear}:`, error);
+        showErrorBanner(
+            `The Program Command draft for ${academicYear} could not be parsed and was skipped. The builder will fall back to workload-data.json. Open the main scheduler to regenerate, or copy a different source year.`,
+            {
+                actions: [{
+                    label: 'Open main scheduler',
+                    onClick: () => { window.location.href = '../program-command.html'; }
+                }]
+            }
+        );
         return [];
     }
 
@@ -848,9 +895,11 @@ async function handleLoadAndAnalyze() {
         // Render analysis results
         renderAnalysisDashboard(analysisResults);
 
-        // Hide loading, show analysis dashboard
+        // Hide loading, show analysis dashboard + the post-data panels that
+        // start hidden so the empty state can shine on first load.
         document.getElementById('loadingContainer').style.display = 'none';
         document.getElementById('analysisDashboard').style.display = 'block';
+        revealPostDataPanels();
 
         // Auto-save placements after loading so they're preserved for future use
         updatePlacementsFromSchedule(sourceYear);
@@ -958,6 +1007,9 @@ function applySelectedRecommendations() {
         }
     });
 
+    if (appliedCount > 0) {
+        markDirty();
+    }
     showToast(`Applied ${appliedCount} recommendations`);
 
     // Re-run analysis to update dashboard
@@ -1238,6 +1290,7 @@ async function handleGenerate() {
         document.getElementById('projectedDemandSection').style.display = 'block';
         document.getElementById('builderContent').style.display = 'grid';
         document.getElementById('actionBar').style.display = 'flex';
+        revealPostDataPanels();
 
         // Update titles
         document.getElementById('gridTitle').textContent = `Schedule Grid - ${activeQuarter} ${targetYear}`;
@@ -1253,6 +1306,10 @@ async function handleGenerate() {
 
         // Auto-save placements after generation for future preservation
         updatePlacementsFromSchedule(previousYear);
+
+        // A freshly generated schedule lives only in memory until the user saves —
+        // mark dirty so the action bar tells them and beforeunload guards it.
+        markDirty();
 
         showToast(`Generated schedule for ${targetYear} based on ${previousYear} (${sourceSchedule.sourceLabel}) (${totalSections} total sections)`);
         updateScenarioAssignmentSummary();
@@ -2137,6 +2194,16 @@ function createGridCell(day, timeKey, room, timeDisplay) {
         handleDrop(e, day, timeKey, room);
     });
 
+    // Phase E — keyboard drop. Cells only get tabindex when a course is picked
+    // (managed by setSchedulCellsTabbable). When focused with a pickup
+    // active, Enter/Space commits the drop here.
+    cell.addEventListener('keydown', (event) => {
+        if (!keyboardPickedCourse) return;
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        commitKeyboardDropToCell(day, timeKey, room);
+    });
+
     courses.forEach(course => {
         const block = createCourseBlock(course);
         cell.appendChild(block);
@@ -2181,6 +2248,13 @@ function createCourseBlock(course) {
     const block = document.createElement('div');
     block.className = `course-block priority-${course.priority}`;
     block.draggable = true;
+    block.tabIndex = 0;
+    block.setAttribute('role', 'button');
+    block.setAttribute(
+        'aria-label',
+        `${course.courseCode} section ${course.section}, ${course.courseTitle || 'untitled'}, taught by ${course.facultyName || 'TBD'}. ` +
+        `Press Enter or Space to pick up and move; press the delete button to remove.`
+    );
     block.dataset.courseCode = course.courseCode;
     block.dataset.section = course.section;
 
@@ -2195,9 +2269,11 @@ function createCourseBlock(course) {
 
     // Add delete button
     const deleteBtn = document.createElement('button');
+    deleteBtn.type = 'button';
     deleteBtn.className = 'course-delete-btn';
     deleteBtn.innerHTML = '×';
     deleteBtn.title = 'Remove course from schedule';
+    deleteBtn.setAttribute('aria-label', `Remove ${course.courseCode}-${course.section} from schedule`);
     deleteBtn.onclick = (e) => {
         e.stopPropagation();
         deleteCourse(course.courseCode, course.section, course.day, course.time, course.room);
@@ -2228,6 +2304,25 @@ function createCourseBlock(course) {
     // Click to show details
     block.onclick = () => showCourseDetails(course);
 
+    // Phase E — keyboard pickup. Enter/Space picks up (or drops if a target
+    // cell is focused). Esc handled by the global cancel listener.
+    block.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        // If the focus target is the delete button inside the card, let that
+        // button's own click semantics handle it — keydown on a <button>
+        // already fires click for Enter and Space.
+        if (event.target && event.target.classList.contains('course-delete-btn')) return;
+        event.preventDefault();
+        if (keyboardPickedCourse && keyboardPickedCourse.courseCode === course.courseCode && keyboardPickedCourse.section === course.section) {
+            cancelKeyboardPickup();
+            block.focus();
+        } else {
+            pickUpCourseForKeyboard(course, block);
+        }
+    });
+
+    // Make the delete button keyboard-discoverable (it's a real <button>, so
+    // it's already focusable — just give it an aria-label).
     return block;
 }
 
@@ -2242,6 +2337,7 @@ function deleteCourse(courseCode, section, day, time, room) {
     const index = courses.findIndex(c => c.courseCode === courseCode && c.section === section);
     if (index > -1) {
         courses.splice(index, 1);
+        markDirty();
         showToast(`${courseCode}-${section} removed from schedule`);
         renderScheduleGrid();
         renderUnassignedList();
@@ -2322,6 +2418,8 @@ function handleDrop(e, toDay, toTime, toRoom) {
             if (!assignedCourses[toKey]) assignedCourses[toKey] = [];
             assignedCourses[toKey].push(movedCourse);
 
+            markDirty();
+
             // Re-render
             renderScheduleGrid();
             renderUnassignedList();
@@ -2336,6 +2434,7 @@ function handleDrop(e, toDay, toTime, toRoom) {
         }
     } catch (err) {
         console.error('Drop error:', err);
+        showToast('Drop failed — see console for details', 'error');
     }
 }
 
@@ -2353,8 +2452,11 @@ function renderUnassignedList() {
 
     let html = '';
     unassigned.forEach(course => {
+        const aria = `${course.courseCode} section ${course.section}, ${course.courseTitle || 'untitled'}. ` +
+                     `Currently unassigned. Press Enter or Space to pick up.`;
         html += `
             <div class="unassigned-item" draggable="true"
+                 role="button" tabindex="0" aria-label="${aria.replace(/"/g, '&quot;')}"
                  ondragstart="handleUnassignedDrag(event, '${course.courseCode}', '${course.section}')"
                  data-course="${course.courseCode}" data-section="${course.section}">
                 <div class="course-code">
@@ -2370,6 +2472,25 @@ function renderUnassignedList() {
     });
 
     container.innerHTML = html;
+
+    // Phase E — keyboard pickup on each unassigned item. innerHTML wipes out
+    // listeners, so we wire them after the render.
+    container.querySelectorAll('.unassigned-item').forEach((item) => {
+        const code = item.dataset.course;
+        const section = item.dataset.section;
+        const course = unassigned.find((c) => c.courseCode === code && c.section === section);
+        if (!course) return;
+        item.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            event.preventDefault();
+            if (keyboardPickedCourse && keyboardPickedCourse.courseCode === code && keyboardPickedCourse.section === section) {
+                cancelKeyboardPickup();
+                item.focus();
+            } else {
+                pickUpCourseForKeyboard(course, item);
+            }
+        });
+    });
 }
 
 /**
@@ -2548,12 +2669,24 @@ function saveDraft() {
         facultyBuildScenario: facultyBuildScenario
     };
 
-    localStorage.setItem('scheduleBuilderDraft', JSON.stringify(draft));
-    
+    try {
+        localStorage.setItem('scheduleBuilderDraft', JSON.stringify(draft));
+    } catch (error) {
+        console.error('Local draft save error:', error);
+        showToast('Could not save draft — browser storage may be full or disabled', 'error');
+        showErrorBanner('We could not save the local draft. Try freeing browser storage, or use "Save to Cloud" instead. Your edits are still in memory until you reload.', {
+            actions: [{ label: 'Dismiss', onClick: clearErrorBanner }]
+        });
+        return;
+    }
+
     // Also save placements for future use
     const targetYear = document.getElementById('academicYear')?.value || currentSchedule.year;
     updatePlacementsFromSchedule(targetYear);
-    
+
+    // The draft is now persisted in localStorage — for our purposes the in-memory
+    // state matches a saved snapshot. Cloud is a separate axis.
+    clearDirty();
     showToast('Draft saved successfully');
 }
 
@@ -2583,6 +2716,7 @@ function loadDraft() {
         document.getElementById('projectedDemandSection').style.display = 'block';
         document.getElementById('builderContent').style.display = 'grid';
         document.getElementById('actionBar').style.display = 'flex';
+        revealPostDataPanels();
 
         document.getElementById('gridTitle').textContent = `Schedule Grid - ${currentSchedule.quarter} ${currentSchedule.year}`;
         document.getElementById('demandQuarterYear').textContent = `${currentSchedule.quarter} ${currentSchedule.year}`;
@@ -2594,9 +2728,27 @@ function loadDraft() {
         renderFacultySummary();
         renderQuarterTabs();
 
+        // Loaded state matches what was last persisted — not dirty.
+        clearDirty();
         showToast('Draft loaded');
     } catch (error) {
         console.error('Error loading draft:', error);
+        showToast('Could not load your saved draft', 'error');
+        showErrorBanner(
+            'Your saved draft could not be loaded — it may be corrupt or from an older version. Your in-memory schedule has not been changed.',
+            {
+                actions: [
+                    {
+                        label: 'Discard draft',
+                        onClick: () => {
+                            try { localStorage.removeItem('scheduleBuilderDraft'); } catch (_) { /* noop */ }
+                            clearErrorBanner();
+                            showToast('Local draft discarded');
+                        }
+                    }
+                ]
+            }
+        );
     }
 }
 
@@ -2760,52 +2912,65 @@ async function saveToDatabase() {
         return;
     }
 
-    try {
-        showToast('Saving to database...');
-        const userAttribution = await resolveCurrentUserAttribution();
+    return withSaveButtonBusy('saveToCloudBtn', '☁️ Saving…', async () => {
+        try {
+            showToast('Saving to database…');
+            const userAttribution = await resolveCurrentUserAttribution();
 
-        // Initialize database service
-        await dbService.initialize();
+            // Initialize database service
+            await dbService.initialize();
 
-        const targetYear = document.getElementById('academicYear')?.value || currentSchedule.year;
+            const targetYear = document.getElementById('academicYear')?.value || currentSchedule.year;
 
-        // Get or create academic year
-        const yearRecord = await dbService.getOrCreateYear(targetYear);
-        if (!yearRecord) {
-            showToast('Failed to get academic year', 'error');
-            return;
+            // Get or create academic year
+            const yearRecord = await dbService.getOrCreateYear(targetYear);
+            if (!yearRecord) {
+                showToast('Failed to get academic year', 'error');
+                showErrorBanner(`Save failed for ${targetYear}: could not resolve the academic year record. Your edits are still in memory; retry, or contact an admin if it persists.`);
+                return;
+            }
+
+            const quarterSchedules = getAllQuarterSchedulesForSave();
+            const records = await buildYearScopedScheduleSyncRecords(quarterSchedules);
+            const recordsWithUserContext = records.map((record) => ({
+                ...record,
+                updated_by: userAttribution.id
+            }));
+            const syncResult = await dbService.syncScheduledCoursesForAcademicYear(yearRecord.id, recordsWithUserContext);
+
+            if (!syncResult) {
+                showToast('Error saving to database', 'error');
+                showErrorBanner(`Save failed for ${targetYear}: the database sync did not return a result. Your edits are still in memory; retry, or save a local draft to preserve them.`);
+                return;
+            }
+
+            const updatedCount = Number(syncResult.updated_count || 0);
+            const insertedCount = Number(syncResult.inserted_count || 0);
+            const deletedCount = Number(syncResult.deleted_count || 0);
+            const savedAt = new Date().toISOString();
+            writeSaveAttributionState({
+                year: targetYear,
+                userId: userAttribution.id,
+                userLabel: userAttribution.label,
+                savedAt
+            });
+            // clearDirty() first so the label renders the saved state, not the
+            // dirty state, when setSaveAttributionLabel inspects isDirty.
+            clearDirty();
+            setSaveAttributionLabel(userAttribution.label, savedAt);
+            clearErrorBanner();
+            showToast(`Saved ${targetYear}: ${updatedCount} updated, ${insertedCount} inserted, ${deletedCount} removed`);
+
+        } catch (error) {
+            console.error('Database save error:', error);
+            const friendly = buildDatabaseSaveErrorMessage(error);
+            showToast(friendly, 'error');
+            // Surface the same message persistently so it can't be missed in a
+            // 3-second toast window. Errors here often need user follow-up
+            // (auth, RLS, network).
+            showErrorBanner(friendly);
         }
-
-        const quarterSchedules = getAllQuarterSchedulesForSave();
-        const records = await buildYearScopedScheduleSyncRecords(quarterSchedules);
-        const recordsWithUserContext = records.map((record) => ({
-            ...record,
-            updated_by: userAttribution.id
-        }));
-        const syncResult = await dbService.syncScheduledCoursesForAcademicYear(yearRecord.id, recordsWithUserContext);
-
-        if (!syncResult) {
-            showToast('Error saving to database', 'error');
-            return;
-        }
-
-        const updatedCount = Number(syncResult.updated_count || 0);
-        const insertedCount = Number(syncResult.inserted_count || 0);
-        const deletedCount = Number(syncResult.deleted_count || 0);
-        const savedAt = new Date().toISOString();
-        writeSaveAttributionState({
-            year: targetYear,
-            userId: userAttribution.id,
-            userLabel: userAttribution.label,
-            savedAt
-        });
-        setSaveAttributionLabel(userAttribution.label, savedAt);
-        showToast(`Saved ${targetYear}: ${updatedCount} updated, ${insertedCount} inserted, ${deletedCount} removed`);
-
-    } catch (error) {
-        console.error('Database save error:', error);
-        showToast(buildDatabaseSaveErrorMessage(error), 'error');
-    }
+    });
 }
 
 /**
@@ -3066,6 +3231,421 @@ function exportToEditor() {
     }, 500);
 }
 
+// ============================================
+// PHASE A — DATA SAFETY HELPERS
+// ============================================
+
+/**
+ * Mark the schedule as having unsaved changes. Updates the attribution label
+ * copy so the user can always see "Unsaved changes" in the action bar.
+ */
+function markDirty() {
+    if (isDirty) return;
+    isDirty = true;
+    refreshSaveAttributionForCurrentYear();
+}
+
+/**
+ * Clear the dirty flag after a successful save (cloud or local draft) or after
+ * loading a draft (loaded state matches the saved snapshot).
+ */
+function clearDirty() {
+    if (!isDirty) return;
+    isDirty = false;
+    refreshSaveAttributionForCurrentYear();
+}
+
+function refreshSaveAttributionForCurrentYear() {
+    const year = document.getElementById('academicYear')?.value;
+    if (year) {
+        refreshSaveAttributionLabelForYear(year);
+    } else {
+        setSaveAttributionLabel(null, null);
+    }
+}
+
+/**
+ * Show a persistent error banner above the action bar. Survives until the user
+ * dismisses it (or until clearErrorBanner is called). Used for recoverable but
+ * important failures that would otherwise be swallowed by a 3-second toast
+ * (e.g., corrupt draft on load, save errors).
+ */
+function showErrorBanner(message, { actions = [] } = {}) {
+    let banner = document.getElementById('builderRecoverableErrorBanner');
+    if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'builderRecoverableErrorBanner';
+        banner.className = 'builder-recoverable-error';
+        banner.setAttribute('role', 'alert');
+        banner.setAttribute('aria-live', 'assertive');
+        document.body.appendChild(banner);
+    }
+
+    // Clear and rebuild
+    while (banner.firstChild) banner.removeChild(banner.firstChild);
+
+    const text = document.createElement('div');
+    text.className = 'builder-recoverable-error__message';
+    text.textContent = message;
+    banner.appendChild(text);
+
+    const actionRow = document.createElement('div');
+    actionRow.className = 'builder-recoverable-error__actions';
+    actions.forEach(({ label, onClick }) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'builder-recoverable-error__btn';
+        btn.textContent = label;
+        btn.addEventListener('click', () => {
+            try { onClick && onClick(); } finally { /* keep banner unless cleared */ }
+        });
+        actionRow.appendChild(btn);
+    });
+    const dismiss = document.createElement('button');
+    dismiss.type = 'button';
+    dismiss.className = 'builder-recoverable-error__btn builder-recoverable-error__btn--dismiss';
+    dismiss.textContent = 'Dismiss';
+    dismiss.setAttribute('aria-label', 'Dismiss error');
+    dismiss.addEventListener('click', clearErrorBanner);
+    actionRow.appendChild(dismiss);
+    banner.appendChild(actionRow);
+
+    banner.classList.add('visible');
+}
+
+function clearErrorBanner() {
+    const banner = document.getElementById('builderRecoverableErrorBanner');
+    if (banner) banner.classList.remove('visible');
+}
+
+/**
+ * Wrap an async save action with button busy state: disables the trigger,
+ * swaps the label to a "saving" form, sets aria-busy, restores on resolve/reject.
+ * The caller still owns success/error toasts and clearDirty.
+ */
+async function withSaveButtonBusy(buttonId, busyLabel, action) {
+    const button = document.getElementById(buttonId);
+    if (!button) return action();
+
+    const originalLabel = button.innerHTML;
+    const wasDisabled = button.disabled;
+    button.disabled = true;
+    button.setAttribute('aria-busy', 'true');
+    button.innerHTML = busyLabel;
+
+    try {
+        return await action();
+    } finally {
+        button.disabled = wasDisabled;
+        button.removeAttribute('aria-busy');
+        button.innerHTML = originalLabel;
+    }
+}
+
+/**
+ * Phase C — reveal the panels that ship hidden so the empty state can lead on
+ * first load. Idempotent; safe to call multiple times. Triggered from
+ * handleLoadAndAnalyze, handleGenerate, and loadDraft success paths.
+ */
+function revealPostDataPanels() {
+    const ids = ['facultySelectionPanel', 'buildScenarioPanel', 'summaryCards'];
+    ids.forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        // Use the element's natural display rather than guessing flex/grid/block.
+        el.style.display = '';
+    });
+}
+
+/**
+ * beforeunload guard — warn only when there are unsaved changes. The browser
+ * shows its generic confirm dialog; we just have to call preventDefault and
+ * set returnValue.
+ */
+function attachBeforeUnloadGuard() {
+    if (dirtyTrackingReady) return;
+    dirtyTrackingReady = true;
+    window.addEventListener('beforeunload', (event) => {
+        if (!isDirty) return;
+        event.preventDefault();
+        event.returnValue = '';
+        return '';
+    });
+}
+
+// ============================================
+// PHASE E — KEYBOARD DRAG-AND-DROP
+// Lets keyboard / SR users complete the Edit Schedule Grid step without
+// mouse drag. Pattern: Enter/Space on a course "picks it up"; Tab cycles
+// through schedule cells; Enter/Space on a cell commits the move via the
+// same code path as handleDrop. Escape cancels.
+// ============================================
+
+function announceKbdMove(message) {
+    const node = document.getElementById('kbdPickupAnnouncer');
+    if (node) node.textContent = message;
+}
+
+function describeCellForAnnouncement(day, timeKey, room) {
+    const dayLabel = (day === 'MW') ? 'Monday/Wednesday' : (day === 'TR') ? 'Tuesday/Thursday' : day;
+    return `${dayLabel} ${timeKey} room ${room}`;
+}
+
+function setSchedulCellsTabbable(enabled) {
+    document.body.classList.toggle('kbd-pickup-active', enabled);
+    const cells = document.querySelectorAll('.schedule-cell');
+    cells.forEach((cell) => {
+        if (enabled) {
+            cell.setAttribute('tabindex', '0');
+            cell.setAttribute('role', 'button');
+            const day = cell.dataset.day;
+            const room = cell.dataset.room;
+            const time = cell.dataset.time;
+            cell.setAttribute('aria-label', `Drop here: ${describeCellForAnnouncement(day, time, room)}`);
+        } else {
+            cell.removeAttribute('tabindex');
+            cell.removeAttribute('role');
+            cell.removeAttribute('aria-label');
+        }
+    });
+}
+
+function pickUpCourseForKeyboard(course, sourceElement) {
+    // If something else is already picked, cancel it first.
+    if (keyboardPickedCourse) cancelKeyboardPickup({ silent: true });
+
+    keyboardPickedCourse = {
+        courseCode: course.courseCode,
+        section: course.section,
+        fromDay: course.day || null,
+        fromTime: course.time || null,
+        fromRoom: course.room || null,
+        sourceLabel: `${course.courseCode}-${course.section}`
+    };
+
+    if (sourceElement) sourceElement.classList.add('kbd-picked');
+    setSchedulCellsTabbable(true);
+
+    const fromText = course.day
+        ? `from ${describeCellForAnnouncement(course.day, course.time, course.room)}`
+        : 'from the unassigned list';
+    announceKbdMove(
+        `Picked up ${keyboardPickedCourse.sourceLabel} ${fromText}. ` +
+        `Tab to choose a destination cell, then press Enter or Space to drop. ` +
+        `Press Escape to cancel.`
+    );
+}
+
+function cancelKeyboardPickup({ silent = false } = {}) {
+    if (!keyboardPickedCourse) return;
+    const label = keyboardPickedCourse.sourceLabel;
+    keyboardPickedCourse = null;
+    setSchedulCellsTabbable(false);
+    document.querySelectorAll('.kbd-picked').forEach((el) => el.classList.remove('kbd-picked'));
+    if (!silent) announceKbdMove(`Cancelled. ${label} was not moved.`);
+}
+
+function commitKeyboardDropToCell(toDay, toTime, toRoom) {
+    if (!keyboardPickedCourse) return;
+    const picked = keyboardPickedCourse;
+    const fromKey = picked.fromDay
+        ? `${picked.fromDay}-${picked.fromTime}-${picked.fromRoom}`
+        : 'unassigned';
+    const toKey = `${toDay}-${toTime}-${toRoom}`;
+    if (fromKey === toKey) {
+        announceKbdMove('Same cell — no change.');
+        cancelKeyboardPickup({ silent: true });
+        return;
+    }
+
+    // Mirror the handleDrop move/swap logic so behavior matches mouse drag.
+    let movedCourse = null;
+    if (assignedCourses[fromKey]) {
+        const idx = assignedCourses[fromKey].findIndex(
+            (c) => c.courseCode === picked.courseCode && c.section === picked.section
+        );
+        if (idx > -1) movedCourse = assignedCourses[fromKey].splice(idx, 1)[0];
+    }
+    if (!movedCourse) {
+        announceKbdMove('Could not find the picked course — please try again.');
+        cancelKeyboardPickup({ silent: true });
+        return;
+    }
+
+    if (
+        movedCourse.facultyName &&
+        movedCourse.facultyName !== 'TBD' &&
+        hasFacultyTimeConflict(movedCourse.facultyName, toDay, toTime)
+    ) {
+        if (!assignedCourses[fromKey]) assignedCourses[fromKey] = [];
+        assignedCourses[fromKey].push(movedCourse);
+        showToast(`Cannot move: ${movedCourse.facultyName} is already teaching at that time`, 'warning');
+        announceKbdMove(`Move blocked: ${movedCourse.facultyName} has a conflict at ${describeCellForAnnouncement(toDay, toTime, toRoom)}.`);
+        cancelKeyboardPickup({ silent: true });
+        return;
+    }
+
+    let swappedCourse = null;
+    if (assignedCourses[toKey] && assignedCourses[toKey].length > 0) {
+        const targetIdx = assignedCourses[toKey].findIndex((c) => c.room === toRoom);
+        if (targetIdx > -1) {
+            swappedCourse = assignedCourses[toKey].splice(targetIdx, 1)[0];
+            if (fromKey !== 'unassigned' && picked.fromDay) {
+                swappedCourse.day = picked.fromDay;
+                swappedCourse.time = picked.fromTime;
+                swappedCourse.room = picked.fromRoom;
+                if (!assignedCourses[fromKey]) assignedCourses[fromKey] = [];
+                assignedCourses[fromKey].push(swappedCourse);
+            } else {
+                if (!assignedCourses['unassigned']) assignedCourses['unassigned'] = [];
+                swappedCourse.day = null;
+                swappedCourse.time = null;
+                swappedCourse.room = null;
+                assignedCourses['unassigned'].push(swappedCourse);
+            }
+        }
+    }
+
+    movedCourse.day = toDay;
+    movedCourse.time = toTime;
+    movedCourse.room = toRoom;
+    if (!assignedCourses[toKey]) assignedCourses[toKey] = [];
+    assignedCourses[toKey].push(movedCourse);
+
+    markDirty();
+
+    // Tear down pickup state BEFORE re-render so the new DOM is clean.
+    const sourceLabel = picked.sourceLabel;
+    keyboardPickedCourse = null;
+    setSchedulCellsTabbable(false);
+    document.querySelectorAll('.kbd-picked').forEach((el) => el.classList.remove('kbd-picked'));
+
+    renderScheduleGrid();
+    renderUnassignedList();
+    renderFacultySummary();
+
+    if (swappedCourse) {
+        const swappedLabel = `${swappedCourse.courseCode}-${swappedCourse.section}`;
+        showToast(`Swapped ${picked.courseCode} with ${swappedCourse.courseCode}`);
+        announceKbdMove(`${sourceLabel} dropped at ${describeCellForAnnouncement(toDay, toTime, toRoom)}, swapped with ${swappedLabel}.`);
+    } else {
+        showToast(`Moved ${picked.courseCode}-${picked.section} to ${toDay} ${toTime}`);
+        announceKbdMove(`${sourceLabel} dropped at ${describeCellForAnnouncement(toDay, toTime, toRoom)}.`);
+    }
+}
+
+/**
+ * Global Esc handler for cancelling a pickup. Installed once at DOMContentLoaded.
+ */
+function attachKeyboardPickupCancelListener() {
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && keyboardPickedCourse) {
+            // Don't fight modal Esc handlers — bail if a modal is open.
+            if (__modalControllers && __modalControllers.size > 0) return;
+            event.preventDefault();
+            cancelKeyboardPickup();
+        }
+    });
+}
+
+// ============================================
+// PHASE B — MODAL CONTROLLER (focus trap, Esc, backdrop, focus return)
+// ============================================
+
+// Map of modalId -> { previousFocus, onKeydown, onOverlayClick } so we can
+// install per-modal listeners on mount and tear them down on unmount.
+const __modalControllers = new Map();
+
+function __getFocusableInside(modalEl) {
+    if (!modalEl) return [];
+    const selector = [
+        'a[href]', 'area[href]', 'button:not([disabled])',
+        'input:not([disabled]):not([type="hidden"])',
+        'select:not([disabled])', 'textarea:not([disabled])',
+        '[tabindex]:not([tabindex="-1"])', '[contenteditable="true"]'
+    ].join(',');
+    return Array.from(modalEl.querySelectorAll(selector)).filter((el) => {
+        // Skip elements that aren't actually visible
+        return !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+    });
+}
+
+function mountModal(modalId, closeFn) {
+    const overlay = document.getElementById(modalId);
+    if (!overlay) return;
+    const dialog = overlay.querySelector('.modal');
+    if (!dialog) return;
+
+    const previousFocus = document.activeElement;
+    overlay.classList.add('active');
+
+    // Move focus into the dialog — first focusable, else the dialog itself.
+    const focusables = __getFocusableInside(dialog);
+    const firstFocus = focusables[0] || dialog;
+    if (!firstFocus.hasAttribute('tabindex') && firstFocus === dialog) {
+        dialog.setAttribute('tabindex', '-1');
+    }
+    requestAnimationFrame(() => {
+        try { firstFocus.focus(); } catch (_) { /* noop */ }
+    });
+
+    const onKeydown = (event) => {
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            closeFn();
+            return;
+        }
+        if (event.key !== 'Tab') return;
+        const inDialog = __getFocusableInside(dialog);
+        if (inDialog.length === 0) {
+            event.preventDefault();
+            return;
+        }
+        const first = inDialog[0];
+        const last = inDialog[inDialog.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+        }
+    };
+
+    const onOverlayClick = (event) => {
+        // Click on the dim backdrop (the overlay itself) closes — clicks on
+        // the dialog or its children don't bubble here when stopped, but
+        // explicitly check target.
+        if (event.target === overlay) {
+            closeFn();
+        }
+    };
+
+    document.addEventListener('keydown', onKeydown, true);
+    overlay.addEventListener('mousedown', onOverlayClick);
+
+    __modalControllers.set(modalId, { previousFocus, onKeydown, onOverlayClick });
+}
+
+function unmountModal(modalId) {
+    const overlay = document.getElementById(modalId);
+    if (overlay) overlay.classList.remove('active');
+
+    const controller = __modalControllers.get(modalId);
+    if (!controller) return;
+
+    document.removeEventListener('keydown', controller.onKeydown, true);
+    if (overlay) overlay.removeEventListener('mousedown', controller.onOverlayClick);
+
+    __modalControllers.delete(modalId);
+
+    // Restore focus to whatever the user was on before opening
+    const target = controller.previousFocus;
+    if (target && typeof target.focus === 'function') {
+        try { target.focus(); } catch (_) { /* noop */ }
+    }
+}
+
 /**
  * Show toast notification
  */
@@ -3090,15 +3670,15 @@ function showToast(message, type = 'success') {
 function openAddCourseModal() {
     populateCourseDropdown();
     populateFacultyDropdown();
-    document.getElementById('addCourseModal').classList.add('active');
     document.getElementById('addCourseSection').value = '001';
+    mountModal('addCourseModal', closeAddCourseModal);
 }
 
 /**
  * Close Add Course modal
  */
 function closeAddCourseModal() {
-    document.getElementById('addCourseModal').classList.remove('active');
+    unmountModal('addCourseModal');
     document.getElementById('addCourseForm').reset();
 }
 
@@ -3345,6 +3925,7 @@ function handleAddCourse(e) {
     // Add to assigned courses
     if (!assignedCourses[key]) assignedCourses[key] = [];
     assignedCourses[key].push(newCourse);
+    markDirty();
 
     // Close modal and refresh grid
     closeAddCourseModal();
@@ -3405,14 +3986,14 @@ async function openFacultyPreferencesModal() {
     document.getElementById('facultyPreferencesForm').reset();
     currentFacultyId = null;
 
-    modal.classList.add('active');
+    mountModal('facultyPreferencesModal', closeFacultyPreferencesModal);
 }
 
 /**
  * Close the Faculty Preferences modal
  */
 function closeFacultyPreferencesModal() {
-    document.getElementById('facultyPreferencesModal').classList.remove('active');
+    unmountModal('facultyPreferencesModal');
     currentFacultyId = null;
 }
 
@@ -3601,7 +4182,6 @@ function tryHydrateApiKeyFromInput() {
  * Open API Settings Modal
  */
 function openApiSettingsModal() {
-    const modal = document.getElementById('apiSettingsModal');
     const input = document.getElementById('apiKeyInput');
     const status = document.getElementById('apiKeyStatus');
     const typedKey = input?.value?.trim();
@@ -3620,14 +4200,14 @@ function openApiSettingsModal() {
         status.innerHTML = '<span class="status-disconnected">No API key configured</span>';
     }
 
-    modal.classList.add('active');
+    mountModal('apiSettingsModal', closeApiSettingsModal);
 }
 
 /**
  * Close API Settings Modal
  */
 function closeApiSettingsModal() {
-    document.getElementById('apiSettingsModal').classList.remove('active');
+    unmountModal('apiSettingsModal');
 }
 
 /**
