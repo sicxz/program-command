@@ -3284,6 +3284,104 @@ function attachBeforeUnloadGuard() {
     });
 }
 
+// ============================================
+// PHASE B — MODAL CONTROLLER (focus trap, Esc, backdrop, focus return)
+// ============================================
+
+// Map of modalId -> { previousFocus, onKeydown, onOverlayClick } so we can
+// install per-modal listeners on mount and tear them down on unmount.
+const __modalControllers = new Map();
+
+function __getFocusableInside(modalEl) {
+    if (!modalEl) return [];
+    const selector = [
+        'a[href]', 'area[href]', 'button:not([disabled])',
+        'input:not([disabled]):not([type="hidden"])',
+        'select:not([disabled])', 'textarea:not([disabled])',
+        '[tabindex]:not([tabindex="-1"])', '[contenteditable="true"]'
+    ].join(',');
+    return Array.from(modalEl.querySelectorAll(selector)).filter((el) => {
+        // Skip elements that aren't actually visible
+        return !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+    });
+}
+
+function mountModal(modalId, closeFn) {
+    const overlay = document.getElementById(modalId);
+    if (!overlay) return;
+    const dialog = overlay.querySelector('.modal');
+    if (!dialog) return;
+
+    const previousFocus = document.activeElement;
+    overlay.classList.add('active');
+
+    // Move focus into the dialog — first focusable, else the dialog itself.
+    const focusables = __getFocusableInside(dialog);
+    const firstFocus = focusables[0] || dialog;
+    if (!firstFocus.hasAttribute('tabindex') && firstFocus === dialog) {
+        dialog.setAttribute('tabindex', '-1');
+    }
+    requestAnimationFrame(() => {
+        try { firstFocus.focus(); } catch (_) { /* noop */ }
+    });
+
+    const onKeydown = (event) => {
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            closeFn();
+            return;
+        }
+        if (event.key !== 'Tab') return;
+        const inDialog = __getFocusableInside(dialog);
+        if (inDialog.length === 0) {
+            event.preventDefault();
+            return;
+        }
+        const first = inDialog[0];
+        const last = inDialog[inDialog.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+        }
+    };
+
+    const onOverlayClick = (event) => {
+        // Click on the dim backdrop (the overlay itself) closes — clicks on
+        // the dialog or its children don't bubble here when stopped, but
+        // explicitly check target.
+        if (event.target === overlay) {
+            closeFn();
+        }
+    };
+
+    document.addEventListener('keydown', onKeydown, true);
+    overlay.addEventListener('mousedown', onOverlayClick);
+
+    __modalControllers.set(modalId, { previousFocus, onKeydown, onOverlayClick });
+}
+
+function unmountModal(modalId) {
+    const overlay = document.getElementById(modalId);
+    if (overlay) overlay.classList.remove('active');
+
+    const controller = __modalControllers.get(modalId);
+    if (!controller) return;
+
+    document.removeEventListener('keydown', controller.onKeydown, true);
+    if (overlay) overlay.removeEventListener('mousedown', controller.onOverlayClick);
+
+    __modalControllers.delete(modalId);
+
+    // Restore focus to whatever the user was on before opening
+    const target = controller.previousFocus;
+    if (target && typeof target.focus === 'function') {
+        try { target.focus(); } catch (_) { /* noop */ }
+    }
+}
+
 /**
  * Show toast notification
  */
@@ -3308,15 +3406,15 @@ function showToast(message, type = 'success') {
 function openAddCourseModal() {
     populateCourseDropdown();
     populateFacultyDropdown();
-    document.getElementById('addCourseModal').classList.add('active');
     document.getElementById('addCourseSection').value = '001';
+    mountModal('addCourseModal', closeAddCourseModal);
 }
 
 /**
  * Close Add Course modal
  */
 function closeAddCourseModal() {
-    document.getElementById('addCourseModal').classList.remove('active');
+    unmountModal('addCourseModal');
     document.getElementById('addCourseForm').reset();
 }
 
@@ -3624,14 +3722,14 @@ async function openFacultyPreferencesModal() {
     document.getElementById('facultyPreferencesForm').reset();
     currentFacultyId = null;
 
-    modal.classList.add('active');
+    mountModal('facultyPreferencesModal', closeFacultyPreferencesModal);
 }
 
 /**
  * Close the Faculty Preferences modal
  */
 function closeFacultyPreferencesModal() {
-    document.getElementById('facultyPreferencesModal').classList.remove('active');
+    unmountModal('facultyPreferencesModal');
     currentFacultyId = null;
 }
 
@@ -3820,7 +3918,6 @@ function tryHydrateApiKeyFromInput() {
  * Open API Settings Modal
  */
 function openApiSettingsModal() {
-    const modal = document.getElementById('apiSettingsModal');
     const input = document.getElementById('apiKeyInput');
     const status = document.getElementById('apiKeyStatus');
     const typedKey = input?.value?.trim();
@@ -3839,14 +3936,14 @@ function openApiSettingsModal() {
         status.innerHTML = '<span class="status-disconnected">No API key configured</span>';
     }
 
-    modal.classList.add('active');
+    mountModal('apiSettingsModal', closeApiSettingsModal);
 }
 
 /**
  * Close API Settings Modal
  */
 function closeApiSettingsModal() {
-    document.getElementById('apiSettingsModal').classList.remove('active');
+    unmountModal('apiSettingsModal');
 }
 
 /**

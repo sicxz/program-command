@@ -66,9 +66,9 @@
 
         <!-- Faculty Selection Panel -->
         <div class="faculty-selection-panel">
-            <button class="faculty-panel-toggle" onclick="toggleFacultyPanel()">
-                <span>👥 Faculty Selection for Next Year</span>
-                <span class="toggle-icon">▼</span>
+            <button class="faculty-panel-toggle" onclick="toggleFacultyPanel()" aria-expanded="true" aria-controls="facultyPanelContent">
+                <span><span aria-hidden="true">👥 </span>Faculty Selection for Next Year</span>
+                <span class="toggle-icon" aria-hidden="true">▼</span>
             </button>
             <div class="faculty-panel-content" id="facultyPanelContent">
                 <p class="helper-text" style="margin-bottom: 16px; color: #6b7280; font-size: 13px;">
@@ -363,52 +363,53 @@
             <button class="btn-primary" onclick="openWorkloadReview()">
                 👥 Make Workloads →
             </button>
-            <button class="btn-settings" onclick="openApiSettingsModal()" title="API Settings">
-                ⚙️
+            <button class="btn-settings" type="button" onclick="openApiSettingsModal()" title="AI Settings" aria-label="AI Settings">
+                <span aria-hidden="true">⚙️</span>
             </button>
         </div>
 
         <!-- Toast Notification -->
-        <div class="toast" id="toast">
+        <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true">
             <span id="toastMessage"></span>
         </div>
 
         <!-- Add Course Modal -->
         <div class="modal-overlay" id="addCourseModal">
-            <div class="modal">
+            <div class="modal" role="dialog" aria-modal="true" aria-labelledby="addCourseModalTitle">
                 <div class="modal-header">
-                    <h2 class="modal-title">Add Course to Schedule</h2>
-                    <button class="modal-close" onclick="closeAddCourseModal()">&times;</button>
+                    <h2 class="modal-title" id="addCourseModalTitle">Add Course to Schedule</h2>
+                    <button class="modal-close" type="button" onclick="closeAddCourseModal()" aria-label="Close Add Course dialog">&times;</button>
                 </div>
                 <form id="addCourseForm" onsubmit="handleAddCourse(event)">
+                    <p class="form-required-legend"><span aria-hidden="true">*</span> Required field</p>
                     <div class="form-group">
-                        <label for="addCourseCode">Course</label>
-                        <select id="addCourseCode" required>
+                        <label for="addCourseCode">Course <span aria-hidden="true" class="form-required-mark">*</span></label>
+                        <select id="addCourseCode" required aria-required="true">
                             <option value="">Select a course...</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="addCourseSection">Section</label>
-                        <input type="text" id="addCourseSection" placeholder="001" maxlength="3" required>
+                        <label for="addCourseSection">Section <span aria-hidden="true" class="form-required-mark">*</span></label>
+                        <input type="text" id="addCourseSection" placeholder="001" maxlength="3" required aria-required="true">
                     </div>
                     <div class="form-group">
-                        <label for="addCourseDays">Days</label>
-                        <select id="addCourseDays" required>
+                        <label for="addCourseDays">Days <span aria-hidden="true" class="form-required-mark">*</span></label>
+                        <select id="addCourseDays" required aria-required="true">
                             <option value="MW">Monday/Wednesday</option>
                             <option value="TR">Tuesday/Thursday</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="addCourseTime">Time</label>
-                        <select id="addCourseTime" required>
+                        <label for="addCourseTime">Time <span aria-hidden="true" class="form-required-mark">*</span></label>
+                        <select id="addCourseTime" required aria-required="true">
                             <option value="10:00-12:20">10:00 AM - 12:20 PM</option>
                             <option value="13:00-15:20">1:00 PM - 3:20 PM</option>
                             <option value="16:00-18:20">4:00 PM - 6:20 PM</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="addCourseRoom">Room</label>
-                        <select id="addCourseRoom" required>
+                        <label for="addCourseRoom">Room <span aria-hidden="true" class="form-required-mark">*</span></label>
+                        <select id="addCourseRoom" required aria-required="true">
                             <optgroup label="Catalyst (Spokane)">
                                 <option value="206">206 - UX Lab</option>
                                 <option value="209">209 - Mac Lab</option>
@@ -437,10 +438,10 @@
 
         <!-- Faculty Preferences Modal -->
         <div class="modal-overlay" id="facultyPreferencesModal">
-            <div class="modal" style="max-width: 600px;">
+            <div class="modal" style="max-width: 600px;" role="dialog" aria-modal="true" aria-labelledby="facultyPreferencesModalTitle">
                 <div class="modal-header">
-                    <h2 class="modal-title">Faculty Preferences</h2>
-                    <button class="modal-close" onclick="closeFacultyPreferencesModal()">&times;</button>
+                    <h2 class="modal-title" id="facultyPreferencesModalTitle">Faculty Preferences</h2>
+                    <button class="modal-close" type="button" onclick="closeFacultyPreferencesModal()" aria-label="Close Faculty Preferences dialog">&times;</button>
                 </div>
                 <form id="facultyPreferencesForm" onsubmit="handleSaveFacultyPreferences(event)">
                     <div class="form-group">
@@ -524,17 +525,17 @@
 
         <!-- API Settings Modal -->
         <div class="modal-overlay" id="apiSettingsModal">
-            <div class="modal" style="max-width: 500px;">
+            <div class="modal" style="max-width: 500px;" role="dialog" aria-modal="true" aria-labelledby="apiSettingsModalTitle">
                 <div class="modal-header">
-                    <h2 class="modal-title">AI API Settings (OpenAI or Claude)</h2>
-                    <button class="modal-close" onclick="closeApiSettingsModal()">&times;</button>
+                    <h2 class="modal-title" id="apiSettingsModalTitle">AI Settings</h2>
+                    <button class="modal-close" type="button" onclick="closeApiSettingsModal()" aria-label="Close AI Settings dialog">&times;</button>
                 </div>
                 <div class="modal-body">
                     <div class="form-group">
                         <label for="apiKeyInput">API Key</label>
                         <div class="api-key-input-group">
                             <input type="password" id="apiKeyInput" placeholder="sk-... or sk-ant-..." autocomplete="off">
-                            <button type="button" class="btn-small" onclick="toggleApiKeyVisibility()">👁️</button>
+                            <button type="button" class="btn-small" onclick="toggleApiKeyVisibility()" aria-label="Show or hide API key"><span aria-hidden="true">👁️</span></button>
                         </div>
                         <p class="helper-text">Use either <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI API keys</a> or <a href="https://console.anthropic.com/settings/keys" target="_blank">Anthropic API keys</a></p>
                     </div>
@@ -637,8 +638,10 @@
         function toggleFacultyPanel() {
             const content = document.getElementById('facultyPanelContent');
             const toggle = document.querySelector('.faculty-panel-toggle');
+            const willCollapse = !content.classList.contains('collapsed');
             content.classList.toggle('collapsed');
             toggle.classList.toggle('collapsed');
+            toggle.setAttribute('aria-expanded', willCollapse ? 'false' : 'true');
         }
         
         // Initialize when DOM is ready

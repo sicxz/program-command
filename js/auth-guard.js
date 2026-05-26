@@ -160,6 +160,9 @@
             node = document.createElement('div');
             node.id = 'editConflictNotice';
             node.className = 'edit-conflict-notice';
+            node.setAttribute('role', 'status');
+            node.setAttribute('aria-live', 'polite');
+            node.setAttribute('aria-atomic', 'true');
             document.body.appendChild(node);
         }
 
@@ -228,6 +231,8 @@
             banner = document.createElement('div');
             banner.id = 'editLockWarningBanner';
             banner.className = 'edit-lock-warning-banner';
+            banner.setAttribute('role', 'alert');
+            banner.setAttribute('aria-live', 'assertive');
             banner.innerHTML = `
                 <div class=\"edit-lock-warning-message\" id=\"editLockWarningMessage\"></div>
                 <div class=\"edit-lock-warning-actions\">
@@ -481,8 +486,15 @@
                 color: #7a4b00;
                 font-size: 12px;
                 font-weight: 700;
-                padding: 4px 10px;
+                padding: 6px 14px;
                 cursor: pointer;
+                /* WCAG 2.2 target size — at least 24x24. */
+                min-height: 28px;
+                min-width: 28px;
+            }
+            .edit-lock-btn:focus-visible {
+                outline: 2px solid #1a73e8;
+                outline-offset: 2px;
             }
             .edit-lock-btn.danger {
                 border-color: #b45309;
