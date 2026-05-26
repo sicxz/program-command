@@ -885,9 +885,11 @@ async function handleLoadAndAnalyze() {
         // Render analysis results
         renderAnalysisDashboard(analysisResults);
 
-        // Hide loading, show analysis dashboard
+        // Hide loading, show analysis dashboard + the post-data panels that
+        // start hidden so the empty state can shine on first load.
         document.getElementById('loadingContainer').style.display = 'none';
         document.getElementById('analysisDashboard').style.display = 'block';
+        revealPostDataPanels();
 
         // Auto-save placements after loading so they're preserved for future use
         updatePlacementsFromSchedule(sourceYear);
@@ -1278,6 +1280,7 @@ async function handleGenerate() {
         document.getElementById('projectedDemandSection').style.display = 'block';
         document.getElementById('builderContent').style.display = 'grid';
         document.getElementById('actionBar').style.display = 'flex';
+        revealPostDataPanels();
 
         // Update titles
         document.getElementById('gridTitle').textContent = `Schedule Grid - ${activeQuarter} ${targetYear}`;
@@ -2643,6 +2646,7 @@ function loadDraft() {
         document.getElementById('projectedDemandSection').style.display = 'block';
         document.getElementById('builderContent').style.display = 'grid';
         document.getElementById('actionBar').style.display = 'flex';
+        revealPostDataPanels();
 
         document.getElementById('gridTitle').textContent = `Schedule Grid - ${currentSchedule.quarter} ${currentSchedule.year}`;
         document.getElementById('demandQuarterYear').textContent = `${currentSchedule.quarter} ${currentSchedule.year}`;
@@ -3266,6 +3270,21 @@ async function withSaveButtonBusy(buttonId, busyLabel, action) {
         button.removeAttribute('aria-busy');
         button.innerHTML = originalLabel;
     }
+}
+
+/**
+ * Phase C — reveal the panels that ship hidden so the empty state can lead on
+ * first load. Idempotent; safe to call multiple times. Triggered from
+ * handleLoadAndAnalyze, handleGenerate, and loadDraft success paths.
+ */
+function revealPostDataPanels() {
+    const ids = ['facultySelectionPanel', 'buildScenarioPanel', 'summaryCards'];
+    ids.forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        // Use the element's natural display rather than guessing flex/grid/block.
+        el.style.display = '';
+    });
 }
 
 /**

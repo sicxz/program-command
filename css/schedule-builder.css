@@ -2628,6 +2628,28 @@ body {
 }
 
 /* ============================================
+   PHASE C — REVEAL SEQUENCE + COPY POLISH
+   Inline Step-2 anchor + helper-text styling moved out of inline styles.
+   ============================================ */
+
+.controls-step-badge--inline {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.helper-text--faculty-panel {
+    margin-bottom: 16px;
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.section-header-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+/* ============================================
    PHASE B — ACCESSIBILITY FLOOR (required-field markers + focus rings)
    ============================================ */
 

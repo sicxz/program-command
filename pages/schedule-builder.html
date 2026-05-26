@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Schedule Builder - Design Scheduler</title>
+    <title>Draft Schedule Builder · Program Command</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -56,8 +56,8 @@
             <button id="generateBtn" class="btn-primary" onclick="handleLoadAndAnalyze()">
                 Load & Analyze
             </button>
-            <button class="btn-secondary" onclick="window.location.href='pamcam-playground.html'">
-                PamCam Lab
+            <button class="btn-secondary" type="button" onclick="window.location.href='pamcam-playground.html'" title="Experimental scheduling tools (PamCam)">
+                Experimental tools
             </button>
             <button class="btn-secondary" onclick="window.location.href='academic-year-setup.html'">
                 AY Setup
@@ -65,14 +65,14 @@
         </div>
 
         <!-- Faculty Selection Panel -->
-        <div class="faculty-selection-panel">
+        <div class="faculty-selection-panel" id="facultySelectionPanel" style="display: none;">
             <button class="faculty-panel-toggle" onclick="toggleFacultyPanel()" aria-expanded="true" aria-controls="facultyPanelContent">
                 <span><span aria-hidden="true">👥 </span>Faculty Selection for Next Year</span>
                 <span class="toggle-icon" aria-hidden="true">▼</span>
             </button>
             <div class="faculty-panel-content" id="facultyPanelContent">
-                <p class="helper-text" style="margin-bottom: 16px; color: #6b7280; font-size: 13px;">
-                    Select which faculty will be available for the next academic year. Full-time faculty (professors, lecturers) are prioritized; adjuncts serve as placeholders when full-time faculty are unavailable.
+                <p class="helper-text helper-text--faculty-panel">
+                    Check off the faculty available next year. Full-time faculty (professors, lecturers) are assigned first; adjuncts fill remaining gaps.
                 </p>
                 <div id="facultySelectionContainer">
                     <p style="color: #6b7280; text-align: center; padding: 20px;">Loading faculty data...</p>
@@ -81,7 +81,7 @@
         </div>
 
         <!-- Predictive Faculty Build Panel -->
-        <div class="build-scenario-panel">
+        <div class="build-scenario-panel" id="buildScenarioPanel" style="display: none;">
             <div class="scenario-header">
                 <div>
                     <h2>Predictive Faculty Build</h2>
@@ -140,7 +140,7 @@
         </div>
 
         <!-- Summary Cards -->
-        <div class="summary-cards" id="summaryCards">
+        <div class="summary-cards" id="summaryCards" style="display: none;">
             <div class="summary-card">
                 <div class="card-icon">📚</div>
                 <div class="card-value" id="totalSections">--</div>
@@ -280,8 +280,11 @@
             <!-- Schedule Grid View -->
             <div class="grid-section">
                 <div class="section-header">
-                    <h2 id="gridTitle">Schedule Grid - Fall 2026</h2>
-                    <div style="display: flex; gap: 12px; align-items: center;">
+                    <div>
+                        <span class="controls-step-badge controls-step-badge--inline">Step 2</span>
+                        <h2 id="gridTitle" style="display:inline-block;margin-left:8px;">Schedule Grid - Fall 2026</h2>
+                    </div>
+                    <div class="section-header-actions">
                         <button class="btn-add-course" onclick="openAddCourseModal()">+ Add Course</button>
                         <div class="view-toggle">
                             <button class="view-btn active" onclick="setView('grid')" id="gridViewBtn">Grid View</button>
@@ -327,14 +330,14 @@
 
         <!-- Empty State -->
         <div class="empty-state" id="emptyState">
-            <div class="empty-icon">📅</div>
-            <h2>Ready to Build Your Schedule</h2>
-            <p>Select an academic year and quarter, then click "Generate Schedule" to get AI-powered recommendations based on:</p>
+            <div class="empty-icon" aria-hidden="true">📅</div>
+            <h2>Ready to build your draft</h2>
+            <p>Pick a year to copy from and a target year, then click <strong>Load &amp; Analyze</strong>. We'll pull last year's schedule and surface what needs your attention:</p>
             <ul class="features-list">
-                <li>📊 3+ years of enrollment history</li>
-                <li>🔗 Prerequisite flow patterns</li>
-                <li>👨‍🏫 Historical faculty assignments</li>
-                <li>📈 Course demand predictions</li>
+                <li><span aria-hidden="true">📊 </span>Courses trending over capacity</li>
+                <li><span aria-hidden="true">🔗 </span>Prerequisite gaps in next year's draft</li>
+                <li><span aria-hidden="true">👨‍🏫 </span>Faculty who taught each course last time</li>
+                <li><span aria-hidden="true">📈 </span>Sections to add, hold, or cut</li>
             </ul>
         </div>
 
@@ -345,23 +348,23 @@
                 <div class="action-bar-subtitle">Save the builder draft, export to the main scheduler, or go straight to workload review.</div>
                 <div class="action-bar-attribution" id="saveAttributionLabel">Last saved by -- at --</div>
             </div>
-            <button class="btn-secondary" onclick="saveDraft()">
-                💾 Save Draft
+            <button class="btn-secondary" type="button" onclick="saveDraft()" title="Save a local draft in this browser only">
+                <span aria-hidden="true">💾 </span>Save local draft
             </button>
-            <button class="btn-primary" onclick="saveToDatabase()" id="saveToCloudBtn">
-                ☁️ Save to Cloud
+            <button class="btn-secondary" type="button" onclick="saveToDatabase()" id="saveToCloudBtn" title="Publish to the shared Supabase database">
+                <span aria-hidden="true">☁️ </span>Publish to cloud
             </button>
-            <button class="btn-ai" onclick="evaluateWithAI()">
-                ✨ Evaluate with AI
+            <button class="btn-ai" type="button" onclick="evaluateWithAI()">
+                <span aria-hidden="true">✨ </span>Evaluate with AI
             </button>
-            <button class="btn-secondary" onclick="exportJSON()">
-                📥 Export JSON
+            <button class="btn-secondary" type="button" onclick="exportJSON()">
+                <span aria-hidden="true">📥 </span>Export JSON
             </button>
-            <button class="btn-primary" onclick="exportToEditor()">
+            <button class="btn-secondary" type="button" onclick="exportToEditor()">
                 Open in Main Schedule →
             </button>
-            <button class="btn-primary" onclick="openWorkloadReview()">
-                👥 Make Workloads →
+            <button class="btn-primary" type="button" onclick="openWorkloadReview()">
+                <span aria-hidden="true">👥 </span>Review Workloads →
             </button>
             <button class="btn-settings" type="button" onclick="openApiSettingsModal()" title="AI Settings" aria-label="AI Settings">
                 <span aria-hidden="true">⚙️</span>
@@ -557,7 +560,7 @@
             </div>
             <div class="ai-results-loading" id="aiResultsLoading" style="display: none;">
                 <div class="loading-spinner"></div>
-                <p>Analyzing schedule with ChatGPT...</p>
+                <p>Analyzing schedule with AI…</p>
             </div>
             <div class="ai-results-content" id="aiResultsContent">
                 <!-- Health Score -->
