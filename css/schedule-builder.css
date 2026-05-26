@@ -1,7 +1,12 @@
 /* Schedule Builder Styles */
 :root {
-    --primary-color: #b7142e;
-    --primary-dark: #8f1024;
+    /* EWU Design brand red — aligned with css/design-system.css and CLAUDE.md.
+       Previously this file ran on #b7142e / #8f1024, which read as off-brand
+       next to the rest of Program Command. */
+    --primary-color: #a10022;
+    --primary-dark: #760019;
+    --brand-focus-ring: rgba(161, 0, 34, 0.22);
+    --brand-shadow: rgba(161, 0, 34, 0.28);
     --secondary-color: #0969da;
     --success-color: #16a34a;
     --warning-color: #d97706;
@@ -21,15 +26,15 @@
 }
 
 :focus-visible {
-    outline: 3px solid rgba(15, 118, 110, 0.35);
+    outline: 3px solid var(--brand-focus-ring);
     outline-offset: 2px;
 }
 
 body {
     font-family: 'Sora', 'Avenir Next', 'Segoe UI', sans-serif;
     background:
-        radial-gradient(1200px 700px at 0% -10%, rgba(15, 118, 110, 0.08), transparent 55%),
-        radial-gradient(1100px 600px at 100% -8%, rgba(245, 158, 11, 0.08), transparent 55%),
+        radial-gradient(1200px 700px at 0% -10%, rgba(161, 0, 34, 0.06), transparent 55%),
+        radial-gradient(1100px 600px at 100% -8%, rgba(15, 23, 42, 0.04), transparent 55%),
         var(--bg-primary);
     color: var(--text-primary);
     line-height: 1.6;
@@ -41,17 +46,21 @@ body {
     padding: 20px;
 }
 
-/* Header */
+/* Header
+ * NOTE: program-command-dashboard-theme.css overrides this with a charcoal
+ * command-bar gradient and !important — that's the canonical look across
+ * Program Command. The base styles below stay in case the theme is removed,
+ * but the brand red is the accent the theme expects, not teal. */
 .builder-header {
     background:
-        linear-gradient(120deg, rgba(15, 118, 110, 0.96) 0%, rgba(21, 94, 89, 0.98) 100%),
+        linear-gradient(120deg, #a10022 0%, #760019 100%),
         repeating-linear-gradient(45deg, rgba(255,255,255,0.05) 0 10px, transparent 10px 20px);
     color: white;
     padding: 30px;
     border-radius: 20px;
     margin-bottom: 24px;
     position: relative;
-    box-shadow: 0 10px 30px rgba(15, 118, 110, 0.22);
+    box-shadow: 0 10px 30px var(--brand-shadow);
 }
 
 .builder-header-top {
@@ -217,7 +226,7 @@ body {
 .control-group select:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+    box-shadow: 0 0 0 3px var(--brand-focus-ring);
 }
 
 /* Buttons */
@@ -235,7 +244,7 @@ body {
 
 .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(15, 118, 110, 0.32);
+    box-shadow: 0 6px 16px var(--brand-shadow);
 }
 
 .btn-secondary {
@@ -1536,7 +1545,7 @@ body {
 
 .recommendation-item:hover {
     border-color: var(--primary-color);
-    box-shadow: 0 2px 6px rgba(245, 158, 11, 0.15);
+    box-shadow: 0 2px 6px var(--brand-focus-ring);
 }
 
 .recommendation-item input[type="checkbox"] {
@@ -1708,7 +1717,7 @@ body {
 .form-group input:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+    box-shadow: 0 0 0 3px var(--brand-focus-ring);
 }
 
 .modal-actions {
@@ -1720,21 +1729,9 @@ body {
     border-top: 1px solid var(--border-color);
 }
 
-/* Small button for sidebar */
-.btn-small {
-    padding: 4px 10px;
-    font-size: 12px;
-    background: var(--primary-color);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.btn-small:hover {
-    background: #d97706;
-}
+/* (.btn-small canonical definition lives further down. The earlier duplicate
+   with a solid-red bg and amber hover was deleted in Phase D — it was clearly
+   a copy-paste from a different surface and broke the ladder.) */
 
 /* Faculty Preferences Modal Styles */
 .preferences-grid {
@@ -1804,7 +1801,7 @@ body {
 .form-group textarea:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+    box-shadow: 0 0 0 3px var(--brand-focus-ring);
 }
 
 /* Constraint Indicators for Add Course Modal */
@@ -1844,7 +1841,7 @@ body {
 
 .btn-ai:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(15, 118, 110, 0.3);
+    box-shadow: 0 6px 16px var(--brand-shadow);
 }
 
 .btn-settings {
@@ -1894,7 +1891,7 @@ body {
 .api-key-input-group input:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+    box-shadow: 0 0 0 3px var(--brand-focus-ring);
 }
 
 /* API Key Status */
@@ -2569,7 +2566,7 @@ body {
 .scenario-table input[type="number"]:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.12);
+    box-shadow: 0 0 0 2px var(--brand-focus-ring);
 }
 
 .scenario-value {
