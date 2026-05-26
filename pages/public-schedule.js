@@ -20,7 +20,7 @@
         programCode: 'ewu-design'
     });
 
-    const PUBLIC_YEARS = Object.freeze(['2026-27', '2025-26', '2024-25', '2023-24']);
+    const PUBLIC_YEARS = Object.freeze(['2026-27', '2025-26']);
     const QUARTERS = Object.freeze(['fall', 'winter', 'spring']);
     const QUARTER_LABELS = Object.freeze({
         fall: 'Fall',
@@ -468,26 +468,34 @@
 
     function renderYearTabs(state) {
         const { documentRef, year } = state;
-        const tabs = documentRef.getElementById('publicYearTabs');
-        clearElement(tabs);
-        if (!tabs) return;
+        const container = documentRef.getElementById('publicYearTabs');
+        if (!container) return;
+        clearElement(container);
+
+        const label = createElement(documentRef, 'label', 'public-year-select-label', 'Academic year');
+        label.setAttribute('for', 'publicYearSelect');
+
+        const select = createElement(documentRef, 'select', 'public-year-select');
+        select.id = 'publicYearSelect';
+        select.setAttribute('aria-label', 'Academic year');
 
         PUBLIC_YEARS.forEach((publicYear) => {
-            const button = createElement(documentRef, 'button', 'public-year-tab');
-            button.type = 'button';
-            button.setAttribute('role', 'tab');
-            button.setAttribute('aria-selected', publicYear === year ? 'true' : 'false');
-            button.dataset.year = publicYear;
-            button.appendChild(createElement(documentRef, 'span', 'public-year-label', 'AY'));
-            button.appendChild(createElement(documentRef, 'span', 'public-year-value', publicYear));
-            button.title = `Academic year ${publicYear}`;
-            button.addEventListener('click', () => {
-                if (typeof state.onYearChange === 'function') {
-                    state.onYearChange(publicYear);
-                }
-            });
-            tabs.appendChild(button);
+            const option = createElement(documentRef, 'option', '', `AY ${publicYear}`);
+            option.value = publicYear;
+            option.dataset.year = publicYear;
+            if (publicYear === year) option.selected = true;
+            select.appendChild(option);
         });
+        select.value = year;
+
+        select.addEventListener('change', (event) => {
+            if (typeof state.onYearChange === 'function') {
+                state.onYearChange(event.target.value);
+            }
+        });
+
+        container.appendChild(label);
+        container.appendChild(select);
     }
 
     function renderQuarterTabs(state) {

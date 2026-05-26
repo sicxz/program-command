@@ -31,7 +31,7 @@ describe('public schedule page', () => {
     test('uses AY 2026-27 Fall as the default context', () => {
         expect(PublicSchedulePage.DEFAULTS.year).toBe('2026-27');
         expect(PublicSchedulePage.DEFAULTS.quarter).toBe('fall');
-        expect(PublicSchedulePage.PUBLIC_YEARS).toEqual(['2026-27', '2025-26', '2024-25', '2023-24']);
+        expect(PublicSchedulePage.PUBLIC_YEARS).toEqual(['2026-27', '2025-26']);
         expect(PublicSchedulePage.formatQuarterTitle('2026-27', 'fall')).toBe('Fall 2026');
     });
 
@@ -157,8 +157,9 @@ describe('public schedule page', () => {
         expect(document.getElementById('publicScheduleTitle').textContent).toBe('Fall 2026');
         expect(document.getElementById('publicPanelCount').textContent).toBe('2 sections');
         expect(document.getElementById('publicStatus').textContent).toBe('Live schedule');
-        expect(document.querySelector('[data-year="2026-27"]').getAttribute('aria-selected')).toBe('true');
-        expect(document.getElementById('publicYearTabs').textContent).toContain('2023-24');
+        expect(document.getElementById('publicYearSelect').value).toBe('2026-27');
+        expect(document.getElementById('publicYearTabs').textContent).toContain('2025-26');
+        expect(document.getElementById('publicYearTabs').textContent).not.toContain('2023-24');
         expect(document.getElementById('publicScheduleGrid').textContent).toContain('DESN 368');
         expect(document.getElementById('publicScheduleGrid').textContent).toContain('Code + Design 1');
         expect(document.getElementById('publicScheduleGrid').textContent).not.toContain('Interaction Design');
@@ -240,7 +241,9 @@ describe('public schedule page', () => {
 
         await app.init();
 
-        document.querySelector('[data-year="2025-26"]').click();
+        const yearSelect = document.getElementById('publicYearSelect');
+        yearSelect.value = '2025-26';
+        yearSelect.dispatchEvent(new Event('change'));
         await flushPromises();
         await flushPromises();
 
@@ -251,7 +254,7 @@ describe('public schedule page', () => {
         });
         expect(document.getElementById('publicAcademicYearLabel').textContent).toBe('AY 2025-26');
         expect(document.getElementById('publicScheduleTitle').textContent).toBe('Fall 2025');
-        expect(document.querySelector('[data-year="2025-26"]').getAttribute('aria-selected')).toBe('true');
+        expect(document.getElementById('publicYearSelect').value).toBe('2025-26');
         expect(document.getElementById('publicScheduleGrid').textContent).toContain('DESN 263');
         expect(document.getElementById('publicScheduleGrid').textContent).toContain('Visual Communication Design');
         expect(document.getElementById('publicScheduleGrid').textContent).not.toContain('User Experience Design I');
@@ -318,7 +321,7 @@ describe('public schedule page', () => {
             p_quarter: null
         });
         expect(document.getElementById('publicScheduleTitle').textContent).toBe('Winter 2026');
-        expect(document.querySelector('[data-year="2025-26"]').getAttribute('aria-selected')).toBe('true');
+        expect(document.getElementById('publicYearSelect').value).toBe('2025-26');
         expect(document.querySelector('[data-quarter="winter"]').getAttribute('aria-selected')).toBe('true');
     });
 
