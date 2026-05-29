@@ -11,3 +11,11 @@ dist/
 output/
 .playwright-cli/
 error_log.txt
+
+# Agent tooling & local scratch (never commit)
+.codex/
+.context/
+.cursor/
+.playwright-mcp/
+header-check.png
+TRAVIS.md
