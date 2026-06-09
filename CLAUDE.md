@@ -2,6 +2,21 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Two-Model Stack — Division of Labor
+
+This project uses a two-model coding stack:
+
+- **Claude Code (you)** — architecture, design decisions, codebase reading, API surface design, naming, complex reasoning, visual polish, and anything where judgment > throughput.
+- **Codex / GPT-5.5** — implementation sprints, multi-file refactors, test generation, debugging passes, and long parallel jobs.
+
+**When Claude Code should hand off to Codex:**
+- Writing boilerplate CRUD endpoints
+- Scaffolding test files
+- Mechanical refactors across many files
+- Long running tasks that can run in parallel while Claude designs the next slice
+
+**Token discipline:** Do not re-derive project conventions each session. They are captured here and in the orientation docs. Read once, act.
+
 ## Cold start
 
 Returning cold, or arriving for the first time? Read the reorientation docs in order before touching anything:
