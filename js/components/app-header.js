@@ -176,16 +176,26 @@ class AppHeader extends HTMLElement {
                     color: var(--f-ink, #0d1117);
                     border: 1px solid var(--f-hairline, #c9d1d9);
                     border-top: 4px solid var(--f-rule, #111827);
-                    padding: 20px 24px;
+                    padding: 12px 24px;
                 }
 
                 .header-shell {
                     display: flex;
                     justify-content: space-between;
-                    align-items: flex-start;
+                    align-items: center;
                     gap: 24px;
                     max-width: 1440px;
                     margin: 0 auto;
+                }
+
+                /* Eyebrow + title share one baseline row so the header reads
+                   as a single compact strip instead of a stacked block. */
+                .header-titles {
+                    display: flex;
+                    align-items: baseline;
+                    flex-wrap: wrap;
+                    gap: 6px 12px;
+                    min-width: 0;
                 }
 
                 .header-eyebrow {
@@ -199,7 +209,7 @@ class AppHeader extends HTMLElement {
                     font-weight: 850;
                     color: var(--f-soft, #6a737d);
                     text-transform: uppercase;
-                    margin-bottom: 8px;
+                    margin-bottom: 0;
                 }
 
                 .header-eyebrow::before {
@@ -212,19 +222,19 @@ class AppHeader extends HTMLElement {
                 }
 
                 h1 {
-                    font-size: clamp(1.55rem, 2.6vw, 2.1rem);
+                    font-size: clamp(1.25rem, 2vw, 1.6rem);
                     font-weight: 760;
-                    line-height: 1.08;
+                    line-height: 1.1;
                     margin: 0;
                     letter-spacing: 0;
                     color: var(--f-ink, #0d1117);
                 }
 
                 .subtitle {
-                    font-size: 14px;
+                    font-size: 13px;
                     color: var(--f-muted, #3f4652);
                     font-weight: 400;
-                    margin: 6px 0 0 0;
+                    margin: 2px 0 0 0;
                     max-width: 720px;
                 }
 
@@ -337,7 +347,7 @@ class AppHeader extends HTMLElement {
                     .header-shell {
                         flex-direction: column;
                         align-items: stretch;
-                        gap: 12px;
+                        gap: 10px;
                     }
                     .header-actions {
                         align-self: flex-start;
@@ -347,15 +357,17 @@ class AppHeader extends HTMLElement {
                         left: 0;
                         width: min(92vw, 320px);
                     }
-                    h1 { font-size: 1.55rem; }
+                    h1 { font-size: 1.3rem; }
                 }
             </style>
             
             <header>
                 <div class="header-shell">
                     <div class="header-copy">
-                        <div class="header-eyebrow">${eyebrow}</div>
-                        <h1>${titleText}</h1>
+                        <div class="header-titles">
+                            <div class="header-eyebrow">${eyebrow}</div>
+                            <h1>${titleText}</h1>
+                        </div>
                         <p class="subtitle">${subtitleText}</p>
                     </div>
                     <div class="header-actions">

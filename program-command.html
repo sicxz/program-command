@@ -4539,6 +4539,14 @@
             border: 0;
         }
 
+        /* Keep the stats bar out of layout until it holds real numbers.
+           Scoped under body.foundry-production so it beats the display:grid
+           rule above; .is-pending is removed by updateStats() on first run. */
+        body.foundry-production .stats-bar.is-pending,
+        .stats-bar.is-pending {
+            display: none;
+        }
+
         body.foundry-production .stat-item {
             --stat-signal: var(--f-rule);
             display: grid;
@@ -5400,21 +5408,23 @@
             </div>
         </div>
 
-        <div class="stats-bar">
+        <!-- Hidden until updateStats() runs with real loaded data so we never
+             flash placeholder/stale numbers before the schedule loads. -->
+        <div class="stats-bar is-pending" id="statsBar">
             <div class="stat-item critical">
-                <span class="stat-number" id="criticalConflicts">3</span>
+                <span class="stat-number" id="criticalConflicts">—</span>
                 <span class="stat-label">Critical</span>
             </div>
             <div class="stat-item warning">
-                <span class="stat-number" id="totalConflicts">7</span>
+                <span class="stat-number" id="totalConflicts">—</span>
                 <span class="stat-label">Conflicts</span>
             </div>
             <div class="stat-item info">
-                <span class="stat-number" id="totalCourses">15</span>
+                <span class="stat-number" id="totalCourses">—</span>
                 <span class="stat-label">Courses</span>
             </div>
             <div class="stat-item success">
-                <span class="stat-number" id="utilizationRate">78%</span>
+                <span class="stat-number" id="utilizationRate">—</span>
                 <span class="stat-label">Utilization</span>
             </div>
         </div>
@@ -9157,6 +9167,12 @@
             document.getElementById('totalConflicts').textContent = conflicts.length;
             document.getElementById('totalCourses').textContent = totalCourses;
             document.getElementById('utilizationRate').textContent = utilizationRate + '%';
+
+            // Real numbers are in place — reveal the stats bar (no-op after first run).
+            const statsBar = document.getElementById('statsBar');
+            if (statsBar) {
+                statsBar.classList.remove('is-pending');
+            }
 
             const utilizationEl = document.getElementById('utilizationRate');
             if (utilizationEl) {
