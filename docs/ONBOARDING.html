@@ -78,7 +78,9 @@ npm run test:coverage</code></pre>
       <li><strong>Pages</strong> (<code>pages/*.html</code> + <code>pages/*.js</code>) —
           each dashboard pairs an HTML file with a controller JS file.
           <code>public-schedule.html</code> lives at the repo root because
-          it is the public surface.</li>
+          it is the public surface; since PR&nbsp;#256 the site root
+          (<code>index.html</code>) redirects to it, and the editing app
+          lives at <code>program-command.html</code>.</li>
       <li><strong>Shared modules</strong> (<code>js/</code>) — domain
           singletons in the IIFE pattern (<code>ScheduleManager</code>,
           <code>FacultyManager</code>, <code>ReleaseTimeManager</code>,
@@ -229,8 +231,10 @@ you ────┴─▶ short-lived branch ─▶ PR ─▶ [CI: test + onboar
       <li>Never edit any of the forbidden paths below.</li>
     </ul>
 
-    <p>Forbidden paths (Phase 1 Unit 5 will enforce this with a required,
-    non-bypassable CI check; today it is policy-only in <code>AGENTS.md</code>):</p>
+    <p>Forbidden paths (enforced since 2026-05-21 by the required
+    <code>guard-forbidden-paths</code> check —
+    <code>.github/workflows/guard-forbidden-paths.yml</code>, shipped in
+    PR&nbsp;#255 — in addition to the policy in <code>AGENTS.md</code>):</p>
 
     <ul>
       <li><code>.github/workflows/**</code> — modification <em>and</em>
@@ -243,10 +247,10 @@ you ────┴─▶ short-lived branch ─▶ PR ─▶ [CI: test + onboar
 
     <aside class="docs-callout docs-callout--warning">
       <p class="docs-callout-title">Override</p>
-      <p>When Unit 5 lands, the only override will be a human-applied PR
-      label that an agent cannot self-apply. Authorship is checked per
-      commit, not by PR author, so an agent cannot launder edits through a
-      delegated PR.</p>
+      <p>The only override is the human-applied
+      <code>allow-forbidden-paths</code> PR label, which an agent cannot
+      self-apply. Authorship is checked per commit, not by PR author, so an
+      agent cannot launder edits through a delegated PR.</p>
     </aside>
 
     <h2>Repo layout</h2>
@@ -336,7 +340,7 @@ you ────┴─▶ short-lived branch ─▶ PR ─▶ [CI: test + onboar
   </main>
 
   <footer class="docs-footer">
-    <span>Last edited: 2026-05-21</span>
+    <span>Last edited: 2026-06-09</span>
     <span><a href="./ORIENT.html">Back to ORIENT</a></span>
   </footer>
 

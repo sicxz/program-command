@@ -43,6 +43,43 @@
 
     <article class="docs-decision">
       <header class="docs-decision-head">
+        <span class="docs-decision-date">2026-06-09</span>
+        <span class="docs-decision-title">State audit: Phase 2 declared unlocked; zombie automation killed; hotfix twins reconciled</span>
+      </header>
+      <dl>
+        <dt>Chose</dt>
+        <dd>After a full repo audit: disabled the <code>Codex Issue
+        Writer</code> scheduled workflow (105 runs, 0 successes since
+        April — it passed snake_case inputs to an action expecting
+        kebab-case and never produced one issue); declared Phase 2 of the
+        Forward Operating Model unlocked (Phase 1 finished 2026-05-21);
+        closed issue #231 and PR #235 as already-shipped — both had
+        content twins merged to <code>main</code> on 2026-03-30
+        (PRs&nbsp;#233/#236) during the dual-line hotfix era; closed #240
+        (cleanup verified, 89→36 local branches); merged #261/#262; opened
+        #264 (Sheets export rehost) to honor the 2026-05-21 commitment.</dd>
+        <dt>Why</dt>
+        <dd>The repo's recorded state had drifted from reality in both
+        directions: docs pointed at completed work as "next", while
+        finished fixes sat in open issues. Develop-vs-main comparisons must
+        check for cherry-pick twins by <em>content</em>, not SHA — the
+        hotfix-reconciliation era duplicated fixes across both lines.</dd>
+        <dt>Rejected</dt>
+        <dd>Mass-closing the remaining strategic develop PRs
+        (#203/#216/#219/#225/#227/#229) — plan Units 10–12 govern those;
+        closing before the develop rescue risks losing the college-command
+        foundations. Deleting <code>codex-issue-writer.yml</code> outright —
+        needs a forbidden-path override label; disable achieves the same
+        effect without touching workflows.</dd>
+        <dt>Note</dt>
+        <dd>The current-term migration from PR&nbsp;#257 was confirmed
+        still unapplied to prod (RPC probe 404). Tracked in ORIENT's new
+        pending-operations ledger.</dd>
+      </dl>
+    </article>
+
+    <article class="docs-decision">
+      <header class="docs-decision-head">
         <span class="docs-decision-date">2026-05-21</span>
         <span class="docs-decision-title">Branch protection: 1 required review with repo-admin bypass</span>
       </header>
@@ -292,7 +329,7 @@
   </main>
 
   <footer class="docs-footer">
-    <span>Last edited: 2026-05-21</span>
+    <span>Last edited: 2026-06-09</span>
     <span><a href="./ONBOARDING.html">Onboarding →</a></span>
   </footer>
 

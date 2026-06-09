@@ -42,7 +42,7 @@
     -->
     <p class="docs-stamp docs-stamp--stale">
       <strong>Prod state:</strong>
-      <code>prod-state-as-of: never (not yet stamped — first deploy after ORIENT lands will refresh this)</code>
+      <code>prod-state-as-of: unstamped in the repo copy — the deploy stamps only the published artifact; read the live site's ORIENT for the real value</code>
     </p>
 
     <h2>What this project is</h2>
@@ -56,18 +56,28 @@
     <table>
       <tbody>
         <tr>
+          <th scope="row">Surface</th>
+          <td>The site root serves the read-only public schedule
+              (<code>index.html</code> redirects to
+              <code>public-schedule.html</code>); the editing app lives at
+              <code>program-command.html</code>. Shipped in PRs #256–#258.</td>
+        </tr>
+        <tr>
           <th scope="row">Deploy</th>
           <td>GitHub Pages, manual <code>workflow_dispatch</code> only.
               The deploy job refuses to publish unless the deployed commit's
-              <code>test</code> + <code>onboarding</code> checks are both green.</td>
+              <code>test</code> + <code>onboarding</code> checks are both green.
+              CI does not run on push to <code>main</code> — dispatch
+              <code>ci.yml</code> on <code>main</code> first, then
+              <code>deploy-pages.yml</code>.</td>
         </tr>
         <tr>
           <th scope="row">Branch protection</th>
           <td><code>main</code> is governed by the <code>protect-main</code>
               ruleset: required checks <code>test</code> + <code>onboarding</code>
-              (strict), 1 required review, no direct push, no force-push, no
-              deletion. Repo admin is the sole bypass actor. Merged head
-              branches auto-delete.</td>
+              + <code>guard-forbidden-paths</code> (strict), 1 required review,
+              no direct push, no force-push, no deletion. Repo admin is the
+              sole bypass actor. Merged head branches auto-delete.</td>
         </tr>
         <tr>
           <th scope="row">Supabase — prod</th>
@@ -97,46 +107,90 @@
     </table>
 
     <h2>Current focus</h2>
-    <p>Phase 1 of the
+    <p>Phase 2 of the
     <a href="./plans/2026-05-15-001-refactor-forward-operating-model-plan.md">Forward Operating Model plan</a>
-    — operating model + reorientation layer. Phase 0 shipped 2026-05-19
-    (manual deploy + editor allowlist + RLS hardening). Phase 2 (rescue
-    <code>develop</code> + retarget the 8 strategic PRs) is hard-locked
-    behind Phase 1 docs.</p>
+    — rescue <code>develop</code>'s stranded forward work, then retarget or
+    close the remaining strategic PRs. Phase 0 shipped 2026-05-19 (manual
+    deploy + editor allowlist + RLS hardening). Phase 1 shipped 2026-05-21
+    (reorientation docs U6–U9 in PR&nbsp;#254; forbidden-path guard U5 in
+    PR&nbsp;#255), which unlocked Phase 2. A UI/polish wave followed on
+    <code>main</code>: public landing + current-term + year dropdown
+    (PRs&nbsp;#256–#258), schedule-first layout (#259), schedule-builder
+    audit phases A–E (#260), header/stats polish (#261), tooling hygiene
+    (#262).</p>
 
     <table>
       <thead>
         <tr><th>Unit</th><th>What</th><th>Status</th></tr>
       </thead>
       <tbody>
-        <tr><td>U6</td><td>Docs design-system variant (<code>css/docs.css</code> + shell)</td>
-            <td><span class="docs-pill docs-pill--ok">complete</span></td></tr>
-        <tr><td>U7</td><td>ORIENT compass (this file)</td>
-            <td><span class="docs-pill docs-pill--ok">complete</span></td></tr>
-        <tr><td>U8</td><td>Decision log (<code>docs/decision-log.html</code>)</td>
-            <td><span class="docs-pill docs-pill--neutral">next</span></td></tr>
-        <tr><td>U9</td><td>ONBOARDING + cold-start links from README/CLAUDE.md</td>
-            <td><span class="docs-pill docs-pill--neutral">pending</span></td></tr>
-        <tr><td>U4</td><td>Retire Replit refs (needs keep/cut call on <code>api-server.js</code>)</td>
-            <td><span class="docs-pill docs-pill--warn">deferred</span></td></tr>
         <tr><td>U3</td><td>Round out branch protection on <code>main</code></td>
             <td><span class="docs-pill docs-pill--ok">complete</span></td></tr>
-        <tr><td>U5</td><td>Forbidden-path CI guard (depends on U3)</td>
+        <tr><td>U5</td><td>Forbidden-path CI guard (<code>guard-forbidden-paths.yml</code>, PR&nbsp;#255)</td>
+            <td><span class="docs-pill docs-pill--ok">complete</span></td></tr>
+        <tr><td>U6–U9</td><td>Docs design-system variant, ORIENT, decision log, ONBOARDING (PR&nbsp;#254)</td>
+            <td><span class="docs-pill docs-pill--ok">complete</span></td></tr>
+        <tr><td>U4</td><td>Retire Replit refs (keep/cut call on <code>api-server.js</code> resolved 2026-05-21: keep)</td>
+            <td><span class="docs-pill docs-pill--warn">deferred</span></td></tr>
+        <tr><td>U10</td><td>Rescue <code>develop</code>'s forward work (characterization-first; 18 orphaned commits hold the college-command foundations)</td>
             <td><span class="docs-pill docs-pill--neutral">next</span></td></tr>
+        <tr><td>U11</td><td>Delete <code>develop</code> (irreversible; gated on verified U10)</td>
+            <td><span class="docs-pill docs-pill--neutral">pending</span></td></tr>
+        <tr><td>U12</td><td>Retarget or close the strategic PRs with logged reasons (#235 closed superseded 2026-06-09; #203/#204/#216/#219/#225/#227/#229 remain)</td>
+            <td><span class="docs-pill docs-pill--neutral">pending</span></td></tr>
       </tbody>
     </table>
 
     <h2>Next action</h2>
     <aside class="docs-callout docs-callout--note">
       <p class="docs-callout-title">Do this next</p>
-      <p>Unit 5 — the forbidden-path CI guard. Add a required,
-      non-bypassable check that fails when an agent-authored commit adds or
-      modifies <code>.github/workflows/**</code>, <code>ci.yml</code>,
-      <code>js/supabase-config.js</code>, <code>.env*</code>, or Supabase
-      policy SQL, plus the matching <code>AGENTS.md</code> rules. Test-first.
-      Phase 1 docs (U6–U9) + Replit retirement (U4) are in PR&nbsp;#254;
-      branch protection (U3) is live.</p>
+      <p>Apply <code>scripts/supabase-current-term-setting.sql</code> to the
+      prod Supabase project (idempotent; merged in PR&nbsp;#257 but never run
+      — verified missing 2026-06-09, see Pending operations below). Then
+      begin Phase 2 Unit 10: characterization-first rescue of
+      <code>develop</code> per the plan. Do not delete <code>develop</code>
+      or mass-close the strategic PRs before U10 is verified.</p>
     </aside>
+
+    <h2>Pending operations ledger</h2>
+    <table>
+      <thead>
+        <tr><th>Item</th><th>State</th><th>Where tracked</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Current-term Supabase migration
+              (<code>scripts/supabase-current-term-setting.sql</code>)</td>
+          <td><span class="docs-pill docs-pill--warn">not applied to prod</span>
+              — RPC <code>get_public_current_term</code> returned 404 on
+              2026-06-09; public page falls back to hardcoded defaults and the
+              admin term picker is dead until this runs. Verify by probing the
+              RPC for 200 after applying.</td>
+          <td>PR&nbsp;#257 body; this ledger</td>
+        </tr>
+        <tr>
+          <td>Sheets export rehost for static Pages</td>
+          <td><span class="docs-pill docs-pill--neutral">open</span> —
+              export only works in local dev (<code>api-server.js</code>).</td>
+          <td><a href="https://github.com/sicxz/program-command/issues/264">Issue #264</a></td>
+        </tr>
+        <tr>
+          <td>Path A tenant migration (program-scoped RLS)</td>
+          <td><span class="docs-pill docs-pill--warn">deferred</span> —
+              retry needs SQL hardening + end-to-end exercise on the develop
+              project + <code>user_programs</code> seed plan.</td>
+          <td><a href="./decision-log.html">Decision log, 2026-05-19</a></td>
+        </tr>
+        <tr>
+          <td><code>set_public_current_term</code> admin-only tightening</td>
+          <td><span class="docs-pill docs-pill--neutral">open</span> —
+              currently any authenticated user may call it; fold a SQL-side
+              role check in when applying the migration.</td>
+          <td><code>scripts/supabase-current-term-setting.sql</code> comment;
+              issue #185</td>
+        </tr>
+      </tbody>
+    </table>
 
     <h2>Do not touch without confirmation</h2>
     <ul>
@@ -160,14 +214,16 @@
     <h2>How to refresh this page</h2>
     <p>The <code>prod-state-as-of</code> value at the top is rewritten
     mechanically by the deploy workflow (<code>deploy-pages.yml</code>,
-    step "Stamp ORIENT prod-state marker"). The rest of this page is
-    hand-edited at decision time — when the answer to "current focus" or
-    "next action" changes, update it in the same PR that makes the change.</p>
+    step "Stamp ORIENT prod-state marker") — but only in the published
+    artifact, never in the repo copy, which is why the repo copy always
+    reads "unstamped". The rest of this page is hand-edited at decision
+    time — when the answer to "current focus" or "next action" changes,
+    update it in the same PR that makes the change.</p>
 
   </main>
 
   <footer class="docs-footer">
-    <span>Last edited: 2026-05-21</span>
+    <span>Last edited: 2026-06-09</span>
     <span><a href="./decision-log.html">Decision log →</a></span>
   </footer>
 
