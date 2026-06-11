@@ -116,4 +116,9 @@ describe('ConstraintsService fallback data', () => {
         const fallback = ConstraintsService.getFallbackConstraints();
         expect(fallback.some((rule) => rule.constraint_type === 'ay_setup_alignment')).toBe(true);
     });
+
+    test('does not inject Design-specific room restrictions into fallback data', () => {
+        const fallback = ConstraintsService.getFallbackConstraints();
+        expect(fallback.some((rule) => rule.constraint_type === 'room_restriction')).toBe(false);
+    });
 });
