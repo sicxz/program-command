@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unit 10 Inventory — Program Command</title>
+<link rel="stylesheet" href="../css/design-system.css">
+<link rel="stylesheet" href="../css/docs.css">
+</head>
+<body class="foundry">
+
+<div class="docs-shell">
+
+  <header class="docs-header">
+    <div class="docs-header-copy">
+      <span class="docs-header-mark" aria-hidden="true">PC</span>
+      <div class="docs-header-title">
+        <p class="docs-eyebrow">Phase 2 · Unit 10 checkpoint</p>
+        <h1>develop rescue inventory</h1>
+      </div>
+    </div>
+    <a class="docs-header-action" href="./ORIENT.html">Back to ORIENT</a>
+  </header>
+
+  <nav class="docs-nav" aria-label="Reorientation">
+    <a href="./ORIENT.html">ORIENT</a>
+    <a href="./decision-log.html">Decision Log</a>
+    <a href="./ONBOARDING.html">Onboarding</a>
+    <a href="./phase2-unit10-inventory.html" aria-current="page">Unit 10 Inventory</a>
+  </nav>
+
+  <main class="docs-content">
+
+    <p>This is the <strong>forward-work inventory artifact</strong> required by
+    Unit 10 of the
+    <a href="./plans/2026-05-15-001-refactor-forward-operating-model-plan.md">Forward Operating Model plan</a>:
+    the explicit list of <code>develop</code>'s non-merge commits, their
+    characterization against current <code>main</code>, the chosen rescue
+    mechanism per group, and the behavior checklist the rescue must preserve.
+    It is the checkpoint before any conflict resolution and the recovery
+    reference if <code>develop</code> is later deleted (Unit 11).
+    Characterization was produced 2026-06-11 by a 15-agent comparison of
+    <code>origin/main..origin/develop</code> (9 non-merge commits, 4 hot-file
+    deltas, 1 sibling-clone sweep), twin-checked by <em>content</em> — not SHA —
+    because the hotfix era duplicated fixes across both lines.</p>
+
+    <h2>The nine forward commits</h2>
+    <table>
+      <thead>
+        <tr><th>Commit</th><th>Date</th><th>Purpose</th><th>Twin on main?</th><th>Salvage</th><th>Group</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>73c4ea9</code></td><td>2026-03-25</td>
+            <td>Department profile onboarding runtime (dynamic applied-learning cards, profile copy, reset-year, generator derivations)</td>
+            <td>partial</td><td>high</td><td>G5</td></tr>
+        <tr><td><code>d9d96e0</code></td><td>2026-03-25</td>
+            <td>Applied Learning dashboard profile-aware (de-hardcoded courses/years/identity)</td>
+            <td>none</td><td>high</td><td>G3</td></tr>
+        <tr><td><code>851e956</code></td><td>2026-03-25</td>
+            <td>Constraints service profile-aware (dynamic department lookup, no Design room fallbacks)</td>
+            <td>none</td><td>high</td><td>G2</td></tr>
+        <tr><td><code>4eb2569</code></td><td>2026-03-25</td>
+            <td>Profile-aware planner surfaces (db-service multi-department init, scoped storage, generic course codes)</td>
+            <td>partial</td><td>high</td><td>G4</td></tr>
+        <tr><td><code>f1fbeac</code></td><td>2026-03-26</td>
+            <td>Program Command start shell + data-detection routing + onboarding handoff (issue #211)</td>
+            <td>partial</td><td>high</td><td>G6</td></tr>
+        <tr><td><code>ae83f58</code></td><td>2026-03-26</td>
+            <td>Batched screenshot onboarding intake (folder upload, year-aware term inference)</td>
+            <td>none</td><td>medium</td><td>G6</td></tr>
+        <tr><td><code>27faa5c</code></td><td>2026-03-26</td>
+            <td>Multi-program department shell foundation (CSEE department group, workspaceKind taxonomy)</td>
+            <td>none</td><td>high</td><td>G6</td></tr>
+        <tr><td><code>220fce7</code></td><td>2026-03-30</td>
+            <td>Async course sidebar fix</td>
+            <td><strong>full</strong> — identical patch-id to main's <code>4f08d60</code> (PR&nbsp;#233); main's <code>js/schedule-data-utils.js</code> is a byte-level superset</td>
+            <td>none</td><td>G1 (drop)</td></tr>
+        <tr><td><code>d20511c</code></td><td>2026-04-23</td>
+            <td>Dependency audit refresh (jest 30, googleapis 171, lockfile regen)</td>
+            <td>none</td><td>low</td><td>G7</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Rescue groups and mechanisms</h2>
+    <p>Eight groups, ~7 PRs, in this order. The iron rule from the hot-file
+    characterization: every reimplementation <strong>grafts develop-only
+    behaviors onto main's file states</strong> — never replaces a main file
+    with develop's copy, because develop's <code>js/db-service.js</code> and
+    <code>pages/schedule-builder.js</code> are verified regressed relative to
+    main (missing save attribution, pathways, PKCE, Phase A–E work).</p>
+
+    <table>
+      <thead>
+        <tr><th>Group</th><th>What</th><th>Mechanism</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>G0</td>
+            <td>Salvage the 2026-04-24 conflict-readiness plan from the
+                <code>scheduler-v2-codex-develop-fix</code> sibling clone — the
+                only surviving copy anywhere. Blocks clone deletion.</td>
+            <td>copy file + supersession note (this PR)</td>
+            <td><span class="docs-pill docs-pill--ok">done in this PR</span></td></tr>
+        <tr><td>G1</td>
+            <td>Drop set: <code>220fce7</code> (full twin of main's
+                <code>4f08d60</code>); for <code>js/schedule-data-utils.js</code>
+                always take main wholesale. Lockfile bytes of
+                <code>d20511c</code> (intent survives via G7).</td>
+            <td>drop, recorded in the decision log</td>
+            <td><span class="docs-pill docs-pill--ok">decided</span></td></tr>
+        <tr><td>G2</td>
+            <td>Constraints-service profile-awareness (<code>851e956</code>) —
+                the only mechanically clean pick (both files byte-identical to
+                the commit's parent on main). One amendment: restore
+                <code>MW/TR&nbsp;16:00-18:20</code> target slots (the commit
+                accidentally reverts main's <code>8ef9d86</code>).</td>
+            <td>cherry-pick + amendment, small PR</td>
+            <td><span class="docs-pill docs-pill--neutral">next</span></td></tr>
+        <tr><td>G3</td>
+            <td>Applied Learning dashboard de-hardcoding
+                (<code>d9d96e0</code>). JS is a clean file replace; HTML keeps
+                main's back-link and <strong>keeps main's auth script
+                block</strong> the develop commit deleted.</td>
+            <td>port-as-is + 2 HTML adaptations, small PR</td>
+            <td><span class="docs-pill docs-pill--neutral">queued</span></td></tr>
+        <tr><td>G4</td>
+            <td>Tenant foundation (<code>4eb2569</code>): db-service
+                multi-department init + UUID cache, supabase-config identity
+                helpers, namespaced backup/release-time storage, generic
+                <code>COURSE_CODE_PATTERN</code>, profile-driven release-time
+                dashboard, scoped schedule-builder storage with legacy
+                migration, 3 test files. Never honor the commit's
+                stale-worktree deletions.</td>
+            <td>reimplement: graft onto main, one PR</td>
+            <td><span class="docs-pill docs-pill--neutral">queued</span></td></tr>
+        <tr><td>G5</td>
+            <td>Workload runtime + onboarding generator
+                (<code>73c4ea9</code>): dynamic applied-learning cards,
+                click-time reset year, profile-driven workload detail page,
+                generator derivations reconciled against main's
+                <strong>strict</strong> v1 profile schema (<code>0efa865</code>
+                stays; the commit's validation loosening is rejected).</td>
+            <td>reimplement: targeted patches, one PR</td>
+            <td><span class="docs-pill docs-pill--neutral">queued</span></td></tr>
+        <tr><td>G6</td>
+            <td>Program Command start shell stack
+                (<code>f1fbeac</code>+<code>ae83f58</code>+<code>27faa5c</code>),
+                sourced from develop <em>tip</em> file states: ~1,000-line
+                <code>js/program-shell.js</code>, shell overlay markup/CSS
+                rewired into <code>program-command.html</code>, conditional
+                boot gate with <code>init()</code> fallback, onboarding
+                handoff, batched screenshot intake. Ships as one atomic PR —
+                piecemeal rescue silently degrades to bare
+                <code>init()</code>.</td>
+            <td>reimplement as a unit, one PR (largest)</td>
+            <td><span class="docs-pill docs-pill--neutral">queued</span></td></tr>
+        <tr><td>G7</td>
+            <td>Dependency refresh (<code>d20511c</code> intent): bump jest +
+                googleapis in <code>package.json</code>, regenerate the
+                lockfile against post-rescue main, full suite + fresh
+                <code>npm audit</code> (main currently audits 14 findings,
+                5 high). Last, so jest 30 is validated once against the
+                complete suite.</td>
+            <td>reimplement: regenerate, final PR</td>
+            <td><span class="docs-pill docs-pill--neutral">queued</span></td></tr>
+      </tbody>
+    </table>
+
+    <h2>Adjudications — decide explicitly, never inherit silently</h2>
+    <table>
+      <thead><tr><th>#</th><th>Decision</th><th>Default recommendation</th><th>Blocks</th></tr></thead>
+      <tbody>
+        <tr><td>a</td>
+            <td><strong>Auth posture for the shell</strong>: develop assumes
+                unauthenticated shell landing + chair-run onboarding; main
+                enforces and tests the Phase 0/1 admin gate.</td>
+            <td>Keep main's gate; surface the shell behind it; open chair
+                access as a deliberate follow-up.</td>
+            <td>G6</td></tr>
+        <tr><td>b</td>
+            <td><strong>v1 profile schema strictness</strong>: the generator
+                must emit strict-schema-complete profiles, not loosen
+                <code>validateProfile</code>.</td>
+            <td>Keep main's strict <code>0efa865</code> schema and its test.</td>
+            <td>G5</td></tr>
+        <tr><td>c</td>
+            <td><strong><code>getSchedulerRoomOptionList</code></strong>: main's
+                year-aware rewrite vs issue #98's configuredRooms exclusion.</td>
+            <td>Main's year-aware rewrite wins; revisit #98's exclusion with
+                its original rationale.</td>
+            <td>G4</td></tr>
+        <tr><td>d</td>
+            <td><strong>Constraints empty-table fallback</strong>: keep
+                develop's removal of fallback injection into reachable-but-empty
+                tables?</td>
+            <td>Keep the removal — intentionally-empty tenant tables must
+                yield zero constraints.</td>
+            <td>G2</td></tr>
+        <tr><td>e</td>
+            <td><strong>Screenshot term inference</strong>: unify develop's
+                year+summer-aware <code>inferScreenshotTermYear</code> with
+                main's quarter-only <code>detectClssQuarterKeyword</code>
+                before PR #219's OCR import adds a third path.</td>
+            <td>Unify during G6.</td>
+            <td>G6, #219</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Must-preserve behavior checklist</h2>
+    <p>This is the Unit 10 verification manifest: each item needs an explicit
+    post-resolution check on <code>main</code> — <code>npm test</code> alone
+    does not satisfy the gate. It doubles as the develop-deletion checkpoint's
+    test manifest (Unit 11 precondition).</p>
+
+    <h3>Develop-only behaviors to land</h3>
+    <ul>
+      <li>db-service tenant-aware <code>initialize()</code>: re-init on active
+          department change, <code>departmentIdByCode</code> UUID cache,
+          dynamic departments-row get-or-create from
+          <code>getActiveDepartmentIdentity()</code>.</li>
+      <li><code>supabase-config</code> exposes
+          <code>getActiveDepartmentProfile()</code> /
+          <code>getActiveDepartmentIdentity()</code> for shared modules.</li>
+      <li><code>BackupManager.init({storageNamespace})</code> and
+          <code>ReleaseTimeManager.init({storageNamespace})</code>: sanitized
+          per-profile prefixes, no cross-program leakage, category relabeling
+          from the active program's course codes.</li>
+      <li><code>COURSE_CODE_PATTERN</code> generalized to
+          <code>/^[A-Z]{2,6}\s\d{3}[A-Z]?$/</code> in <em>both</em>
+          <code>constants.js</code> and <code>validators.js</code>.</li>
+      <li>Release-time dashboard fully profile-driven (years, quarters, roster,
+          titles — no hardcoded 8-name Design list).</li>
+      <li>Schedule builder: <code>getScopedStorageKey</code> at all 8
+          localStorage sites (scoped-first read, legacy fallback, scoped-only
+          write); non-DESN empty-faculty gating + renderer early-return;
+          <code>applyDepartmentProfileCopy</code>;
+          <code>populateAcademicYearControls</code>.</li>
+      <li><code>program-command.html</code>: profile-scoped
+          displacedCourses/customFaculty keys with one-time
+          <code>migrateLegacyProfileScopedStorage</code>, hydration strictly
+          <em>after</em> migration (develop users' data lives only under scoped
+          keys — losing the order orphans it).</li>
+      <li>Shell boot gate: conditional
+          <code>ProgramCommandShell.bootstrap({launchRuntime: init, …})</code>
+          with catch→toast→<code>init()</code> fallback; bare
+          <code>init()</code> only when the module is absent.</li>
+      <li>Shell catalog model: 15-entry flatten, CSEE
+          <code>type:'department'</code> group, workspaceKind taxonomy,
+          <code>memberProgramIds</code>, identity overrides;
+          <code>programCommandShellSelectionV1</code> /
+          <code>programCommandOnboardingContextV1</code> localStorage
+          contracts; data-detection probe order.</li>
+      <li>Batched screenshot intake: webkitdirectory upload with capability
+          detection, MIME/extension filter, year+summer-aware
+          <code>inferScreenshotTermYear</code>, group sort contract.</li>
+      <li>Onboarding handoff: handoff card, identity prefill, grouped batches
+          with inferred-term warnings, persisted catalog metadata.</li>
+      <li>Constraints service (as amended): profile-driven lookup with explicit
+          missing-row throw; zero Design room-restriction fallbacks; empty
+          reachable table ⇒ zero constraints.</li>
+      <li>Applied Learning + workload dashboards + faculty-workload-detail:
+          all profile-driven (courses, multipliers, years, identity, reset
+          year), any-N-courses rendering.</li>
+      <li>Onboarding generator derivations (storage prefix, branding,
+          next-year reset default, course-code remapping) emitting
+          strict-schema-complete profiles.</li>
+      <li>All six rescued develop test files green on main.</li>
+    </ul>
+
+    <h3>Main-side keepers (must survive every graft)</h3>
+    <ul>
+      <li><code>updated_by</code> save attribution on all write paths +
+          <code>lastSaveAttribution</code>; pathways API; PKCE auth;
+          auth-guard script tags on every page.</li>
+      <li>Schedule builder Phase A–E (dirty tracking, modal a11y, keyboard
+          drag-drop), draft-first source loading, workload-review handoff,
+          profile-driven TIMES/DAYS, CONFLICTS taxonomy.</li>
+      <li><code>js/schedule-data-utils.js</code> superset (all 6 exports incl.
+          <code>scheduleHasCourses</code>,
+          <code>buildScheduleDataFromDatabaseRecords</code>) — public landing
+          and CI depend on them.</li>
+      <li>Strict v1 profile schema (<code>0efa865</code>) and its validation
+          test.</li>
+      <li>Admin-vs-chair onboarding gate — changes only via adjudication (a),
+          never as a merge side effect.</li>
+    </ul>
+
+    <h2>Top risks</h2>
+    <ul>
+      <li><strong>Auth policy collision (G6)</strong> — adjudicate (a) before
+          starting G6 or the rescue silently weakens Phase 0/1 auth.</li>
+      <li><strong>One-way storage migration (G4)</strong> — the legacy-key
+          delete-after-copy plus hydrate-after-migrate ordering must survive
+          conflict resolution exactly.</li>
+      <li><strong><code>program-command.html</code> churn</strong> — main's
+          fastest-moving file; G4/G6 must rebase fresh, and the boot-gate
+          conditional is the likeliest hunk to be lost to a take-main
+          resolution.</li>
+      <li><strong>RLS interaction</strong> — the shell's Supabase head-count
+          probes may return zero/denied for unauthenticated users under the
+          hardened policies, mis-routing populated programs into onboarding;
+          the Unit 10 integration scenario must exercise this.</li>
+      <li><strong>Catalog double-modeling</strong> — 27faa5c's "CSEE"
+          department vs PR #227's "EECS" catalog: Unit 12 must reconcile to
+          one model (coordinated-pair handling for #227/#229 is already
+          plan-mandated).</li>
+      <li><strong>department-onboarding.js hand-merge</strong> — patched by
+          G5 and twice by G6; the highest-skill merge in the rescue. Keep the
+          G5→G6 order.</li>
+    </ul>
+
+    <h2>Unit 12 linkage</h2>
+    <table>
+      <thead><tr><th>Strategic PR</th><th>Depends on</th><th>Note</th></tr></thead>
+      <tbody>
+        <tr><td>#203 scheduler contract by AY</td><td>G4</td>
+            <td>Rebases onto the db-service/schedule-builder grafts; roadmap
+                context from the G0 plan doc.</td></tr>
+        <tr><td>#204 agent rules sync</td><td>G7 (CI baseline only)</td>
+            <td>Likely close as superseded by the HTML docs layer.</td></tr>
+        <tr><td>#216 / #219 / #225 EagleNET + OCR + bakeoff</td><td>G6</td>
+            <td>All plug into the shell's intake surfaces; #219 must reuse the
+                unified term inference (adjudication e).</td></tr>
+        <tr><td>#227 / #229 EECS catalog + seed</td><td>nearly all groups</td>
+            <td>Coordinated pair, rebased only after the full rescue; reconcile
+                EECS vs CSEE catalog modeling.</td></tr>
+      </tbody>
+    </table>
+
+  </main>
+
+  <footer class="docs-footer">
+    <span>Last edited: 2026-06-11</span>
+    <span><a href="./ORIENT.html">ORIENT →</a></span>
+  </footer>
+
+</div>
+
+</body>
+</html>

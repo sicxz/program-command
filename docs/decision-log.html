@@ -43,6 +43,48 @@
 
     <article class="docs-decision">
       <header class="docs-decision-head">
+        <span class="docs-decision-date">2026-06-11</span>
+        <span class="docs-decision-title">Unit 10 rescue mechanism: graft-onto-main in 8 ordered groups</span>
+      </header>
+      <dl>
+        <dt>Chose</dt>
+        <dd>Rescue <code>develop</code>'s 9 forward commits via ordered groups
+        G0–G7 (~7 PRs) per
+        <a href="./phase2-unit10-inventory.html">the Unit 10 inventory artifact</a>:
+        salvage the orphaned conflict-readiness plan first (G0); drop
+        <code>220fce7</code> as a verified full content twin of main's
+        <code>4f08d60</code> (G1); cherry-pick only <code>851e956</code>
+        (verified clean, with the 16:00-18:20 slot amendment); everything else
+        is reimplemented by <em>grafting develop-only behaviors onto main's
+        file states</em>; the shell stack
+        (<code>f1fbeac</code>+<code>ae83f58</code>+<code>27faa5c</code>) ships
+        as one atomic PR; the jest-30/googleapis dependency refresh goes last
+        against the complete post-rescue suite.</dd>
+        <dt>Why</dt>
+        <dd>Characterization (15-agent develop-vs-main comparison, by content
+        not SHA) proved develop's copies of the hot files are <em>regressed</em>
+        relative to main — a stale-worktree rollback inside
+        <code>4eb2569</code> would re-delete save attribution, pathways, PKCE,
+        and Phase A–E work if cherry-picked. Grafting onto main preserves both
+        lines' wins; the must-preserve checklist in the inventory is the
+        explicit post-resolution verification gate.</dd>
+        <dt>Rejected</dt>
+        <dd>Rebase/merge of develop wholesale (replays the rollback and the
+        18-commit drift); per-commit cherry-picks for the shell stack (boot
+        gate degrades silently to bare <code>init()</code> on partial rescue);
+        porting the <code>d20511c</code> lockfile bytes (regenerate instead).</dd>
+        <dt>Note</dt>
+        <dd>Five adjudications are recorded in the inventory and must be
+        decided explicitly at their gating group, not inherited: auth posture
+        for the shell (default: keep main's admin gate), strict v1 profile
+        schema (keep <code>0efa865</code>), room-option list (main's
+        year-aware), constraints empty-table fallback removal (keep),
+        screenshot term-inference unification (during G6).</dd>
+      </dl>
+    </article>
+
+    <article class="docs-decision">
+      <header class="docs-decision-head">
         <span class="docs-decision-date">2026-06-09</span>
         <span class="docs-decision-title">State audit: Phase 2 declared unlocked; zombie automation killed; hotfix twins reconciled</span>
       </header>
@@ -329,7 +371,7 @@
   </main>
 
   <footer class="docs-footer">
-    <span>Last edited: 2026-06-09</span>
+    <span>Last edited: 2026-06-11</span>
     <span><a href="./ONBOARDING.html">Onboarding →</a></span>
   </footer>
 
