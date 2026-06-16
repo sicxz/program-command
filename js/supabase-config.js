@@ -223,6 +223,7 @@ const SUPABASE_ANON_KEY = SUPABASE_CONFIG.anonKey;
 
 // Current department code (for multi-department support)
 const CURRENT_DEPARTMENT_CODE = 'DESN';
+const CURRENT_DEPARTMENT_NAME = 'Design';
 
 // Capture the Supabase SDK namespace before we assign the legacy `supabase` client alias
 // in classic-script pages (which would otherwise overwrite `window.supabase`).
@@ -297,6 +298,25 @@ function getSupabaseClient() {
     return supabaseClient;
 }
 
+function getActiveDepartmentProfile() {
+    if (typeof globalThis !== 'undefined' && globalThis.__PROGRAM_COMMAND_ACTIVE_PROFILE__) {
+        return globalThis.__PROGRAM_COMMAND_ACTIVE_PROFILE__;
+    }
+    if (typeof window !== 'undefined' && window.activeDepartmentProfile) {
+        return window.activeDepartmentProfile;
+    }
+    return null;
+}
+
+function getActiveDepartmentIdentity() {
+    const identity = getActiveDepartmentProfile()?.identity || {};
+    const code = String(identity.code || CURRENT_DEPARTMENT_CODE).trim().toUpperCase() || CURRENT_DEPARTMENT_CODE;
+    const name = String(identity.name || identity.shortName || CURRENT_DEPARTMENT_NAME).trim() || CURRENT_DEPARTMENT_NAME;
+    const displayName = String(identity.displayName || identity.name || `EWU ${name}`).trim() || `EWU ${name}`;
+
+    return { code, name, displayName };
+}
+
 // Auto-initialize when script loads
 document.addEventListener('DOMContentLoaded', () => {
     initSupabase();
@@ -310,6 +330,8 @@ if (typeof window !== 'undefined') {
     window.isSupabaseConfigured = isSupabaseConfigured;
     window.getSupabaseClient = getSupabaseClient;
     window.initSupabase = initSupabase;
+    window.getActiveDepartmentProfile = getActiveDepartmentProfile;
+    window.getActiveDepartmentIdentity = getActiveDepartmentIdentity;
     window.ProgramCommandSupabase = {
         getEnvironment: getSupabaseEnvironment,
         getConfig: getSupabaseEnvironmentConfig,

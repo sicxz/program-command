@@ -10022,10 +10022,36 @@
             content.addEventListener('dragend', handleDisplacedContentDragEnd);
         }
 
+        function getProfileScopedStorageKey(suffix) {
+            const normalizedSuffix = String(suffix || '').trim();
+            const activePrefix = String(scheduleStorageKeyPrefix || 'designSchedulerData_').trim() || 'designSchedulerData_';
+            return `${activePrefix}${normalizedSuffix}`;
+        }
+
+        function migrateLegacyProfileScopedStorage() {
+            const activePrefix = String(scheduleStorageKeyPrefix || 'designSchedulerData_').trim() || 'designSchedulerData_';
+            if (activePrefix !== 'designSchedulerData_') {
+                return;
+            }
+
+            [
+                { legacyKey: 'displacedCourses', scopedKey: getProfileScopedStorageKey('displacedCourses') },
+                { legacyKey: 'customFaculty', scopedKey: getProfileScopedStorageKey('customFaculty') }
+            ].forEach(({ legacyKey, scopedKey }) => {
+                const scopedValue = localStorage.getItem(scopedKey);
+                const legacyValue = localStorage.getItem(legacyKey);
+                if (scopedValue || !legacyValue) {
+                    return;
+                }
+                localStorage.setItem(scopedKey, legacyValue);
+                localStorage.removeItem(legacyKey);
+            });
+        }
+
         // Load displaced courses from localStorage
         function loadDisplacedCourses() {
             try {
-                const saved = localStorage.getItem('displacedCourses');
+                const saved = localStorage.getItem(getProfileScopedStorageKey('displacedCourses'));
                 const parsed = saved ? JSON.parse(saved) : [];
                 displacedCourses = Array.isArray(parsed) ? parsed : [];
             } catch (e) {
@@ -10038,7 +10064,7 @@
         // Save displaced courses to localStorage
         function saveDisplacedCourses() {
             try {
-                localStorage.setItem('displacedCourses', JSON.stringify(displacedCourses));
+                localStorage.setItem(getProfileScopedStorageKey('displacedCourses'), JSON.stringify(displacedCourses));
             } catch (e) {
                 console.warn('Could not save displaced courses:', e);
             }
@@ -14327,7 +14353,7 @@
         }
 
         // Custom faculty storage
-        let customFaculty = JSON.parse(localStorage.getItem('customFaculty') || '[]');
+        let customFaculty = [];
         let pendingFacultySelectId = null;
 
         // Default faculty roster
@@ -14444,7 +14470,7 @@
 
             // Add to custom faculty
             customFaculty.push({ name, rank });
-            localStorage.setItem('customFaculty', JSON.stringify(customFaculty));
+            localStorage.setItem(getProfileScopedStorageKey('customFaculty'), JSON.stringify(customFaculty));
 
             // Rebuild dropdowns
             rebuildFacultyDropdowns();
@@ -14467,9 +14493,10 @@
             await loadFacultyData();
             await ensureCourseCatalogLoaded();
             await loadCoursesFromSupabase();
+            migrateLegacyProfileScopedStorage();
 
             // Initialize custom faculty from localStorage
-            customFaculty = JSON.parse(localStorage.getItem('customFaculty') || '[]');
+            customFaculty = JSON.parse(localStorage.getItem(getProfileScopedStorageKey('customFaculty')) || '[]');
 
             // Rebuild faculty dropdowns with current roster
             rebuildFacultyDropdowns();

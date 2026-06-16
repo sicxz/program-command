@@ -369,9 +369,9 @@ const CONSTANTS = {
     // ===========================================
     VALIDATION: {
         /**
-         * Course code pattern (e.g., "DESN 100", "DESN 499")
+         * Course code pattern (e.g., "DESN 100", "ITDS 499")
          */
-        COURSE_CODE_PATTERN: /^DESN\s\d{3}$/,
+        COURSE_CODE_PATTERN: /^[A-Z]{2,6}\s\d{3}[A-Z]?$/,
 
         /**
          * Academic year pattern (e.g., "2024-25")

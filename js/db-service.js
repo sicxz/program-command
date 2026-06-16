@@ -6,6 +6,8 @@
 
 const dbService = {
     departmentId: null,
+    departmentIdentity: null,
+    departmentIdByCode: {},
     initialized: false,
     lastSaveAttribution: null,
 
@@ -14,10 +16,42 @@ const dbService = {
      * Gets or creates the department, ensures base data exists
      */
     async initialize() {
-        if (this.initialized) return this.departmentId;
+        const activeDepartment = typeof getActiveDepartmentIdentity === 'function'
+            ? getActiveDepartmentIdentity()
+            : {
+                code: 'DESN',
+                name: 'Design',
+                displayName: 'EWU Design'
+            };
+        const departmentCode = String(activeDepartment.code || 'DESN').trim().toUpperCase() || 'DESN';
+        const departmentName = String(activeDepartment.name || activeDepartment.displayName || 'Design').trim() || 'Design';
+
+        if (this.initialized
+            && this.departmentIdentity
+            && this.departmentIdentity.code === departmentCode
+            && this.departmentId
+        ) {
+            return this.departmentId;
+        }
+
+        if (this.departmentIdByCode[departmentCode]) {
+            this.departmentId = this.departmentIdByCode[departmentCode];
+            this.departmentIdentity = {
+                code: departmentCode,
+                name: departmentName,
+                displayName: String(activeDepartment.displayName || departmentName).trim() || departmentName
+            };
+            this.initialized = true;
+            return this.departmentId;
+        }
 
         if (!isSupabaseConfigured()) {
             console.log('Database service: Using local JSON fallback mode');
+            this.departmentIdentity = {
+                code: departmentCode,
+                name: departmentName,
+                displayName: String(activeDepartment.displayName || departmentName).trim() || departmentName
+            };
             this.initialized = true;
             return null;
         }
@@ -28,14 +62,14 @@ const dbService = {
             const { data: dept, error: deptError } = await client
                 .from('departments')
                 .select('id')
-                .eq('code', CURRENT_DEPARTMENT_CODE)
+                .eq('code', departmentCode)
                 .single();
 
             if (deptError && deptError.code === 'PGRST116') {
                 // Department doesn't exist, create it
                 const { data: newDept, error: createError } = await client
                     .from('departments')
-                    .insert({ name: 'Design', code: CURRENT_DEPARTMENT_CODE })
+                    .insert({ name: departmentName, code: departmentCode })
                     .select('id')
                     .single();
 
@@ -47,8 +81,17 @@ const dbService = {
                 this.departmentId = dept.id;
             }
 
+            this.departmentIdByCode[departmentCode] = this.departmentId;
+            this.departmentIdentity = {
+                code: departmentCode,
+                name: departmentName,
+                displayName: String(activeDepartment.displayName || departmentName).trim() || departmentName
+            };
             this.initialized = true;
-            console.log('Database service initialized. Department ID:', this.departmentId);
+            console.log('Database service initialized.', {
+                departmentId: this.departmentId,
+                code: departmentCode
+            });
             return this.departmentId;
         } catch (error) {
             console.error('Failed to initialize database service:', error);

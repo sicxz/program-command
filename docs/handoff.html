@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Handoff — Program Command</title>
+<link rel="stylesheet" href="../css/design-system.css">
+<link rel="stylesheet" href="../css/docs.css">
+</head>
+<body class="foundry">
+
+<div class="docs-shell">
+
+  <header class="docs-header">
+    <div class="docs-header-copy">
+      <span class="docs-header-mark" aria-hidden="true">PC</span>
+      <div class="docs-header-title">
+        <p class="docs-eyebrow">Session handoff</p>
+        <h1>Where we left off</h1>
+      </div>
+    </div>
+    <a class="docs-header-action" href="./phase2-unit10-inventory.html">Unit 10 inventory</a>
+  </header>
+
+  <nav class="docs-nav" aria-label="Reorientation">
+    <a href="./ORIENT.html">ORIENT</a>
+    <a href="./decision-log.html">Decision Log</a>
+    <a href="./ONBOARDING.html">Onboarding</a>
+    <a href="./phase2-unit10-inventory.html">Unit 10 Inventory</a>
+    <a href="./handoff.html" aria-current="page">Handoff</a>
+  </nav>
+
+  <main class="docs-content">
+
+    <p class="docs-stamp docs-stamp--stale">
+      <strong>As of:</strong>
+      <code>2026-06-16 · branch feat/unit10-g4-tenant-foundation · WIP, uncommitted work committed for safety</code>
+    </p>
+
+    <aside class="docs-callout docs-callout--warning">
+      <p class="docs-callout-title">One-line status</p>
+      <p>Phase 2 Unit 10 (develop rescue) is mid-flight. Groups G0–G3 are
+      <strong>merged to main</strong>. Group <strong>G4 (tenant foundation) is
+      ~85% done on its branch but INCOMPLETE and UNVERIFIED</strong> — the
+      <code>pages/schedule-builder.js</code> graft never ran (session limit) and
+      the four adversarial verifiers never ran. <strong>Do not merge G4 as-is.</strong>
+      The next action is to finish the schedule-builder graft, run the verifiers,
+      then open the G4 PR (which needs the <code>allow-forbidden-paths</code> label).</p>
+    </aside>
+
+    <h2>What shipped this session (done &amp; merged to main)</h2>
+    <table>
+      <tbody>
+        <tr><th scope="row">State audit</th>
+            <td>15-agent repo audit; findings in the
+            <a href="./decision-log.html">decision log</a> (2026-06-09).</td></tr>
+        <tr><th scope="row">Merges</th>
+            <td>PRs #261 (header/stats polish), #262 (tooling gitignore),
+            #265 (docs refresh) — merged and <strong>deployed to prod</strong>
+            (live SHA verified).</td></tr>
+        <tr><th scope="row">Hygiene</th>
+            <td>Local branches 89 → 36; tracking refs pruned; issue #240 closed;
+            six <code>node_modules</code> husk dirs removed.</td></tr>
+        <tr><th scope="row">Reconciliation</th>
+            <td>Issue #231 closed (fix already live via PR #233 twin); PR #235
+            closed (superseded by PR #236 twin); issue #264 opened (Sheets
+            export rehost); <code>Codex Issue Writer</code> workflow disabled
+            (105 runs / 0 successes).</td></tr>
+        <tr><th scope="row">Unit 10 G0–G3</th>
+            <td>Inventory artifact + plan salvage (#266), constraints-service
+            graft (#267), applied-learning dashboard graft (#268) — all merged.</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Unit 10 rescue — execution state</h2>
+    <p>Full plan and per-group mechanism live in the
+    <a href="./phase2-unit10-inventory.html">Unit 10 inventory artifact</a>.
+    Current status:</p>
+    <table>
+      <thead><tr><th>Group</th><th>What</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>G0</td><td>Inventory + sibling-clone plan salvage</td>
+            <td><span class="docs-pill docs-pill--ok">merged (#266)</span></td></tr>
+        <tr><td>G1</td><td>Drop set (220fce7 twin; lockfile bytes)</td>
+            <td><span class="docs-pill docs-pill--ok">decided / logged</span></td></tr>
+        <tr><td>G2</td><td>Constraints service profile-aware</td>
+            <td><span class="docs-pill docs-pill--ok">merged (#267)</span></td></tr>
+        <tr><td>G3</td><td>Applied Learning dashboard de-hardcoding</td>
+            <td><span class="docs-pill docs-pill--ok">merged (#268)</span></td></tr>
+        <tr><td>G4</td><td>Tenant foundation (db-service, storage, course codes, release-time, schedule-builder)</td>
+            <td><span class="docs-pill docs-pill--warn">in progress — incomplete + unverified</span></td></tr>
+        <tr><td>G5</td><td>Workload runtime + onboarding generator</td>
+            <td><span class="docs-pill docs-pill--neutral">queued</span></td></tr>
+        <tr><td>G6</td><td>Program Command start-shell stack (atomic PR)</td>
+            <td><span class="docs-pill docs-pill--neutral">queued — needs auth adjudication (a) first</span></td></tr>
+        <tr><td>G7</td><td>Dependency refresh (jest 30, googleapis)</td>
+            <td><span class="docs-pill docs-pill--neutral">queued (last)</span></td></tr>
+      </tbody>
+    </table>
+
+    <h2>G4 in detail — exactly what is on the branch</h2>
+    <p>Branch <code>feat/unit10-g4-tenant-foundation</code> (off main). Full
+    suite is <strong>green: 41 suites, 159 tests</strong>. All grafted JS passes
+    <code>node --check</code>. The graft method was correct — develop-only
+    behaviors grafted <em>onto main's files</em>, never replacing them.</p>
+
+    <h3>Landed (7 of 8 grafts)</h3>
+    <table>
+      <thead><tr><th>File</th><th>Behavior grafted</th><th>Keepers verified by the graft agent</th></tr></thead>
+      <tbody>
+        <tr><td><code>js/db-service.js</code></td>
+            <td>Tenant-aware <code>initialize()</code>: re-init on department
+            change, <code>departmentIdByCode</code> UUID cache, get-or-create
+            departments row from <code>getActiveDepartmentIdentity()</code></td>
+            <td>All 10 <code>updated_by</code> write paths, <code>lastSaveAttribution</code>,
+            <code>getPathways</code>/<code>_fetchLocalPathways</code>,
+            <code>window.dbService</code> intact</td></tr>
+        <tr><td><code>js/supabase-config.js</code> <strong>(forbidden path)</strong></td>
+            <td><code>getActiveDepartmentProfile()</code> +
+            <code>getActiveDepartmentIdentity()</code> + supporting
+            <code>CURRENT_DEPARTMENT_NAME</code> const, exposed on window</td>
+            <td>PKCE flow, SDK-namespace capture, two-project routing,
+            develop-stub block all untouched (diff is 3 hunks only)</td></tr>
+        <tr><td><code>js/backup-manager.js</code>, <code>js/release-time-manager.js</code></td>
+            <td>Per-profile <code>storageNamespace</code> prefixing; category
+            relabeling from active program's course codes; snapshot clear on init</td>
+            <td>Legacy <code>ewu_schedule_</code> default keys preserved</td></tr>
+        <tr><td><code>js/config/constants.js</code>, <code>js/validators.js</code></td>
+            <td><code>COURSE_CODE_PATTERN</code> → <code>/^[A-Z]{2,6}\s\d{3}[A-Z]?$/</code>
+            in both files (clean, 4 + 2 lines)</td>
+            <td>Constants freeze intact; no rollback noise</td></tr>
+        <tr><td><code>pages/release-time-dashboard.{html,js}</code></td>
+            <td>Profile-driven years/quarters/roster/titles; hardcoded 8-name
+            Design list removed</td>
+            <td>Auth/supabase script tags + program-command back-link kept</td></tr>
+        <tr><td><code>program-command.html</code></td>
+            <td>Profile-scoped <code>displacedCourses</code>/<code>customFaculty</code>
+            keys + one-time <code>migrateLegacyProfileScopedStorage</code>
+            (hydrate-after-migrate ordering)</td>
+            <td>Touched only the storage region (19 storage hits added)</td></tr>
+        <tr><td><code>tests/</code> (3 new files)</td>
+            <td><code>db-service.department-scoping</code>,
+            <code>release-time-manager.profile-scope</code>,
+            <code>validators.generic-course-code</code></td>
+            <td>Pass under jest 29 (no jest-30-only features)</td></tr>
+      </tbody>
+    </table>
+
+    <h3>NOT done (the gap)</h3>
+    <ul>
+      <li><strong><code>pages/schedule-builder.js</code> + <code>.html</code> —
+      the graft never ran</strong> (session limit hit mid-workflow). Confirmed:
+      <code>grep getScopedStorageKey pages/schedule-builder.js</code> → 0.
+      Missing behaviors: scoped storage at all 8 sites (faculty-preferences,
+      build-scenario, placements, draft) with legacy fallback;
+      <code>buildDefaultFacultyBuildScenario</code> non-DESN empty gate +
+      renderer early-return; <code>applyDepartmentProfileCopy</code>;
+      <code>populateAcademicYearControls</code>; applied-learning case-by-case
+      fallback. This is the highest-skill graft because main's file carries all
+      of PR #260's Phase A–E work, which must survive.</li>
+      <li><strong>All four adversarial verifiers never ran</strong> (session
+      limit). So these invariants are <em>self-reported by the graft agents but
+      not independently checked</em>: save-attribution survival, Phase A–E
+      survival, storage-migration data-loss safety, config-surface minimality.</li>
+    </ul>
+
+    <aside class="docs-callout docs-callout--warning">
+      <p class="docs-callout-title">Why the branch must not merge yet</p>
+      <p>Storage scoping is currently <strong>half-applied</strong>:
+      <code>program-command.html</code> reads/writes <em>scoped</em> keys for its
+      runtime storage, but <code>schedule-builder.js</code> still uses
+      <em>legacy</em> keys for its four data families. Shipping this split state
+      means a profile switch is only partially honored across the app. G4 is one
+      logical unit — it lands complete or not at all.</p>
+    </aside>
+
+    <h2>How to resume (next session)</h2>
+    <ol>
+      <li><strong>Re-check out the branch:</strong>
+      <code>git checkout feat/unit10-g4-tenant-foundation</code>. The partial
+      work is committed as a WIP commit (see git log) so nothing is lost.</li>
+      <li><strong>Finish the schedule-builder graft.</strong> Source develop's
+      behavior from <code>git show origin/develop:pages/schedule-builder.js</code>;
+      graft onto main's current file. The exact behavior spec and the
+      main-side keepers list are in the
+      <a href="./phase2-unit10-inventory.html">inventory artifact</a> (G4 row +
+      must-preserve checklist). Re-running the saved G4 workflow with
+      <code>resumeFromRunId</code> will replay the 7 finished grafts from cache
+      and only run the schedule-builder graft + verifiers live — but the working
+      tree must first match (the finished grafts are already committed, so a
+      fresh run targeting only the missing pieces is simpler).</li>
+      <li><strong>Run the four adversarial verifiers</strong> on the combined
+      diff: attribution survival, Phase A–E survival, storage-migration data
+      safety, config-surface minimality. Fix anything they flag.</li>
+      <li><strong>Verify the must-preserve checklist explicitly</strong> — not
+      just <code>npm test</code>. The Unit 10 gate requires each develop-only
+      behavior to pass a post-resolution check, and Phase A–E survival is not
+      covered by the unit suite.</li>
+      <li><strong>Open the G4 PR.</strong> Because it touches
+      <code>js/supabase-config.js</code> (a forbidden path), the
+      <code>guard-forbidden-paths</code> check will fail until a human applies
+      the <code>allow-forbidden-paths</code> label. Squash/merge via admin
+      bypass like the prior Unit 10 PRs.</li>
+      <li><strong>Then continue</strong> G5 → G6 → G7. G6 (the shell stack)
+      needs auth-posture <strong>adjudication (a)</strong> decided first — see
+      the inventory; default is keep main's admin gate.</li>
+    </ol>
+
+    <h2>Outstanding action for the maintainer (unchanged)</h2>
+    <aside class="docs-callout docs-callout--note">
+      <p class="docs-callout-title">Run the current-term SQL on prod</p>
+      <p>Apply <code>scripts/supabase-current-term-setting.sql</code> to the
+      prod Supabase project (<code>ohnrhjxcjkrdtudpzjgn</code>) — idempotent,
+      merged in PR #257 but still unapplied (RPC returned 404 on 2026-06-09).
+      Until then the public schedule falls back to a hardcoded term and the
+      admin term picker is dead. Dashboard SQL Editor, or
+      <code>psql</code> via the session pooler. See ORIENT's pending-operations
+      ledger.</p>
+    </aside>
+
+    <h2>Pointers</h2>
+    <ul>
+      <li><a href="./phase2-unit10-inventory.html">Unit 10 inventory artifact</a>
+      — the rescue bible: 9-commit inventory, G0–G7 mechanisms, must-preserve
+      checklist, five adjudications, Unit 12 PR linkage.</li>
+      <li><a href="./decision-log.html">Decision log</a> — 2026-06-09 audit
+      entry and 2026-06-11 Unit 10 mechanism entry.</li>
+      <li><a href="./ORIENT.html">ORIENT</a> — current focus + pending-ops
+      ledger.</li>
+      <li>Auto-memory: <code>unit10-develop-rescue.md</code>,
+      <code>state-audit-2026-06-09.md</code> capture the same state for the
+      assistant.</li>
+    </ul>
+
+  </main>
+
+  <footer class="docs-footer">
+    <span>Last edited: 2026-06-16</span>
+    <span><a href="./phase2-unit10-inventory.html">Unit 10 inventory →</a></span>
+  </footer>
+
+</div>
+
+</body>
+</html>

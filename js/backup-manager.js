@@ -54,6 +54,7 @@ const BackupManager = (function() {
      * State restore function (set by user)
      */
     let restoreStateFunction = null;
+    let storageNamespace = '';
 
     /**
      * Storage keys
@@ -62,6 +63,16 @@ const BackupManager = (function() {
         SNAPSHOTS: 'backup_snapshots',
         AUTO_SAVE: 'backup_autosave'
     };
+
+    function normalizeStorageNamespace(value) {
+        const normalized = String(value || '').trim();
+        return normalized ? normalized.replace(/[^a-z0-9_-]+/gi, '_') + '_' : '';
+    }
+
+    function buildStorageKey(keyName) {
+        const constants = getConstants();
+        return constants.BACKUP.STORAGE_KEY_PREFIX + storageNamespace + keyName;
+    }
 
     /**
      * Initialize the backup manager
@@ -77,8 +88,12 @@ const BackupManager = (function() {
         if (options.restoreState) {
             restoreStateFunction = options.restoreState;
         }
+        if (Object.prototype.hasOwnProperty.call(options, 'storageNamespace')) {
+            storageNamespace = normalizeStorageNamespace(options.storageNamespace);
+        }
 
         // Load snapshots from storage
+        snapshots.clear();
         loadSnapshots();
 
         // Start auto-save if enabled
@@ -331,8 +346,7 @@ const BackupManager = (function() {
 
         try {
             const state = getStateFunction();
-            const constants = getConstants();
-            const key = constants.BACKUP.STORAGE_KEY_PREFIX + STORAGE_KEYS.AUTO_SAVE;
+            const key = buildStorageKey(STORAGE_KEYS.AUTO_SAVE);
 
             const autoSaveData = {
                 state: state,
@@ -352,8 +366,7 @@ const BackupManager = (function() {
      */
     function getAutoSave() {
         try {
-            const constants = getConstants();
-            const key = constants.BACKUP.STORAGE_KEY_PREFIX + STORAGE_KEYS.AUTO_SAVE;
+            const key = buildStorageKey(STORAGE_KEYS.AUTO_SAVE);
             const stored = localStorage.getItem(key);
 
             if (stored) {
@@ -396,8 +409,7 @@ const BackupManager = (function() {
      */
     function clearAutoSave() {
         try {
-            const constants = getConstants();
-            const key = constants.BACKUP.STORAGE_KEY_PREFIX + STORAGE_KEYS.AUTO_SAVE;
+            const key = buildStorageKey(STORAGE_KEYS.AUTO_SAVE);
             localStorage.removeItem(key);
         } catch (e) {
             // Ignore
@@ -409,10 +421,8 @@ const BackupManager = (function() {
      */
     function saveSnapshots() {
         try {
-            const constants = getConstants();
-            const key = constants.BACKUP.STORAGE_KEY_PREFIX + STORAGE_KEYS.SNAPSHOTS;
             const data = Array.from(snapshots.entries());
-            localStorage.setItem(key, JSON.stringify(data));
+            localStorage.setItem(buildStorageKey(STORAGE_KEYS.SNAPSHOTS), JSON.stringify(data));
         } catch (e) {
             console.warn('Failed to save snapshots:', e);
         }
@@ -423,9 +433,7 @@ const BackupManager = (function() {
      */
     function loadSnapshots() {
         try {
-            const constants = getConstants();
-            const key = constants.BACKUP.STORAGE_KEY_PREFIX + STORAGE_KEYS.SNAPSHOTS;
-            const stored = localStorage.getItem(key);
+            const stored = localStorage.getItem(buildStorageKey(STORAGE_KEYS.SNAPSHOTS));
 
             if (stored) {
                 const data = JSON.parse(stored);
@@ -433,6 +441,8 @@ const BackupManager = (function() {
                 data.forEach(([id, snapshot]) => {
                     snapshots.set(id, snapshot);
                 });
+            } else {
+                snapshots.clear();
             }
         } catch (e) {
             console.warn('Failed to load snapshots:', e);
@@ -497,6 +507,7 @@ const BackupManager = (function() {
         stopAutoSave();
         getStateFunction = null;
         restoreStateFunction = null;
+        storageNamespace = '';
     }
 
     // Public API

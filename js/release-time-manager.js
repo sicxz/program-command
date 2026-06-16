@@ -39,6 +39,7 @@ const ReleaseTimeManager = (function() {
      * Structure: { academicYear: { facultyName: { allocations: [...] } } }
      */
     let releaseTimeData = {};
+    let storageNamespace = '';
 
     /**
      * Change listeners
@@ -50,11 +51,43 @@ const ReleaseTimeManager = (function() {
      */
     const STORAGE_KEY = 'release_time_data';
 
+    function normalizeStorageNamespace(value) {
+        const normalized = String(value || '').trim();
+        return normalized ? normalized.replace(/[^a-z0-9_-]+/gi, '_') + '_' : '';
+    }
+
+    function buildStorageKey() {
+        return getConstants().BACKUP.STORAGE_KEY_PREFIX + storageNamespace + STORAGE_KEY;
+    }
+
+    function getAppliedLearningCourses() {
+        if (typeof WorkloadIntegration !== 'undefined' && typeof WorkloadIntegration.getAppliedLearningCourses === 'function') {
+            const courses = WorkloadIntegration.getAppliedLearningCourses();
+            return Array.isArray(courses) ? courses : [];
+        }
+        return [];
+    }
+
+    function getMappedAppliedLearningCategories() {
+        const courses = getAppliedLearningCourses();
+        const independentStudy = courses.find((course) => /499\b/.test(String(course.code || '')))
+            || courses[0]
+            || null;
+        const appliedLearning = courses.find((course) => /495\b/.test(String(course.code || '')) && course !== independentStudy)
+            || courses.find((course) => course !== independentStudy)
+            || null;
+
+        return { independentStudy, appliedLearning };
+    }
+
     /**
      * Initialize the manager
      * @param {Object} options - Configuration options
      */
     function init(options = {}) {
+        if (Object.prototype.hasOwnProperty.call(options, 'storageNamespace')) {
+            storageNamespace = normalizeStorageNamespace(options.storageNamespace);
+        }
         // Load from localStorage if available
         loadFromStorage();
 
@@ -71,7 +104,24 @@ const ReleaseTimeManager = (function() {
      * @returns {Array} Category definitions
      */
     function getCategories() {
-        return getConstants().RELEASE_TIME.CATEGORIES;
+        const categories = (getConstants().RELEASE_TIME.CATEGORIES || []).map((category) => ({ ...category }));
+        const mapped = getMappedAppliedLearningCategories();
+
+        return categories.map((category) => {
+            if (category.id === 'independent_study' && mapped.independentStudy) {
+                return {
+                    ...category,
+                    label: `${mapped.independentStudy.code} / ${mapped.independentStudy.title}`
+                };
+            }
+            if (category.id === 'applied_learning' && mapped.appliedLearning) {
+                return {
+                    ...category,
+                    label: `${mapped.appliedLearning.code} / ${mapped.appliedLearning.title}`
+                };
+            }
+            return category;
+        });
     }
 
     /**
@@ -422,8 +472,7 @@ const ReleaseTimeManager = (function() {
      */
     function saveToStorage() {
         try {
-            const key = getConstants().BACKUP.STORAGE_KEY_PREFIX + STORAGE_KEY;
-            localStorage.setItem(key, JSON.stringify(releaseTimeData));
+            localStorage.setItem(buildStorageKey(), JSON.stringify(releaseTimeData));
         } catch (e) {
             console.warn('Failed to save release time data:', e);
         }
@@ -434,10 +483,11 @@ const ReleaseTimeManager = (function() {
      */
     function loadFromStorage() {
         try {
-            const key = getConstants().BACKUP.STORAGE_KEY_PREFIX + STORAGE_KEY;
-            const stored = localStorage.getItem(key);
+            const stored = localStorage.getItem(buildStorageKey());
             if (stored) {
                 releaseTimeData = JSON.parse(stored);
+            } else {
+                releaseTimeData = {};
             }
         } catch (e) {
             console.warn('Failed to load release time data:', e);
