@@ -1,0 +1,48 @@
+name: Keep Supabase Awake
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping-database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    steps:
+      - name: Query Supabase database
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          set -euo pipefail
+          : "${SUPABASE_URL:?SUPABASE_URL secret is not configured}"
+          : "${SUPABASE_PUBLISHABLE_KEY:?SUPABASE_PUBLISHABLE_KEY secret is not configured}"
+
+          http_status="$(
+            curl --fail-with-body --silent \
+              --proto '=https' \
+              --connect-timeout 10 \
+              --max-time 60 \
+              --request POST \
+              --url "$SUPABASE_URL/rest/v1/rpc/keep_alive" \
+              --header "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+              --header "Content-Type: application/json" \
+              --data '{}' \
+              --output /dev/null \
+              --write-out '%{http_code}'
+          )" || {
+            curl_exit=$?
+            echo "::error::Supabase keep-alive RPC failed (curl exit $curl_exit, HTTP ${http_status:-000})."
+            exit "$curl_exit"
+          }
+
+          if [[ ! "$http_status" =~ ^2[0-9]{2}$ ]]; then
+            echo "::error::Supabase keep-alive RPC returned HTTP ${http_status:-000}."
+            exit 1
+          fi
+
+          echo "Supabase keep-alive RPC succeeded (HTTP $http_status)."

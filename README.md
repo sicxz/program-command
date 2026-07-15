@@ -69,6 +69,21 @@ npm install
 npm run serve
 ```
 
+## 🩺 Supabase Keep-Alive
+
+The production Supabase project is on a free plan and may be paused after prolonged inactivity. `/.github/workflows/keep-supabase-awake.yml` makes a read-only database RPC request every six hours from GitHub Actions. This request does not deploy the application.
+
+Before enabling the workflow, run `scripts/supabase-keep-alive.sql` in the production project's Supabase SQL Editor. Then configure these **repository secrets** under **Settings → Secrets and variables → Actions**:
+
+- `SUPABASE_URL` — the production project URL.
+- `SUPABASE_PUBLISHABLE_KEY` — the production `sb_publishable_...` key.
+
+Use only the publishable key. Do **not** use a legacy `service_role` key or a new `sb_secret_...` key. The workflow sends the publishable key only in the `apikey` header; it does not replace the application's existing Supabase client configuration.
+
+To test it manually, open **Actions → Keep Supabase Awake → Run workflow**, select `main`, and run it. A successful run shows a green **Query Supabase database** step and the message `Supabase keep-alive RPC succeeded.` Missing secrets, timeouts, and non-successful HTTP responses fail the step without printing secret values.
+
+This best-effort request reduces the risk of Supabase inactivity pausing; it is not a formal uptime guarantee. GitHub may delay scheduled jobs, and [automatically disables scheduled workflows in public repositories after 60 days without repository activity](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/disable-and-enable-workflows), at which point this workflow must be re-enabled manually.
+
 ## 📊 Dashboards
 
 ### Public Schedule
