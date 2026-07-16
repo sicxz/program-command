@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Travis's Repository Cleanup Note — Program Command</title>
+<link rel="stylesheet" href="../css/design-system.css">
+<link rel="stylesheet" href="../css/docs.css">
+</head>
+<body class="foundry">
+
+<div class="docs-shell">
+
+  <header class="docs-header">
+    <div class="docs-header-copy">
+      <span class="docs-header-mark" aria-hidden="true">TM</span>
+      <div class="docs-header-title">
+        <p class="docs-eyebrow">Maintainer note / operating controls</p>
+        <h1>Travis's Repository Cleanup Note</h1>
+      </div>
+    </div>
+    <a class="docs-header-action" href="./ORIENT.html">ORIENT</a>
+  </header>
+
+  <nav class="docs-nav" aria-label="Reorientation">
+    <a href="./ORIENT.html">ORIENT</a>
+    <a href="./decision-log.html">Decision Log</a>
+    <a href="./ONBOARDING.html">Onboarding</a>
+    <a href="./phase2-unit10-inventory.html">Unit 10 Inventory</a>
+    <a href="./travis.html" aria-current="page">Travis Note</a>
+  </nav>
+
+  <main class="docs-content">
+
+    <p class="docs-stamp docs-stamp--warn">
+      <strong>Status as of 2026-07-15:</strong> recovery is in progress.
+      Use the <a href="#keep-alive-verification">canonical keep-alive
+      verification record</a> for that workflow's status. Repository process,
+      open pull requests, remote branches, and duplicate local working copies
+      still need an intentional cleanup pass.
+    </p>
+
+    <aside class="docs-callout docs-callout--warning">
+      <p class="docs-callout-title">This is a checkpoint, not permission</p>
+      <p>Do not use this page as blanket authority to merge a pull request,
+      delete a branch, change a ruleset, deploy, or touch production data.
+      Refresh the inventory, review the exact diff, and record a disposition
+      before taking each irreversible action.</p>
+    </aside>
+
+    <h2>Why this note exists</h2>
+    <p>Travis is currently the only human maintainer with repository access;
+    the other participants are automated agents. Some of the repository
+    controls were created during an earlier agent-assisted setup that Travis
+    remembers as roughly January 2026. The exact creation date has not been
+    verified, and the current controls no longer fit the way this solo-owned
+    repository is actually maintained.</p>
+
+    <p>The clearest example is the required approving review. When an agent
+    works through Travis's GitHub identity, GitHub treats Travis as the pull
+    request author, so Travis cannot submit the approving review that the rule
+    requires. Pull request
+    <a href="https://github.com/sicxz/program-command/pull/269">#269</a>
+    passed all required checks and received the explicit protected-path label,
+    but still needed an owner bypass to merge. That is a process mismatch, not
+    a useful second set of human eyes.</p>
+
+    <h2>Source-of-truth boundaries</h2>
+    <p>These documents have different jobs. A newer date does not let one
+    document silently override another.</p>
+    <table>
+      <thead>
+        <tr><th>Source</th><th>Authority</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>AGENTS.md</code></td>
+          <td>Active agent policy and safety boundary. It remains authoritative
+          until Travis records a policy decision and merges the corresponding
+          policy change.</td>
+        </tr>
+        <tr>
+          <td><a href="./ORIENT.html">ORIENT</a></td>
+          <td>Current production state and the single next action.</td>
+        </tr>
+        <tr>
+          <td><a href="./decision-log.html">Decision Log</a></td>
+          <td>Accepted decisions, including their rationale and date.</td>
+        </tr>
+        <tr>
+          <td><a href="./phase2-unit10-inventory.html">Unit 10 Inventory</a></td>
+          <td>Rescue evidence, preservation gates, and G0-G7 disposition.</td>
+        </tr>
+        <tr>
+          <td><code>travis.html</code></td>
+          <td>This dated observed snapshot and non-authoritative cleanup
+          proposals. It does not authorize repository or filesystem changes.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <aside class="docs-callout docs-callout--danger">
+      <p class="docs-callout-title">Authorization record required</p>
+      <p>Without a dated Decision Log entry or pull-request comment naming the
+      owner, exact ref, disposition, evidence, and authorization, every cleanup
+      item on this page remains proposal-only. Agents may perform read-only
+      inventory and comparison and may draft proposed changes. Travis must
+      authorize and perform labels, ruleset changes, merges or closures, branch
+      deletion, deploys, production SQL, secret changes, and local-folder
+      deletion or rename.</p>
+    </aside>
+
+    <h2>Current checkpoint</h2>
+    <table>
+      <thead>
+        <tr><th>Area</th><th>State on 2026-07-15</th><th>Next proof</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Canonical repository</td>
+          <td><code>sicxz/program-command</code>; local checkout
+          <code>scheduler-v2-codex</code></td>
+          <td>Keep all cleanup work anchored to this remote.</td>
+        </tr>
+        <tr>
+          <td>Supabase keep-alive</td>
+          <td><a href="#keep-alive-verification">See the canonical verification
+          record</a>; do not restate its mutable status elsewhere.</td>
+          <td>Satisfy the record's manual-run and scheduled-run acceptance
+          criteria.</td>
+        </tr>
+        <tr>
+          <td>Open pull requests</td>
+          <td><span class="docs-pill docs-pill--warn">8 open</span> Six target
+          the obsolete <code>develop</code> branch.</td>
+          <td>Assign each PR a merge, extract, replace, or retire decision.</td>
+        </tr>
+        <tr>
+          <td>Remote branches</td>
+          <td><span class="docs-pill docs-pill--warn">29 non-main</span> Eight
+          are open PR heads; many others have no open PR.</td>
+          <td>Prove desired commits are on <code>main</code> or intentionally
+          archived before deleting anything.</td>
+        </tr>
+        <tr>
+          <td>Unit 10 rescue</td>
+          <td>G0 through G3 are complete. G4 is an explicitly unmergeable WIP;
+          G5 through G7 remain pending.</td>
+          <td>Refresh the inventory and decide whether to resume or stop G4.</td>
+        </tr>
+        <tr>
+          <td>Local folders</td>
+          <td><span class="docs-pill docs-pill--warn">11 similarly named</span>
+          folders or archives were found under the GitHub development folder.</td>
+          <td>Inventory unique files before consolidating or deleting copies.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3 id="keep-alive-verification">Canonical keep-alive verification record</h3>
+    <article class="docs-decision">
+      <header class="docs-decision-head">
+        <span class="docs-decision-date">Observed 2026-07-15</span>
+        <span class="docs-decision-title">PR #269 merged; live run not independently verified</span>
+      </header>
+      <dl>
+        <dt>Status</dt>
+        <dd><span class="docs-pill docs-pill--warn">merged / verification pending</span>
+        The workflow source is on <code>main</code>. Travis reported that the
+        production SQL function and repository secrets were configured.</dd>
+        <dt>Evidence</dt>
+        <dd><a href="https://github.com/sicxz/program-command/pull/269">Merged PR #269</a>;
+        successful manual run URL: <strong>not yet recorded — replace this
+        placeholder with the exact Actions run link after verification.</strong></dd>
+        <dt>Verified date</dt>
+        <dd>Not yet verified. Record the date together with the run URL; do not
+        update this field from recollection alone.</dd>
+        <dt>Acceptance criteria</dt>
+        <dd>The <strong>Query Supabase database</strong> step completes green
+        with an HTTP 2xx result on a manual <code>main</code> run, followed by a
+        later green scheduled run.</dd>
+      </dl>
+    </article>
+
+    <h4>Verification procedure</h4>
+    <ol>
+      <li>Open
+      <a href="https://github.com/sicxz/program-command/actions/workflows/keep-supabase-awake.yml">Actions → Keep Supabase Awake</a>
+      in <code>sicxz/program-command</code>.</li>
+      <li>Choose <strong>Run workflow</strong> on <code>main</code>.</li>
+      <li>Confirm <strong>Query Supabase database</strong> finishes green. A
+      successful HTTP 2xx response is the proof.</li>
+      <li>If it reports a missing secret, verify that
+      <code>SUPABASE_URL</code> and <code>SUPABASE_PUBLISHABLE_KEY</code> are
+      repository-level Actions secrets on <code>program-command</code>, not on
+      the similarly named old repository. Never paste their values into logs
+      or this document.</li>
+    </ol>
+
+    <p>This is a best-effort inactivity signal, not an uptime guarantee.
+    GitHub can delay scheduled jobs and can disable scheduled workflows in a
+    public repository after 60 days without repository activity. Include the
+    workflow's enabled state in periodic maintenance checks.</p>
+
+    <aside class="docs-callout docs-callout--danger">
+      <p class="docs-callout-title">Production boundary</p>
+      <p>The keep-alive workflow must use a publishable key. Never substitute
+      a Supabase service-role key or an <code>sb_secret_...</code> key. Travis
+      alone applies production SQL, changes repository secrets, and verifies
+      the resulting run.</p>
+    </aside>
+
+    <h2>Approval process that needs correction</h2>
+    <p>The live <code>protect-main</code> rules require a pull request, one
+    approving review, and the strict checks <code>test</code>,
+    <code>onboarding</code>, and <code>guard-forbidden-paths</code>. Direct
+    pushes, force pushes, and branch deletion are blocked. Those protections
+    are useful; the mandatory second-human approval is the part that does not
+    match a one-human repository.</p>
+
+    <article class="docs-decision">
+      <header class="docs-decision-head">
+        <span class="docs-decision-date">Decision needed</span>
+        <span class="docs-decision-title">Choose a solo-maintainer review model</span>
+      </header>
+      <dl>
+        <dt>Recommended</dt>
+        <dd>Set required approving reviews to zero while Travis is the only
+        human maintainer. Keep pull requests, all three required checks, and
+        the explicit protected-path acknowledgement.</dd>
+        <dt>Alternative</dt>
+        <dd>Keep one approval and use the repository-owner bypass only after
+        manual review, recording the reason on every affected PR.</dd>
+        <dt>Restore later</dt>
+        <dd>Require one approval again when a second human with write access is
+        available and can provide an independent review.</dd>
+      </dl>
+    </article>
+
+    <p>No ruleset change was made while writing this note. Review the live
+    settings under
+    <a href="https://github.com/sicxz/program-command/settings/rules">Settings → Rules</a>
+    before changing them; documentation may lag behind GitHub.</p>
+
+    <h3>Who can approve what</h3>
+    <table>
+      <thead>
+        <tr><th>Situation</th><th>Required handling</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>A separate GitHub App or bot authors the PR</td>
+          <td>Travis can review the files and submit the human approval.</td>
+        </tr>
+        <tr>
+          <td>An agent authors through <code>sicxz</code></td>
+          <td>GitHub counts Travis as the author. Self-approval cannot satisfy
+          a one-review rule; use the chosen solo-maintainer model explicitly.</td>
+        </tr>
+        <tr>
+          <td>A protected or forbidden path changes</td>
+          <td>Travis confirms the change was explicitly requested, reviews the
+          exact diff, and applies <code>allow-forbidden-paths</code>. The label
+          records acknowledgement; it is not blanket approval.</td>
+        </tr>
+        <tr>
+          <td>Deploy, production SQL, or secrets</td>
+          <td>Travis performs and verifies the human-only step. Agents may
+          prepare instructions but must not claim the production action ran.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Open pull-request disposition</h2>
+    <p>This is a working recommendation, not a merge queue. Every PR must be
+    refreshed against current <code>main</code> before action. In particular,
+    a green historical check on a PR targeting <code>develop</code> does not
+    prove that its code is safe to merge into <code>main</code> today.</p>
+
+    <table>
+      <thead>
+        <tr><th>PR</th><th>Current issue</th><th>Recommended disposition</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><a href="https://github.com/sicxz/program-command/pull/263">#263</a>
+          readiness tests</td>
+          <td>Explicit WIP/do-not-merge quarantine; most suites fail, though
+          two green files may be reusable.</td>
+          <td>Extract any proven tests into a fresh focused branch, then close
+          the quarantine PR and delete its branch.</td>
+        </tr>
+        <tr>
+          <td><a href="https://github.com/sicxz/program-command/pull/204">#204</a>
+          agent rules</td>
+          <td>Conflicts with current <code>main</code>; the guidance has evolved
+          substantially since this branch was opened.</td>
+          <td>Check for any still-missing startup or Cursor guidance, port only
+          that material, then retire the PR.</td>
+        </tr>
+        <tr>
+          <td><a href="https://github.com/sicxz/program-command/pull/203">#203</a>
+          scheduler contract</td>
+          <td>Targets <code>develop</code> and touches persistence and SQL.</td>
+          <td>Wait for Unit 10 G4, then reimplement the wanted contract from a
+          fresh <code>main</code> branch. Do not merge it as-is.</td>
+        </tr>
+        <tr>
+          <td><a href="https://github.com/sicxz/program-command/pull/216">#216</a>
+          spreadsheet import</td>
+          <td>Targets stale <code>develop</code>; historical checks were green.</td>
+          <td>Port the focused change to fresh <code>main</code> and retest after
+          the Unit 10 G6 onboarding rescue.</td>
+        </tr>
+        <tr>
+          <td><a href="https://github.com/sicxz/program-command/pull/219">#219</a>
+          screenshot import</td>
+          <td>Targets stale <code>develop</code>; historical checks were green.</td>
+          <td>Port and retest after G6 so the onboarding paths are settled.</td>
+        </tr>
+        <tr>
+          <td><a href="https://github.com/sicxz/program-command/pull/225">#225</a>
+          vision bakeoff</td>
+          <td>Draft, depends on a Node endpoint, and still lacks a live provider
+          test while production is a static site.</td>
+          <td>Make the architecture decision after G6, then extract only the
+          compatible pieces or retire it.</td>
+        </tr>
+        <tr>
+          <td><a href="https://github.com/sicxz/program-command/pull/227">#227</a>
+          EECS inventories</td>
+          <td>Draft, conflicting, and far behind <code>main</code>.</td>
+          <td>Rebuild from current <code>main</code> after the rescue, coordinated
+          with #229 and the department-model decision.</td>
+        </tr>
+        <tr>
+          <td><a href="https://github.com/sicxz/program-command/pull/229">#229</a>
+          EECS seed data</td>
+          <td>Draft, conflicting, and unusually large: data and application
+          changes are mixed together.</td>
+          <td>Extract the desired dataset into a focused PR, reconcile EECS vs.
+          CSEE naming with #227, then retire the oversized branch.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Branch recovery and cleanup</h2>
+    <p><code>develop</code> is substantially behind <code>main</code>, but it
+    still contains work that has not received a final disposition. Do not
+    merge <code>develop</code> wholesale, and do not delete it until the Unit 10
+    must-preserve checklist is complete.</p>
+
+    <h3>Rescue sequence</h3>
+    <ol>
+      <li>Refresh <a href="./phase2-unit10-inventory.html">the Unit 10 inventory</a>.
+      It still describes an earlier checkpoint.</li>
+      <li>Inspect <code>feat/unit10-g4-tenant-foundation</code>. It is marked
+      WIP/do-not-merge; finish and verify its remaining graft, or record why it
+      is being stopped.</li>
+      <li>Complete or intentionally stop G5 through G7.</li>
+      <li>Resolve the six open PRs that still target <code>develop</code>.</li>
+      <li>Compare every unique <code>develop</code> commit with current
+      <code>main</code> and record keep/drop evidence.</li>
+      <li>Only then delete <code>develop</code>, retire its branch rules, and
+      remove obsolete CI triggers through a separately reviewed workflow PR.</li>
+    </ol>
+
+    <h3>Branches with strong deletion evidence</h3>
+    <p>The following immutable anchors record what was observed on 2026-07-15.
+    They make the comparison reproducible; they do not authorize deletion and
+    they do not prove that a named ref has not moved since the snapshot.</p>
+<pre><code>main
+c9b3191c5e7783d4eb12f2c133263b8556ed0c0c
+
+develop
+fd609839393341eabffe881cabe7abb5de07bb86
+
+feat/unit10-g4-tenant-foundation
+867373083d4323d63c154cdc271bcc14446338c7
+
+codex/design-data-readiness-handoff
+1c5ec3d376eef3093c9b9fbc60de3d4c071f57f9</code></pre>
+
+    <h4>Reproduce before any deletion proposal</h4>
+    <ol>
+      <li>In the authorized Travis review session, refresh remote-tracking refs
+      with <code>git fetch --prune origin</code>.</li>
+      <li>Resolve the current tips with <code>git rev-parse origin/main
+      origin/develop origin/feat/unit10-g4-tenant-foundation
+      origin/codex/design-data-readiness-handoff</code> and compare them with
+      the observed SHAs above.</li>
+      <li>For an ancestry claim, run <code>git merge-base --is-ancestor
+      &lt;branch-sha&gt; &lt;destination-sha&gt;</code> and record the command,
+      exit status, and exact SHAs.</li>
+      <li>For patch equivalence or unique work, run <code>git cherry
+      origin/main origin/&lt;branch&gt;</code> and <code>git log --left-right
+      --cherry-pick --oneline origin/main...origin/&lt;branch&gt;</code>; attach
+      the output to the disposition record.</li>
+      <li>Recheck the live ref immediately before deletion. A moved ref or
+      missing authorization record returns the item to proposal-only.</li>
+    </ol>
+
+    <ul>
+      <li><code>codex/tree-c01-save-contract</code> is already an ancestor of
+      <code>main</code>.</li>
+      <li><code>codex/internal-schedule-match-public-view</code> and
+      <code>codex/issue-231-async-online-render</code> are not ancestry-merged,
+      but their patches appear equivalent on <code>main</code>. Recheck with
+      <code>git cherry</code> immediately before deletion.</li>
+      <li><code>codex/issue-212-screenshot-intake</code>,
+      <code>codex/issue-213-multi-program-department-model</code>, and
+      <code>codex/issue-98-pr</code> are ancestors of <code>develop</code>.
+      Retain them until the desired <code>develop</code> work is rescued, then
+      delete them with the rest of that lineage.</li>
+    </ul>
+
+    <h3>No-open-PR branches that need an explicit keep/delete decision</h3>
+    <ul>
+      <li><code>codex/design-data-readiness-handoff</code> — isolate and review
+      its unique tip instead of merging the stale branch.</li>
+      <li><code>codex/hotfix-faculty-name-labels</code></li>
+      <li><code>codex/hourly-issue-202-contract-docs</code></li>
+      <li><code>codex/hourly-issue-202-contract-docs-fixlinks</code></li>
+      <li><code>codex/issue-211-onboarding-shell</code></li>
+      <li><code>codex/issue-234-scheduler-cloud-load</code></li>
+      <li><code>codex/production-readiness-audit</code></li>
+      <li><code>codex/public-schedule-view</code></li>
+      <li><code>codex/recover-triage-ux</code></li>
+      <li><code>codex/repo-recovery</code></li>
+      <li><code>codex/tree-a11-auth-editstate-integration-tests</code></li>
+      <li><code>codex/tree-ce04-history-analyzer</code></li>
+      <li><code>codex/worktree-cleanup-tooling</code></li>
+    </ul>
+
+    <p>There are more no-open-PR refs than the named list above because some
+    are already covered by the merge-equivalence and <code>develop</code>
+    lineage groups. Re-run the remote inventory before deleting; branch counts
+    are a dated snapshot.</p>
+
+    <h2>Local working-copy cleanup</h2>
+    <p>There are eleven similarly named folders or archives under
+    <code>/Users/tmasingale/Developer/GitHub</code>. The important live copies
+    are:</p>
+
+    <table>
+      <thead>
+        <tr><th>Folder</th><th>Meaning</th><th>Handling</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>scheduler-v2-codex</code></td>
+          <td>Correct <code>sicxz/program-command</code> checkout.</td>
+          <td>Treat this as canonical for now.</td>
+        </tr>
+        <tr>
+          <td><code>scheduler-v2-codex-develop-fix</code></td>
+          <td>Clean secondary checkout of <code>program-command</code>, currently
+          on the design-data-readiness handoff branch.</td>
+          <td>Keep until its unique work is dispositioned.</td>
+        </tr>
+        <tr>
+          <td><code>scheduler-v2</code></td>
+          <td>Points to the different repository
+          <code>sicxz/schedule-ay-2025-26</code> and contains local README and
+          <code>AGENTS.md</code> changes.</td>
+          <td>Do not delete until those local-only files are deliberately
+          discarded, archived, or moved.</td>
+        </tr>
+        <tr>
+          <td>iCloud, orphan, recovery, and cleanup archives</td>
+          <td>Not all are live Git repositories.</td>
+          <td>Compare paths and checksums for unique files before removal.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>After the inventory is complete, consider renaming the canonical clone
+    to <code>program-command</code>. A remote-aligned folder name will make it
+    much harder to put secrets, SQL, or workflow changes in the wrong GitHub
+    repository again.</p>
+
+    <h2>Process and documentation debt</h2>
+    <h3>Automation state</h3>
+    <table>
+      <thead>
+        <tr><th>Automation</th><th>Current state</th><th>Cleanup action</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>CI</td>
+          <td>Active, with required checks on <code>main</code>; its YAML still
+          includes obsolete <code>develop</code> and rollout-branch triggers.</td>
+          <td>Remove obsolete triggers after the <code>develop</code> rescue.</td>
+        </tr>
+        <tr>
+          <td>Forbidden-path guard</td>
+          <td>Active as <code>guard-<wbr>forbidden-<wbr>paths</code> and required
+          on pull requests to <code>main</code>.</td>
+          <td>Keep it; make its explicit-exception policy unambiguous.</td>
+        </tr>
+        <tr>
+          <td>Pages deployment</td>
+          <td>Manual <code>workflow_<wbr>dispatch</code>; an owner-only operation.</td>
+          <td>Keep manual unless a separately reviewed deployment decision
+          changes that boundary.</td>
+        </tr>
+        <tr>
+          <td>Supabase keep-alive</td>
+          <td><a href="#keep-alive-verification">Canonical verification record</a></td>
+          <td>Meet the recorded manual-run and later scheduled-run acceptance
+          criteria; update only that record with the evidence.</td>
+        </tr>
+        <tr>
+          <td>Codex Issue Writer</td>
+          <td>Its source contains manual and daily triggers, while the GitHub
+          workflow is disabled manually.</td>
+          <td>Delete it with human approval if retired, or prominently document
+          why it is intentionally disabled.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Contradictions to resolve</h3>
+    <ul>
+      <li>The CI workflow still names <code>develop</code> and an obsolete
+      rollout branch even though the repository now uses a main-only model.</li>
+      <li>A <code>protect-develop</code> ruleset remains active while
+      <code>develop</code> is supposed to be retired.</li>
+      <li>The issue-writer workflow contains a daily schedule in source but is
+      disabled in GitHub. Decide whether to delete it or document the disabled
+      state intentionally.</li>
+      <li><code>CLAUDE.md</code> gives contradictory descriptions of whether
+      <code>api-server.js</code> is production or local-only.</li>
+      <li><code>docs/index.html</code> is empty. Replace it with a real docs
+      landing page or an intentional redirect.</li>
+      <li>ORIENT, onboarding, and the Unit 10 inventory have claims that lag
+      behind the current rescue and required-check setup. Refresh their actual
+      content, not only their date stamp.</li>
+      <li>The current-term production-SQL claim was last checked earlier in the
+      recovery. Re-verify it rather than treating old documentation as proof.</li>
+      <li>Current forbidden-path language reads as an absolute stop, but PR
+      #269 used an explicit human-request plus acknowledgement-label process.
+      Decide which policy is intended and make the rules and docs agree.</li>
+    </ul>
+
+    <h2>Owner-explicit cleanup plan</h2>
+    <p>This is a proposal ledger, not an execution queue.
+    <code>AGENTS.md</code> remains authoritative until Travis records a decision
+    and merges an explicit policy change. The authorization record described
+    above is required before any Travis-only action.</p>
+
+    <article class="docs-decision">
+      <header class="docs-decision-head">
+        <span class="docs-decision-date">1 / pending</span>
+        <span class="docs-decision-title">Verify the keep-alive</span>
+      </header>
+      <dl>
+        <dt>Agent may</dt>
+        <dd>Read the workflow, compare the criteria, and draft the evidence entry.</dd>
+        <dt>Travis</dt>
+        <dd>Runs the workflow, inspects secrets if needed, and verifies the live result.</dd>
+        <dt>Record</dt>
+        <dd>Update the <a href="#keep-alive-verification">canonical record</a>
+        with owner, date, exact run URL, result, and authorization.</dd>
+      </dl>
+    </article>
+
+    <article class="docs-decision">
+      <header class="docs-decision-head">
+        <span class="docs-decision-date">2 / decision needed</span>
+        <span class="docs-decision-title">Choose the approval model</span>
+      </header>
+      <dl>
+        <dt>Agent may</dt>
+        <dd>Read live configuration and draft alternatives and policy text.</dd>
+        <dt>Travis</dt>
+        <dd>Chooses and changes the ruleset and applies protected-path labels.</dd>
+        <dt>Record</dt>
+        <dd>Dated Decision Log entry and policy-PR comment naming the exact
+        ruleset and approved disposition.</dd>
+      </dl>
+    </article>
+
+    <article class="docs-decision">
+      <header class="docs-decision-head">
+        <span class="docs-decision-date">3 / stale</span>
+        <span class="docs-decision-title">Refresh ORIENT and Unit 10</span>
+      </header>
+      <dl>
+        <dt>Agent may</dt>
+        <dd>Inventory read-only state, compare evidence, and draft doc changes.</dd>
+        <dt>Travis</dt>
+        <dd>Approves and merges the factual update.</dd>
+        <dt>Record</dt>
+        <dd>PR comment naming owner, date, exact refs, evidence, and approved
+        documentation disposition.</dd>
+      </dl>
+    </article>
+
+    <article class="docs-decision">
+      <header class="docs-decision-head">
+        <span class="docs-decision-date">4 / WIP</span>
+        <span class="docs-decision-title">Complete or stop G4-G7</span>
+      </header>
+      <dl>
+        <dt>Agent may</dt>
+        <dd>Compare SHAs and patches and draft a preserve/drop disposition.</dd>
+        <dt>Travis</dt>
+        <dd>Authorizes any merge, closure, label, or branch deletion.</dd>
+        <dt>Record</dt>
+        <dd>Unit 10 evidence and a dated PR comment for each exact ref.</dd>
+      </dl>
+    </article>
+
+    <article class="docs-decision">
+      <header class="docs-decision-head">
+        <span class="docs-decision-date">5 / 8 open</span>
+        <span class="docs-decision-title">Disposition the pull requests</span>
+      </header>
+      <dl>
+        <dt>Agent may</dt>
+        <dd>Refresh read-only PR state, review diffs, and draft merge, extract,
+        replace, or retire recommendations.</dd>
+        <dt>Travis</dt>
+        <dd>Applies labels and merges or closes each PR; deletes a branch only
+        after preservation is proved.</dd>
+        <dt>Record</dt>
+        <dd>Per-PR comment naming owner, date, exact head SHA, disposition,
+        evidence, and authorization.</dd>
+      </dl>
+    </article>
+
+    <article class="docs-decision">
+      <header class="docs-decision-head">
+        <span class="docs-decision-date">6 / gated</span>
+        <span class="docs-decision-title">Retire develop</span>
+      </header>
+      <dl>
+        <dt>Agent may</dt>
+        <dd>Run ancestry, cherry, and unique-commit comparisons and draft
+        workflow and ruleset proposals.</dd>
+        <dt>Travis</dt>
+        <dd>Deletes the branch, changes its ruleset, and authorizes any workflow
+        edit through the protected-path process.</dd>
+        <dt>Record</dt>
+        <dd>Dated Decision Log entry and exact-ref verification captured
+        immediately before action.</dd>
+      </dl>
+    </article>
+
+    <article class="docs-decision">
+      <header class="docs-decision-head">
+        <span class="docs-decision-date">7 / proposed</span>
+        <span class="docs-decision-title">Prune other remote branches</span>
+      </header>
+      <dl>
+        <dt>Agent may</dt>
+        <dd>Inspect fetched refs and draft keep/delete evidence with the recipe above.</dd>
+        <dt>Travis</dt>
+        <dd>Refreshes refs and deletes each authorized remote branch.</dd>
+        <dt>Record</dt>
+        <dd>Per-ref owner, date, exact SHA, disposition, evidence, and explicit
+        deletion authorization.</dd>
+      </dl>
+    </article>
+
+    <article class="docs-decision">
+      <header class="docs-decision-head">
+        <span class="docs-decision-date">8 / proposed</span>
+        <span class="docs-decision-title">Consolidate local folders</span>
+      </header>
+      <dl>
+        <dt>Agent may</dt>
+        <dd>List files, compare paths and checksums, and draft a preservation manifest.</dd>
+        <dt>Travis</dt>
+        <dd>Renames the canonical clone or deletes or archives local folders.</dd>
+        <dt>Record</dt>
+        <dd>Dated owner record naming each exact path, evidence, disposition,
+        and deletion or rename authorization.</dd>
+      </dl>
+    </article>
+
+    <article class="docs-decision">
+      <header class="docs-decision-head">
+        <span class="docs-decision-date">9 / proposed</span>
+        <span class="docs-decision-title">Repair the operating docs</span>
+      </header>
+      <dl>
+        <dt>Agent may</dt>
+        <dd>Draft fixes for the empty index, server/deployment language,
+        workflow state, approval text, and stale claims.</dd>
+        <dt>Travis</dt>
+        <dd>Approves and merges policy-bearing documentation.</dd>
+        <dt>Record</dt>
+        <dd>Decision Log entry for policy changes and a PR comment for the exact
+        approved documentation diff.</dd>
+      </dl>
+    </article>
+
+    <h3>Definition of done</h3>
+    <ul>
+      <li>The keep-alive has a successful manual run and a later scheduled run.</li>
+      <li>The branch protection model can be followed by one human without a
+      routine admin bypass, while required CI remains enforced.</li>
+      <li>Every open PR has a current disposition and no abandoned draft is
+      presented as active work.</li>
+      <li><code>main</code> is the only long-lived development branch unless a
+      new exception is explicitly documented.</li>
+      <li>Every remaining remote branch has an owner and purpose.</li>
+      <li>Only one clearly named local clone is used for normal work; any
+      archives are deliberate and read-only.</li>
+      <li>ORIENT and related runbooks agree with GitHub's live settings and the
+      actual deployment architecture.</li>
+    </ul>
+
+  </main>
+
+  <footer class="docs-footer">
+    <span>Observed snapshot: 2026-07-15 — not authorization</span>
+    <span><a href="./ORIENT.html">Back to ORIENT</a></span>
+  </footer>
+
+</div>
+
+</body>
+</html>
