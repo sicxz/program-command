@@ -28,6 +28,7 @@
     <a href="./ONBOARDING.html">Onboarding</a>
     <a href="./phase0-rls-runbook.html">Phase 0 Runbook</a>
     <a href="./phase0-handoff.html">Phase 0 Handoff</a>
+    <a href="./travis.html">Travis Note</a>
   </nav>
 
   <main class="docs-content">
@@ -145,15 +146,78 @@
     <h2>Next action</h2>
     <aside class="docs-callout docs-callout--note">
       <p class="docs-callout-title">Do this next</p>
-      <p>Apply <code>scripts/supabase-current-term-setting.sql</code> to the
-      prod Supabase project (idempotent; merged in PR&nbsp;#257 but never run
-      — verified missing 2026-06-09, see Pending operations below). Unit 10 is
-      in progress: execute the rescue groups in order per the
-      <a href="./phase2-unit10-inventory.html">Unit 10 inventory artifact</a>
-      (next group: G2, the constraints-service cherry-pick). Do not delete
-      <code>develop</code> or mass-close the strategic PRs before U10's
-      must-preserve checklist is verified.</p>
+      <p>Finish and preserve the
+      <a href="./travis.html">maintainer cleanup checkpoint</a> before doing
+      repository cleanup. If the two documentation changes are still local,
+      validate them and open one focused docs-only PR against <code>main</code>.
+      Do not deploy. After that checkpoint is merged, verify the first live
+      Supabase keep-alive run and refresh the PR, branch, ruleset, and Unit 10
+      inventory read-only. No PR closure, merge, label, ruleset change, branch
+      deletion, production action, or local-folder deletion is authorized by
+      this page.</p>
     </aside>
+
+    <h3>Copy this into the next Codex session</h3>
+<pre><code>Continue the Program Command repository-recovery work from the dated maintainer checkpoint.
+
+Repository boundary
+- Work only in /Users/tmasingale/Developer/GitHub/scheduler-v2-codex.
+- Confirm `git remote get-url origin` is https://github.com/sicxz/program-command.git.
+- Stop and report the mismatch if either path or remote is different.
+- Read AGENTS.md first, then docs/ORIENT.html, docs/travis.html, and
+  docs/phase2-unit10-inventory.html. AGENTS.md remains authoritative.
+
+Preserve the current work
+- Inspect `git status`, the current branch and recent log before editing; do not
+  overwrite local changes. Check GitHub for an existing PR from
+  codex/process-cleanup-note before creating one.
+- Determine the checkpoint state: uncommitted, committed but not pushed, pushed
+  without a PR, open PR, closed-unmerged PR, or merged PR. Continue the existing
+  path; never duplicate its commit, branch, or PR.
+- While the checkpoint is unfinished, the branch must be
+  codex/process-cleanup-note. The only intended changes are docs/ORIENT.html and
+  docs/travis.html. Stop and report a branch mismatch, overlapping edits, an
+  unexpected diff, or a closed-unmerged PR.
+- If uncommitted, review and validate the docs and stage only those two exact
+  files. If committed, verify the commit contains only those files. Then finish
+  whichever commit, push, or focused PR-against-main step remains. Do not deploy.
+- Continue to the audit only after verifying updated origin/main contains both
+  docs. Do not recreate or return to the checkpoint branch after it is merged.
+
+Dated checkpoint to verify, not blindly trust
+- Supabase keep-alive PR #269 is merged; its first successful live run was not
+  independently verified when the note was written.
+- Unit 10 G0-G3 were complete; G4 was WIP/do-not-merge; G5-G7 were pending.
+- Eight PRs and 29 non-main remote branches were observed on 2026-07-15.
+- ORIENT and the Unit 10 inventory contain older claims. Refresh live state.
+
+Next-session goals, in order
+1. Confirm whether Keep Supabase Awake has a successful manual run on main.
+   Never print or expose repository secret values. If no run exists, walk
+   Travis through the manual run. Report only the run URL, date, and result in
+   chat; do not edit the repository during this audit.
+2. Perform a read-only live inventory of protect-main/protect-develop, all open
+   PRs, all remote branches, develop divergence, and the G4 branch. Record the
+   exact commands, dates, and commit SHAs used as evidence.
+3. Produce a decision table for Travis: merge/extract/replace/retire for every
+   open PR, and keep/delete for every non-main ref. Each ref must appear either
+   on its own or inside an explicitly enumerated group with its exact tip SHA.
+   Recheck patch equivalence immediately before proposing deletion.
+4. Present the solo-maintainer approval decision. Recommend zero required
+   approvals while Travis is the only human, while keeping PRs, required CI,
+   and the forbidden-path guard. Do not change the live ruleset without a new,
+   explicit instruction from Travis.
+5. Return the verified current state, the decisions Travis must make in order,
+   and exactly one safe next action.
+
+Safety boundary
+- The audit is read-only after the docs PR.
+- Do not merge or close PRs, apply labels, change rulesets, delete branches,
+  deploy, run production SQL, change secrets, or delete/rename local folders
+  without explicit authorization for that exact action.
+- Treat every recommendation in docs/travis.html as proposal-only until a dated
+  Decision Log entry or PR comment records owner, exact ref, evidence,
+  disposition, and authorization.</code></pre>
 
     <h2>Pending operations ledger</h2>
     <table>
@@ -209,6 +273,7 @@
     <ul>
       <li><a href="./decision-log.html">Decision log</a> — why current choices were made.</li>
       <li><a href="./ONBOARDING.html">Onboarding</a> — architecture, data model, deploy flow, autopilot rules.</li>
+      <li><a href="./travis.html">Travis's maintainer note</a> — dated cleanup inventory, authority boundaries, and proposal ledger.</li>
       <li><a href="./phase0-handoff.html">Phase 0 → Phase 1 handoff</a> — the throwaway transition doc; ORIENT supersedes it once stable.</li>
       <li><a href="./phase0-rls-runbook.html">Phase 0 RLS runbook</a> — what shipped and why Path A was abandoned.</li>
       <li><a href="./plans/2026-05-15-001-refactor-forward-operating-model-plan.md">Forward Operating Model plan</a> — the multi-phase plan being executed.</li>
@@ -226,7 +291,7 @@
   </main>
 
   <footer class="docs-footer">
-    <span>Last edited: 2026-06-11</span>
+    <span>Last edited: 2026-07-15</span>
     <span><a href="./decision-log.html">Decision log →</a></span>
   </footer>
 
