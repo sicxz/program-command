@@ -48,6 +48,16 @@
       before taking each irreversible action.</p>
     </aside>
 
+    <aside class="docs-callout docs-callout--note">
+      <p class="docs-callout-title">Live approval correction — 2026-08-11</p>
+      <p><code>protect-main</code> (ruleset <code>13362450</code>) and
+      <code>protect-develop</code> (ruleset <code>13362496</code>) both
+      currently require zero approving reviews. Main still requires strict
+      <code>test</code>, <code>onboarding</code>, and
+      <code>guard-forbidden-paths</code> checks plus review-thread resolution.
+      No ruleset write was needed during this verification.</p>
+    </aside>
+
     <h2>Why this note exists</h2>
     <p>Travis is currently the only human maintainer with repository access;
     the other participants are automated agents. Some of the repository
@@ -56,10 +66,10 @@
     verified, and the current controls no longer fit the way this solo-owned
     repository is actually maintained.</p>
 
-    <p>The clearest example is the required approving review. When an agent
-    works through Travis's GitHub identity, GitHub treats Travis as the pull
-    request author, so Travis cannot submit the approving review that the rule
-    requires. Pull request
+    <p>The clearest historical example was the required approving review. When
+    an agent works through Travis's GitHub identity, GitHub treats Travis as
+    the pull request author, so Travis cannot submit an independent approval.
+    Pull request
     <a href="https://github.com/sicxz/program-command/pull/269">#269</a>
     passed all required checks and received the explicit protected-path label,
     but still needed an owner bypass to merge. That is a process mismatch, not
@@ -105,9 +115,11 @@
       owner, exact ref, disposition, evidence, and authorization, every cleanup
       item on this page remains proposal-only. Agents may perform read-only
       inventory and comparison and may draft proposed changes. Travis must
-      authorize and perform labels, ruleset changes, merges or closures, branch
-      deletion, deploys, production SQL, secret changes, and local-folder
-      deletion or rename.</p>
+      authorize and perform labels, ruleset changes, legacy-PR merges or
+      closures, branch deletion, deploys, production SQL, secret changes, and
+      local-folder deletion or rename. The focused delivery workflow in
+      <code>AGENTS.md</code> separately grants standing merge authority for new,
+      approved work that meets every recorded gate.</p>
     </aside>
 
     <h2>Current checkpoint</h2>
@@ -210,24 +222,26 @@
       the resulting run.</p>
     </aside>
 
-    <h2>Approval process that needs correction</h2>
-    <p>The live <code>protect-main</code> rules require a pull request, one
-    approving review, and the strict checks <code>test</code>,
+    <h2>Approval process correction</h2>
+    <p>The live <code>protect-main</code> rules require a pull request, zero
+    approving reviews, and the strict checks <code>test</code>,
     <code>onboarding</code>, and <code>guard-forbidden-paths</code>. Direct
     pushes, force pushes, and branch deletion are blocked. Those protections
-    are useful; the mandatory second-human approval is the part that does not
+    remain useful; the second-human requirement was removed because it did not
     match a one-human repository.</p>
 
     <article class="docs-decision">
       <header class="docs-decision-head">
-        <span class="docs-decision-date">Decision needed</span>
-        <span class="docs-decision-title">Choose a solo-maintainer review model</span>
+        <span class="docs-decision-date">Verified 2026-08-11</span>
+        <span class="docs-decision-title">Use the zero-approval solo-maintainer model</span>
       </header>
       <dl>
-        <dt>Recommended</dt>
-        <dd>Set required approving reviews to zero while Travis is the only
+        <dt>Chosen</dt>
+        <dd>Keep required approving reviews at zero while Travis is the only
         human maintainer. Keep pull requests, all three required checks, and
-        the explicit protected-path acknowledgement.</dd>
+        the explicit protected-path acknowledgement. Allow agents to merge
+        only focused, approved work after all gates in <code>AGENTS.md</code>
+        pass.</dd>
         <dt>Alternative</dt>
         <dd>Keep one approval and use the repository-owner bypass only after
         manual review, recording the reason on every affected PR.</dd>
@@ -237,10 +251,10 @@
       </dl>
     </article>
 
-    <p>No ruleset change was made while writing this note. Review the live
-    settings under
+    <p>The live API already reported zero approvals when this correction was
+    recorded, so no ruleset change was made. Review the live settings under
     <a href="https://github.com/sicxz/program-command/settings/rules">Settings → Rules</a>
-    before changing them; documentation may lag behind GitHub.</p>
+    before any future change; documentation may lag behind GitHub.</p>
 
     <h3>Who can approve what</h3>
     <table>
@@ -254,8 +268,9 @@
         </tr>
         <tr>
           <td>An agent authors through <code>sicxz</code></td>
-          <td>GitHub counts Travis as the author. Self-approval cannot satisfy
-          a one-review rule; use the chosen solo-maintainer model explicitly.</td>
+          <td>GitHub counts Travis as the author. No self-approval is required;
+          use the zero-approval model and the gated merge policy in
+          <code>AGENTS.md</code>.</td>
         </tr>
         <tr>
           <td>A protected or forbidden path changes</td>
@@ -567,14 +582,16 @@ codex/design-data-readiness-handoff
 
     <article class="docs-decision">
       <header class="docs-decision-head">
-        <span class="docs-decision-date">2 / decision needed</span>
-        <span class="docs-decision-title">Choose the approval model</span>
+        <span class="docs-decision-date">2 / complete 2026-08-11</span>
+        <span class="docs-decision-title">Operate the zero-approval model</span>
       </header>
       <dl>
         <dt>Agent may</dt>
-        <dd>Read live configuration and draft alternatives and policy text.</dd>
+        <dd>Use the focused delivery and merge authority in
+        <code>AGENTS.md</code>; verify live configuration read-only.</dd>
         <dt>Travis</dt>
-        <dd>Chooses and changes the ruleset and applies protected-path labels.</dd>
+        <dd>Retains ruleset changes and protected-path labels as human-only
+        controls.</dd>
         <dt>Record</dt>
         <dd>Dated Decision Log entry and policy-PR comment naming the exact
         ruleset and approved disposition.</dd>
@@ -716,7 +733,7 @@ codex/design-data-readiness-handoff
   </main>
 
   <footer class="docs-footer">
-    <span>Observed snapshot: 2026-07-15 — not authorization</span>
+    <span>Observed snapshot: 2026-07-15; approval correction: 2026-08-11</span>
     <span><a href="./ORIENT.html">Back to ORIENT</a></span>
   </footer>
 

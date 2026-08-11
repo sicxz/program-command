@@ -39,6 +39,46 @@
       <em>rejected</em>. Link to a PR or runbook if useful. Keep it terse.
     </p>
 
+    <h2>2026 — Q3</h2>
+
+    <article class="docs-decision">
+      <header class="docs-decision-head">
+        <span class="docs-decision-date">2026-08-11</span>
+        <span class="docs-decision-title">Solo-maintainer delivery: zero approvals with gated autonomous merge</span>
+      </header>
+      <dl>
+        <dt>Chose</dt>
+        <dd>Keep pull requests and strict required checks on
+        <code>main</code>, require review-thread resolution, and use zero
+        required approving reviews while Travis is the only human maintainer.
+        For approved issues and implementation-ready plans,
+        <code>AGENTS.md</code> now grants standing authority to branch, test,
+        commit, push, open a ready PR, repair in-scope CI or review findings,
+        and squash-merge once the latest head is green, focused, reviewed, and
+        reported mergeable by GitHub. Agents report milestones instead of
+        handing routine clicks back to Travis.</dd>
+        <dt>Why</dt>
+        <dd>A one-review rule cannot provide independent review when agent work
+        is authored through Travis's identity, so it adds an owner-bypass step
+        without adding a second human. Required CI, focused PRs, review-thread
+        resolution, the forbidden-path guard, and the manual production deploy
+        remain the useful controls.</dd>
+        <dt>Rejected</dt>
+        <dd>Routine click-by-click supervision; restoring one required approval
+        while Travis remains the sole human; and blanket merge authority that
+        could bypass failed checks, unresolved feedback, forbidden paths, or
+        production controls.</dd>
+        <dt>Evidence</dt>
+        <dd>Live ruleset audit on 2026-08-11: <code>protect-main</code>
+        (ruleset <code>13362450</code>, last updated 2026-07-21) already required
+        zero approvals and retained strict <code>test</code>,
+        <code>onboarding</code>, and <code>guard-forbidden-paths</code> checks.
+        <code>protect-develop</code> (ruleset <code>13362496</code>) also required
+        zero approvals. No live ruleset write was needed or performed for this
+        decision.</dd>
+      </dl>
+    </article>
+
     <h2>2026 — Q2</h2>
 
     <article class="docs-decision">
@@ -371,7 +411,7 @@
   </main>
 
   <footer class="docs-footer">
-    <span>Last edited: 2026-06-11</span>
+    <span>Last edited: 2026-08-11</span>
     <span><a href="./ONBOARDING.html">Onboarding →</a></span>
   </footer>
 
