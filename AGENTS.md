@@ -4,6 +4,37 @@
 
 Autopilot mode (persistent): Work through repo issues in priority order and do not wait for my supervision. Finish each issue as far as possible (code, tests/checks, commit, push), then move to the next. Make reasonable technical and UX decisions. Only interrupt me for blockers requiring my decision, credentials/access, destructive operations, or ambiguous scope with major consequences.
 
+## Delivery Autonomy
+
+Use milestone-level updates: started, PR ready or blocked, and merged. Do not
+request confirmation for routine, in-scope steps. Use parallel agents for
+independent research, test analysis, and review; only one agent may edit the
+active checkout unless work is isolated in separate worktrees.
+
+For each approved issue or implementation-ready plan, there is standing
+authorization to:
+
+- create a short-lived `codex/*` branch;
+- edit non-forbidden paths, run relevant checks, commit, and push;
+- open a ready pull request against `main`;
+- monitor and fix current-head CI failures and address in-scope review
+  feedback; and
+- squash-merge without another check-in when the focused diff matches the
+  approved scope, every required check (including
+  `guard-forbidden-paths`) passes on the latest commit, no serious finding or
+  actionable review thread remains, and GitHub reports the PR mergeable.
+
+While Travis is the sole human maintainer, an approval-count-only blocker may
+be bypassed solely to merge an otherwise merge-ready PR. Never bypass failed
+or pending checks, the forbidden-path guard, unresolved feedback, or any other
+safety rule. After merging, synchronize local `main`. Do not manually delete
+the merged branch; GitHub's configured automatic cleanup may do so.
+
+This is operational authorization only. It does not authorize deployment,
+production data or secret changes, ruleset changes, force-pushing, manually
+deleting branches, destructive actions, or materially expanding scope. Stop
+for those cases or for a consequential product decision.
+
 ## Trunk & Safety Rules
 
 These are hard rules, not defaults. The repo is trunk-based on a single `main`.

@@ -76,9 +76,10 @@
           <th scope="row">Branch protection</th>
           <td><code>main</code> is governed by the <code>protect-main</code>
               ruleset: required checks <code>test</code> + <code>onboarding</code>
-              + <code>guard-forbidden-paths</code> (strict), 1 required review,
-              no direct push, no force-push, no deletion. Repo admin is the
-              sole bypass actor. Merged head branches auto-delete.</td>
+              + <code>guard-forbidden-paths</code> (strict), 0 required reviews,
+              no direct push, no force-push, no deletion. The public ruleset
+              response does not expose bypass actors. Merged head branches auto-delete.
+              Live ruleset verified 2026-08-11.</td>
         </tr>
         <tr>
           <th scope="row">Supabase — prod</th>
@@ -203,18 +204,19 @@ Next-session goals, in order
    open PR, and keep/delete for every non-main ref. Each ref must appear either
    on its own or inside an explicitly enumerated group with its exact tip SHA.
    Recheck patch equivalence immediately before proposing deletion.
-4. Present the solo-maintainer approval decision. Recommend zero required
-   approvals while Travis is the only human, while keeping PRs, required CI,
-   and the forbidden-path guard. Do not change the live ruleset without a new,
-   explicit instruction from Travis.
+4. Verify protect-main remains at zero required approvals while Travis is the
+   only human, with PRs, required CI, review-thread resolution, and the
+   forbidden-path guard still active. Do not change the live ruleset; AGENTS.md
+   keeps rulesets human-only.
 5. Return the verified current state, the decisions Travis must make in order,
    and exactly one safe next action.
 
 Safety boundary
 - The audit is read-only after the docs PR.
-- Do not merge or close PRs, apply labels, change rulesets, delete branches,
-  deploy, run production SQL, change secrets, or delete/rename local folders
-  without explicit authorization for that exact action.
+- Follow AGENTS.md Delivery Autonomy only for newly approved, focused work.
+  Cleanup of legacy PRs and refs still requires exact disposition evidence and
+  authorization. Do not change rulesets, delete branches, deploy, run
+  production SQL, change secrets, or delete/rename local folders.
 - Treat every recommendation in docs/travis.html as proposal-only until a dated
   Decision Log entry or PR comment records owner, exact ref, evidence,
   disposition, and authorization.</code></pre>
@@ -291,7 +293,7 @@ Safety boundary
   </main>
 
   <footer class="docs-footer">
-    <span>Last edited: 2026-07-15</span>
+    <span>Last edited: 2026-08-11</span>
     <span><a href="./decision-log.html">Decision log →</a></span>
   </footer>
 
