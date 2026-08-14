@@ -1188,96 +1188,6 @@
             border-radius: var(--radius-1);
         }
 
-        /* Minor highlighting */
-        .course-block.minor-highlight {
-            border-width: 3px;
-            box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
-        }
-
-        .minor-info-panel {
-            background: linear-gradient(135deg, #74c0fc 0%, #4dabf7 100%);
-            color: white;
-            border-radius: 12px;
-            padding: 25px;
-            margin-bottom: 30px;
-        }
-
-        .minor-info-panel h3 {
-            margin-bottom: 15px;
-            font-size: 1.3em;
-        }
-
-        .minor-courses {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 10px;
-            margin-top: 15px;
-        }
-
-        .minor-course-tag {
-            background: rgba(255, 255, 255, 0.2);
-            padding: 10px;
-            border-radius: 6px;
-            backdrop-filter: blur(10px);
-            font-size: 0.9em;
-        }
-
-        .minor-note {
-            background: rgba(255, 255, 255, 0.15);
-            padding: 12px;
-            border-radius: 6px;
-            margin-top: 15px;
-            font-size: 0.9em;
-            font-style: italic;
-        }
-
-        .suggested-minors {
-            background: #f8f9fa;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-            border-left: 4px solid #667eea;
-        }
-
-        .suggested-minors h3 {
-            color: #495057;
-            margin-bottom: 15px;
-            font-size: 1.2em;
-        }
-
-        .minor-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .minor-chip {
-            background: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            border: 2px solid #667eea;
-            color: #667eea;
-            font-weight: 600;
-            font-size: 0.85em;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .minor-chip:hover {
-            background: #667eea;
-            color: white;
-        }
-
-        .minor-chip.not-typical {
-            border-color: #e67e22;
-            color: #e67e22;
-        }
-
-        .minor-chip.not-typical:hover {
-            background: #e67e22;
-            color: white;
-        }
-
         .special-sections-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -3565,7 +3475,6 @@
         .conflicts-panel,
         .conflict-solver-panel,
         .recommendations,
-        .minor-info-panel,
         .arranged-section {
             border-radius: 0;
         }
@@ -4420,7 +4329,7 @@
         /* Schedule-first layout (UX audit follow-up)
            Reorders existing children of .container via flex `order` so the
            schedule grid leads, AY/quarter switching sits right above it as a
-           welded control strip, and the stats / lens / dashboard surfaces sit
+           welded control strip, and the stats / dashboard surfaces sit
            below where they belong. DOM order intentionally unchanged. */
         body.foundry-production .container.container--schedule-first {
             display: flex;
@@ -4430,8 +4339,7 @@
         body.foundry-production .container--schedule-first > quarter-nav      { order: 2; margin-bottom: 0; }
         body.foundry-production .container--schedule-first > .content         { order: 3; margin-top: 0; }
         body.foundry-production .container--schedule-first > .stats-bar       { order: 4; margin-top: 16px; }
-        body.foundry-production .container--schedule-first > lens-filters     { order: 5; }
-        body.foundry-production .container--schedule-first > .dashboard-nav   { order: 6; }
+        body.foundry-production .container--schedule-first > .dashboard-nav   { order: 5; }
 
         /* Weld the quarter-nav strip to the schedule grid below: drop the
            bottom rounding/border on quarter-nav and the top rounding on the
@@ -4615,7 +4523,6 @@
         body.foundry-production .conflicts-panel,
         body.foundry-production .conflict-solver-panel,
         body.foundry-production .recommendations,
-        body.foundry-production .minor-info-panel,
         body.foundry-production .arranged-section,
         body.foundry-production .modal,
         body.foundry-production .faculty-modal,
@@ -5262,6 +5169,136 @@
                 transition: none !important;
             }
         }
+
+        body.advising-workspace-open {
+            overflow: hidden;
+        }
+
+        .advising-workspace-dialog {
+            width: min(96vw, 1540px);
+            height: min(94dvh, 1040px);
+            max-width: none;
+            max-height: none;
+            margin: auto;
+            padding: 0;
+            overflow: hidden;
+            border: 1px solid #596273;
+            color: var(--f-ink, #16191f);
+            background: var(--f-bg, #f4f5f7);
+            box-shadow: 0 28px 80px rgba(8, 12, 20, 0.38);
+        }
+
+        .advising-workspace-dialog:not([open]) {
+            display: none;
+        }
+
+        .advising-workspace-dialog::backdrop {
+            background: rgba(10, 14, 22, 0.72);
+        }
+
+        .advising-workspace-shell {
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr);
+            width: 100%;
+            height: 100%;
+            min-height: 0;
+        }
+
+        .advising-workspace-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+            padding: 14px 18px;
+            border-bottom: 4px solid var(--ewu-red, #a10022);
+            color: #fff;
+            background: #171c25;
+        }
+
+        .advising-workspace-bar h2 {
+            margin: 1px 0 2px;
+            color: #fff;
+            font-size: clamp(1.35rem, 2vw, 1.8rem);
+        }
+
+        .advising-workspace-bar p {
+            margin: 0;
+            color: #d8dde6;
+            line-height: 1.35;
+        }
+
+        .advising-workspace-eyebrow {
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.08em !important;
+            text-transform: uppercase;
+        }
+
+        body.foundry-production .advising-workspace-close {
+            display: inline-flex;
+            flex: 0 0 auto;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            min-width: 94px;
+            min-height: 44px;
+            padding: 9px 14px;
+            border: 1px solid currentColor;
+            color: #fff;
+            background: transparent;
+            font-weight: 760;
+            cursor: pointer;
+        }
+
+        body.foundry-production .advising-workspace-close:hover {
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        body.foundry-production .advising-workspace-close:focus-visible {
+            outline: 3px solid #8fc7ff;
+            outline-offset: 3px;
+        }
+
+        .advising-workspace-close-mark {
+            font-size: 1.35rem;
+            line-height: 1;
+        }
+
+        .advising-workspace-scroll {
+            min-width: 0;
+            min-height: 0;
+            padding: clamp(12px, 2vw, 24px);
+            overflow: auto;
+            overscroll-behavior: contain;
+        }
+
+        @media (max-width: 760px) {
+            .advising-workspace-dialog {
+                width: 100dvw;
+                height: 100dvh;
+                margin: 0;
+                border: 0;
+            }
+
+            .advising-workspace-bar {
+                align-items: flex-start;
+                gap: 12px;
+                padding: 11px 12px;
+            }
+
+            .advising-workspace-bar p:not(.advising-workspace-eyebrow) {
+                display: none;
+            }
+
+            body.foundry-production .advising-workspace-close {
+                min-width: 82px;
+            }
+
+            .advising-workspace-scroll {
+                padding: 10px;
+                overflow-x: hidden;
+            }
+        }
     </style>
 
     <!-- Supabase -->
@@ -5286,7 +5323,10 @@
     <!-- UI Components -->
     <script type="module" src="js/components/app-header.js"></script>
     <script type="module" src="js/components/quarter-nav.js"></script>
-    <script type="module" src="js/components/lens-filters.js"></script>
+    <script defer src="js/advising-curriculum.js?v=20260814-4"></script>
+    <script defer src="js/advising-planner.js?v=20260814-4"></script>
+    <script defer src="js/components/advising-pathway-planner.js?v=20260814-4"></script>
+    <script defer src="js/advising-controller.js?v=20260814-4"></script>
 
 </head>
 
@@ -5344,11 +5384,6 @@
 
         <!-- Year and Quarter Navigation Component -->
         <quarter-nav id="mainQuarterNav"></quarter-nav>
-
-        <!-- Advising Lens Component -->
-        <lens-filters id="mainLensFilters"></lens-filters>
-
-
 
         <!-- Dashboard Navigation -->
         <div class="dashboard-nav">
@@ -5430,9 +5465,6 @@
         </div>
 
         <div class="content">
-            <div id="minorInfoPanel"></div>
-            <div id="trackSuggestionsPanel"></div>
-
             <section class="schedule-view-panel" aria-labelledby="scheduleGridTitle">
                 <div class="schedule-grid-header">
                     <h2 class="schedule-grid-title" id="scheduleGridTitle">Program Schedule - <span id="quarterTitle">Spring 2026</span></h2>
@@ -5454,6 +5486,8 @@
                         <button class="btn-ewu-accent btn-add-course-main" onclick="openAddCourseModal()">
                             <span class="btn-add-icon">+</span> Add Course
                         </button>
+                        <button type="button" id="openAdvisingWorkspace" class="btn-ewu-accent btn-add-course-main advising-launch-button"
+                            aria-haspopup="dialog" aria-controls="advisingWorkspaceDialog">Advising</button>
                         <button class="btn-ewu-accent btn-add-course-main" onclick="openWorkloadReviewFromScheduler()">Make Workloads</button>
                     </div>
                 </div>
@@ -5510,6 +5544,27 @@
             </div>
         </div>
     </div>
+
+    <dialog class="advising-workspace-dialog" id="advisingWorkspaceDialog" aria-labelledby="advisingWorkspaceTitle"
+        aria-describedby="advisingWorkspaceDescription">
+        <div class="advising-workspace-shell">
+            <header class="advising-workspace-bar">
+                <div>
+                    <p class="advising-workspace-eyebrow">Advisor workspace</p>
+                    <h2 id="advisingWorkspaceTitle">Advising</h2>
+                    <p id="advisingWorkspaceDescription">Compare BDes pathways without changing the department schedule.</p>
+                </div>
+                <button type="button" class="advising-workspace-close" id="closeAdvisingWorkspace"
+                    aria-label="Close Advising workspace">
+                    <span class="advising-workspace-close-mark" aria-hidden="true">×</span>
+                    <span>Close</span>
+                </button>
+            </header>
+            <div class="advising-workspace-scroll" id="advisingWorkspaceScroll">
+                <advising-pathway-planner id="mainAdvisingPlanner"></advising-pathway-planner>
+            </div>
+        </div>
+    </dialog>
 
     <script src="js/schedule-data-utils.js"></script>
     <script type="module">
@@ -6733,7 +6788,7 @@
             if (!window.DirtyStateTracker) return;
             if (window.StateManager && typeof window.StateManager.subscribe === 'function') {
                 window.DirtyStateTracker.attachToStateManager(window.StateManager, {
-                    ignoreKeys: ['currentQuarter', 'currentAcademicYear', 'currentTrack', 'currentMinor']
+                    ignoreKeys: ['currentQuarter', 'currentAcademicYear']
                 });
                 return;
             }
@@ -6804,31 +6859,6 @@
         document.addEventListener('copy-year', () => {
             if (typeof copyToNextYear === 'function') {
                 copyToNextYear();
-            }
-        });
-
-        // Listen for lens-filters component events
-        document.addEventListener('filter-change', (e) => {
-            currentTrack = e.detail.track;
-            currentMinor = e.detail.minor;
-
-            if (window.StateManager) {
-                window.StateManager.set('currentTrack', currentTrack);
-                window.StateManager.set('currentMinor', currentMinor);
-            }
-
-            // Re-render schedule UI and update URL hash
-            if (typeof renderSchedule === 'function') {
-                renderSchedule();
-            }
-            if (typeof updateUrlState === 'function') {
-                updateUrlState();
-            }
-        });
-
-        document.addEventListener('clear-lens', () => {
-            if (typeof resetLensFilters === 'function') {
-                resetLensFilters();
             }
         });
 
@@ -6912,8 +6942,6 @@
             if (event && event.target !== document.getElementById('facultyModalOverlay')) return;
             document.getElementById('facultyModalOverlay').classList.remove('visible');
         }
-
-        import { minors, studentTracks } from './js/data-models.js';
 
         // Load dynamic enrollment data from JSON file
         let enrollmentData = {};
@@ -9190,165 +9218,6 @@
             }
         }
 
-        function isCourseInMinor(courseCode, minorKey) {
-            const normalizedCode = normalizeCourseCode(courseCode);
-            return (minors[minorKey]?.courses || [])
-                .some((code) => normalizeCourseCode(code) === normalizedCode);
-        }
-
-        function displayMinorInfo(minorKey) {
-            const panel = document.getElementById('minorInfoPanel');
-
-            // Clear safely
-            while (panel.firstChild) {
-                panel.removeChild(panel.firstChild);
-            }
-
-            if (minorKey === 'all') {
-                return;
-            }
-
-            const minor = minors[minorKey];
-
-            const infoPanel = document.createElement('div');
-            infoPanel.className = 'minor-info-panel';
-
-            const title = document.createElement('h3');
-            title.textContent = minor.name;
-
-            const reqText = document.createElement('p');
-            reqText.textContent = 'Required Courses:';
-
-            const coursesDiv = document.createElement('div');
-            coursesDiv.className = 'minor-courses';
-            minor.courses.forEach(course => {
-                const tag = document.createElement('div');
-                tag.className = 'minor-course-tag';
-                tag.textContent = course;
-                coursesDiv.appendChild(tag);
-            });
-
-            infoPanel.appendChild(title);
-            infoPanel.appendChild(reqText);
-            infoPanel.appendChild(coursesDiv);
-
-            if (minor.note) {
-                const noteDiv = document.createElement('div');
-                noteDiv.className = 'minor-note';
-                noteDiv.textContent = minor.note;
-                infoPanel.appendChild(noteDiv);
-            }
-
-            panel.appendChild(infoPanel);
-        }
-
-        function displayTrackSuggestions(trackKey) {
-            const panel = document.getElementById('trackSuggestionsPanel');
-
-            // Clear safely
-            while (panel.firstChild) {
-                panel.removeChild(panel.firstChild);
-            }
-
-            if (trackKey === 'all') {
-                return;
-            }
-
-            const track = studentTracks[trackKey];
-            const suggestedMinors = track.suggestedMinors.map(minorKey => {
-                const minor = minors[minorKey];
-                return {
-                    key: minorKey,
-                    name: minor.name,
-                    typical: minor.typical
-                };
-            });
-
-            const container = document.createElement('div');
-            container.className = 'suggested-minors';
-
-            const title = document.createElement('h3');
-            title.textContent = 'Suggested Minors for ' + track.name + ' Students';
-
-            const list = document.createElement('div');
-            list.className = 'minor-list';
-
-            suggestedMinors.forEach(m => {
-                const chip = document.createElement('div');
-                chip.className = 'minor-chip' + (!m.typical ? ' not-typical' : '');
-                chip.textContent = m.name;
-                chip.onclick = function () { selectMinor(m.key); };
-                list.appendChild(chip);
-            });
-
-            container.appendChild(title);
-            container.appendChild(list);
-            panel.appendChild(container);
-        }
-
-        function selectMinor(minorKey) {
-            document.getElementById('minorFilter').value = minorKey;
-            document.getElementById('minorFilter').dispatchEvent(new Event('change'));
-        }
-
-        function resetLensFilters() {
-            const minorFilter = document.getElementById('minorFilter');
-            const trackFilter = document.getElementById('trackFilter');
-            if (minorFilter) minorFilter.value = 'all';
-            if (trackFilter) trackFilter.value = 'all';
-
-            displayMinorInfo('all');
-            highlightMinorCourses('all');
-            displayTrackSuggestions('all');
-            updateLensStatus();
-        }
-
-        function updateLensStatus() {
-            const status = document.getElementById('lensStatus');
-            if (!status) return;
-
-            const minorKey = document.getElementById('minorFilter')?.value || 'all';
-            const trackKey = document.getElementById('trackFilter')?.value || 'all';
-            const chips = [];
-
-            if (trackKey !== 'all' && studentTracks[trackKey]) {
-                chips.push(`<span class="lens-chip">Track: ${escapeHtml(studentTracks[trackKey].name)}</span>`);
-            }
-
-            if (minorKey !== 'all' && minors[minorKey]) {
-                const highlightedCount = document.querySelectorAll('.course-block.minor-highlight').length;
-                chips.push(`<span class="lens-chip">Minor: ${escapeHtml(minors[minorKey].name)}</span>`);
-                chips.push(`<span class="lens-chip">${highlightedCount} highlighted sections</span>`);
-            }
-
-            if (!chips.length) {
-                status.textContent = 'No advising lens active.';
-                return;
-            }
-
-            status.innerHTML = chips.join('');
-        }
-
-        function highlightMinorCourses(minorKey) {
-            const courseBlocks = document.querySelectorAll('.course-block');
-            courseBlocks.forEach(block => {
-                block.classList.remove('minor-highlight');
-            });
-
-            if (minorKey !== 'all') {
-                courseBlocks.forEach(block => {
-                    const courseCode = normalizeCourseCode(
-                        block.dataset.courseCode || block.querySelector('.course-name')?.textContent || ''
-                    );
-                    if (isCourseInMinor(courseCode, minorKey)) {
-                        block.classList.add('minor-highlight');
-                    }
-                });
-            }
-
-            updateLensStatus();
-        }
-
         // Current course being viewed/edited
         let currentCourseData = null;
 
@@ -9741,25 +9610,6 @@
 
         function exportReport() {
             alert('Export functionality would generate a PDF report with full conflict analysis and recommendations.');
-        }
-
-
-        const minorFilterEl = document.getElementById('minorFilter');
-        if (minorFilterEl) {
-            minorFilterEl.addEventListener('change', function () {
-                const minorKey = this.value;
-                displayMinorInfo(minorKey);
-                highlightMinorCourses(minorKey);
-            });
-        }
-
-        const trackFilterEl = document.getElementById('trackFilter');
-        if (trackFilterEl) {
-            trackFilterEl.addEventListener('change', function () {
-                const trackKey = this.value;
-                displayTrackSuggestions(trackKey);
-                updateLensStatus();
-            });
         }
 
         // ============================================

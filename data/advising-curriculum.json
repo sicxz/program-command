@@ -1,0 +1,1127 @@
+{
+  "schemaVersion": "1.0",
+  "courseCatalogSourceId": "program-command-course-catalog",
+  "courseSourceIds": [
+    "program-command-course-catalog",
+    "desn-course-listings"
+  ],
+  "curriculum": {
+    "year": "2026-27",
+    "name": "Bachelor of Design (BDes)",
+    "sourceIds": [
+      "bdes-catalog",
+      "department-advising-worksheet"
+    ],
+    "reviewState": "approved",
+    "bdes": {
+      "creditsRequired": 95,
+      "fixedCredits": 55,
+      "electiveCredits": 40,
+      "requirementGroups": [
+        {
+          "id": "bdes-fixed-requirements",
+          "label": "Fixed BDes requirements",
+          "type": "all-of",
+          "courses": [
+            "DESN 100",
+            "DESN 200",
+            "DESN 216",
+            "DESN 243",
+            "DESN 263",
+            "DESN 338",
+            "DESN 359",
+            "DESN 368",
+            "DESN 463",
+            "DESN 480",
+            "DESN 490"
+          ],
+          "sourceIds": [
+            "bdes-catalog"
+          ],
+          "reviewState": "approved"
+        }
+      ],
+      "electiveCourseCodes": [
+        "DESN 210",
+        "DESN 213",
+        "DESN 214",
+        "DESN 215",
+        "DESN 217",
+        "DESN 301",
+        "DESN 305",
+        "DESN 325",
+        "DESN 326",
+        "DESN 335",
+        "DESN 336",
+        "DESN 343",
+        "DESN 345",
+        "DESN 348",
+        "DESN 350",
+        "DESN 351",
+        "DESN 355",
+        "DESN 360",
+        "DESN 365",
+        "DESN 366",
+        "DESN 368",
+        "DESN 369",
+        "DESN 374",
+        "DESN 375",
+        "DESN 378",
+        "DESN 379",
+        "DESN 384",
+        "DESN 396",
+        "DESN 399",
+        "DESN 401",
+        "DESN 458",
+        "DESN 468",
+        "DESN 469",
+        "DESN 491",
+        "DESN 493",
+        "DESN 495",
+        "DESN 496",
+        "DESN 497",
+        "DESN 499"
+      ],
+      "electivePlaceholder": {
+        "idPrefix": "bdes-elective",
+        "label": "BDes elective choice",
+        "credits": 5,
+        "count": 8,
+        "kind": "major-elective",
+        "sourceIds": [
+          "department-advising-worksheet"
+        ],
+        "reviewState": "approved"
+      },
+      "supportRequirements": [
+        {
+          "id": "bdes-external-writing-condition",
+          "label": "External writing prerequisite for DESN 359",
+          "type": "all-of",
+          "courses": [
+            "ENGL 201"
+          ],
+          "conditionOnly": true,
+          "sourceIds": [
+            "desn-course-listings",
+            "engl-course-listings"
+          ],
+          "reviewState": "approved"
+        }
+      ],
+      "sourceIds": [
+        "bdes-catalog"
+      ],
+      "reviewState": "approved"
+    },
+    "degreeRequirements": {
+      "totalCredits": 180,
+      "upperDivisionCredits": 60,
+      "minimumCumulativeGpa": 2,
+      "minimumMajorGpa": 2.5,
+      "overlapPolicy": "one-course-one-slot",
+      "placeholders": [
+        {
+          "id": "english-composition",
+          "label": "English composition",
+          "credits": 5,
+          "kind": "gen-ed",
+          "category": "english",
+          "guidance": "ENGL 101 or ENGL 100 on the department worksheet; advisor selects the course recorded in DegreeWorks.",
+          "degreeWorksVerification": true,
+          "representsCourseCodes": [],
+          "prerequisitePlaceholderIds": [],
+          "satisfiedByCourseCodes": [],
+          "sourceIds": ["department-advising-worksheet"],
+          "reviewState": "approved"
+        },
+        {
+          "id": "english-analysis-research",
+          "label": "English analysis, research, and documentation",
+          "credits": 5,
+          "kind": "gen-ed",
+          "category": "english",
+          "guidance": "ENGL 201 on the department worksheet; verify the official completion in DegreeWorks.",
+          "degreeWorksVerification": true,
+          "representsCourseCodes": ["ENGL 201"],
+          "prerequisitePlaceholderIds": ["english-composition"],
+          "satisfiedByCourseCodes": [],
+          "sourceIds": ["department-advising-worksheet"],
+          "reviewState": "approved"
+        },
+        {
+          "id": "mathematics",
+          "label": "Mathematics choice",
+          "credits": 5,
+          "kind": "gen-ed",
+          "category": "math",
+          "guidance": "MATH 107, MATH 170, or higher on the department worksheet; advisor selects the DegreeWorks-applicable course.",
+          "degreeWorksVerification": true,
+          "satisfiedByCourseCodes": [],
+          "sourceIds": ["department-advising-worksheet"],
+          "reviewState": "approved"
+        },
+        {
+          "id": "humanities-arts-1",
+          "label": "Humanities and Arts choice 1",
+          "credits": 5,
+          "kind": "gen-ed",
+          "category": "humanities",
+          "guidance": "Advisor-approved BACR Humanities and Arts course; verify the applied requirement in DegreeWorks.",
+          "degreeWorksVerification": true,
+          "satisfiedByCourseCodes": ["DESN 200"],
+          "sourceIds": ["department-advising-worksheet"],
+          "reviewState": "approved"
+        },
+        {
+          "id": "humanities-arts-2",
+          "label": "Humanities and Arts choice 2",
+          "credits": 5,
+          "kind": "gen-ed",
+          "category": "humanities",
+          "guidance": "Advisor-approved BACR Humanities and Arts course; verify the applied requirement in DegreeWorks.",
+          "degreeWorksVerification": true,
+          "satisfiedByCourseCodes": ["DESN 200"],
+          "sourceIds": ["department-advising-worksheet"],
+          "reviewState": "approved"
+        },
+        {
+          "id": "natural-sciences-1",
+          "label": "Natural Sciences choice 1",
+          "credits": 5,
+          "kind": "gen-ed",
+          "category": "natural-sciences",
+          "guidance": "Advisor-approved BACR Natural Sciences course; verify the applied requirement in DegreeWorks.",
+          "degreeWorksVerification": true,
+          "satisfiedByCourseCodes": [],
+          "sourceIds": ["department-advising-worksheet"],
+          "reviewState": "approved"
+        },
+        {
+          "id": "natural-sciences-2",
+          "label": "Natural Sciences choice 2",
+          "credits": 5,
+          "kind": "gen-ed",
+          "category": "natural-sciences",
+          "guidance": "Advisor-approved BACR Natural Sciences course; verify the applied requirement in DegreeWorks.",
+          "degreeWorksVerification": true,
+          "satisfiedByCourseCodes": [],
+          "sourceIds": ["department-advising-worksheet"],
+          "reviewState": "approved"
+        },
+        {
+          "id": "social-sciences-1",
+          "label": "Social Sciences choice 1",
+          "credits": 5,
+          "kind": "gen-ed",
+          "category": "social-sciences",
+          "guidance": "Advisor-approved BACR Social Sciences course; verify the applied requirement in DegreeWorks.",
+          "degreeWorksVerification": true,
+          "satisfiedByCourseCodes": [],
+          "sourceIds": ["department-advising-worksheet"],
+          "reviewState": "approved"
+        },
+        {
+          "id": "social-sciences-2",
+          "label": "Social Sciences choice 2",
+          "credits": 5,
+          "kind": "gen-ed",
+          "category": "social-sciences",
+          "guidance": "Advisor-approved BACR Social Sciences course; verify the applied requirement in DegreeWorks.",
+          "degreeWorksVerification": true,
+          "satisfiedByCourseCodes": [],
+          "sourceIds": ["department-advising-worksheet"],
+          "reviewState": "approved"
+        },
+        {
+          "id": "diversity",
+          "label": "Diversity requirement",
+          "credits": 5,
+          "kind": "gen-ed",
+          "category": "diversity",
+          "guidance": "Advisor-approved Diversity course; DESN 359 is the department recommendation and must be verified in DegreeWorks.",
+          "degreeWorksVerification": true,
+          "satisfiedByCourseCodes": ["DESN 359"],
+          "sourceIds": ["department-advising-worksheet"],
+          "reviewState": "approved"
+        },
+        {
+          "id": "global-studies",
+          "label": "Global Studies requirement",
+          "credits": 5,
+          "kind": "gen-ed",
+          "category": "global-studies",
+          "guidance": "Advisor-approved Global Studies course; verify the applied requirement in DegreeWorks.",
+          "degreeWorksVerification": true,
+          "satisfiedByCourseCodes": [],
+          "sourceIds": ["department-advising-worksheet"],
+          "reviewState": "approved"
+        }
+      ],
+      "openDegreeCredits": {
+        "idPrefix": "open-degree-credit",
+        "label": "Open degree credit",
+        "creditsPerSlot": 5,
+        "kind": "open-elective",
+        "calculation": "remainder-to-total",
+        "sourceIds": ["department-advising-worksheet"],
+        "reviewState": "approved"
+      },
+      "sourceIds": ["department-advising-worksheet"],
+      "reviewState": "approved"
+    }
+  },
+  "externalCourses": [
+    {
+      "code": "ENGL 101",
+      "title": "External English prerequisite",
+      "credits": null,
+      "offeredQuarters": [],
+      "prerequisites": [],
+      "external": true,
+      "conditionOnly": true,
+      "sourceIds": [
+        "engl-course-listings"
+      ],
+      "reviewState": "approved"
+    },
+    {
+      "code": "ENGL 201",
+      "title": "External English prerequisite",
+      "credits": null,
+      "offeredQuarters": [],
+      "prerequisites": [
+        "ENGL 101"
+      ],
+      "external": true,
+      "conditionOnly": true,
+      "sourceIds": [
+        "engl-course-listings"
+      ],
+      "reviewState": "approved"
+    },
+    {
+      "code": "ART 201",
+      "title": "ART 201 (see EWU catalog)",
+      "credits": 5,
+      "offeredQuarters": [],
+      "prerequisites": [],
+      "external": true,
+      "offeringReviewState": "unresolved",
+      "issueIds": [
+        "photography-art-offerings"
+      ],
+      "sourceIds": [
+        "photography-catalog",
+        "art-course-listings"
+      ],
+      "reviewState": "approved"
+    },
+    {
+      "code": "ART 305",
+      "title": "ART 305 (see EWU catalog)",
+      "credits": 4,
+      "offeredQuarters": [],
+      "prerequisites": [],
+      "corequisites": [
+        "ART 305L"
+      ],
+      "external": true,
+      "offeringReviewState": "unresolved",
+      "issueIds": [
+        "photography-art-offerings"
+      ],
+      "sourceIds": [
+        "photography-catalog",
+        "art-course-listings"
+      ],
+      "reviewState": "approved"
+    },
+    {
+      "code": "ART 305L",
+      "title": "ART 305 lab (see EWU catalog)",
+      "credits": 1,
+      "offeredQuarters": [],
+      "prerequisites": [],
+      "corequisites": [
+        "ART 305"
+      ],
+      "external": true,
+      "offeringReviewState": "unresolved",
+      "issueIds": [
+        "photography-art-offerings"
+      ],
+      "sourceIds": [
+        "photography-catalog",
+        "art-course-listings"
+      ],
+      "reviewState": "approved"
+    },
+    {
+      "code": "ART 308",
+      "title": "ART 308 (see EWU catalog)",
+      "credits": 4,
+      "offeredQuarters": [],
+      "prerequisites": [],
+      "corequisites": [
+        "ART 308L"
+      ],
+      "external": true,
+      "offeringReviewState": "unresolved",
+      "issueIds": [
+        "photography-art-offerings"
+      ],
+      "sourceIds": [
+        "photography-catalog",
+        "art-course-listings"
+      ],
+      "reviewState": "approved"
+    },
+    {
+      "code": "ART 308L",
+      "title": "ART 308 lab (see EWU catalog)",
+      "credits": 1,
+      "offeredQuarters": [],
+      "prerequisites": [],
+      "corequisites": [
+        "ART 308"
+      ],
+      "external": true,
+      "offeringReviewState": "unresolved",
+      "issueIds": [
+        "photography-art-offerings"
+      ],
+      "sourceIds": [
+        "photography-catalog",
+        "art-course-listings"
+      ],
+      "reviewState": "approved"
+    },
+    {
+      "code": "ART 404",
+      "title": "ART 404 (see EWU catalog)",
+      "credits": 4,
+      "offeredQuarters": [],
+      "prerequisites": [],
+      "corequisites": [
+        "ART 404L"
+      ],
+      "external": true,
+      "offeringReviewState": "unresolved",
+      "issueIds": [
+        "photography-art-offerings"
+      ],
+      "sourceIds": [
+        "photography-catalog",
+        "art-course-listings"
+      ],
+      "reviewState": "approved"
+    },
+    {
+      "code": "ART 404L",
+      "title": "ART 404 lab (see EWU catalog)",
+      "credits": 1,
+      "offeredQuarters": [],
+      "prerequisites": [],
+      "corequisites": [
+        "ART 404"
+      ],
+      "external": true,
+      "offeringReviewState": "unresolved",
+      "issueIds": [
+        "photography-art-offerings"
+      ],
+      "sourceIds": [
+        "photography-catalog",
+        "art-course-listings"
+      ],
+      "reviewState": "approved"
+    }
+  ],
+  "courseOfferingEvidence": {
+    "method": "dated-department-pattern-cross-checked-against-observed-enrollment",
+    "asOf": "2026-08-14",
+    "coverageQuarters": ["Fall", "Winter", "Spring"],
+    "courses": [
+      {"code":"ART 201","normalQuarters":[],"observedTerms":[],"winter2026Observed":false,"sourceIds":["art-course-listings","program-command-course-catalog"],"reviewState":"unresolved","issueIds":["photography-art-offerings"]},
+      {"code":"ART 305","normalQuarters":[],"observedTerms":[],"winter2026Observed":false,"sourceIds":["art-course-listings","program-command-course-catalog"],"reviewState":"unresolved","issueIds":["photography-art-offerings"]},
+      {"code":"ART 305L","normalQuarters":[],"observedTerms":[],"winter2026Observed":false,"sourceIds":["art-course-listings","program-command-course-catalog"],"reviewState":"unresolved","issueIds":["photography-art-offerings"]},
+      {"code":"ART 308","normalQuarters":[],"observedTerms":[],"winter2026Observed":false,"sourceIds":["art-course-listings","program-command-course-catalog"],"reviewState":"unresolved","issueIds":["photography-art-offerings"]},
+      {"code":"ART 308L","normalQuarters":[],"observedTerms":[],"winter2026Observed":false,"sourceIds":["art-course-listings","program-command-course-catalog"],"reviewState":"unresolved","issueIds":["photography-art-offerings"]},
+      {"code":"ART 404","normalQuarters":[],"observedTerms":[],"winter2026Observed":false,"sourceIds":["art-course-listings","program-command-course-catalog"],"reviewState":"unresolved","issueIds":["photography-art-offerings"]},
+      {"code":"ART 404L","normalQuarters":[],"observedTerms":[],"winter2026Observed":false,"sourceIds":["art-course-listings","program-command-course-catalog"],"reviewState":"unresolved","issueIds":["photography-art-offerings"]},
+      {"code":"DESN 100","normalQuarters":["Fall","Winter","Spring"],"observedTerms":["2022-23 Fall","2022-23 Winter","2022-23 Spring","2023-24 Fall","2023-24 Winter","2023-24 Spring","2024-25 Fall","2024-25 Winter","2024-25 Spring","2025-26 Fall","2025-26 Winter"],"winter2026Observed":true,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"approved"},
+      {"code":"DESN 200","normalQuarters":["Fall","Winter","Spring"],"observedTerms":["2022-23 Fall","2022-23 Winter","2022-23 Spring","2023-24 Fall","2023-24 Winter","2023-24 Spring","2024-25 Fall","2024-25 Winter","2024-25 Spring","2025-26 Fall","2025-26 Winter"],"winter2026Observed":true,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"approved"},
+      {"code":"DESN 210","normalQuarters":[],"observedTerms":[],"winter2026Observed":false,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"unresolved"},
+      {"code":"DESN 213","normalQuarters":[],"observedTerms":[],"winter2026Observed":false,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"unresolved"},
+      {"code":"DESN 214","normalQuarters":[],"observedTerms":[],"winter2026Observed":false,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"unresolved"},
+      {"code":"DESN 215","normalQuarters":[],"observedTerms":[],"winter2026Observed":false,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"unresolved"},
+      {"code":"DESN 216","normalQuarters":["Fall","Winter","Spring"],"observedTerms":["2022-23 Fall","2022-23 Winter","2022-23 Spring","2023-24 Fall","2023-24 Winter","2023-24 Spring","2024-25 Fall","2024-25 Winter","2024-25 Spring","2025-26 Fall","2025-26 Winter"],"winter2026Observed":true,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"approved"},
+      {"code":"DESN 217","normalQuarters":[],"observedTerms":[],"winter2026Observed":false,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"unresolved"},
+      {"code":"DESN 243","normalQuarters":["Fall","Winter","Spring"],"observedTerms":["2022-23 Fall","2022-23 Winter","2022-23 Spring","2023-24 Fall","2023-24 Winter","2023-24 Spring","2024-25 Fall","2024-25 Winter","2024-25 Spring","2025-26 Fall","2025-26 Winter"],"winter2026Observed":true,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"approved"},
+      {"code":"DESN 263","normalQuarters":["Fall","Winter","Spring"],"observedTerms":["2022-23 Fall","2022-23 Winter","2022-23 Spring","2023-24 Fall","2023-24 Winter","2023-24 Spring","2024-25 Fall","2024-25 Winter","2025-26 Fall","2025-26 Winter"],"winter2026Observed":true,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"approved"},
+      {"code":"DESN 301","normalQuarters":["Fall"],"observedTerms":["2022-23 Fall","2022-23 Winter","2023-24 Fall","2024-25 Fall","2024-25 Spring","2025-26 Fall"],"winter2026Observed":false,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"approved","issueIds":["desn-historical-offering-exceptions"]},
+      {"code":"DESN 305","normalQuarters":["Spring"],"observedTerms":["2022-23 Spring","2023-24 Spring","2024-25 Spring"],"winter2026Observed":false,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"approved"},
+      {"code":"DESN 325","normalQuarters":[],"observedTerms":["2022-23 Winter","2023-24 Winter","2024-25 Fall","2024-25 Spring"],"winter2026Observed":false,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"unresolved"},
+      {"code":"DESN 326","normalQuarters":["Fall"],"observedTerms":["2023-24 Fall","2024-25 Fall","2025-26 Fall"],"winter2026Observed":false,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"approved","issueIds":["desn-326-winter-exception-unconfirmed"]},
+      {"code":"DESN 335","normalQuarters":["Winter"],"observedTerms":["2024-25 Winter","2025-26 Winter"],"winter2026Observed":true,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"approved"},
+      {"code":"DESN 336","normalQuarters":["Winter"],"observedTerms":["2023-24 Winter","2024-25 Spring","2025-26 Winter"],"winter2026Observed":true,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"approved","issueIds":["desn-historical-offering-exceptions"]},
+      {"code":"DESN 338","normalQuarters":["Fall","Winter","Spring"],"observedTerms":["2022-23 Fall","2022-23 Winter","2022-23 Spring","2023-24 Fall","2023-24 Winter","2023-24 Spring","2024-25 Fall","2024-25 Winter","2024-25 Spring","2025-26 Fall","2025-26 Winter"],"winter2026Observed":true,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"approved"},
+      {"code":"DESN 343","normalQuarters":[],"observedTerms":["2024-25 Fall"],"winter2026Observed":false,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"unresolved"},
+      {"code":"DESN 345","normalQuarters":["Spring"],"observedTerms":[],"winter2026Observed":false,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"approved"},
+      {"code":"DESN 348","normalQuarters":["Winter"],"observedTerms":["2022-23 Winter","2022-23 Spring","2023-24 Winter","2024-25 Winter","2025-26 Winter"],"winter2026Observed":true,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"approved","issueIds":["desn-historical-offering-exceptions"]},
+      {"code":"DESN 350","normalQuarters":["Spring"],"observedTerms":["2022-23 Fall","2022-23 Winter","2022-23 Spring","2023-24 Fall","2023-24 Winter","2024-25 Fall","2024-25 Winter"],"winter2026Observed":false,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"approved","issueIds":["desn-historical-offering-exceptions"]},
+      {"code":"DESN 351","normalQuarters":[],"observedTerms":["2022-23 Winter","2023-24 Spring","2024-25 Spring"],"winter2026Observed":false,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"unresolved"},
+      {"code":"DESN 355","normalQuarters":["Winter"],"observedTerms":["2022-23 Fall","2022-23 Winter","2023-24 Winter","2024-25 Winter","2025-26 Winter"],"winter2026Observed":true,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"approved","issueIds":["desn-historical-offering-exceptions"]},
+      {"code":"DESN 359","normalQuarters":["Fall","Winter","Spring"],"observedTerms":["2022-23 Winter","2022-23 Spring","2023-24 Fall","2023-24 Winter","2023-24 Spring","2024-25 Fall","2024-25 Winter","2024-25 Spring","2025-26 Fall","2025-26 Winter"],"winter2026Observed":true,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"approved"},
+      {"code":"DESN 360","normalQuarters":["Winter"],"observedTerms":["2022-23 Winter","2023-24 Winter","2024-25 Winter","2025-26 Winter"],"winter2026Observed":true,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"approved"},
+      {"code":"DESN 365","normalQuarters":["Spring"],"observedTerms":["2022-23 Spring","2023-24 Spring","2024-25 Spring"],"winter2026Observed":false,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"approved"},
+      {"code":"DESN 366","normalQuarters":["Fall"],"observedTerms":["2022-23 Fall","2022-23 Spring","2023-24 Spring","2025-26 Fall"],"winter2026Observed":false,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"approved","issueIds":["desn-historical-offering-exceptions"]},
+      {"code":"DESN 368","normalQuarters":["Fall"],"observedTerms":["2022-23 Fall","2022-23 Winter","2022-23 Spring","2023-24 Fall","2023-24 Winter","2023-24 Spring","2024-25 Fall","2024-25 Winter","2024-25 Spring","2025-26 Fall"],"winter2026Observed":false,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"approved","issueIds":["desn-historical-offering-exceptions"]},
+      {"code":"DESN 369","normalQuarters":["Winter"],"observedTerms":["2025-26 Winter"],"winter2026Observed":true,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"approved"},
+      {"code":"DESN 374","normalQuarters":["Fall","Winter","Spring"],"observedTerms":["2025-26 Fall","2025-26 Winter"],"winter2026Observed":true,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"approved"},
+      {"code":"DESN 375","normalQuarters":[],"observedTerms":[],"winter2026Observed":false,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"unresolved"},
+      {"code":"DESN 378","normalQuarters":["Winter"],"observedTerms":["2022-23 Winter","2022-23 Spring","2023-24 Winter","2024-25 Winter","2025-26 Winter"],"winter2026Observed":true,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"approved","issueIds":["desn-historical-offering-exceptions"]},
+      {"code":"DESN 379","normalQuarters":["Spring"],"observedTerms":[],"winter2026Observed":false,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"approved"},
+      {"code":"DESN 384","normalQuarters":["Spring"],"observedTerms":["2022-23 Winter","2023-24 Winter","2024-25 Spring"],"winter2026Observed":false,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"approved","issueIds":["desn-historical-offering-exceptions"]},
+      {"code":"DESN 396","normalQuarters":["Winter"],"observedTerms":["2022-23 Winter","2023-24 Fall","2025-26 Winter"],"winter2026Observed":true,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"unresolved"},
+      {"code":"DESN 399","normalQuarters":[],"observedTerms":["2022-23 Spring","2023-24 Fall","2024-25 Winter","2025-26 Fall","2025-26 Winter"],"winter2026Observed":true,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"unresolved"},
+      {"code":"DESN 401","normalQuarters":["Spring"],"observedTerms":["2022-23 Spring","2023-24 Spring","2024-25 Winter"],"winter2026Observed":false,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"approved","issueIds":["desn-historical-offering-exceptions"]},
+      {"code":"DESN 458","normalQuarters":["Spring"],"observedTerms":["2022-23 Fall","2022-23 Spring","2023-24 Fall","2023-24 Spring","2024-25 Spring"],"winter2026Observed":false,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"approved","issueIds":["desn-historical-offering-exceptions"]},
+      {"code":"DESN 463","normalQuarters":["Fall","Spring"],"observedTerms":["2022-23 Fall","2022-23 Winter","2022-23 Spring","2023-24 Fall","2023-24 Winter","2023-24 Spring","2024-25 Fall","2024-25 Spring","2025-26 Fall"],"winter2026Observed":false,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"approved","issueIds":["desn-historical-offering-exceptions"]},
+      {"code":"DESN 468","normalQuarters":["Spring"],"observedTerms":["2022-23 Fall","2022-23 Spring","2023-24 Spring","2024-25 Spring"],"winter2026Observed":false,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"approved","issueIds":["desn-historical-offering-exceptions"]},
+      {"code":"DESN 469","normalQuarters":[],"observedTerms":[],"winter2026Observed":false,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"unresolved"},
+      {"code":"DESN 480","normalQuarters":["Fall","Winter"],"observedTerms":["2022-23 Fall","2022-23 Winter","2022-23 Spring","2023-24 Fall","2023-24 Spring","2024-25 Fall","2024-25 Spring","2025-26 Fall","2025-26 Winter"],"winter2026Observed":true,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"approved","issueIds":["desn-historical-offering-exceptions"]},
+      {"code":"DESN 490","normalQuarters":["Fall","Winter","Spring"],"observedTerms":["2022-23 Fall","2022-23 Winter","2022-23 Spring","2023-24 Fall","2023-24 Winter","2023-24 Spring","2024-25 Fall","2024-25 Spring","2025-26 Fall","2025-26 Winter"],"winter2026Observed":true,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"approved"},
+      {"code":"DESN 491","normalQuarters":[],"observedTerms":["2023-24 Fall","2023-24 Winter","2023-24 Spring","2024-25 Winter","2024-25 Spring"],"winter2026Observed":false,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"unresolved"},
+      {"code":"DESN 493","normalQuarters":[],"observedTerms":["2022-23 Fall","2022-23 Spring","2023-24 Winter","2023-24 Spring"],"winter2026Observed":false,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"unresolved"},
+      {"code":"DESN 495","normalQuarters":[],"observedTerms":["2022-23 Fall","2022-23 Winter","2022-23 Spring","2023-24 Fall","2023-24 Winter","2023-24 Spring","2024-25 Fall","2024-25 Winter","2024-25 Spring","2025-26 Fall","2025-26 Winter"],"winter2026Observed":true,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"unresolved"},
+      {"code":"DESN 496","normalQuarters":[],"observedTerms":["2024-25 Winter"],"winter2026Observed":false,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"unresolved"},
+      {"code":"DESN 497","normalQuarters":[],"observedTerms":[],"winter2026Observed":false,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"unresolved"},
+      {"code":"DESN 499","normalQuarters":[],"observedTerms":["2022-23 Fall","2022-23 Winter","2022-23 Spring","2023-24 Fall","2023-24 Winter","2023-24 Spring","2024-25 Fall","2024-25 Winter","2024-25 Spring","2025-26 Fall","2025-26 Winter"],"winter2026Observed":true,"sourceIds":["department-course-categorizations","institutional-enrollment-history","winter-2026-enrollment-snapshot"],"reviewState":"unresolved"}
+    ]
+  },
+  "lenses": [
+    {
+      "id": "animation-motion",
+      "name": "Animation and Motion Design",
+      "kind": "minor",
+      "credits": 30,
+      "requirementGroups": [
+        {
+          "id": "animation-motion-required",
+          "label": "Animation and Motion Design minor requirements",
+          "type": "all-of",
+          "courses": [
+            "DESN 301",
+            "DESN 326",
+            "DESN 336",
+            "DESN 355",
+            "DESN 365",
+            "DESN 401"
+          ],
+          "sourceIds": [
+            "animation-catalog"
+          ],
+          "reviewState": "approved"
+        }
+      ],
+      "supportRequirements": [],
+      "sourceIds": [
+        "animation-catalog",
+        "department-advising-worksheet"
+      ],
+      "reviewState": "approved",
+      "issueIds": []
+    },
+    {
+      "id": "game-design",
+      "name": "Game Design",
+      "kind": "minor",
+      "credits": 30,
+      "requirementGroups": [
+        {
+          "id": "game-design-required",
+          "label": "Game Design minor requirements",
+          "type": "all-of",
+          "courses": [
+            "DESN 100",
+            "DESN 200",
+            "DESN 301",
+            "DESN 326",
+            "DESN 335",
+            "DESN 345"
+          ],
+          "sourceIds": [
+            "game-design-catalog"
+          ],
+          "reviewState": "approved"
+        }
+      ],
+      "supportRequirements": [],
+      "sourceIds": [
+        "game-design-catalog",
+        "department-advising-worksheet"
+      ],
+      "reviewState": "approved",
+      "issueIds": []
+    },
+    {
+      "id": "graphic-design",
+      "name": "Graphic Design",
+      "kind": "minor",
+      "credits": 15,
+      "requirementGroups": [
+        {
+          "id": "graphic-design-required",
+          "label": "Required Graphic Design course",
+          "type": "all-of",
+          "courses": [
+            "DESN 463"
+          ],
+          "sourceIds": [
+            "graphic-design-catalog"
+          ],
+          "reviewState": "approved"
+        },
+        {
+          "id": "graphic-design-electives",
+          "label": "Choose two approved Graphic Design courses",
+          "type": "choose-N",
+          "count": 2,
+          "courses": [
+            "DESN 305",
+            "DESN 343",
+            "DESN 360",
+            "DESN 366",
+            "DESN 495",
+            "DESN 499"
+          ],
+          "sourceIds": [
+            "graphic-design-catalog"
+          ],
+          "reviewState": "approved"
+        }
+      ],
+      "supportRequirements": [],
+      "sourceIds": [
+        "graphic-design-catalog",
+        "department-advising-worksheet"
+      ],
+      "reviewState": "approved",
+      "issueIds": []
+    },
+    {
+      "id": "interaction-design",
+      "name": "Interaction Design",
+      "kind": "minor",
+      "credits": 30,
+      "requirementGroups": [
+        {
+          "id": "interaction-design-working-set",
+          "label": "Working HTML and worksheet course set",
+          "type": "all-of",
+          "courses": [
+            "DESN 348",
+            "DESN 369",
+            "DESN 378",
+            "DESN 379",
+            "DESN 458",
+            "DESN 468"
+          ],
+          "sourceIds": [
+            "interaction-design-html",
+            "interaction-design-pdf",
+            "department-advising-worksheet"
+          ],
+          "reviewState": "unresolved",
+          "issueIds": [
+            "interaction-design-source-conflict"
+          ]
+        }
+      ],
+      "supportRequirements": [],
+      "sourceIds": [
+        "interaction-design-html",
+        "interaction-design-pdf",
+        "department-advising-worksheet"
+      ],
+      "reviewState": "unresolved",
+      "issueIds": [
+        "interaction-design-source-conflict"
+      ]
+    },
+    {
+      "id": "user-experience-design",
+      "name": "User Experience Design",
+      "kind": "minor",
+      "credits": 15,
+      "requirementGroups": [
+        {
+          "id": "user-experience-design-required",
+          "label": "User Experience Design minor requirements",
+          "type": "all-of",
+          "courses": [
+            "DESN 338",
+            "DESN 348",
+            "DESN 458"
+          ],
+          "sourceIds": [
+            "user-experience-design-catalog"
+          ],
+          "reviewState": "approved"
+        }
+      ],
+      "supportRequirements": [],
+      "sourceIds": [
+        "user-experience-design-catalog",
+        "department-advising-worksheet"
+      ],
+      "reviewState": "approved",
+      "issueIds": []
+    },
+    {
+      "id": "web-development",
+      "name": "Web Development",
+      "kind": "minor",
+      "credits": 20,
+      "requirementGroups": [
+        {
+          "id": "web-development-required",
+          "label": "Web Development minor requirements",
+          "type": "all-of",
+          "courses": [
+            "DESN 216",
+            "DESN 369",
+            "DESN 379",
+            "DESN 469"
+          ],
+          "sourceIds": [
+            "web-development-catalog"
+          ],
+          "reviewState": "approved"
+        }
+      ],
+      "supportRequirements": [],
+      "sourceIds": [
+        "web-development-catalog",
+        "department-advising-worksheet"
+      ],
+      "reviewState": "approved",
+      "issueIds": []
+    },
+    {
+      "id": "photography",
+      "name": "Photography",
+      "kind": "minor",
+      "credits": 25,
+      "requirementGroups": [
+        {
+          "id": "photography-foundation-choice",
+          "label": "Choose one photography foundation",
+          "type": "choose-N",
+          "count": 1,
+          "courses": [
+            "ART 201",
+            "DESN 200"
+          ],
+          "sourceIds": [
+            "photography-catalog"
+          ],
+          "reviewState": "approved"
+        },
+        {
+          "id": "photography-required-first-pair",
+          "label": "Required ART 305 lecture and lab pair",
+          "type": "all-of",
+          "courses": [
+            "ART 305",
+            "ART 305L"
+          ],
+          "sourceIds": [
+            "photography-catalog"
+          ],
+          "reviewState": "approved"
+        },
+        {
+          "id": "photography-advanced-pair-choice",
+          "label": "Choose one approved advanced lecture and lab pair",
+          "type": "choose-N",
+          "count": 1,
+          "options": [
+            {
+              "id": "photography-art-308-pair",
+              "label": "ART 308 and ART 308L",
+              "courses": [
+                "ART 308",
+                "ART 308L"
+              ]
+            },
+            {
+              "id": "photography-art-404-pair",
+              "label": "ART 404 and ART 404L",
+              "courses": [
+                "ART 404",
+                "ART 404L"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "photography-catalog"
+          ],
+          "reviewState": "approved"
+        },
+        {
+          "id": "photography-design-required",
+          "label": "Required Design photography courses",
+          "type": "all-of",
+          "courses": [
+            "DESN 350",
+            "DESN 351"
+          ],
+          "sourceIds": [
+            "photography-catalog"
+          ],
+          "reviewState": "approved"
+        }
+      ],
+      "supportRequirements": [],
+      "sourceIds": [
+        "photography-catalog",
+        "art-course-listings",
+        "department-advising-worksheet"
+      ],
+      "reviewState": "unresolved",
+      "issueIds": [
+        "photography-art-offerings"
+      ]
+    }
+  ],
+  "planningLimits": {
+    "startTerm": "Fall",
+    "terms": [
+      "Fall",
+      "Winter",
+      "Spring"
+    ],
+    "normalTerms": 12,
+    "extensionTerms": 6,
+    "maxCreditsPerTerm": 15,
+    "maxSearchNodes": 50000,
+    "sourceIds": [
+      "department-planning-assumptions"
+    ],
+    "reviewState": "approved"
+  },
+  "issues": [
+    {
+      "id": "interaction-design-source-conflict",
+      "type": "contradictory",
+      "status": "advisor-review-required",
+      "summary": "Interaction Design requirements conflict across current catalog formats.",
+      "details": "The live HTML and department worksheet support a 30-credit working set of DESN 348, 369, 378, 379, 458, and 468, while the linked PDF publishes a 35-credit set of DESN 216, 338, 348, 368, 378, 458, and 468.",
+      "owner": "EWU Design Department curriculum owner",
+      "approvalNeeded": "Confirm the governing Interaction Design requirement set and publish one approved catalog version.",
+      "approvedVersion": null,
+      "resolutionState": "open",
+      "affectedCourseCodes": [
+        "DESN 216",
+        "DESN 338",
+        "DESN 348",
+        "DESN 368",
+        "DESN 369",
+        "DESN 378",
+        "DESN 379",
+        "DESN 458",
+        "DESN 468"
+      ],
+      "lensIds": [
+        "interaction-design"
+      ],
+      "sourceIds": [
+        "interaction-design-html",
+        "interaction-design-pdf",
+        "department-advising-worksheet"
+      ],
+      "reviewedOn": "2026-08-11",
+      "reviewedBy": "EWU Design Department"
+    },
+    {
+      "id": "photography-art-offerings",
+      "type": "missing",
+      "status": "advisor-review-required",
+      "summary": "Usual offering patterns for required ART courses are not present in Program Command.",
+      "details": "The Photography course requirements are preserved, but ART 201, 305/305L, 308/308L, and 404/404L cannot be assigned to generic quarters from the dated local course catalog.",
+      "owner": "EWU Design Department curriculum owner",
+      "approvalNeeded": "Add a dated, department-reviewed source for usual ART course offerings.",
+      "approvedVersion": null,
+      "resolutionState": "open",
+      "affectedCourseCodes": [
+        "ART 201",
+        "ART 305",
+        "ART 305L",
+        "ART 308",
+        "ART 308L",
+        "ART 404",
+        "ART 404L"
+      ],
+      "lensIds": [
+        "photography"
+      ],
+      "sourceIds": [
+        "photography-catalog",
+        "art-course-listings",
+        "program-command-course-catalog"
+      ],
+      "reviewedOn": "2026-08-11",
+      "reviewedBy": "EWU Design Department"
+    },
+    {
+      "id": "desn-historical-offering-exceptions",
+      "type": "contradictory",
+      "status": "advisor-review-required",
+      "planningImpact": "informational",
+      "summary": "Some historical DESN sections occurred outside the current 2025-26 usual offering pattern.",
+      "details": "The dated department categorization is used for normal planning. Census history also records exceptions outside that pattern for DESN 301, 336, 348, 350, 355, 366, 368, 378, 384, 401, 458, 463, 468, and 480; those observations do not become recurring availability without department review.",
+      "owner": "EWU Design Department curriculum owner",
+      "approvalNeeded": "Confirm whether any historical exception is now a recurring quarter before changing the usual offering pattern.",
+      "approvedVersion": null,
+      "resolutionState": "open",
+      "affectedCourseCodes": [
+        "DESN 301",
+        "DESN 336",
+        "DESN 348",
+        "DESN 350",
+        "DESN 355",
+        "DESN 366",
+        "DESN 368",
+        "DESN 378",
+        "DESN 384",
+        "DESN 401",
+        "DESN 458",
+        "DESN 463",
+        "DESN 468",
+        "DESN 480"
+      ],
+      "lensIds": [
+        "animation-motion",
+        "game-design",
+        "graphic-design",
+        "interaction-design",
+        "photography",
+        "user-experience-design",
+        "web-development"
+      ],
+      "sourceIds": [
+        "department-course-categorizations",
+        "institutional-enrollment-history",
+        "winter-2026-enrollment-snapshot"
+      ],
+      "reviewedOn": "2026-08-14",
+      "reviewedBy": "EWU Design Department"
+    },
+    {
+      "id": "desn-326-winter-exception-unconfirmed",
+      "type": "unresolved",
+      "status": "advisor-review-required",
+      "planningImpact": "informational",
+      "summary": "A possible future Winter DESN 326 exception is not confirmed.",
+      "details": "DESN 326 remains Fall-only for planning: it appears in Fall 2023, Fall 2024, and Fall 2025 census history, is absent from the extracted Winter 2026 schedule, and the dated department categorization says Fall only. A possible future Winter exception must not be treated as normal availability until it appears in an approved schedule.",
+      "owner": "EWU Design Department curriculum owner",
+      "approvalNeeded": "Record an approved dated schedule that explicitly offers DESN 326 in Winter before enabling a Winter placement.",
+      "approvedVersion": null,
+      "resolutionState": "open",
+      "affectedCourseCodes": ["DESN 326"],
+      "lensIds": ["animation-motion", "game-design"],
+      "sourceIds": [
+        "department-course-categorizations",
+        "institutional-enrollment-history",
+        "winter-2026-enrollment-snapshot"
+      ],
+      "reviewedOn": "2026-08-14",
+      "reviewedBy": "EWU Design Department"
+    }
+  ],
+  "sources": [
+    {
+      "id": "bdes-catalog",
+      "label": "EWU Bachelor of Design catalog",
+      "url": "https://catalog.ewu.edu/stem/design/design-bdes/",
+      "version": "2026-27",
+      "capturedOn": "2026-08-11",
+      "reviewedOn": "2026-08-11",
+      "reviewedBy": "EWU Design Department",
+      "reviewState": "approved"
+    },
+    {
+      "id": "animation-catalog",
+      "label": "EWU Animation and Motion Design minor catalog",
+      "url": "https://catalog.ewu.edu/stem/design/animation-motion-design-minor/",
+      "version": "2026-27",
+      "capturedOn": "2026-08-11",
+      "reviewedOn": "2026-08-11",
+      "reviewedBy": "EWU Design Department",
+      "reviewState": "approved"
+    },
+    {
+      "id": "game-design-catalog",
+      "label": "EWU Game Design minor catalog",
+      "url": "https://catalog.ewu.edu/stem/design/game-design-minor/",
+      "version": "2026-27",
+      "capturedOn": "2026-08-11",
+      "reviewedOn": "2026-08-11",
+      "reviewedBy": "EWU Design Department",
+      "reviewState": "approved"
+    },
+    {
+      "id": "graphic-design-catalog",
+      "label": "EWU Graphic Design minor catalog",
+      "url": "https://catalog.ewu.edu/stem/design/graphic-design-minor/",
+      "version": "2026-27",
+      "capturedOn": "2026-08-11",
+      "reviewedOn": "2026-08-11",
+      "reviewedBy": "EWU Design Department",
+      "reviewState": "approved"
+    },
+    {
+      "id": "interaction-design-html",
+      "label": "EWU Interaction Design minor catalog HTML",
+      "url": "https://catalog.ewu.edu/stem/design/interaction-design-minor/",
+      "version": "2026-27 HTML",
+      "capturedOn": "2026-08-11",
+      "reviewedOn": "2026-08-11",
+      "reviewedBy": "EWU Design Department",
+      "reviewState": "unresolved"
+    },
+    {
+      "id": "interaction-design-pdf",
+      "label": "EWU Interaction Design minor catalog PDF",
+      "url": "https://catalog.ewu.edu/stem/design/interaction-design-minor/interaction-design-minor.pdf",
+      "version": "2026-27 linked PDF",
+      "capturedOn": "2026-08-11",
+      "reviewedOn": "2026-08-11",
+      "reviewedBy": "EWU Design Department",
+      "reviewState": "unresolved"
+    },
+    {
+      "id": "user-experience-design-catalog",
+      "label": "EWU User Experience Design minor catalog",
+      "url": "https://catalog.ewu.edu/stem/design/user-experience-design-minor/",
+      "version": "2026-27",
+      "capturedOn": "2026-08-11",
+      "reviewedOn": "2026-08-11",
+      "reviewedBy": "EWU Design Department",
+      "reviewState": "approved"
+    },
+    {
+      "id": "web-development-catalog",
+      "label": "EWU Web Development minor catalog",
+      "url": "https://catalog.ewu.edu/stem/design/web-development-minor/",
+      "version": "2026-27",
+      "capturedOn": "2026-08-11",
+      "reviewedOn": "2026-08-11",
+      "reviewedBy": "EWU Design Department",
+      "reviewState": "approved"
+    },
+    {
+      "id": "photography-catalog",
+      "label": "EWU Photography minor catalog",
+      "url": "https://catalog.ewu.edu/us/fpa/art/photography-minor/",
+      "version": "2026-27",
+      "capturedOn": "2026-08-11",
+      "reviewedOn": "2026-08-11",
+      "reviewedBy": "EWU Design Department",
+      "reviewState": "approved"
+    },
+    {
+      "id": "desn-course-listings",
+      "label": "EWU DESN course listings",
+      "url": "https://catalog.ewu.edu/course-listings/desn/",
+      "version": "2026-27",
+      "capturedOn": "2026-08-11",
+      "reviewedOn": "2026-08-11",
+      "reviewedBy": "EWU Design Department",
+      "reviewState": "approved"
+    },
+    {
+      "id": "art-course-listings",
+      "label": "EWU ART course listings",
+      "url": "https://catalog.ewu.edu/course-listings/art/",
+      "version": "2026-27",
+      "capturedOn": "2026-08-11",
+      "reviewedOn": "2026-08-11",
+      "reviewedBy": "EWU Design Department",
+      "reviewState": "approved"
+    },
+    {
+      "id": "engl-course-listings",
+      "label": "EWU ENGL course listings",
+      "url": "https://catalog.ewu.edu/course-listings/engl/",
+      "version": "2026-27",
+      "capturedOn": "2026-08-11",
+      "reviewedOn": "2026-08-11",
+      "reviewedBy": "EWU Design Department",
+      "reviewState": "approved"
+    },
+    {
+      "id": "department-advising-worksheet",
+      "label": "2026-27 VCD advising worksheet",
+      "url": "https://docs.google.com/spreadsheets/d/1tJwjdML9tIpCbqfvpuJ1Wr7IgOO1VYAWXEZaMtCpvO4/edit?usp=sharing",
+      "version": "2026-27 HTML export sha256:54e7ac8e3e9a2d26",
+      "capturedOn": "2026-07-17",
+      "reviewedOn": "2026-08-14",
+      "reviewedBy": "EWU Design Department",
+      "reviewState": "approved"
+    },
+    {
+      "id": "program-command-course-catalog",
+      "label": "Program Command shared course catalog",
+      "path": "data/course-catalog.json",
+      "version": "2026-04-20",
+      "capturedOn": "2026-04-20",
+      "reviewedOn": "2026-08-14",
+      "reviewedBy": "EWU Design Department",
+      "reviewState": "approved"
+    },
+    {
+      "id": "department-course-categorizations",
+      "label": "EWU Design 2025-26 regular course offering patterns",
+      "path": "course-categorizations.md",
+      "version": "2025-26; updated 2025-11-10; sha256:daa546276a7765f7",
+      "capturedOn": "2025-11-10",
+      "reviewedOn": "2026-08-14",
+      "reviewedBy": "EWU Design Department",
+      "reviewState": "approved"
+    },
+    {
+      "id": "institutional-enrollment-history",
+      "label": "EWU Institutional Research census enrollment history (course/term presence only)",
+      "path": "enrollment-data/processed/corrected-all-quarters.csv",
+      "version": "Fall 2022-Fall 2025; sha256:66fd1dcee8d670c3",
+      "capturedOn": "2025-11-11",
+      "reviewedOn": "2026-08-14",
+      "reviewedBy": "EWU Design Department",
+      "reviewState": "approved"
+    },
+    {
+      "id": "winter-2026-enrollment-snapshot",
+      "label": "Winter 2026 DESN enrollment snapshot",
+      "path": "data/winter-2026-enrollments.json",
+      "version": "extracted 2025-12-09; sha256:c1ccbd29b2c62840",
+      "capturedOn": "2025-12-09",
+      "reviewedOn": "2026-08-14",
+      "reviewedBy": "EWU Design Department",
+      "reviewState": "approved"
+    },
+    {
+      "id": "department-planning-assumptions",
+      "label": "Advising v1 planning envelope",
+      "path": "docs/plans/2026-08-05-001-feat-advisor-led-bdes-advising-plan.md",
+      "version": "2026-08-11",
+      "capturedOn": "2026-08-11",
+      "reviewedOn": "2026-08-11",
+      "reviewedBy": "EWU Design Department",
+      "reviewState": "approved"
+    }
+  ]
+}
