@@ -6786,12 +6786,16 @@
                 }
                 showToast('Users & accounts management UI is not implemented yet.');
             } else if (action === 'nav-applied-learning') {
+                e.preventDefault();
                 navigateWithDirtyGuard('pages/applied-learning-dashboard.html');
             } else if (action === 'nav-enrollment') {
+                e.preventDefault();
                 navigateWithDirtyGuard('enrollment-dashboard.html');
             } else if (action === 'nav-capacity') {
+                e.preventDefault();
                 navigateWithDirtyGuard('pages/capacity-planning-dashboard.html');
             } else if (action === 'nav-workload') {
+                e.preventDefault();
                 navigateWithDirtyGuard('pages/workload-dashboard.html');
             }
         });

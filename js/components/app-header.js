@@ -98,7 +98,12 @@ class AppHeader extends HTMLElement {
         };
 
         this.handleActionClick = (e) => {
+            const isLink = e.currentTarget.tagName === 'A';
+            if (isLink && (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)) {
+                return;
+            }
             if (e.currentTarget?.dataset?.disabled === 'true') {
+                e.preventDefault();
                 this.dispatchEvent(new CustomEvent('header-permission-denied', {
                     detail: {
                         action: e.currentTarget.dataset.action,
@@ -112,12 +117,15 @@ class AppHeader extends HTMLElement {
 
             const action = e.currentTarget.dataset.action;
             if (action) {
-                // Dispatch a custom event that program-command.html can listen for
-                this.dispatchEvent(new CustomEvent('header-action', {
+                // The scheduler cancels navigation while its dirty-state guard runs.
+                // Other pages can follow the links without a header-action listener.
+                const proceed = this.dispatchEvent(new CustomEvent('header-action', {
                     detail: { action },
                     bubbles: true,
-                    composed: true
+                    composed: true,
+                    cancelable: true
                 }));
+                if (!proceed) e.preventDefault();
             }
             this.isOpen = false;
             this.updateMenuState();
@@ -161,6 +169,7 @@ class AppHeader extends HTMLElement {
         const eyebrow = escapeHtml(this.getAttribute('eyebrow') || 'EWU DESIGN · PROGRAM COMMAND');
         const titleText = escapeHtml(this.getAttribute('title-text') || 'Program Command');
         const subtitleText = escapeHtml(this.getAttribute('subtitle') || 'Design Program Planning, Scheduling, and Scenario Control');
+        const dashboardBase = window.location.pathname.includes('/pages/') ? '../' : '';
 
         this.shadowRoot.innerHTML = `
             <style>
@@ -313,6 +322,7 @@ class AppHeader extends HTMLElement {
                     border: 1px solid transparent;
                     border-left: 3px solid transparent;
                     text-align: left;
+                    text-decoration: none;
                     font-size: 14px;
                     font-weight: 650;
                     color: var(--f-ink, #0d1117);
@@ -395,24 +405,24 @@ class AppHeader extends HTMLElement {
                             </button>
                             <div class="header-settings-divider"></div>
                             <div class="header-settings-section-label">Analytics</div>
-                            <button class="header-settings-item" type="button" data-action="nav-applied-learning">
+                            <a class="header-settings-item" href="${dashboardBase}pages/applied-learning-dashboard.html" data-action="nav-applied-learning">
                                 <span class="header-settings-item-icon">🎓</span>
                                 <span>Applied Learning</span>
-                            </button>
-                            <button class="header-settings-item" type="button" data-action="nav-enrollment">
+                            </a>
+                            <a class="header-settings-item" href="${dashboardBase}enrollment-dashboard.html" data-action="nav-enrollment">
                                 <span class="header-settings-item-icon">📈</span>
                                 <span>Enrollment</span>
-                            </button>
-                            <button class="header-settings-item" type="button" data-action="nav-capacity">
+                            </a>
+                            <a class="header-settings-item" href="${dashboardBase}pages/capacity-planning-dashboard.html" data-action="nav-capacity">
                                 <span class="header-settings-item-icon">📊</span>
                                 <span>Capacity</span>
-                            </button>
+                            </a>
                             <div class="header-settings-divider"></div>
                             <div class="header-settings-section-label">Workload</div>
-                            <button class="header-settings-item" type="button" data-action="nav-workload">
+                            <a class="header-settings-item" href="${dashboardBase}pages/workload-dashboard.html" data-action="nav-workload">
                                 <span class="header-settings-item-icon">👥</span>
                                 <span>Faculty Workload</span>
-                            </button>
+                            </a>
                             <div class="header-settings-divider"></div>
                             <div class="header-settings-section-label">Configuration</div>
                             <button class="header-settings-item" type="button" data-action="rules" data-rbac-action="write" data-rbac-resource="system-config" data-denied-message="Insufficient permissions: only admins can change constraint rules.">
