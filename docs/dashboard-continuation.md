@@ -140,13 +140,14 @@ comparisons with provisional endpoints are withheld. The snapshot panel and its
 section table show the complete source independently of the dashboard filters.
 
 
-## Current section cap
+## Section cap as of 2026
 
-On September 13, 2026, the user clarified that sections are now capped at
-**20 students**. Enrollment displays this program context beside the registration
+On September 13, 2026, the user clarified that sections are capped at
+**20 students as of 2026**. Enrollment displays this program context beside the registration
 definition and explains that section counts and caps affect comparisons.
 Do not attribute an enrollment change to this policy without supporting evidence.
-The effective term was not specified; do not apply the cap retroactively.
+The user specified 2026, without naming a particular quarter. Preserve that
+year-level context; do not invent a quarter or rewrite captured section limits.
 
 EagleNET snapshot cards and the section table label capacity as **recorded**.
 Preserve all captured section limits, including limits above 20 and the smaller
