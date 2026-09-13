@@ -134,7 +134,7 @@ const EnrollmentDashboard = (function () {
             card.appendChild(element('p', 'snapshot-status', capture.provisional ? 'Provisional · registration underway' : 'Completed term · registration snapshot'));
             const count = element('p', 'snapshot-count');
             count.append(element('strong', '', format(capture.total)), document.createTextNode(' registrations'));
-            card.append(count, element('p', 'snapshot-capacity', `${format(capture.sections.length)} sections · ${format(capture.capacity)} total seat capacity`));
+            card.append(count, element('p', 'snapshot-capacity', `${format(capture.sections.length)} sections · ${format(capture.capacity)} recorded seat capacity`));
             card.appendChild(element('p', 'snapshot-waitlist', `${format(capture.waitlisted)} displayed waitlist entries · ${format(capture.missingWaitlists)} sections do not show waitlists`));
             card.appendChild(element('p', 'snapshot-date', `Captured ${captureDate(capture.observedAt)}`));
             cards.appendChild(card);
