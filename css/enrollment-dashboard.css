@@ -1046,3 +1046,23 @@ tbody tr:hover {
         color: #444;
     }
 }
+
+/* Dated registration captures, with a distinct treatment for provisional counts. */
+.registration-snapshots { margin: 24px 0; }
+.snapshot-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+.snapshot-card { padding: 20px 0 8px; border-top: 3px solid #a10022; }
+.snapshot-card.provisional { border-color: #946018; }
+.snapshot-card h3 { margin: 0 0 6px; font-size: 18px; font-weight: 600; }
+.snapshot-status { margin: 0; color: #65707b; font-size: 12px; }
+.provisional .snapshot-status, .provisional-key { color: #805315; }
+.snapshot-count { margin: 18px 0 8px; color: #65707b; font-size: 13px; }
+.snapshot-count strong { color: #252b33; font-size: 36px; font-weight: 600; letter-spacing: -1px; font-variant-numeric: tabular-nums; margin-right: .18em; }
+.snapshot-capacity { margin: 0 0 10px; font-size: 14px; }
+.snapshot-waitlist, .snapshot-date { margin: 5px 0; color: #65707b; font-size: 12px; line-height: 1.5; }
+.snapshot-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin: 18px 0; }
+.snapshot-controls select { border: 1px solid #cbd1d7; border-radius: 4px; background: #fff; padding: 8px 10px; color: #252b33; font: inherit; }
+.snapshot-controls p { margin: 0; color: #65707b; font-size: 12px; }
+@media (max-width: 700px) {
+    .snapshot-grid { grid-template-columns: 1fr; gap: 16px; }
+    .snapshot-count { margin-top: 12px; }
+}

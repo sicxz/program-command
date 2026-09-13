@@ -68,14 +68,15 @@ pure view model. The main changes are:
   latest recorded quarter appear first; all courses remain in the disclosure
   table. The comparison covers the selected season across all recorded years.
 - Course-level and historical-trend filters now apply to the displayed data.
-  Trend classifications still describe the full source history.
+  Trend classifications still describe the historical dataset through Fall 2025.
 - Counts are course registrations, not unique students or declared majors.
   Source dates and partial-year coverage are explicit. Invented Winter 2026
   values and unsupported forecast/headcount/capacity panels were removed.
 
-The source snapshot is unchanged: generated February 21, 2026, with records
-through Fall 2025. This does not supply live enrollment or validate the upstream
-pipeline, student headcount, or capacity calculations.
+The historical source snapshot is unchanged: generated February 21, 2026,
+with records through Fall 2025. Enrollment now adds the dated EagleNET captures
+below through an Enrollment-only overlay. This does not validate the upstream
+pipeline, student headcount, or capacity planning calculations.
 
 The academic-year selector defaults to **All recorded years**, following the
 user's latest preference. **Automatic** remains available for the current
@@ -98,3 +99,42 @@ Repository cleanup is a separate matter: do not delete recovery folders,
 retire the old hosted site, close legacy PRs, or delete branches as part of
 this change. Production publishing remains the human-run Deploy Pages
 workflow described in `AGENTS.md`; a merged PR does not update the live site.
+
+
+## 2026 EagleNET registration captures
+
+The user authorized reading their signed-in EWU registration search on
+September 13, 2026. The complete **Design** subject search returned:
+
+| Quarter | Term code | Sections | Registrations | Section capacity |
+| --- | --- | ---: | ---: | ---: |
+| Winter 2026 | 202610 | 39 | 365 | 485 |
+| Spring 2026 | 202620 | 39 | 338 | 458 |
+| Fall 2026 | 202640 | 23 | 308 | 370 |
+
+`data/enrollment-registration-snapshots.json` retains all 101 unique term/CRN
+records, their section titles, available seats, capacity and displayed waitlist
+counts. Search completeness was checked at 50 rows per page with no next page.
+Enrollment/Waitlist details for CRNs 11091, 20538 and 40438 verified that actual
+enrollment equals capacity minus available seats. Fall has 8 displayed waitlist
+entries; five sections do not expose waitlist counts, retained as null.
+
+Capture completed September 13, 2026 at 8:25 AM Pacific. These are saved
+registration search snapshots, not a live connection or official census counts.
+Winter/Spring are completed terms in AY 2025–26. Fall is provisional in AY
+2026–27; its status remains provisional until replaced by a newer reviewed
+capture. The date resolver never converts a provisional capture to final data.
+
+`EnrollmentViewModel` applies complete term captures only within Enrollment,
+replacing any same-term totals rather than adding duplicate snapshots. The
+historical source JSON and legacy planning inputs remain untouched. Do not append
+captures to `enrollment-data/processed/*.csv` or run the processor blindly: it
+reads every CSV and does not deduplicate term/CRNs; planning consumers also lack
+provisional-term filtering. The old `data/winter-2026-enrollments.json` is a
+separate December 2025 preregistration snapshot, not these completed-term counts.
+
+All recorded years now totals **5,049 registrations**, 42 courses, 13 recorded
+quarters. AY 2025–26 has 1,071 registrations across Fall/Winter/Spring. Provisional
+counts are labeled in totals and tables and drawn as isolated amber points;
+comparisons with provisional endpoints are withheld. The snapshot panel and its
+section table show the complete source independently of the dashboard filters.

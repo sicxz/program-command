@@ -79,7 +79,7 @@ const EnrollmentViewModel = (function () {
         return 'advanced';
     }
 
-    function normalize(data, catalog) {
+    function normalize(data, catalog, snapshots = null) {
         const titles = new Map();
         if (isRecord(catalog) && Array.isArray(catalog.courses)) {
             catalog.courses.forEach(course => {
@@ -114,10 +114,66 @@ const EnrollmentViewModel = (function () {
                 peakQuarter: parseQuarter(source.peakQuarter || '')?.label || null
             });
         });
+        // Only this view overlays registration captures. Planning engines continue to
+        // consume the unchanged historical dataset, never provisional registrations.
+        const captures = readSnapshots(snapshots);
+        captures.forEach(capture => {
+            courses.forEach(course => { delete course.quarterly[capture.key]; });
+            capture.sections.forEach(section => {
+                let course = courses.find(item => item.code === section.course);
+                if (!course) {
+                    course = { code: section.course, title: titles.get(section.course) || section.title,
+                        level: courseLevel(section.course), trend: 'unknown', quarterly: {},
+                        average: null, peak: null, peakQuarter: null };
+                    courses.push(course);
+                }
+                course.quarterly[capture.key] = (course.quarterly[capture.key] ?? 0) + section.enrolled;
+            });
+            quarterMap.set(capture.key, capture);
+        });
         return {
             courses,
+            captures,
             quarters: [...quarterMap.values()].sort((a, b) => a.order - b.order)
         };
+    }
+
+    function readSnapshots(bundle) {
+        if (bundle === null || bundle === undefined) return [];
+        if (!isRecord(bundle) || bundle.schemaVersion !== 1 || !Array.isArray(bundle.terms)) {
+            throw new Error('Invalid enrollment registration snapshot format.');
+        }
+        const knownTerms = new Set();
+        return bundle.terms.map(term => {
+            const quarter = isRecord(term) && parseQuarter(term.quarter);
+            if (!quarter || knownTerms.has(quarter.key) || term.academicYear !== quarter.academicYear ||
+                !['completed', 'provisional'].includes(term.status) ||
+                typeof term.observedAt !== 'string' || !Number.isFinite(Date.parse(term.observedAt)) ||
+                term.completeSearch !== true || !validCount(term.expectedSections) ||
+                !Array.isArray(term.sections) || term.sections.length !== term.expectedSections) {
+                throw new Error('Incomplete or invalid enrollment term capture.');
+            }
+            knownTerms.add(quarter.key);
+            const crns = new Set();
+            const sections = term.sections.map(section => {
+                if (!isRecord(section) || !/^DESN [1-4]\d{2}$/.test(section.course) ||
+                    typeof section.crn !== 'string' || !/^\d{5}$/.test(section.crn) || crns.has(section.crn) ||
+                    typeof section.title !== 'string' || typeof section.section !== 'string' ||
+                    !validCount(section.capacity) || !Number.isInteger(section.available) ||
+                    !validCount(section.capacity - section.available) ||
+                    !(section.waitlisted === null || validCount(section.waitlisted))) {
+                    throw new Error('Invalid or duplicate enrollment section capture.');
+                }
+                crns.add(section.crn);
+                return { ...section, enrolled: section.capacity - section.available };
+            });
+            return { ...quarter, observedAt: term.observedAt, termCode: term.termCode,
+                provisional: term.status === 'provisional', sections,
+                total: sections.reduce((sum, section) => sum + section.enrolled, 0),
+                capacity: sections.reduce((sum, section) => sum + section.capacity, 0),
+                waitlisted: sections.reduce((sum, section) => sum + (section.waitlisted ?? 0), 0),
+                missingWaitlists: sections.filter(section => section.waitlisted === null).length };
+        }).sort((a, b) => a.order - b.order);
     }
 
     function coverageFor(quarters, year) {
@@ -152,6 +208,8 @@ const EnrollmentViewModel = (function () {
             years,
             defaultYear: years.find(year => year.complete)?.value || years[0]?.value || 'all',
             sourceDate,
+            captures: normalized.captures,
+            lastQuarterProvisional: !!normalized.quarters[normalized.quarters.length - 1]?.provisional,
             firstQuarter: normalized.quarters[0]?.label || null,
             lastQuarter: normalized.quarters[normalized.quarters.length - 1]?.label || null
         };
@@ -181,6 +239,7 @@ const EnrollmentViewModel = (function () {
         if (year === 'all' || !quarters.length) return null;
         const keys = quarters.map(q => q.key);
         const previousKeys = quarters.map(q => `${q.season.toLowerCase()}-${q.year - 1}`);
+        if (allQuarters.some(q => q.provisional && [...keys, ...previousKeys].includes(q.key))) return null;
         const knownKeys = new Set(allQuarters.map(q => q.key));
         if (!previousKeys.every(key => knownKeys.has(key)) ||
             ![...keys, ...previousKeys].every(key => courses.some(course => hasObservation(course, [key])))) return null;
@@ -210,18 +269,22 @@ const EnrollmentViewModel = (function () {
         const season = quarter[0].toUpperCase() + quarter.slice(1);
         const historyQuarters = allQuarters.filter(q => q.season === season);
         const keys = historyQuarters.map(q => q.key);
+        const comparableEndpoints = !historyQuarters[0]?.provisional && !historyQuarters[historyQuarters.length - 1]?.provisional;
         const rows = courses.filter(course => hasObservation(course, keys))
             .map(course => {
                 const values = keys.map(key => course.quarterly[key] ?? null);
                 const first = values[0];
                 const last = values[values.length - 1];
-                const changes = values.length > 1 && first !== null && last !== null ?
+                const changes = comparableEndpoints && values.length > 1 && first !== null && last !== null ?
                     change(last, first) : { delta: null, percent: null };
                 return { code: course.code, title: course.title, values, ...changes };
             }).sort((a, b) => a.code.localeCompare(b.code));
         return {
             quarter, season,
             years: historyQuarters.map(q => q.year),
+            provisional: historyQuarters.map(q => !!q.provisional),
+            observedAt: historyQuarters.map(q => q.observedAt || null),
+            comparableEndpoints,
             rows,
             totals: keys.map(key => recordedQuarterTotal(courses, key)),
             first: historyQuarters[0]?.year || null,
@@ -229,14 +292,14 @@ const EnrollmentViewModel = (function () {
         };
     }
 
-    function create(data, catalog) {
-        return metadata(data, normalize(data, catalog));
+    function create(data, catalog, snapshots) {
+        return metadata(data, normalize(data, catalog, snapshots));
     }
 
     function build(data, catalog, options = {}) {
-        const normalized = normalize(data, catalog);
-        const meta = metadata(data, normalized);
         const settings = isRecord(options) ? options : {};
+        const normalized = normalize(data, catalog, settings.snapshots);
+        const meta = metadata(data, normalized);
         const term = currentTerm(settings.now, settings.calendar);
         const year = settings.year === 'current' ? term.academicYear :
             settings.year === 'all' || meta.years.some(item => item.value === settings.year) ? settings.year : meta.defaultYear;
@@ -258,6 +321,7 @@ const EnrollmentViewModel = (function () {
             label: quarter.label,
             season: quarter.season,
             year: quarter.year,
+            provisional: !!quarter.provisional,
             total: recordedQuarterTotal(matchingCourses, quarter.key)
         }));
         const trendCounts = Object.fromEntries(TRENDS.map(key => [key, 0]));
@@ -265,6 +329,8 @@ const EnrollmentViewModel = (function () {
         return {
             selection: { year, level, trend, quarter },
             term,
+            currentTermCapture: normalized.captures.find(capture => capture.key === term.key) || null,
+            provisionalQuarters: selectedQuarters.filter(q => q.provisional).map(q => q.label),
             currentTermHasRecords: normalized.quarters.some(quarter => quarter.key === term.key),
             hasData: courses.length > 0,
             courses,
@@ -282,7 +348,7 @@ const EnrollmentViewModel = (function () {
         };
     }
 
-    return { create, build, currentTerm };
+    return { create, build, currentTerm, readSnapshots };
 })();
 
 if (typeof window !== 'undefined') window.EnrollmentViewModel = EnrollmentViewModel;
