@@ -16,7 +16,7 @@ beforeEach(() => {
     jest.setSystemTime(new Date('2025-02-01T20:00:00Z'));
     document.body.innerHTML = html.match(/<body>([\s\S]*)<\/body>/)[1];
     Chart = jest.fn().mockImplementation(() => ({ destroy: jest.fn() }));
-    fetchJson = jest.fn(async url => ({ ok: true, json: async () => url === 'data/academic-calendar.json' ? calendar : url === 'data/course-catalog.json' ? catalog : source }));
+    fetchJson = jest.fn(async url => ({ ok: true, json: async () => url === 'data/enrollment-registration-snapshots.json' ? null : url === 'data/academic-calendar.json' ? calendar : url === 'data/course-catalog.json' ? catalog : source }));
     errors = jest.fn();
     events = {};
     const context = vm.createContext({
@@ -159,7 +159,7 @@ test('Summer has an honest empty state and missing calendar uses a labeled estim
     jest.setSystemTime(new Date('2028-07-10T20:00:00Z'));
     fetchJson.mockImplementation(async url => {
         if (url === 'data/academic-calendar.json') throw new Error('Calendar unavailable');
-        return { ok: true, json: async () => url.startsWith('data/') ? catalog : source };
+        return { ok: true, json: async () => url === 'data/enrollment-registration-snapshots.json' ? null : url.startsWith('data/') ? catalog : source };
     });
     await dashboard.init();
     expect(byId('currentTermLabel').textContent).toBe('Seasonal estimate · Summer 2028');
@@ -168,4 +168,76 @@ test('Summer has an honest empty state and missing calendar uses a labeled estim
     expect(byId('historySmallMultiples').children).toHaveLength(0);
     expect(byId('historyDetails').hidden).toBe(true);
     expect(errors).not.toHaveBeenCalled();
+});
+
+test('2026 captures update all recorded years and make provisional Fall explicit everywhere', async () => {
+    const captures = JSON.parse(read('data/enrollment-registration-snapshots.json'));
+    jest.setSystemTime(new Date('2026-09-13T20:00:00Z'));
+    fetchJson.mockImplementation(async url => ({ ok: true, json: async () =>
+        url === 'data/enrollment-registration-snapshots.json' ? captures :
+        url === 'data/academic-calendar.json' ? calendar : url === 'data/course-catalog.json' ? catalog : source }));
+    await dashboard.init();
+    expect(errors).not.toHaveBeenCalled();
+    expect(byId('academicYearFilter').value).toBe('all');
+    expect(byId('registrationCount').textContent).toBe('5,049');
+    expect(byId('sourceCoverage').textContent).toBe('Records through Fall 2026 · provisional');
+    expect(byId('periodStatus').textContent).toContain('308 registrations captured Sep 13, 2026');
+    expect(byId('snapshotCards').children).toHaveLength(3);
+    expect(byId('snapshotCards').textContent).toContain('8 displayed waitlist entries');
+    expect(byId('snapshotTerm').value).toBe('fall-2026');
+    expect(byId('snapshotTableBody').children).toHaveLength(23);
+    expect(byId('snapshotTableBody').textContent).toContain('APPLIED AI');
+    expect(byId('snapshotTableBody').textContent).toContain('WEB DESIGN + CODE 1');
+    expect(byId('historyTakeaway').textContent).toContain('provisional');
+    expect(byId('historyTakeaway').textContent).not.toMatch(/fell|rose|above|below/);
+    expect(byId('historySmallMultiples').textContent).not.toMatch(/fewer|more than/);
+    expect(byId('historyTableHead').textContent).toContain('Fall 2026 · provisional');
+    const graph = byId('historySmallMultiples').querySelector('svg');
+    expect(graph.getAttribute('aria-label')).toContain('Fall 2026 provisional');
+    expect(graph.querySelectorAll('line[stroke="#a10022"]')).toHaveLength(3);
+    expect(byId('quarterTableBody').textContent).toContain('Fall 2026 · provisional');
+    select('academicYearFilter', 'current');
+    expect(byId('registrationCount').textContent).toBe('308');
+    expect(byId('periodChange').textContent).toBe('—');
+    expect(byId('periodComparison').textContent).toContain('Comparison withheld');
+    select('academicYearFilter', '2025-26');
+    select('quarterFocus', 'winter');
+    expect(byId('registrationCount').textContent).toBe('1,071');
+    expect(byId('historyTakeaway').textContent).toContain('437 in 2025 to 365 in 2026');
+    expect(byId('provisionalNote').hidden).toBe(true);
+    select('courseFilter', 'advanced');
+    select('trendFilter', 'growing');
+    select('quarterFocus', 'fall');
+    expect(byId('historyTakeaway').textContent).toContain('Select another quarter');
+    expect(byId('historyTakeaway').textContent).not.toContain('— registrations');
+    select('snapshotTerm', 'spring-2026');
+    expect(byId('snapshotTableBody').children).toHaveLength(39);
+    expect(byId('snapshotTableCaption').textContent).toContain('Spring 2026');
+});
+
+test('missing recent capture file visibly falls back to the historical dataset', async () => {
+    fetchJson.mockImplementation(async url => {
+        if (url === 'data/enrollment-registration-snapshots.json') throw new Error('Unavailable');
+        return { ok: true, json: async () => url === 'data/academic-calendar.json' ? calendar : url === 'data/course-catalog.json' ? catalog : source };
+    });
+    await dashboard.init();
+    expect(byId('snapshotWarning').hidden).toBe(false);
+    expect(byId('registrationSnapshots').hidden).toBe(true);
+    expect(byId('registrationCount').textContent).toBe('4,038');
+    expect(byId('sourceCoverage').textContent).toBe('Records through Fall 2025');
+});
+
+test('missing provisional observations retain the missing-record explanation', async () => {
+    const captures = JSON.parse(read('data/enrollment-registration-snapshots.json'));
+    const history = JSON.parse(JSON.stringify(source));
+    history.courseStats['DESN 198'] = { trend: 'growing', quarterly: { 'fall-2025': 1 } };
+    jest.setSystemTime(new Date('2026-09-13T20:00:00Z'));
+    fetchJson.mockImplementation(async url => ({ ok: true, json: async () =>
+        url === 'data/enrollment-registration-snapshots.json' ? captures :
+        url === 'data/academic-calendar.json' ? calendar : url === 'data/course-catalog.json' ? catalog : history }));
+    await dashboard.init();
+    select('courseFilter', 'foundation');
+    select('trendFilter', 'growing');
+    expect(byId('historyTakeaway').textContent).toContain('No matching course records are available for Fall 2026');
+    expect(byId('historyTakeaway').textContent).not.toContain('— registrations');
 });

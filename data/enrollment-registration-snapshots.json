@@ -1,0 +1,1055 @@
+{
+  "schemaVersion": 1,
+  "source": "EWU EagleNET Browse Classes",
+  "sourceUrl": "https://reg-prod.ec.ewu.edu/StudentRegistrationSsb/ssb/term/termSelection?mode=search",
+  "subject": "Design (DESN)",
+  "method": "Complete Design subject results, all sections, 50 results per page. Enrollment = section capacity minus seats available. Enrollment/Waitlist detail verified for CRNs 11091, 20538, and 40438. Waitlisted null means not displayed; waitlists are excluded from registrations. Counts are registration search snapshots, not census counts or unique students.",
+  "terms": [
+    {
+      "quarter": "winter-2026",
+      "termCode": "202610",
+      "label": "Winter Quarter 2026",
+      "academicYear": "2025-26",
+      "observedAt": "2026-09-13T15:25:11.454Z",
+      "status": "completed",
+      "expectedSections": 39,
+      "completeSearch": true,
+      "sections": [
+        {
+          "course": "DESN 100",
+          "section": "001",
+          "crn": "11091",
+          "title": "DRAWING FOR COMMUNICATION",
+          "credits": 5,
+          "available": 9,
+          "capacity": 24,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 100",
+          "section": "002",
+          "crn": "11092",
+          "title": "DRAWING FOR COMMUNICATION",
+          "credits": 5,
+          "available": 11,
+          "capacity": 24,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 200",
+          "section": "001",
+          "crn": "11093",
+          "title": "VISUAL THINKING + MAKING",
+          "credits": 5,
+          "available": 0,
+          "capacity": 24,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 216",
+          "section": "001",
+          "crn": "11094",
+          "title": "DIGITAL FOUNDATIONS",
+          "credits": 5,
+          "available": 6,
+          "capacity": 24,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 216",
+          "section": "025",
+          "crn": "11108",
+          "title": "DIGITAL FOUNDATIONS",
+          "credits": 5,
+          "available": 0,
+          "capacity": 24,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 243",
+          "section": "040",
+          "crn": "11095",
+          "title": "TYPOGRAPHY",
+          "credits": 5,
+          "available": 8,
+          "capacity": 24,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 263",
+          "section": "040",
+          "crn": "11096",
+          "title": "VISUAL COMMUNICATION DESIGN",
+          "credits": 5,
+          "available": 4,
+          "capacity": 24,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 335",
+          "section": "040",
+          "crn": "11097",
+          "title": "BOARD GAME DESIGN",
+          "credits": 5,
+          "available": 5,
+          "capacity": 24,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 336",
+          "section": "001",
+          "crn": "12219",
+          "title": "3D ANIMATION",
+          "credits": 5,
+          "available": 14,
+          "capacity": 24,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 338",
+          "section": "040",
+          "crn": "11109",
+          "title": "USER EXPERIENCE DESIGN 1",
+          "credits": 5,
+          "available": 3,
+          "capacity": 23,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 348",
+          "section": "040",
+          "crn": "11098",
+          "title": "USER EXPERIENCE DESIGN 2",
+          "credits": 5,
+          "available": 0,
+          "capacity": 24,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 355",
+          "section": "040",
+          "crn": "11099",
+          "title": "MOTION DESIGN",
+          "credits": 5,
+          "available": 0,
+          "capacity": 24,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 359",
+          "section": "040",
+          "crn": "11100",
+          "title": "HISTORIES OF DESIGN",
+          "credits": 5,
+          "available": 0,
+          "capacity": 23,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 360",
+          "section": "040",
+          "crn": "11101",
+          "title": "ZINE AND PUBLICATION DESIGN",
+          "credits": 5,
+          "available": 5,
+          "capacity": 24,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 369",
+          "section": "001",
+          "crn": "12221",
+          "title": "WEB DEVELOPMENT 1",
+          "credits": 5,
+          "available": 19,
+          "capacity": 24,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 374",
+          "section": "040",
+          "crn": "11741",
+          "title": "AI + DESIGN",
+          "credits": 5,
+          "available": 10,
+          "capacity": 24,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 378",
+          "section": "040",
+          "crn": "11103",
+          "title": "CODE + DESIGN 2",
+          "credits": 5,
+          "available": 3,
+          "capacity": 24,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 396",
+          "section": "040",
+          "crn": "11753",
+          "title": "JAPAN STUDY ABROAD",
+          "credits": 3,
+          "available": 2,
+          "capacity": 10,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 399",
+          "section": "040",
+          "crn": "12293",
+          "title": "DS/WEB DESIGN + CODE",
+          "credits": 5,
+          "available": 0,
+          "capacity": 1,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 399",
+          "section": "041",
+          "crn": "12413",
+          "title": "DS/SYMPOSIUM TSHIRT DESIGN",
+          "credits": 2,
+          "available": 0,
+          "capacity": 1,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 399",
+          "section": "042",
+          "crn": "12470",
+          "title": "DS/INTERFACE DESIGN",
+          "credits": 2,
+          "available": 0,
+          "capacity": 1,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 480",
+          "section": "040",
+          "crn": "11106",
+          "title": "PROFESSIONAL PRACTICE",
+          "credits": 5,
+          "available": 12,
+          "capacity": 24,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 490",
+          "section": "040",
+          "crn": "11107",
+          "title": "SENIOR CAPSTONE",
+          "credits": 5,
+          "available": 9,
+          "capacity": 24,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 495",
+          "section": "001",
+          "crn": "12228",
+          "title": "INTERNSHIP",
+          "credits": 2,
+          "available": 0,
+          "capacity": 1,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 495",
+          "section": "002",
+          "crn": "12294",
+          "title": "INTERNSHIP",
+          "credits": 5,
+          "available": 0,
+          "capacity": 1,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 495",
+          "section": "003",
+          "crn": "12306",
+          "title": "INTERNSHIP",
+          "credits": 4,
+          "available": 0,
+          "capacity": 1,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 495",
+          "section": "004",
+          "crn": "12376",
+          "title": "INTERNSHIP",
+          "credits": 3,
+          "available": 0,
+          "capacity": 1,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 495",
+          "section": "005",
+          "crn": "12377",
+          "title": "INTERNSHIP",
+          "credits": 3,
+          "available": 0,
+          "capacity": 1,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 495",
+          "section": "006",
+          "crn": "12412",
+          "title": "INTERNSHIP",
+          "credits": 5,
+          "available": 0,
+          "capacity": 2,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 499",
+          "section": "001",
+          "crn": "12295",
+          "title": "DS/VIDEO FOR SOCIAL MEDIA",
+          "credits": 6,
+          "available": 0,
+          "capacity": 1,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 499",
+          "section": "002",
+          "crn": "12296",
+          "title": "DS/VIDEO FOR SOCIAL MEDIA 2",
+          "credits": 1,
+          "available": 0,
+          "capacity": 1,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 499",
+          "section": "003",
+          "crn": "12297",
+          "title": "DS/AI TRAINING FOR PCE",
+          "credits": 5,
+          "available": 0,
+          "capacity": 1,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 499",
+          "section": "004",
+          "crn": "12307",
+          "title": "DS/TYPOGRAPHY 2",
+          "credits": 3,
+          "available": 0,
+          "capacity": 2,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 499",
+          "section": "005",
+          "crn": "12351",
+          "title": "DS/VIDEO FOR SOCIAL MEDIA",
+          "credits": 5,
+          "available": 0,
+          "capacity": 1,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 499",
+          "section": "006",
+          "crn": "12439",
+          "title": "DS/TYPOGRAPHY 2",
+          "credits": 5,
+          "available": 0,
+          "capacity": 1,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 499",
+          "section": "007",
+          "crn": "12440",
+          "title": "DS/COMMUNITY ART EVENT DESIGN",
+          "credits": 3,
+          "available": 0,
+          "capacity": 1,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 499",
+          "section": "008",
+          "crn": "12441",
+          "title": "DS/ZINE MAKING",
+          "credits": 2,
+          "available": 0,
+          "capacity": 1,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 499",
+          "section": "009",
+          "crn": "12471",
+          "title": "DS/DESIGNING FOR ACCESSIBILITY",
+          "credits": 3,
+          "available": 0,
+          "capacity": 1,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 499",
+          "section": "010",
+          "crn": "12474",
+          "title": "DS/AI, GENDER, AND VIS CULTURE",
+          "credits": 5,
+          "available": 0,
+          "capacity": 1,
+          "waitlisted": null
+        }
+      ]
+    },
+    {
+      "quarter": "spring-2026",
+      "termCode": "202620",
+      "label": "Spring Quarter 2026",
+      "academicYear": "2025-26",
+      "observedAt": "2026-09-13T15:25:11.454Z",
+      "status": "completed",
+      "expectedSections": 39,
+      "completeSearch": true,
+      "sections": [
+        {
+          "course": "DESN 100",
+          "section": "001",
+          "crn": "20538",
+          "title": "DRAWING FOR COMMUNICATION",
+          "credits": 5,
+          "available": 6,
+          "capacity": 24,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 200",
+          "section": "001",
+          "crn": "20539",
+          "title": "VISUAL THINKING + MAKING",
+          "credits": 5,
+          "available": 0,
+          "capacity": 24,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 216",
+          "section": "001",
+          "crn": "20540",
+          "title": "DIGITAL FOUNDATIONS",
+          "credits": 5,
+          "available": 12,
+          "capacity": 24,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 243",
+          "section": "040",
+          "crn": "20541",
+          "title": "TYPOGRAPHY",
+          "credits": 5,
+          "available": 13,
+          "capacity": 24,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 263",
+          "section": "040",
+          "crn": "20542",
+          "title": "VISUAL COMMUNICATION DESIGN",
+          "credits": 5,
+          "available": 13,
+          "capacity": 24,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 305",
+          "section": "040",
+          "crn": "20544",
+          "title": "SOCIAL MEDIA DESIGN AND MANAGEMENT",
+          "credits": 5,
+          "available": 0,
+          "capacity": 24,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 338",
+          "section": "040",
+          "crn": "20546",
+          "title": "USER EXPERIENCE DESIGN 1",
+          "credits": 5,
+          "available": 3,
+          "capacity": 23,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 345",
+          "section": "040",
+          "crn": "20547",
+          "title": "DIGITAL GAME DESIGN",
+          "credits": 5,
+          "available": 12,
+          "capacity": 24,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 359",
+          "section": "001",
+          "crn": "20549",
+          "title": "HISTORIES OF DESIGN",
+          "credits": 5,
+          "available": 6,
+          "capacity": 22,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 365",
+          "section": "040",
+          "crn": "20550",
+          "title": "MOTION DESIGN 2",
+          "credits": 5,
+          "available": 6,
+          "capacity": 24,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 368",
+          "section": "041",
+          "crn": "22755",
+          "title": "CODE + DESIGN 1",
+          "credits": 5,
+          "available": 10,
+          "capacity": 24,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 374",
+          "section": "040",
+          "crn": "20552",
+          "title": "AI + DESIGN",
+          "credits": 5,
+          "available": 8,
+          "capacity": 24,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 384",
+          "section": "025",
+          "crn": "20559",
+          "title": "DIGITAL SOUND",
+          "credits": 5,
+          "available": 0,
+          "capacity": 24,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 401",
+          "section": "001",
+          "crn": "22074",
+          "title": "IMAGINARY WORLDS",
+          "credits": 5,
+          "available": 7,
+          "capacity": 24,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 458",
+          "section": "040",
+          "crn": "20553",
+          "title": "USER EXPERIENCE DESIGN 3",
+          "credits": 5,
+          "available": 0,
+          "capacity": 23,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 463",
+          "section": "040",
+          "crn": "20554",
+          "title": "COMMUNITY-DRIVEN DESIGN",
+          "credits": 5,
+          "available": 0,
+          "capacity": 24,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 468",
+          "section": "040",
+          "crn": "20555",
+          "title": "CODE + DESIGN 3",
+          "credits": 5,
+          "available": 12,
+          "capacity": 24,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 490",
+          "section": "001",
+          "crn": "22075",
+          "title": "SENIOR CAPSTONE",
+          "credits": 5,
+          "available": 11,
+          "capacity": 24,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 495",
+          "section": "001",
+          "crn": "22838",
+          "title": "INTERNSHIP",
+          "credits": 5,
+          "available": 0,
+          "capacity": 4,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 495",
+          "section": "002",
+          "crn": "22864",
+          "title": "INTERNSHIP",
+          "credits": 2,
+          "available": 0,
+          "capacity": 1,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 495",
+          "section": "003",
+          "crn": "22865",
+          "title": "INTERNSHIP",
+          "credits": 2,
+          "available": 0,
+          "capacity": 1,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 495",
+          "section": "004",
+          "crn": "22950",
+          "title": "INTERNSHIP",
+          "credits": 4,
+          "available": 0,
+          "capacity": 2,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 495",
+          "section": "005",
+          "crn": "22987",
+          "title": "INTERNSHIP",
+          "credits": 3,
+          "available": 0,
+          "capacity": 2,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 495",
+          "section": "007",
+          "crn": "23013",
+          "title": "INTERNSHIP",
+          "credits": 5,
+          "available": 0,
+          "capacity": 1,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 495",
+          "section": "008",
+          "crn": "23097",
+          "title": "INTERNSHIP",
+          "credits": 3,
+          "available": 0,
+          "capacity": 1,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 499",
+          "section": "001",
+          "crn": "22839",
+          "title": "DS/INTERPRETIVE SIGNAGE",
+          "credits": 5,
+          "available": 0,
+          "capacity": 1,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 499",
+          "section": "004",
+          "crn": "22868",
+          "title": "DS/INTERPRETIVE SIGNAGE",
+          "credits": 3,
+          "available": 0,
+          "capacity": 3,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 499",
+          "section": "007",
+          "crn": "22951",
+          "title": "DS/INK & ALGORITHM",
+          "credits": 5,
+          "available": 0,
+          "capacity": 1,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 499",
+          "section": "008",
+          "crn": "22952",
+          "title": "DS/ APPLIED AI LITERACY DEV",
+          "credits": 5,
+          "available": 0,
+          "capacity": 1,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 499",
+          "section": "009",
+          "crn": "22953",
+          "title": "DS/BRAND LAB",
+          "credits": 6,
+          "available": 0,
+          "capacity": 1,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 499",
+          "section": "010",
+          "crn": "22954",
+          "title": "DS/GEOLOGIC SIGNAGE",
+          "credits": 3,
+          "available": 0,
+          "capacity": 1,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 499",
+          "section": "012",
+          "crn": "22978",
+          "title": "DS/INSTAGRAM FELLOWS",
+          "credits": 4,
+          "available": 0,
+          "capacity": 1,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 499",
+          "section": "013",
+          "crn": "22990",
+          "title": "DS/INSTAGRAM FELLOWS",
+          "credits": 3,
+          "available": 0,
+          "capacity": 1,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 499",
+          "section": "015",
+          "crn": "23014",
+          "title": "DS/AI OPS & CONTENT DEV",
+          "credits": 5,
+          "available": 0,
+          "capacity": 1,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 499",
+          "section": "016",
+          "crn": "23049",
+          "title": "DS/PHOTOGRAPHY FELLOW",
+          "credits": 4,
+          "available": 0,
+          "capacity": 1,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 499",
+          "section": "017",
+          "crn": "23050",
+          "title": "DS/SPATIAL WEB DESIGN",
+          "credits": 1,
+          "available": 0,
+          "capacity": 1,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 499",
+          "section": "018",
+          "crn": "23051",
+          "title": "DS/PROMAP",
+          "credits": 4,
+          "available": 1,
+          "capacity": 3,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 499",
+          "section": "019",
+          "crn": "23085",
+          "title": "DS/PROJECTION MAPPING",
+          "credits": 2,
+          "available": 0,
+          "capacity": 1,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 499",
+          "section": "020",
+          "crn": "23086",
+          "title": "DS/PORTFOLIO PRACTICE",
+          "credits": 2,
+          "available": 0,
+          "capacity": 1,
+          "waitlisted": null
+        }
+      ]
+    },
+    {
+      "quarter": "fall-2026",
+      "termCode": "202640",
+      "label": "Fall Quarter 2026",
+      "academicYear": "2026-27",
+      "observedAt": "2026-09-13T15:25:11.454Z",
+      "status": "provisional",
+      "expectedSections": 23,
+      "completeSearch": true,
+      "sections": [
+        {
+          "course": "DESN 100",
+          "section": "001",
+          "crn": "40436",
+          "title": "DRAWING FOR COMMUNICATION",
+          "credits": 5,
+          "available": 0,
+          "capacity": 23,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 200",
+          "section": "001",
+          "crn": "40438",
+          "title": "VISUAL THINKING + MAKING",
+          "credits": 5,
+          "available": 0,
+          "capacity": 24,
+          "waitlisted": 2
+        },
+        {
+          "course": "DESN 216",
+          "section": "001",
+          "crn": "40440",
+          "title": "DIGITAL FOUNDATIONS",
+          "credits": 5,
+          "available": 0,
+          "capacity": 22,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 216",
+          "section": "025",
+          "crn": "40441",
+          "title": "DIGITAL FOUNDATIONS",
+          "credits": 5,
+          "available": 0,
+          "capacity": 22,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 243",
+          "section": "001",
+          "crn": "40442",
+          "title": "TYPOGRAPHY",
+          "credits": 5,
+          "available": 8,
+          "capacity": 20,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 263",
+          "section": "001",
+          "crn": "40443",
+          "title": "VISUAL COMMUNICATION DESIGN",
+          "credits": 5,
+          "available": 6,
+          "capacity": 20,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 301",
+          "section": "001",
+          "crn": "40444",
+          "title": "VISUAL STORYTELLING",
+          "credits": 5,
+          "available": 0,
+          "capacity": 24,
+          "waitlisted": 1
+        },
+        {
+          "course": "DESN 326",
+          "section": "001",
+          "crn": "40445",
+          "title": "INTRODUCTION TO ANIMATION",
+          "credits": 5,
+          "available": 0,
+          "capacity": 24,
+          "waitlisted": 4
+        },
+        {
+          "course": "DESN 338",
+          "section": "001",
+          "crn": "40446",
+          "title": "USER EXPERIENCE DESIGN 1",
+          "credits": 5,
+          "available": 1,
+          "capacity": 22,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 359",
+          "section": "001",
+          "crn": "40447",
+          "title": "HISTORIES OF DESIGN",
+          "credits": 5,
+          "available": 2,
+          "capacity": 18,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 368",
+          "section": "001",
+          "crn": "40448",
+          "title": "WEB DESIGN + CODE 1",
+          "credits": 5,
+          "available": 6,
+          "capacity": 20,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 369",
+          "section": "001",
+          "crn": "40449",
+          "title": "WEB DEVELOPMENT 1",
+          "credits": 5,
+          "available": 14,
+          "capacity": 20,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 374",
+          "section": "001",
+          "crn": "40450",
+          "title": "APPLIED AI",
+          "credits": 5,
+          "available": 9,
+          "capacity": 20,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 463",
+          "section": "001",
+          "crn": "40452",
+          "title": "COMMUNITY-DRIVEN DESIGN",
+          "credits": 5,
+          "available": 0,
+          "capacity": 23,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 480",
+          "section": "001",
+          "crn": "40453",
+          "title": "PROFESSIONAL PRACTICE",
+          "credits": 5,
+          "available": 3,
+          "capacity": 20,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 490",
+          "section": "001",
+          "crn": "40454",
+          "title": "SENIOR CAPSTONE",
+          "credits": 5,
+          "available": 7,
+          "capacity": 20,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 491",
+          "section": "001",
+          "crn": "40455",
+          "title": "SENIOR PROJECT",
+          "credits": 5,
+          "available": 5,
+          "capacity": 5,
+          "waitlisted": 0
+        },
+        {
+          "course": "DESN 495",
+          "section": "002",
+          "crn": "42216",
+          "title": "INTERNSHIP",
+          "credits": 5,
+          "available": 0,
+          "capacity": 1,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 495",
+          "section": "003",
+          "crn": "42217",
+          "title": "INTERNSHIP",
+          "credits": 5,
+          "available": 0,
+          "capacity": 1,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 495",
+          "section": "004",
+          "crn": "42277",
+          "title": "INTERNSHIP",
+          "credits": 2,
+          "available": 1,
+          "capacity": 1,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 495",
+          "section": "005",
+          "crn": "42873",
+          "title": "INTERNSHIP",
+          "credits": 4,
+          "available": 0,
+          "capacity": 1,
+          "waitlisted": null
+        },
+        {
+          "course": "DESN 496",
+          "section": "001",
+          "crn": "42102",
+          "title": "PAPERMAKING",
+          "credits": 3,
+          "available": 0,
+          "capacity": 16,
+          "waitlisted": 1
+        },
+        {
+          "course": "DESN 499",
+          "section": "001",
+          "crn": "42164",
+          "title": "DS/INSTAGRAM FELLOWS",
+          "credits": 3,
+          "available": 0,
+          "capacity": 3,
+          "waitlisted": null
+        }
+      ]
+    }
+  ]
+}

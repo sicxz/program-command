@@ -3,6 +3,8 @@ const EnrollmentDashboard = (function () {
     let source = null;
     let catalog = null;
     let calendar = null;
+    let snapshots = null;
+    let captures = [];
     let term = null;
     let chart = null;
     let listenersBound = false;
@@ -12,6 +14,11 @@ const EnrollmentDashboard = (function () {
     const yearLabel = value => value === 'all' ? 'All recorded years' : value.replace('-', '–');
     const format = value => value === null || value === undefined ? '—' : number.format(value);
     const signed = value => `${value > 0 ? '+' : value < 0 ? '−' : ''}${format(Math.abs(value))}`;
+    const captureDate = value => new Date(value).toLocaleString('en-US', {
+        month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit',
+        timeZone: 'America/Los_Angeles', timeZoneName: 'short'
+    });
+    const quarterLabel = quarter => `${quarter.label}${quarter.provisional ? ' · provisional' : ''}`;
 
     function element(tag, className, content) {
         const node = document.createElement(tag);
@@ -48,12 +55,16 @@ const EnrollmentDashboard = (function () {
             const results = await Promise.all([
                 fetchJson('enrollment-dashboard-data.json'),
                 fetchJson('data/course-catalog.json').catch(() => null),
-                fetchJson('data/academic-calendar.json').catch(() => null)
+                fetchJson('data/academic-calendar.json').catch(() => null),
+                fetchJson('data/enrollment-registration-snapshots.json').catch(() => null)
             ]);
             source = results[0];
             catalog = results[1];
             calendar = results[2];
-            const meta = window.EnrollmentViewModel.create(source, catalog);
+            snapshots = results[3];
+            byId('snapshotWarning').hidden = snapshots !== null;
+            const meta = window.EnrollmentViewModel.create(source, catalog, snapshots);
+            captures = meta.captures;
             if (!meta.years.length) throw new Error('The source contains no valid quarterly enrollment records.');
             const select = byId('academicYearFilter');
             select.replaceChildren();
@@ -72,13 +83,15 @@ const EnrollmentDashboard = (function () {
             const date = meta.sourceDate ? new Date(meta.sourceDate).toLocaleDateString('en-US', {
                 month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC'
             }) : null;
-            text('sourceCoverage', `Records through ${meta.lastQuarter}`);
-            text('sourceDate', date ? `Source generated ${date}` : 'Source generation date unavailable');
-            text('sourceDescription', `${meta.firstQuarter} through ${meta.lastQuarter}. ${date ? `Snapshot generated ${date}.` : 'Generation date unavailable.'} Course counts come from recorded enrollment rows. A source gap is not a forecast or proof that a course had no students.`);
+            text('sourceCoverage', `Records through ${meta.lastQuarter}${meta.lastQuarterProvisional ? ' · provisional' : ''}`);
+            text('sourceDate', captures.length ? `Registration capture ${captureDate(captures[captures.length - 1].observedAt)}` : date ? `Source generated ${date}` : 'Source generation date unavailable');
+            text('sourceDescription', `${meta.firstQuarter} through ${meta.lastQuarter}. Historical dataset ${date ? `generated ${date}` : 'generation date unavailable'}. ${captures.length ? 'The 2026 counts are dated EagleNET registration search captures. Winter and Spring are completed terms, not certified census counts. Fall is provisional and remains so until a new capture replaces it. These are saved snapshots, not an automatic live feed. ' : ''}A source gap is not a forecast or proof that a course had no students.`);
+            renderSnapshots();
             if (!listenersBound) {
                 ['academicYearFilter', 'courseFilter', 'trendFilter', 'quarterFocus'].forEach(id => {
                     byId(id).addEventListener('change', render);
                 });
+                byId('snapshotTerm').addEventListener('change', renderSnapshotTable);
                 window.addEventListener('focus', refreshAutomaticPeriod);
                 document.addEventListener('visibilitychange', refreshAutomaticPeriod);
                 window.setInterval(refreshAutomaticPeriod, 60000);
@@ -107,6 +120,49 @@ const EnrollmentDashboard = (function () {
         }
     }
 
+    function renderSnapshots() {
+        byId('registrationSnapshots').hidden = captures.length === 0;
+        const cards = byId('snapshotCards');
+        const select = byId('snapshotTerm');
+        cards.replaceChildren();
+        select.replaceChildren();
+        if (!captures.length) return;
+        text('snapshotAsOf', 'Saved counts from the complete Design subject search. All sections; independent of the filters above.');
+        captures.forEach(capture => {
+            const card = element('article', `snapshot-card${capture.provisional ? ' provisional' : ''}`);
+            card.appendChild(element('h3', '', capture.label));
+            card.appendChild(element('p', 'snapshot-status', capture.provisional ? 'Provisional · registration underway' : 'Completed term · registration snapshot'));
+            const count = element('p', 'snapshot-count');
+            count.append(element('strong', '', format(capture.total)), document.createTextNode(' registrations'));
+            card.append(count, element('p', 'snapshot-capacity', `${format(capture.sections.length)} sections · ${format(capture.capacity)} total seat capacity`));
+            card.appendChild(element('p', 'snapshot-waitlist', `${format(capture.waitlisted)} displayed waitlist entries · ${format(capture.missingWaitlists)} sections do not show waitlists`));
+            card.appendChild(element('p', 'snapshot-date', `Captured ${captureDate(capture.observedAt)}`));
+            cards.appendChild(card);
+            const option = element('option', '', quarterLabel(capture));
+            option.value = capture.key;
+            select.appendChild(option);
+        });
+        const current = window.EnrollmentViewModel.currentTerm(new Date(), calendar);
+        select.value = captures.find(capture => capture.key === current.key)?.key || captures[captures.length - 1].key;
+        renderSnapshotTable();
+    }
+
+    function renderSnapshotTable() {
+        const capture = captures.find(item => item.key === byId('snapshotTerm').value);
+        const body = byId('snapshotTableBody');
+        body.replaceChildren();
+        if (!capture) return;
+        text('snapshotTableCaption', `${quarterLabel(capture)} · captured ${captureDate(capture.observedAt)} · all ${capture.sections.length} Design sections`);
+        capture.sections.forEach(section => {
+            const row = element('tr');
+            const label = cell(row, `${section.course} · ${section.section}`);
+            label.appendChild(element('span', 'table-course-title', section.title));
+            cell(row, section.crn);
+            [section.enrolled, section.capacity, section.available, section.waitlisted].forEach(value => cell(row, format(value), 'numeric'));
+            body.appendChild(row);
+        });
+    }
+
     function refreshAutomaticPeriod() {
         if (!source || !byId('loadStatus').hidden || document.hidden) return;
         const next = window.EnrollmentViewModel.currentTerm(new Date(), calendar);
@@ -124,7 +180,8 @@ const EnrollmentDashboard = (function () {
             term.isApproximate ? `Seasonal estimate · ${term.label}` : `Current quarter · ${term.label}`;
         text('currentTermLabel', context);
         const note = term.isApproximate ? 'Published term dates are unavailable for today; the automatic focus uses a seasonal estimate. ' : '';
-        text('periodStatus', note + (view.currentTermHasRecords ? `The source includes records for ${term.label}. Counts reflect the enrollment snapshot shown above.` : `No enrollment records for ${term.label} are available in this snapshot. Historical comparisons below use recorded data only.`));
+        const capture = view.currentTermCapture;
+        text('periodStatus', note + (capture ? `${term.label}: ${format(capture.total)} registrations captured ${captureDate(capture.observedAt)}. ${capture.provisional ? 'Provisional registration counts; changes from completed quarters are not calculated.' : 'Completed term registration snapshot.'}` : view.currentTermHasRecords ? `The source includes records for ${term.label}. Counts reflect the enrollment snapshot shown above.` : `No enrollment records for ${term.label} are available in this snapshot. Historical comparisons below use recorded data only.`));
         byId('periodStatus').hidden = false;
         if (!view.hasData) text('emptyState', `No matching records for ${yearLabel(view.selection.year)}. Choose a recorded academic year above to see its totals.`);
     }
@@ -135,18 +192,21 @@ const EnrollmentDashboard = (function () {
             level: byId('courseFilter').value,
             trend: byId('trendFilter').value,
             quarter: byId('quarterFocus').value,
-            calendar
+            calendar, snapshots
         });
         renderTerm(view);
         text('registrationCount', view.hasData ? format(view.totalRegistrations) : '—');
         text('totalCourses', format(view.courseCount));
         text('quarterCount', format(view.coverage.quarterCount));
         text('coverageLabel', view.coverage.label);
+        const provisional = view.provisionalQuarters.length > 0;
+        byId('provisionalNote').hidden = !provisional;
+        text('provisionalNote', `Selected totals include provisional ${view.provisionalQuarters.join(', ')} registrations. Quarter coverage indicates available records, not final enrollment.`);
         text('courseCoverage', `In ${yearLabel(view.selection.year)}`);
         const comparison = view.comparison;
         text('periodChange', comparison ? (comparison.percent === null ? signed(comparison.delta) : `${comparison.percent > 0 ? '+' : comparison.percent < 0 ? '−' : ''}${Math.abs(comparison.percent).toFixed(1)}%`) : '—');
         byId('periodChange').className = comparison ? changeClass(comparison.delta) : '';
-        text('periodComparison', comparison ? `${signed(comparison.delta)} registrations · same quarters of ${yearLabel(comparison.previousYear)}` : 'No comparable prior period in source');
+        text('periodComparison', comparison ? `${signed(comparison.delta)} registrations · same quarters of ${yearLabel(comparison.previousYear)}` : view.selection.year === 'all' ? 'Choose an academic year for comparison' : provisional ? 'Comparison withheld · provisional registrations' : 'No comparable prior period in source');
         byId('periodOverview').hidden = !view.hasData;
         byId('courseDetails').hidden = !view.hasData;
         byId('emptyState').hidden = view.hasData;
@@ -169,9 +229,10 @@ const EnrollmentDashboard = (function () {
                 ? `Registrations ${movement} across the same quarters of the prior year.`
                 : `Registrations ${movement} by ${format(Math.abs(comparison.delta))}${comparison.percent === null ? '' : ` (${Math.abs(comparison.percent).toFixed(1)}%)`} compared with the same quarters of ${yearLabel(comparison.previousYear)}.`;
         }
+        if (view.provisionalQuarters.length) takeaway += ` ${view.provisionalQuarters.join(', ')} is a provisional capture, shown as an amber point without a connecting trend line.`;
         text('quarterTakeaway', takeaway);
         const currentName = yearLabel(view.selection.year);
-        const labels = comparison ? comparison.quarters.map(q => q.season) : view.quarters.map(q => q.label);
+        const labels = comparison ? comparison.quarters.map(q => q.season) : view.quarters.map(q => q.provisional ? `${q.label}*` : q.label);
         const legend = byId('quarterLegend');
         legend.replaceChildren();
         [currentName, comparison && yearLabel(comparison.previousYear)].filter(Boolean).forEach((label, index) => {
@@ -180,17 +241,18 @@ const EnrollmentDashboard = (function () {
             item.appendChild(document.createTextNode(label));
             legend.appendChild(item);
         });
+        if (view.provisionalQuarters.length) legend.appendChild(element('span', 'provisional-key', '* Provisional registration snapshot'));
         const table = byId('quarterTableBody');
         table.replaceChildren();
         view.quarters.forEach((quarter, index) => {
             const row = element('tr');
-            cell(row, quarter.label);
+            cell(row, quarterLabel(quarter));
             cell(row, format(quarter.total), 'numeric');
             cell(row, comparison ? format(comparison.quarters[index].previous) : '—', 'numeric');
             table.appendChild(row);
         });
         const canvas = byId('overallTrendChart');
-        canvas.setAttribute('aria-label', `${currentName} course registrations: ${view.quarters.map(q => `${q.label}, ${q.total === null ? 'no matching records' : q.total}`).join('; ')}. ${takeaway}`);
+        canvas.setAttribute('aria-label', `${currentName} course registrations: ${view.quarters.map(q => `${quarterLabel(q)}, ${q.total === null ? 'no matching records' : q.total}`).join('; ')}. ${takeaway}`);
         canvas.hidden = typeof window.Chart !== 'function';
         byId('chartUnavailable').hidden = !canvas.hidden;
         if (canvas.hidden) return;
@@ -200,6 +262,12 @@ const EnrollmentDashboard = (function () {
             borderWidth: 2.5, pointBackgroundColor: '#fff', pointBorderWidth: 2,
             pointRadius: 4, pointHoverRadius: 6, tension: 0, fill: true, spanGaps: false
         }];
+        if (view.provisionalQuarters.length) {
+            datasets[0].pointBorderColor = view.quarters.map(q => q.provisional ? '#946018' : '#a10022');
+            datasets[0].pointStyle = view.quarters.map(q => q.provisional ? 'rectRot' : 'circle');
+            datasets[0].segment = { borderColor: context => view.quarters[context.p0DataIndex].provisional || view.quarters[context.p1DataIndex].provisional ? 'transparent' : '#a10022' };
+            datasets[0].fill = false;
+        }
         if (comparison) datasets.push({
             label: yearLabel(comparison.previousYear), data: comparison.quarters.map(q => q.previous),
             borderColor: '#929ca7', borderDash: [5, 5], borderWidth: 1.5,
@@ -226,7 +294,7 @@ const EnrollmentDashboard = (function () {
                 responsive: true, maintainAspectRatio: false, animation: false,
                 layout: { padding: { top: 24, right: 18, left: 6 } },
                 interaction: { mode: 'index', intersect: false },
-                plugins: { legend: { display: false }, tooltip: { backgroundColor: '#252b33', padding: 12, displayColors: true, callbacks: { label: context => `${context.dataset.label}: ${format(context.parsed.y)} registrations` } } },
+                plugins: { legend: { display: false }, tooltip: { backgroundColor: '#252b33', padding: 12, displayColors: true, callbacks: { label: context => `${context.dataset.label}: ${format(context.parsed.y)} registrations${view.quarters[context.dataIndex]?.provisional ? ' · provisional' : ''}` } } },
                 scales: {
                     x: { grid: { display: false }, border: { display: false }, ticks: { color: '#65707b', font: { family: 'IBM Plex Sans', size: 12 }, maxRotation: 0, autoSkip: true } },
                     y: { beginAtZero: true, grace: '12%', border: { display: false }, grid: { color: '#edf0f3' }, ticks: { color: '#7c858f', precision: 0, maxTicksLimit: 5, font: { family: 'IBM Plex Sans', size: 11 } } }
@@ -264,29 +332,29 @@ const EnrollmentDashboard = (function () {
         return node;
     }
 
-    function historyChart(course, years, ceiling, season) {
+    function historyChart(course, years, ceiling, season, provisional) {
         const width = 264, height = 126, left = 38, right = 14, top = 23, bottom = 27;
         const plotHeight = height - top - bottom;
         const x = index => years.length < 2 ? width / 2 : left + index * (width - left - right) / (years.length - 1);
         const y = value => top + plotHeight * (1 - value / ceiling);
-        const svg = svgNode('svg', { viewBox: `0 0 ${width} ${height}`, role: 'img', 'aria-label': `${course.code}. ${years.map((year, index) => `${season} ${year}: ${course.values[index] === null ? 'no record' : `${course.values[index]} registrations`}`).join('. ')}` });
+        const svg = svgNode('svg', { viewBox: `0 0 ${width} ${height}`, role: 'img', 'aria-label': `${course.code}. ${years.map((year, index) => `${season} ${year}${provisional[index] ? ' provisional' : ''}: ${course.values[index] === null ? 'no record' : `${course.values[index]} registrations`}`).join('. ')}` });
         [0, ceiling / 2, ceiling].forEach(value => {
             svg.appendChild(svgNode('line', { x1: left, x2: width - right, y1: y(value), y2: y(value), stroke: '#e9ecef', 'stroke-width': 1 }));
             if (value !== ceiling / 2) svg.appendChild(svgNode('text', { x: 16, y: y(value) + 3, 'text-anchor': 'end', fill: '#89929b', 'font-size': 9 }, value));
         });
         for (let index = 1; index < years.length; index++) {
-            if (course.values[index - 1] !== null && course.values[index] !== null) {
+            if (!provisional[index - 1] && !provisional[index] && course.values[index - 1] !== null && course.values[index] !== null) {
                 svg.appendChild(svgNode('line', { x1: x(index - 1), y1: y(course.values[index - 1]), x2: x(index), y2: y(course.values[index]), stroke: '#a10022', 'stroke-width': 2 }));
             }
         }
         years.forEach((year, index) => {
             const value = course.values[index];
-            svg.appendChild(svgNode('text', { x: x(index), y: height - 8, 'text-anchor': 'middle', fill: '#7b858e', 'font-size': 11 }, String(year)));
+            svg.appendChild(svgNode('text', { x: x(index), y: height - 8, 'text-anchor': 'middle', fill: '#7b858e', 'font-size': 11 }, `${year}${provisional[index] ? '*' : ''}`));
             if (value === null) {
                 svg.appendChild(svgNode('text', { x: x(index), y: y(0) - 8, 'text-anchor': 'middle', fill: '#7b858e', 'font-size': 13 }, '—'));
                 return;
             }
-            svg.appendChild(svgNode('circle', { cx: x(index), cy: y(value), r: 3.5, fill: '#fff', stroke: '#a10022', 'stroke-width': 1.8 }));
+            svg.appendChild(svgNode('circle', { cx: x(index), cy: y(value), r: 3.5, fill: provisional[index] ? '#fff5df' : '#fff', stroke: provisional[index] ? '#946018' : '#a10022', 'stroke-width': 1.8 }));
             svg.appendChild(svgNode('text', { x: x(index), y: y(value) - 10, 'text-anchor': 'middle', fill: '#252b33', 'font-size': 12, 'font-weight': 500 }, format(value)));
         });
         return svg;
@@ -303,6 +371,10 @@ const EnrollmentDashboard = (function () {
         text('historyHeading', `${season} enrollment, course by course`);
         text('historyEmpty', `No ${season} records match the selected course level and historical trend.`);
         text('historyCaption', `All recorded ${season} course counts. A dash means no record.`);
+        const provisional = history.provisional.some(Boolean);
+        const lastIndex = history.years.length - 1;
+        const endpointProvisional = !history.comparableEndpoints;
+        const recentProvisional = history.provisional[lastIndex] || history.provisional[lastIndex - 1];
         const rows = [...history.rows].sort((a, b) => (b.values[b.values.length - 1] ?? -1) - (a.values[a.values.length - 1] ?? -1) || a.code.localeCompare(b.code));
         const ceiling = Math.max(10, Math.ceil(Math.max(0, ...rows.flatMap(row => row.values.filter(value => value !== null))) / 10) * 10);
         const cards = byId('historySmallMultiples');
@@ -332,18 +404,22 @@ const EnrollmentDashboard = (function () {
             }
             text('historyTakeaway', takeaway);
         } else text('historyTakeaway', rows.length ? `Only one ${season} quarter is recorded. A year-to-year comparison is not available.` : `Select another quarter, course level, or historical trend to see recorded counts.`);
+        if (recentProvisional && rows.length && history.totals[lastIndex] !== null) {
+            text('historyTakeaway', `${format(history.totals[lastIndex])} registrations are recorded for ${season} ${history.last}. ${season} ${history.years.filter((year, index) => history.provisional[index]).join(', ')} is provisional; changes from completed quarters are withheld.`);
+        }
         const visible = rows.slice(0, 12);
         text('historyDisplayNote', rows.length ? `${visible.length < rows.length ? `The ${visible.length} largest` : 'All'} courses by recorded ${season} ${history.last} registrations. Common scale: 0–${ceiling}.` : '');
+        if (provisional) byId('historyDisplayNote').appendChild(document.createTextNode(` * Amber points are provisional captures (${history.observedAt.filter((date, index) => history.provisional[index]).map(captureDate).join('; ')}), with no connecting trend line.`));
         visible.forEach(course => {
             const card = element('article', 'history-course');
             const heading = element('h3', '', course.code);
             heading.appendChild(element('span', 'course-name', course.title || 'Course title unavailable'));
-            card.append(heading, historyChart(course, history.years, ceiling, season), element('p', `course-change ${changeClass(course.delta)}`, historyChange(course, history.first, season)));
+            card.append(heading, historyChart(course, history.years, ceiling, season, history.provisional), element('p', `course-change ${changeClass(course.delta)}`, endpointProvisional ? 'Provisional counts · change withheld' : historyChange(course, history.first, season)));
             cards.appendChild(card);
         });
         text('historyTableSummary', `Read all ${format(rows.length)} ${season} courses as a table`);
         const head = element('tr');
-        ['Course', ...history.years.map(year => `${season} ${year}`), `Change since ${history.first || `first ${season}`}`].forEach(label => {
+        ['Course', ...history.years.map((year, index) => `${season} ${year}${history.provisional[index] ? ' · provisional' : ''}`), endpointProvisional ? 'Change withheld' : `Change since ${history.first || `first ${season}`}`].forEach(label => {
             const th = element('th', '', label); th.scope = 'col'; head.appendChild(th);
         });
         byId('historyTableHead').replaceChildren(head);

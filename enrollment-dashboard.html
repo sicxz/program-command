@@ -26,15 +26,16 @@
     <main id="main" class="page" aria-busy="true">
         <div class="page-heading">
             <div><a class="back-link" href="program-command.html">← Back to schedule</a><h1>Enrollment</h1><p class="page-description">Understand course demand, one quarter at a time.</p><p id="currentTermLabel" class="current-term"></p></div>
-            <div class="source-meta"><span class="snapshot-label">Historical snapshot</span><p id="sourceCoverage">Loading source coverage…</p><p id="sourceDate"></p></div>
+            <div class="source-meta"><span class="snapshot-label">Enrollment records</span><p id="sourceCoverage">Loading source coverage…</p><p id="sourceDate"></p></div>
         </div>
         <div id="loadStatus" class="load-status" role="status">Loading enrollment records…</div>
         <p id="periodStatus" class="period-status" role="status" hidden></p>
+        <p id="snapshotWarning" class="period-status" role="status" hidden>Recent registration captures could not be loaded. Only the historical dataset is shown.</p>
         <section class="filters" aria-label="Enrollment filters">
             <div class="filter"><label for="academicYearFilter">Academic year</label><select id="academicYearFilter" disabled><option>Loading…</option></select></div>
             <div class="filter"><label for="courseFilter">Course level</label><select id="courseFilter" disabled><option value="all">All course levels</option><option value="foundation">Foundation · 100–200</option><option value="intermediate">Intermediate · 300</option><option value="advanced">Advanced · 400</option></select></div>
             <div class="filter"><label for="trendFilter">Historical course trend</label><select id="trendFilter" disabled><option value="all">All trends</option><option value="declining">Declining</option><option value="growing">Growing</option><option value="stable">Stable</option><option value="new">New</option></select></div>
-            <p class="filter-note">Trend labels describe the full source history.<br>Course comparisons follow the current term.</p>
+            <p class="filter-note">Trend labels use history through Fall 2025.<br>Course comparisons follow the current term.</p>
         </section>
         <div id="dashboardContent" hidden>
             <section class="metric-strip" aria-label="Selected-period summary" aria-live="polite">
@@ -44,6 +45,16 @@
                 <div class="metric"><p>Source quarter coverage</p><strong id="quarterCount">—</strong><span id="coverageLabel"></span></div>
             </section>
             <p class="definition-line"><strong>A registration is a course seat.</strong> One student taking three courses contributes three registrations. These counts are not unique students or declared majors.</p>
+            <p id="provisionalNote" class="period-status" hidden></p>
+            <section id="registrationSnapshots" class="panel registration-snapshots" aria-labelledby="snapshotHeading" hidden>
+                <div class="panel-heading"><div><h2 id="snapshotHeading">2026 registration snapshots</h2><p id="snapshotAsOf"></p></div><span class="recorded-label">EagleNET · Design</span></div>
+                <div id="snapshotCards" class="snapshot-grid"></div>
+                <details class="chart-data"><summary>Inspect the section counts</summary>
+                    <div class="snapshot-controls"><label for="snapshotTerm">Quarter</label><select id="snapshotTerm"></select><p>All Design sections; this source view is independent of the filters above.</p></div>
+                    <div class="table-scroll" tabindex="0" role="region" aria-label="Registration section counts"><table><caption id="snapshotTableCaption" class="sr-only"></caption><thead><tr><th scope="col">Course / section</th><th scope="col">CRN</th><th scope="col" class="numeric">Enrolled</th><th scope="col" class="numeric">Capacity</th><th scope="col" class="numeric">Available</th><th scope="col" class="numeric">Waitlisted</th></tr></thead><tbody id="snapshotTableBody"></tbody></table></div>
+                </details>
+                <p class="method-note">Enrolled = section capacity − available seats. Waitlists are separate; a dash means the portal did not display a waitlist count. Capacity is the section limit, not room capacity. <a href="data/enrollment-registration-snapshots.json">View captured records</a>.</p>
+            </section>
             <div id="emptyState" class="empty-state" role="status" hidden>No course records match these filters in the selected period. Choose another year, course level, or trend.</div>
             <div id="dataSections">
                 <section class="overview-grid" id="periodOverview" aria-label="Enrollment overview">
@@ -73,10 +84,10 @@
                 <section class="panel course-panel" id="courseDetails" aria-labelledby="courseHeading">
                     <div class="panel-heading"><div><h2 id="courseHeading">Course detail</h2><p id="courseTableScope">Selected-period registrations, highest first</p></div><span id="courseTableCount" class="recorded-label"></span></div>
                     <div class="table-scroll course-table-scroll" tabindex="0" role="region" aria-label="Course registrations table"><table id="courseDataTable"><caption class="sr-only">Registrations by course for the selected period</caption><thead><tr><th scope="col">Course</th><th scope="col" class="numeric">Registrations</th><th scope="col" class="numeric">Quarters recorded</th><th scope="col">Historical trend</th></tr></thead><tbody id="courseTableBody"></tbody></table></div>
-                    <p class="method-note">Registration totals respond to all three filters. Historical trend labels come from the full source dataset; they are not a year-over-year change for the selected period.</p>
+                    <p class="method-note">Registration totals respond to all three filters. Historical trend labels use the dataset through Fall 2025; they are not a year-over-year change for the selected period. Courses without that history have an unknown trend.</p>
                 </section>
             </div>
-            <details class="source-details"><summary>About these numbers</summary><div class="source-details-grid"><div><h3>What is counted</h3><p>Course registrations are summed across sections and recorded quarters. They do not measure unique students, class size, room capacity, or faculty workload.</p></div><div><h3>How years are compared</h3><p>Academic years begin in Fall. A prior-year comparison uses the same recorded quarters in both years. A partial year is never compared with a full year.</p><h3>Automatic quarter</h3><p>The automatic view uses EWU term dates and Pacific time. During breaks it focuses the upcoming quarter. Outside the published date range it uses a labeled seasonal estimate. You can select another quarter without changing the academic year.</p><p><a href="https://inside.ewu.edu/records-and-registration/calendar/calendar-quarter/">EWU quarter calendar</a></p></div><div><h3>Source and coverage</h3><p id="sourceDescription"></p><p><a href="enrollment-dashboard-data.json">Enrollment source snapshot</a> · <a href="data/course-catalog.json">Course titles</a></p></div></div></details>
+            <details class="source-details"><summary>About these numbers</summary><div class="source-details-grid"><div><h3>What is counted</h3><p>Course registrations are summed across sections and recorded quarters. They do not measure unique students, class size, room capacity, or faculty workload.</p></div><div><h3>How years are compared</h3><p>Academic years begin in Fall. A prior-year comparison uses the same recorded quarters in both years. A partial year is never compared with a full year. Comparisons involving provisional registration counts are withheld.</p><h3>Automatic quarter</h3><p>The automatic view uses EWU term dates and Pacific time. During breaks it focuses the upcoming quarter. Outside the published date range it uses a labeled seasonal estimate. You can select another quarter without changing the academic year.</p><p><a href="https://inside.ewu.edu/records-and-registration/calendar/calendar-quarter/">EWU quarter calendar</a></p></div><div><h3>Source and coverage</h3><p id="sourceDescription"></p><p><a href="enrollment-dashboard-data.json">Historical dataset</a> · <a href="data/enrollment-registration-snapshots.json">Registration captures</a> · <a href="data/course-catalog.json">Course titles</a></p></div></div></details>
         </div>
         <footer class="page-footer"><span>EWU Design · Enrollment</span><span>Faculty teaching demand and capacity are reviewed in <a href="pages/workload-dashboard.html">Workload</a> and <a href="pages/capacity-planning-dashboard.html">Capacity</a>.</span></footer>
     </main>
