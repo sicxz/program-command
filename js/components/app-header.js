@@ -394,11 +394,21 @@ class AppHeader extends HTMLElement {
                                 <span>Export to Sheets</span>
                             </button>
                             <div class="header-settings-divider"></div>
-                            <div class="header-settings-section-label">Dashboards</div>
+                            <div class="header-settings-section-label">Analytics</div>
+                            <button class="header-settings-item" type="button" data-action="nav-applied-learning">
+                                <span class="header-settings-item-icon">🎓</span>
+                                <span>Applied Learning</span>
+                            </button>
                             <button class="header-settings-item" type="button" data-action="nav-enrollment">
                                 <span class="header-settings-item-icon">📈</span>
-                                <span>Enrollment Trends</span>
+                                <span>Enrollment</span>
                             </button>
+                            <button class="header-settings-item" type="button" data-action="nav-capacity">
+                                <span class="header-settings-item-icon">📊</span>
+                                <span>Capacity</span>
+                            </button>
+                            <div class="header-settings-divider"></div>
+                            <div class="header-settings-section-label">Workload</div>
                             <button class="header-settings-item" type="button" data-action="nav-workload">
                                 <span class="header-settings-item-icon">👥</span>
                                 <span>Faculty Workload</span>
