@@ -138,3 +138,17 @@ quarters. AY 2025–26 has 1,071 registrations across Fall/Winter/Spring. Provis
 counts are labeled in totals and tables and drawn as isolated amber points;
 comparisons with provisional endpoints are withheld. The snapshot panel and its
 section table show the complete source independently of the dashboard filters.
+
+
+## Current section cap
+
+On September 13, 2026, the user clarified that sections are now capped at
+**20 students**. Enrollment displays this program context beside the registration
+definition and explains that section counts and caps affect comparisons.
+Do not attribute an enrollment change to this policy without supporting evidence.
+The effective term was not specified; do not apply the cap retroactively.
+
+EagleNET snapshot cards and the section table label capacity as **recorded**.
+Preserve all captured section limits, including limits above 20 and the smaller
+internship / directed-study limits. This note does not change registration totals,
+source data, planning calculations, or the all-recorded-years default.
