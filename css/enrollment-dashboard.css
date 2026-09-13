@@ -194,6 +194,48 @@ strong {
     font-size: 17px;
 }
 
+.current-term {
+    color: var(--red);
+    font-size: 13px;
+    font-weight: 500;
+    margin-top: 12px;
+}
+
+.period-status {
+    padding: 12px 16px;
+    margin-bottom: 22px;
+    border-left: 3px solid #aeb9c3;
+    background: #eaeef2;
+    font-size: 13px;
+    color: #4b5966;
+}
+
+.quarter-focus {
+    flex-shrink: 0;
+}
+
+.quarter-focus label {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.quarter-focus select {
+    width: 190px;
+    min-height: 38px;
+    padding: 7px 10px;
+    border: 1px solid #cbd2d9;
+    border-radius: 5px;
+    background: white;
+    color: var(--ink);
+    font-size: 13px;
+}
+
+.history-panel .panel-heading {
+    flex-wrap: wrap;
+}
+
 .source-meta {
     text-align: right;
     font-size: 13px;
@@ -497,12 +539,12 @@ strong {
     color: var(--ink);
 }
 
-.winter-panel {
+.history-panel {
     padding: 28px;
     margin-bottom: 26px;
 }
 
-.winter-reading {
+.history-reading {
     display: grid;
     grid-template-columns: 1.2fr 1fr;
     gap: 36px;
@@ -512,7 +554,7 @@ strong {
     margin: 20px 0;
 }
 
-.winter-reading>p:last-child {
+.history-reading>p:last-child {
     color: var(--muted);
     font-size: 13px;
     max-width: 62ch;
@@ -524,26 +566,26 @@ strong {
     margin: 24px 0 16px;
 }
 
-.winter-grid {
+.history-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(264px, 1fr));
     column-gap: 24px;
     row-gap: 26px;
 }
 
-.winter-course {
+.history-course {
     min-width: 0;
     padding-bottom: 18px;
     border-bottom: 1px solid var(--border);
 }
 
-.winter-course h3 {
+.history-course h3 {
     font-size: 14px;
     line-height: 1.3;
     letter-spacing: .05px;
 }
 
-.winter-course .course-name {
+.history-course .course-name {
     display: block;
     color: var(--muted);
     font-size: 12px;
@@ -553,7 +595,7 @@ strong {
     line-height: 1.45;
 }
 
-.winter-course svg {
+.history-course svg {
     display: block;
     width: 100%;
     max-width: 340px;
@@ -562,7 +604,7 @@ strong {
     margin: 8px 0 1px;
 }
 
-.winter-course .course-change {
+.history-course .course-change {
     font-size: 12px;
     margin-top: 6px;
     color: var(--muted);
@@ -576,7 +618,7 @@ strong {
     color: var(--teal);
 }
 
-.winter-data {
+.history-data {
     margin-top: 8px;
     padding-top: 15px;
     border-top: 0;
@@ -731,7 +773,7 @@ tbody tr:hover {
 }
 
 @media(min-width:1400px) {
-    .winter-grid {
+    .history-grid {
         column-gap: 34px;
     }
     .chart-frame {
@@ -758,7 +800,7 @@ tbody tr:hover {
     .filter {
         flex: 1;
     }
-    .winter-grid {
+    .history-grid {
         gap: 24px;
     }
     .metric-strip {
@@ -792,7 +834,7 @@ tbody tr:hover {
     .reading-note {
         margin-top: 18px;
     }
-    .winter-reading {
+    .history-reading {
         grid-template-columns: 1fr;
         gap: 10px;
     }
@@ -936,17 +978,17 @@ tbody tr:hover {
     .chart-takeaway {
         font-size: 15px;
     }
-    .winter-grid {
+    .history-grid {
         gap: 20px;
         grid-template-columns: 1fr;
     }
-    .winter-course .course-name {
+    .history-course .course-name {
         min-height: 0;
     }
-    .winter-course svg {
+    .history-course svg {
         max-width: 340px;
     }
-    .winter-reading {
+    .history-reading {
         padding: 14px;
     }
     .level-breakdown {
@@ -991,13 +1033,13 @@ tbody tr:hover {
     .page {
         padding: 0;
     }
-    .panel,.winter-course {
+    .panel,.history-course {
         break-inside: avoid;
     }
     .course-table-scroll {
         max-height: none;
     }
-    .winter-grid {
+    .history-grid {
         grid-template-columns: repeat(3,1fr);
     }
     .source-meta {

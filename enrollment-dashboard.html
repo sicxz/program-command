@@ -25,15 +25,16 @@
     </header>
     <main id="main" class="page" aria-busy="true">
         <div class="page-heading">
-            <div><a class="back-link" href="program-command.html">← Back to schedule</a><h1>Enrollment</h1><p class="page-description">Understand course demand, one quarter at a time.</p></div>
+            <div><a class="back-link" href="program-command.html">← Back to schedule</a><h1>Enrollment</h1><p class="page-description">Understand course demand, one quarter at a time.</p><p id="currentTermLabel" class="current-term"></p></div>
             <div class="source-meta"><span class="snapshot-label">Historical snapshot</span><p id="sourceCoverage">Loading source coverage…</p><p id="sourceDate"></p></div>
         </div>
         <div id="loadStatus" class="load-status" role="status">Loading enrollment records…</div>
+        <p id="periodStatus" class="period-status" role="status" hidden></p>
         <section class="filters" aria-label="Enrollment filters">
             <div class="filter"><label for="academicYearFilter">Academic year</label><select id="academicYearFilter" disabled><option>Loading…</option></select></div>
             <div class="filter"><label for="courseFilter">Course level</label><select id="courseFilter" disabled><option value="all">All course levels</option><option value="foundation">Foundation · 100–200</option><option value="intermediate">Intermediate · 300</option><option value="advanced">Advanced · 400</option></select></div>
             <div class="filter"><label for="trendFilter">Historical course trend</label><select id="trendFilter" disabled><option value="all">All trends</option><option value="declining">Declining</option><option value="growing">Growing</option><option value="stable">Stable</option><option value="new">New</option></select></div>
-            <p class="filter-note">Trend labels describe the full source history.<br>Winter comparisons show all recorded winters.</p>
+            <p class="filter-note">Trend labels describe the full source history.<br>Course comparisons follow the current term.</p>
         </section>
         <div id="dashboardContent" hidden>
             <section class="metric-strip" aria-label="Selected-period summary" aria-live="polite">
@@ -59,14 +60,15 @@
                         <div class="reading-note"><span class="note-rule"></span><p id="levelTakeaway"></p></div>
                     </article>
                 </section>
-                <section class="panel winter-panel" id="winter-comparison" aria-labelledby="winterHeading">
-                    <div class="panel-heading"><div><h2 id="winterHeading">Winter enrollment, course by course</h2><p id="winterScope"></p></div><span class="recorded-label">Historical comparison</span></div>
-                    <div class="winter-reading"><p id="winterTakeaway" class="chart-takeaway"></p><p>Each course has its own line and labeled counts. Every chart uses the same scale, so you can compare size as well as direction.</p></div>
-                    <p id="winterDisplayNote" class="section-note"></p>
-                    <div id="winterSmallMultiples" class="winter-grid"></div>
-                    <p id="winterEmpty" class="empty-state" hidden>No Winter records match the selected course level and historical trend.</p>
-                    <details id="winterDetails" class="chart-data winter-data"><summary id="winterTableSummary">All Winter course counts</summary><div class="table-scroll"><table><caption class="sr-only">All recorded Winter course counts. A dash means no record.</caption><thead id="winterTableHead"></thead><tbody id="winterTableBody"></tbody></table></div></details>
-                    <p class="method-note">Counts include all sections of a course. A dash means no record, not zero students. Only recorded winters are shown; no projected values are added.</p>
+                <section class="panel history-panel" id="history-comparison" aria-labelledby="historyHeading">
+                    <span id="winter-comparison" aria-hidden="true"></span>
+                    <div class="panel-heading"><div><h2 id="historyHeading">Enrollment, course by course</h2><p id="historyScope"></p></div><div class="quarter-focus"><label for="quarterFocus">Compare quarter</label><select id="quarterFocus" disabled><option value="current">Automatic · current quarter</option><option value="fall">Fall</option><option value="winter">Winter</option><option value="spring">Spring</option><option value="summer">Summer</option></select></div></div>
+                    <div class="history-reading"><p id="historyTakeaway" class="chart-takeaway"></p><p>Each course has its own line and labeled counts. Every chart uses the same scale, so you can compare size as well as direction.</p></div>
+                    <p id="historyDisplayNote" class="section-note"></p>
+                    <div id="historySmallMultiples" class="history-grid"></div>
+                    <p id="historyEmpty" class="empty-state" hidden>No records match the selected quarter, course level and historical trend.</p>
+                    <details id="historyDetails" class="chart-data history-data"><summary id="historyTableSummary">All course counts</summary><div class="table-scroll"><table><caption class="sr-only" id="historyCaption">Recorded course counts. A dash means no record.</caption><thead id="historyTableHead"></thead><tbody id="historyTableBody"></tbody></table></div></details>
+                    <p class="method-note">Counts include all sections of a course. A dash means no record, not zero students. Only recorded quarters are shown; no projected values are added.</p>
                 </section>
                 <section class="panel course-panel" id="courseDetails" aria-labelledby="courseHeading">
                     <div class="panel-heading"><div><h2 id="courseHeading">Course detail</h2><p id="courseTableScope">Selected-period registrations, highest first</p></div><span id="courseTableCount" class="recorded-label"></span></div>
@@ -74,7 +76,7 @@
                     <p class="method-note">Registration totals respond to all three filters. Historical trend labels come from the full source dataset; they are not a year-over-year change for the selected period.</p>
                 </section>
             </div>
-            <details class="source-details"><summary>About these numbers</summary><div class="source-details-grid"><div><h3>What is counted</h3><p>Course registrations are summed across sections and recorded quarters. They do not measure unique students, class size, room capacity, or faculty workload.</p></div><div><h3>How years are compared</h3><p>Academic years begin in Fall. A prior-year comparison uses the same recorded quarters in both years. A partial year is never compared with a full year.</p></div><div><h3>Source and coverage</h3><p id="sourceDescription"></p><p><a href="enrollment-dashboard-data.json">Enrollment source snapshot</a> · <a href="data/course-catalog.json">Course titles</a></p></div></div></details>
+            <details class="source-details"><summary>About these numbers</summary><div class="source-details-grid"><div><h3>What is counted</h3><p>Course registrations are summed across sections and recorded quarters. They do not measure unique students, class size, room capacity, or faculty workload.</p></div><div><h3>How years are compared</h3><p>Academic years begin in Fall. A prior-year comparison uses the same recorded quarters in both years. A partial year is never compared with a full year.</p><h3>Automatic quarter</h3><p>The automatic view uses EWU term dates and Pacific time. During breaks it focuses the upcoming quarter. Outside the published date range it uses a labeled seasonal estimate. You can select another quarter without changing the academic year.</p><p><a href="https://inside.ewu.edu/records-and-registration/calendar/calendar-quarter/">EWU quarter calendar</a></p></div><div><h3>Source and coverage</h3><p id="sourceDescription"></p><p><a href="enrollment-dashboard-data.json">Enrollment source snapshot</a> · <a href="data/course-catalog.json">Course titles</a></p></div></div></details>
         </div>
         <footer class="page-footer"><span>EWU Design · Enrollment</span><span>Faculty teaching demand and capacity are reviewed in <a href="pages/workload-dashboard.html">Workload</a> and <a href="pages/capacity-planning-dashboard.html">Capacity</a>.</span></footer>
     </main>
