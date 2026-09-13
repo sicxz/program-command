@@ -153,3 +153,39 @@ EagleNET snapshot cards and the section table label capacity as **recorded**.
 Preserve all captured section limits, including limits above 20 and the smaller
 internship / directed-study limits. This note does not change registration totals,
 source data, planning calculations, or the all-recorded-years default.
+
+## Capacity dashboard alignment
+
+Capacity now shares Enrollment's navigation, typography, filter styling and
+responsive panels. It defaults to **All recorded years**, showing a separate row
+for each academic year rather than adding annual capacities together. Select a
+year for faculty targets, workload coverage and unassigned sections. Automatic
+year/quarter options reuse Enrollment's EWU/Pacific calendar resolver.
+
+The old controller reported 324 credits available when workload dictionaries
+were empty, ignored the quarter filter, and invented student ratios and a 5%
+forecast. These displays are removed. `CapacityViewModel` keeps missing workload
+unknown and compares credits only with credits. A quarter filter scopes actual
+workload records; annual targets are never divided into quarter limits.
+
+`WorkloadIntegration` provides the same saved schedule/import, AY Setup and
+faculty detail sources as Workload. Capacity reads these sources without
+initializing or importing a new schedule. Drafts may be incomplete; neither a
+short bar nor target minus recorded workload establishes confirmed availability.
+Inactive/former assignments, adjunct teaching and unresolved sections remain in
+demand but do not add to the active full-time target. Fully released faculty
+retain a zero net target. Applied-learning toggles use weighted workload, and
+counts are labeled workload records because manual faculty detail entries are
+not independently verified sections.
+
+Historical enrollment `capacityPlanning.fullTimeFaculty` entries are used only
+as recorded annual target configurations when no current roster/draft exists.
+They may already contain adjustments; their gross/net and release basis is not
+verified. Never use the legacy load/demand fields: they mix student and credit
+units. EagleNET captures contain no instructor assignment data and cannot
+establish faculty workload. The 20-student policy remains seat context with a
+link to Enrollment.
+
+Validation: 31 Capacity tests (pure calculations and page behavior), the full
+48-suite / 359-test run, and the existing Vite build pass. Browser checks cover
+the all-years default, historical targets, missing sources, and period filters.
