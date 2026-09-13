@@ -1,0 +1,342 @@
+const EnrollmentDashboard = (function () {
+    'use strict';
+    let source = null;
+    let catalog = null;
+    let chart = null;
+    let listenersBound = false;
+    const number = new Intl.NumberFormat('en-US');
+    const byId = id => document.getElementById(id);
+    const text = (id, value) => { byId(id).textContent = value; };
+    const yearLabel = value => value === 'all' ? 'All recorded years' : value.replace('-', '–');
+    const format = value => value === null || value === undefined ? '—' : number.format(value);
+    const signed = value => `${value > 0 ? '+' : value < 0 ? '−' : ''}${format(Math.abs(value))}`;
+
+    function element(tag, className, content) {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        if (content !== undefined) node.textContent = content;
+        return node;
+    }
+
+    function cell(row, content, className = '') {
+        const node = element('td', className, content);
+        row.appendChild(node);
+        return node;
+    }
+
+    function changeClass(value) {
+        return value > 0 ? 'positive' : value < 0 ? 'negative' : '';
+    }
+
+    async function fetchJson(url) {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`Unable to read ${url} (${response.status})`);
+        return response.json();
+    }
+
+    async function init() {
+        byId('main').setAttribute('aria-busy', 'true');
+        byId('loadStatus').hidden = false;
+        byId('loadStatus').className = 'load-status';
+        text('loadStatus', 'Loading enrollment records…');
+        byId('dashboardContent').hidden = true;
+        document.querySelectorAll('.filters select').forEach(select => { select.disabled = true; });
+        try {
+            const results = await Promise.all([
+                fetchJson('enrollment-dashboard-data.json'),
+                fetchJson('data/course-catalog.json').catch(() => null)
+            ]);
+            source = results[0];
+            catalog = results[1];
+            const meta = window.EnrollmentViewModel.create(source, catalog);
+            if (!meta.years.length) throw new Error('The source contains no valid quarterly enrollment records.');
+            const select = byId('academicYearFilter');
+            select.replaceChildren();
+            const all = element('option', '', 'All recorded years');
+            all.value = 'all';
+            select.appendChild(all);
+            meta.years.forEach(year => {
+                const option = element('option', '', year.label);
+                option.value = year.value;
+                select.appendChild(option);
+            });
+            select.value = meta.defaultYear;
+            const date = meta.sourceDate ? new Date(meta.sourceDate).toLocaleDateString('en-US', {
+                month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC'
+            }) : null;
+            text('sourceCoverage', `Records through ${meta.lastQuarter}`);
+            text('sourceDate', date ? `Source generated ${date}` : 'Source generation date unavailable');
+            text('sourceDescription', `${meta.firstQuarter} through ${meta.lastQuarter}. ${date ? `Snapshot generated ${date}.` : 'Generation date unavailable.'} Course counts come from recorded enrollment rows. A source gap is not a forecast or proof that a course had no students.`);
+            if (!listenersBound) {
+                ['academicYearFilter', 'courseFilter', 'trendFilter'].forEach(id => {
+                    byId(id).addEventListener('change', render);
+                });
+                listenersBound = true;
+            }
+            document.querySelectorAll('.filters select').forEach(control => { control.disabled = false; });
+            byId('dashboardContent').hidden = false;
+            byId('loadStatus').hidden = true;
+            render();
+        } catch (error) {
+            console.error('Enrollment dashboard could not load:', error);
+            if (chart) { chart.destroy(); chart = null; }
+            byId('dashboardContent').hidden = true;
+            byId('loadStatus').hidden = false;
+            document.querySelectorAll('.filters select').forEach(control => { control.disabled = true; });
+            byId('loadStatus').className = 'load-status error';
+            text('loadStatus', 'Enrollment records could not be loaded. No totals are shown.');
+            const retry = element('button', '', 'Try again');
+            retry.type = 'button';
+            retry.addEventListener('click', init);
+            byId('loadStatus').appendChild(retry);
+            text('sourceCoverage', 'Source unavailable');
+            text('sourceDate', '');
+        } finally {
+            byId('main').setAttribute('aria-busy', 'false');
+        }
+    }
+
+    function render() {
+        const view = window.EnrollmentViewModel.build(source, catalog, {
+            year: byId('academicYearFilter').value,
+            level: byId('courseFilter').value,
+            trend: byId('trendFilter').value
+        });
+        text('registrationCount', view.hasData ? format(view.totalRegistrations) : '—');
+        text('totalCourses', format(view.courseCount));
+        text('quarterCount', format(view.coverage.quarterCount));
+        text('coverageLabel', view.coverage.label);
+        text('courseCoverage', `In ${yearLabel(view.selection.year)}`);
+        const comparison = view.comparison;
+        text('periodChange', comparison ? (comparison.percent === null ? signed(comparison.delta) : `${comparison.percent > 0 ? '+' : comparison.percent < 0 ? '−' : ''}${Math.abs(comparison.percent).toFixed(1)}%`) : '—');
+        byId('periodChange').className = comparison ? changeClass(comparison.delta) : '';
+        text('periodComparison', comparison ? `${signed(comparison.delta)} registrations · same quarters of ${yearLabel(comparison.previousYear)}` : 'No comparable prior period in source');
+        byId('periodOverview').hidden = !view.hasData;
+        byId('courseDetails').hidden = !view.hasData;
+        byId('emptyState').hidden = view.hasData;
+        if (chart) { chart.destroy(); chart = null; }
+        renderWinter(view.winter);
+        if (!view.hasData) return;
+        renderQuarter(view);
+        renderLevels(view);
+        renderCourses(view);
+    }
+
+    function renderQuarter(view) {
+        const comparison = view.comparison;
+        text('quarterScope', `${yearLabel(view.selection.year)} · registrations across all sections`);
+        const peak = view.quarters.filter(quarter => quarter.total !== null).sort((a, b) => b.total - a.total)[0];
+        let takeaway = `${peak.label} has the most recorded registrations in this period (${format(peak.total)}).`;
+        if (comparison) {
+            const movement = comparison.delta > 0 ? 'rose' : comparison.delta < 0 ? 'fell' : 'held steady';
+            takeaway = comparison.delta === 0
+                ? `Registrations ${movement} across the same quarters of the prior year.`
+                : `Registrations ${movement} by ${format(Math.abs(comparison.delta))}${comparison.percent === null ? '' : ` (${Math.abs(comparison.percent).toFixed(1)}%)`} compared with the same quarters of ${yearLabel(comparison.previousYear)}.`;
+        }
+        text('quarterTakeaway', takeaway);
+        const currentName = yearLabel(view.selection.year);
+        const labels = comparison ? comparison.quarters.map(q => q.season) : view.quarters.map(q => q.label);
+        const legend = byId('quarterLegend');
+        legend.replaceChildren();
+        [currentName, comparison && yearLabel(comparison.previousYear)].filter(Boolean).forEach((label, index) => {
+            const item = element('span');
+            item.appendChild(element('i', `legend-rule${index ? ' previous' : ''}`));
+            item.appendChild(document.createTextNode(label));
+            legend.appendChild(item);
+        });
+        const table = byId('quarterTableBody');
+        table.replaceChildren();
+        view.quarters.forEach((quarter, index) => {
+            const row = element('tr');
+            cell(row, quarter.label);
+            cell(row, format(quarter.total), 'numeric');
+            cell(row, comparison ? format(comparison.quarters[index].previous) : '—', 'numeric');
+            table.appendChild(row);
+        });
+        const canvas = byId('overallTrendChart');
+        canvas.setAttribute('aria-label', `${currentName} course registrations: ${view.quarters.map(q => `${q.label}, ${q.total === null ? 'no matching records' : q.total}`).join('; ')}. ${takeaway}`);
+        canvas.hidden = typeof window.Chart !== 'function';
+        byId('chartUnavailable').hidden = !canvas.hidden;
+        if (canvas.hidden) return;
+        const datasets = [{
+            label: currentName, data: view.quarters.map(q => q.total),
+            borderColor: '#a10022', backgroundColor: 'rgba(161,0,34,.045)',
+            borderWidth: 2.5, pointBackgroundColor: '#fff', pointBorderWidth: 2,
+            pointRadius: 4, pointHoverRadius: 6, tension: 0, fill: true, spanGaps: false
+        }];
+        if (comparison) datasets.push({
+            label: yearLabel(comparison.previousYear), data: comparison.quarters.map(q => q.previous),
+            borderColor: '#929ca7', borderDash: [5, 5], borderWidth: 1.5,
+            pointBackgroundColor: '#fff', pointRadius: 3, tension: 0, fill: false
+        });
+        const directLabels = {
+            id: 'enrollmentDirectLabels',
+            afterDatasetsDraw(chartInstance) {
+                const ctx = chartInstance.ctx;
+                ctx.save();
+                ctx.font = '500 12px "IBM Plex Sans", sans-serif';
+                ctx.fillStyle = '#6f0018';
+                ctx.textAlign = 'center';
+                chartInstance.getDatasetMeta(0).data.forEach((point, index) => {
+                    if (datasets[0].data[index] === null) return;
+                    ctx.fillText(format(datasets[0].data[index]), point.x, point.y - 12);
+                });
+                ctx.restore();
+            }
+        };
+        chart = new window.Chart(canvas, {
+            type: 'line', data: { labels, datasets }, plugins: [directLabels],
+            options: {
+                responsive: true, maintainAspectRatio: false, animation: false,
+                layout: { padding: { top: 24, right: 18, left: 6 } },
+                interaction: { mode: 'index', intersect: false },
+                plugins: { legend: { display: false }, tooltip: { backgroundColor: '#252b33', padding: 12, displayColors: true, callbacks: { label: context => `${context.dataset.label}: ${format(context.parsed.y)} registrations` } } },
+                scales: {
+                    x: { grid: { display: false }, border: { display: false }, ticks: { color: '#65707b', font: { family: 'IBM Plex Sans', size: 12 }, maxRotation: 0, autoSkip: true } },
+                    y: { beginAtZero: true, grace: '12%', border: { display: false }, grid: { color: '#edf0f3' }, ticks: { color: '#7c858f', precision: 0, maxTicksLimit: 5, font: { family: 'IBM Plex Sans', size: 11 } } }
+                }
+            }
+        });
+    }
+
+    function renderLevels(view) {
+        const container = byId('levelBreakdown');
+        container.replaceChildren();
+        view.levelTotals.forEach(level => {
+            const item = element('div', 'level-item');
+            const top = element('div', 'level-topline');
+            const label = element('span', '', level.label.split(' · ')[0]);
+            label.appendChild(element('small', '', `${level.label.split(' · ')[1]} level`));
+            top.append(label, element('strong', '', format(level.total)));
+            const track = element('div', 'level-track');
+            track.setAttribute('aria-hidden', 'true');
+            const bar = element('span');
+            const share = view.totalRegistrations ? level.total / view.totalRegistrations * 100 : 0;
+            bar.style.width = `${share}%`;
+            track.appendChild(bar);
+            item.append(top, track, element('p', 'level-share', `${share.toFixed(0)}% of selected registrations`));
+            container.appendChild(item);
+        });
+        const largest = [...view.levelTotals].sort((a, b) => b.total - a.total)[0];
+        text('levelTakeaway', view.totalRegistrations ? `${largest.label.split(' · ')[0]} courses account for ${(largest.total / view.totalRegistrations * 100).toFixed(0)}% of registrations. Counts reflect seats across sections, not how many individual students are in each level.` : 'The matching records contain zero registrations. No registration shares can be calculated.');
+    }
+
+    function svgNode(tag, attributes, content) {
+        const node = document.createElementNS('http://www.w3.org/2000/svg', tag);
+        Object.entries(attributes).forEach(([key, value]) => node.setAttribute(key, String(value)));
+        if (content !== undefined) node.textContent = content;
+        return node;
+    }
+
+    function winterChart(course, years, ceiling) {
+        const width = 264, height = 126, left = 38, right = 14, top = 23, bottom = 27;
+        const plotHeight = height - top - bottom;
+        const x = index => years.length < 2 ? width / 2 : left + index * (width - left - right) / (years.length - 1);
+        const y = value => top + plotHeight * (1 - value / ceiling);
+        const svg = svgNode('svg', { viewBox: `0 0 ${width} ${height}`, role: 'img', 'aria-label': `${course.code}. ${years.map((year, index) => `Winter ${year}: ${course.values[index] === null ? 'no record' : `${course.values[index]} registrations`}`).join('. ')}` });
+        [0, ceiling / 2, ceiling].forEach(value => {
+            svg.appendChild(svgNode('line', { x1: left, x2: width - right, y1: y(value), y2: y(value), stroke: '#e9ecef', 'stroke-width': 1 }));
+            if (value !== ceiling / 2) svg.appendChild(svgNode('text', { x: 16, y: y(value) + 3, 'text-anchor': 'end', fill: '#89929b', 'font-size': 9 }, value));
+        });
+        for (let index = 1; index < years.length; index++) {
+            if (course.values[index - 1] !== null && course.values[index] !== null) {
+                svg.appendChild(svgNode('line', { x1: x(index - 1), y1: y(course.values[index - 1]), x2: x(index), y2: y(course.values[index]), stroke: '#a10022', 'stroke-width': 2 }));
+            }
+        }
+        years.forEach((year, index) => {
+            const value = course.values[index];
+            svg.appendChild(svgNode('text', { x: x(index), y: height - 8, 'text-anchor': 'middle', fill: '#7b858e', 'font-size': 11 }, String(year)));
+            if (value === null) {
+                svg.appendChild(svgNode('text', { x: x(index), y: y(0) - 8, 'text-anchor': 'middle', fill: '#7b858e', 'font-size': 13 }, '—'));
+                return;
+            }
+            svg.appendChild(svgNode('circle', { cx: x(index), cy: y(value), r: 3.5, fill: '#fff', stroke: '#a10022', 'stroke-width': 1.8 }));
+            svg.appendChild(svgNode('text', { x: x(index), y: y(value) - 10, 'text-anchor': 'middle', fill: '#252b33', 'font-size': 12, 'font-weight': 500 }, format(value)));
+        });
+        return svg;
+    }
+
+    function winterChange(course, first) {
+        if (course.delta === null) return 'A comparison needs records in both years';
+        if (course.delta === 0) return `Unchanged from Winter ${first}`;
+        return `${format(Math.abs(course.delta))} ${course.delta > 0 ? 'more' : 'fewer'} than Winter ${first}`;
+    }
+
+    function renderWinter(winter) {
+        const rows = [...winter.rows].sort((a, b) => (b.values[b.values.length - 1] ?? -1) - (a.values[a.values.length - 1] ?? -1) || a.code.localeCompare(b.code));
+        const ceiling = Math.max(10, Math.ceil(Math.max(0, ...rows.flatMap(row => row.values.filter(value => value !== null))) / 10) * 10);
+        const cards = byId('winterSmallMultiples');
+        cards.replaceChildren();
+        byId('winterEmpty').hidden = rows.length > 0;
+        byId('winterDetails').hidden = !rows.length;
+        text('winterScope', winter.years.length ? `Winters ${winter.first}–${winter.last} · all recorded winters, independent of the academic-year filter` : 'No recorded winters');
+        if (winter.years.length > 1 && rows.length) {
+            const lastIndex = winter.years.length - 1;
+            const observed = index => rows.some(row => row.values[index] !== null);
+            const last = winter.totals[lastIndex];
+            const previous = winter.totals[lastIndex - 1];
+            const previousYear = winter.years[winter.years.length - 2];
+            const delta = last - previous;
+            const amount = previous ? ` (${(Math.abs(delta) / previous * 100).toFixed(1)}%)` : '';
+            let takeaway;
+            if (!observed(lastIndex)) {
+                takeaway = `No matching course records are available for Winter ${winter.last}. Earlier recorded counts are shown below.`;
+            } else if (!observed(lastIndex - 1)) {
+                takeaway = `${format(last)} registrations are recorded in Winter ${winter.last}. No matching records are available for Winter ${previousYear}, so a change cannot be calculated.`;
+            } else takeaway = delta === 0
+                ? `Winter registrations held at ${format(last)} in ${winter.last}, unchanged from ${previousYear}.`
+                : `Winter registrations ${delta > 0 ? 'rose' : 'fell'} from ${format(previous)} in ${previousYear} to ${format(last)} in ${winter.last}, ${delta > 0 ? 'up' : 'down'} ${format(Math.abs(delta))}${amount}.`;
+            if (winter.years.length > 2 && observed(lastIndex) && observed(0)) {
+                const difference = last - winter.totals[0];
+                takeaway += difference === 0 ? ` That matches ${winter.first}.` : ` That is ${format(Math.abs(difference))} ${difference > 0 ? 'above' : 'below'} ${winter.first}.`;
+            }
+            text('winterTakeaway', takeaway);
+        } else text('winterTakeaway', rows.length ? 'Only one Winter is recorded. A year-to-year comparison is not available.' : 'Select another course level or historical trend to see Winter records.');
+        const visible = rows.slice(0, 12);
+        text('winterDisplayNote', rows.length ? `${visible.length < rows.length ? `The ${visible.length} largest` : 'All'} courses by recorded Winter ${winter.last} registrations. Common scale: 0–${ceiling}.` : '');
+        visible.forEach(course => {
+            const card = element('article', 'winter-course');
+            const heading = element('h3', '', course.code);
+            heading.appendChild(element('span', 'course-name', course.title || 'Course title unavailable'));
+            card.append(heading, winterChart(course, winter.years, ceiling), element('p', `course-change ${changeClass(course.delta)}`, winterChange(course, winter.first)));
+            cards.appendChild(card);
+        });
+        text('winterTableSummary', `Read all ${format(rows.length)} Winter courses as a table`);
+        const head = element('tr');
+        ['Course', ...winter.years.map(year => `Winter ${year}`), `Change since ${winter.first || 'first Winter'}`].forEach(label => {
+            const th = element('th', '', label); th.scope = 'col'; head.appendChild(th);
+        });
+        byId('winterTableHead').replaceChildren(head);
+        const body = byId('winterTableBody');
+        body.replaceChildren();
+        rows.forEach(course => {
+            const row = element('tr');
+            const label = cell(row, course.code);
+            if (course.title) label.appendChild(element('span', 'table-course-title', course.title));
+            course.values.forEach(value => cell(row, format(value), 'numeric'));
+            cell(row, course.delta === null ? '—' : signed(course.delta), 'numeric');
+            body.appendChild(row);
+        });
+    }
+
+    function renderCourses(view) {
+        text('courseTableScope', `${yearLabel(view.selection.year)} · registrations across all sections, highest first`);
+        text('courseTableCount', `${format(view.courseCount)} courses`);
+        const body = byId('courseTableBody');
+        body.replaceChildren();
+        view.courses.forEach(course => {
+            const row = element('tr');
+            const label = cell(row, '');
+            label.appendChild(element('strong', '', course.code));
+            if (course.title) label.appendChild(element('span', 'table-course-title', course.title));
+            cell(row, format(course.periodTotal), 'numeric');
+            cell(row, `${Object.values(course.quarterly).filter(value => value !== null).length} / ${view.quarters.length}`, 'numeric');
+            const trend = cell(row, '');
+            trend.appendChild(element('span', `trend-label ${course.trend}`, course.trend[0].toUpperCase() + course.trend.slice(1)));
+            body.appendChild(row);
+        });
+    }
+
+    return { init };
+})();
+window.addEventListener('DOMContentLoaded', EnrollmentDashboard.init);
