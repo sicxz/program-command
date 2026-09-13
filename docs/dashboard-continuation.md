@@ -48,9 +48,35 @@ the next workstream; its existing implementation is preserved.
    must produce an unavailable state, not “Within Baseline” or unused capacity.
    See [#279](https://github.com/sicxz/program-command/issues/279).
 
-Steps 2–4 are outstanding data work, not fixes delivered by the navigation
-change. These concerns came from the earlier dashboard audit and need current
-verification before implementation.
+Steps 2 and 4 remain outstanding. Enrollment's presentation and recorded-count
+contract have now been updated as described below; further source-pipeline
+validation is separate from that work.
+
+## Enrollment UI and data presentation
+
+The user's follow-up narrowed the immediate work to visual readability and
+what the data explains, especially the overlapping Winter course chart.
+`enrollment-dashboard.html` now uses a dedicated controller, stylesheet and
+pure view model. The main changes are:
+
+- Quarterly registrations have direct labels, a same-quarter prior-year
+  comparison, and an exact-count table. Missing matching records are gaps,
+  while a recorded zero remains zero. A comparison requires observations in
+  every paired quarter.
+- Winter uses individual course charts on a shared scale with course titles,
+  printed values and a data-derived takeaway. The 12 largest latest-Winter
+  courses appear first; all Winter courses remain in the disclosure table.
+  Winter covers all recorded winters regardless of the academic-year filter.
+- Course-level and historical-trend filters now apply to the displayed data.
+  Trend classifications still describe the full source history.
+- Counts are course registrations, not unique students or declared majors.
+  Source dates and partial-year coverage are explicit. Invented Winter 2026
+  values and unsupported forecast/headcount/capacity panels were removed.
+
+The source snapshot is unchanged: generated February 21, 2026, with records
+through Fall 2025. The default is the latest complete academic year, 2024–25,
+with 1,272 registrations. This does not supply live enrollment or validate
+the upstream pipeline, student headcount, or capacity calculations.
 
 Repository cleanup is a separate matter: do not delete recovery folders,
 retire the old hosted site, close legacy PRs, or delete branches as part of
