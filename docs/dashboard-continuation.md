@@ -77,9 +77,10 @@ The source snapshot is unchanged: generated February 21, 2026, with records
 through Fall 2025. This does not supply live enrollment or validate the upstream
 pipeline, student headcount, or capacity calculations.
 
-The next user direction was to update the dashboard based on the current
-quarter. Both the academic-year default and course-comparison season now use
-an **Automatic** option. The pure resolver reads `data/academic-calendar.json`
+The academic-year selector defaults to **All recorded years**, following the
+user's latest preference. **Automatic** remains available for the current
+academic year. The course-comparison quarter defaults to **Automatic** and
+continues following the current term. The pure resolver reads `data/academic-calendar.json`
 in Pacific time, with verified EWU dates for 2025–26 and 2026–27. Active dates
 include instruction and finals; during breaks the next term is labeled
 **Upcoming**. Outside that published date range, the UI explicitly labels a

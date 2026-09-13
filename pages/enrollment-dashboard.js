@@ -68,7 +68,7 @@ const EnrollmentDashboard = (function () {
                 option.value = year.value;
                 select.appendChild(option);
             });
-            select.value = 'current';
+            select.value = 'all';
             const date = meta.sourceDate ? new Date(meta.sourceDate).toLocaleDateString('en-US', {
                 month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC'
             }) : null;

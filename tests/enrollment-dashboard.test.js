@@ -33,11 +33,12 @@ function select(id, value) {
     byId(id).dispatchEvent(new Event('change'));
 }
 
-test('default presentation uses recorded registrations, dates and real winters', async () => {
+test('default presentation shows all recorded years with automatic quarter comparisons', async () => {
     await dashboard.init();
-    expect(byId('academicYearFilter').value).toBe('current');
-    expect(byId('registrationCount').textContent).toBe('1,272');
-    expect(byId('periodChange').textContent).toBe('+8.8%');
+    expect(byId('academicYearFilter').value).toBe('all');
+    expect(byId('quarterFocus').value).toBe('current');
+    expect(byId('registrationCount').textContent).toBe('4,038');
+    expect(byId('periodChange').textContent).toBe('—');
     expect(byId('sourceCoverage').textContent).toBe('Records through Fall 2025');
     expect(byId('historyTakeaway').textContent).toContain('395 in 2024 to 437 in 2025, up 42 (10.6%)');
     expect(byId('historySmallMultiples').children).toHaveLength(12);
@@ -67,6 +68,7 @@ test('successive filters replace the chart and keep partial-year comparisons ali
 
 test('no matching quarter records are shown as gaps and never explained as a decline to zero', async () => {
     await dashboard.init();
+    select('academicYearFilter', '2024-25');
     select('courseFilter', 'advanced');
     select('trendFilter', 'growing');
     const config = Chart.mock.calls[Chart.mock.calls.length - 1][1];
@@ -94,7 +96,7 @@ test('source failure hides stale totals and retry restores the dashboard', async
     expect(byId('dashboardContent').hidden).toBe(false);
     expect(byId('loadStatus').hidden).toBe(true);
     expect(byId('academicYearFilter').disabled).toBe(false);
-    expect(byId('registrationCount').textContent).toBe('1,272');
+    expect(byId('registrationCount').textContent).toBe('4,038');
 });
 
 test('chart rendering failure exposes the error state instead of stale partial content', async () => {
@@ -120,6 +122,7 @@ test('missing Chart library keeps exact table counts and Winter charts available
 test('automatic view follows the upcoming quarter and displays the source gap', async () => {
     jest.setSystemTime(new Date('2026-09-13T20:00:00Z'));
     await dashboard.init();
+    select('academicYearFilter', 'current');
     expect(byId('currentTermLabel').textContent).toBe('Upcoming quarter · Fall 2026 starts Sep 23');
     expect(byId('academicYearFilter').selectedOptions[0].textContent).toBe('Automatic · 2026–27');
     expect(byId('periodStatus').textContent).toContain('No enrollment records for Fall 2026');
@@ -136,6 +139,8 @@ test('open page rolls to a new term while explicit year and quarter choices stay
     jest.setSystemTime(new Date('2026-12-11T20:00:00Z'));
     events.focus();
     expect(byId('historyHeading').textContent).toContain('Winter');
+    expect(byId('academicYearFilter').value).toBe('all');
+    expect(byId('registrationCount').textContent).toBe('4,038');
     expect(byId('currentTermLabel').textContent).toContain('Upcoming quarter · Winter 2027');
     select('academicYearFilter', '2024-25');
     select('quarterFocus', 'spring');
