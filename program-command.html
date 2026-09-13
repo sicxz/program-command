@@ -4385,6 +4385,9 @@
         }
 
         body.foundry-production .nav-accordion-toggle {
+            width: 100%;
+            height: auto;
+            text-align: left;
             background: var(--f-surface-subtle);
             color: var(--f-ink);
             border: 0;
@@ -4435,6 +4438,31 @@
             border-color: var(--f-rule);
             box-shadow: inset 4px 0 0 var(--f-blue);
             color: var(--f-ink);
+        }
+
+        .archived-features {
+            margin-top: 12px;
+            border-top: 1px solid var(--f-hairline);
+            padding-top: 12px;
+        }
+
+        .archived-features summary {
+            width: fit-content;
+            padding: 6px 0;
+            color: var(--f-muted);
+            font-weight: 650;
+            cursor: pointer;
+        }
+
+        .archived-features summary:focus-visible {
+            outline: 2px solid var(--f-blue);
+            outline-offset: 4px;
+        }
+
+        .archived-features p {
+            max-width: 70ch;
+            margin: 8px 0 12px;
+            color: var(--f-muted);
         }
 
         body.foundry-production .stats-bar {
@@ -5387,42 +5415,30 @@
 
         <!-- Dashboard Navigation -->
         <div class="dashboard-nav">
-            <div class="nav-accordion-toggle collapsed" onclick="toggleNavAccordion()">
+            <button type="button" class="nav-accordion-toggle" onclick="toggleNavAccordion()" aria-expanded="true" aria-controls="navAccordionContent">
                 <span>📌 Dashboards & Tools</span>
-                <span class="toggle-icon">▼</span>
-            </div>
-            <div class="nav-accordion-content collapsed" id="navAccordionContent">
+                <span class="toggle-icon" aria-hidden="true">▼</span>
+            </button>
+            <div class="nav-accordion-content" id="navAccordionContent">
                 <!-- Analytics Row -->
                 <div class="nav-row">
                     <span class="nav-row-header" id="navHeaderAnalytics">Analytics</span>
                     <div class="nav-row-items">
-                        <a href="enrollment-dashboard.html" class="nav-link"><span class="icon">📊</span>Enrollment</a>
-                        <a href="pages/workload-dashboard.html" class="nav-link"><span
-                                class="icon">👥</span>Workload</a>
-                        <a href="pages/capacity-planning-dashboard.html" class="nav-link"><span
-                                class="icon">📈</span>Capacity</a>
                         <a href="pages/applied-learning-dashboard.html" class="nav-link"><span
                                 class="icon">🎓</span>Applied Learning</a>
+                        <a href="enrollment-dashboard.html" class="nav-link"><span class="icon">📊</span>Enrollment</a>
+                        <a href="pages/capacity-planning-dashboard.html" class="nav-link"><span
+                                class="icon">📈</span>Capacity</a>
                     </div>
                 </div>
-                <!-- Planning Row -->
-                <div class="nav-row">
-                    <span class="nav-row-header" id="navHeaderPlanning">Planning</span>
+                <!-- Workload is separate from the analytics suite. -->
+                <div class="nav-row" id="workloadNavigation">
+                    <span class="nav-row-header">Workload</span>
                     <div class="nav-row-items">
-                        <a href="pages/schedule-builder.html" class="nav-link"><span class="icon">📅</span>Builder</a>
-                        <a href="pages/academic-year-setup.html" class="nav-link"><span class="icon">🗂️</span>AY
-                            Setup</a>
-                        <a href="pages/department-onboarding.html" class="nav-link"><span
-                                class="icon">🧭</span>Onboarding</a>
-                        <a href="pages/eaglenet-compare.html" class="nav-link"><span
-                                class="icon">🧾</span>EagleNet Compare</a>
-                        <a href="pages/course-management.html" class="nav-link"><span class="icon">📚</span>Courses</a>
                         <a href="pages/workload-dashboard.html" class="nav-link"><span
-                                class="icon">👥</span>Workload</a>
-                        <a href="pages/constraints-dashboard.html" class="nav-link"><span
-                                class="icon">🔒</span>Constraints</a>
-                        <a href="pages/demand-planning-dashboard.html" class="nav-link"><span
-                                class="icon">⚡</span>Demand</a>
+                                class="icon">👥</span>Faculty Workload</a>
+                        <a href="pages/release-time-dashboard.html" class="nav-link"><span
+                                class="icon">🔧</span>Release Time</a>
                     </div>
                 </div>
                 <!-- Tools Row -->
@@ -5434,12 +5450,24 @@
                         <button onclick="exportReport()" class="nav-link"><span class="icon">📋</span>Export</button>
                         <a href="pages/pamcam-playground.html" class="nav-link"><span class="icon">🧪</span>PamCam
                             Lab</a>
-                        <a href="pages/release-time-dashboard.html" class="nav-link"><span class="icon">🔧</span>Release
-                            Time</a>
                         <a href="pages/recommendations-dashboard.html" class="nav-link"><span
                                 class="icon">💡</span>Recommendations</a>
                     </div>
                 </div>
+                <details class="archived-features" id="archivedFeatures">
+                    <summary>Archived features</summary>
+                    <p>Start a new year with <strong>Copy to Next Year</strong> above the schedule.
+                        These setup and planning tools are kept here for occasional use.</p>
+                    <div class="nav-row-items">
+                        <a href="pages/schedule-builder.html" class="nav-link"><span class="icon">📅</span>Builder</a>
+                        <a href="pages/academic-year-setup.html" class="nav-link"><span class="icon">🗂️</span>AY Setup</a>
+                        <a href="pages/department-onboarding.html" class="nav-link"><span class="icon">🧭</span>Onboarding</a>
+                        <a href="pages/eaglenet-compare.html" class="nav-link"><span class="icon">🧾</span>EagleNet Compare</a>
+                        <a href="pages/course-management.html" class="nav-link"><span class="icon">📚</span>Courses</a>
+                        <a href="pages/constraints-dashboard.html" class="nav-link"><span class="icon">🔒</span>Constraints</a>
+                        <a href="pages/demand-planning-dashboard.html" class="nav-link"><span class="icon">⚡</span>Demand</a>
+                    </div>
+                </details>
             </div>
         </div>
 
@@ -6264,7 +6292,6 @@
 
             const slotBindings = {
                 navHeaderAnalytics: textSlots.navAnalyticsLabel,
-                navHeaderPlanning: textSlots.navPlanningLabel,
                 navHeaderTools: textSlots.navToolsLabel
             };
 
@@ -6627,6 +6654,7 @@
             const content = document.getElementById('navAccordionContent');
             toggle.classList.toggle('collapsed');
             content.classList.toggle('collapsed');
+            toggle.setAttribute('aria-expanded', String(!content.classList.contains('collapsed')));
         }
 
         let unsavedModalResolver = null;
@@ -6757,9 +6785,17 @@
                     return;
                 }
                 showToast('Users & accounts management UI is not implemented yet.');
+            } else if (action === 'nav-applied-learning') {
+                e.preventDefault();
+                navigateWithDirtyGuard('pages/applied-learning-dashboard.html');
             } else if (action === 'nav-enrollment') {
+                e.preventDefault();
                 navigateWithDirtyGuard('enrollment-dashboard.html');
+            } else if (action === 'nav-capacity') {
+                e.preventDefault();
+                navigateWithDirtyGuard('pages/capacity-planning-dashboard.html');
             } else if (action === 'nav-workload') {
+                e.preventDefault();
                 navigateWithDirtyGuard('pages/workload-dashboard.html');
             }
         });
