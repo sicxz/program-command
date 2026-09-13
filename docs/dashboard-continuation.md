@@ -63,10 +63,10 @@ pure view model. The main changes are:
   comparison, and an exact-count table. Missing matching records are gaps,
   while a recorded zero remains zero. A comparison requires observations in
   every paired quarter.
-- Winter uses individual course charts on a shared scale with course titles,
-  printed values and a data-derived takeaway. The 12 largest latest-Winter
-  courses appear first; all Winter courses remain in the disclosure table.
-  Winter covers all recorded winters regardless of the academic-year filter.
+- Course comparisons use individual charts on a shared scale with titles,
+  printed values and a data-derived takeaway. The 12 largest courses in the
+  latest recorded quarter appear first; all courses remain in the disclosure
+  table. The comparison covers the selected season across all recorded years.
 - Course-level and historical-trend filters now apply to the displayed data.
   Trend classifications still describe the full source history.
 - Counts are course registrations, not unique students or declared majors.
@@ -74,9 +74,24 @@ pure view model. The main changes are:
   values and unsupported forecast/headcount/capacity panels were removed.
 
 The source snapshot is unchanged: generated February 21, 2026, with records
-through Fall 2025. The default is the latest complete academic year, 2024–25,
-with 1,272 registrations. This does not supply live enrollment or validate
-the upstream pipeline, student headcount, or capacity calculations.
+through Fall 2025. This does not supply live enrollment or validate the upstream
+pipeline, student headcount, or capacity calculations.
+
+The next user direction was to update the dashboard based on the current
+quarter. Both the academic-year default and course-comparison season now use
+an **Automatic** option. The pure resolver reads `data/academic-calendar.json`
+in Pacific time, with verified EWU dates for 2025–26 and 2026–27. Active dates
+include instruction and finals; during breaks the next term is labeled
+**Upcoming**. Outside that published date range, the UI explicitly labels a
+seasonal estimate. Extend the calendar from the registrar's official dates
+when new years are published; never silently call approximate dates exact.
+
+Automatic selections refresh when the page regains focus or visibility and
+once per minute while open. Explicit year/quarter choices remain selected.
+Missing current-year enrollment is shown as unavailable, while the comparison
+still shows recorded history for the selected quarter. A date change does not
+fabricate or import new enrollment records. Reloading revalidates the local
+source snapshot and calendar rather than relying on a stale cached response.
 
 Repository cleanup is a separate matter: do not delete recovery folders,
 retire the old hosted site, close legacy PRs, or delete branches as part of

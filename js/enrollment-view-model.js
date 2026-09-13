@@ -39,6 +39,39 @@ const EnrollmentViewModel = (function () {
         };
     }
 
+    function currentTerm(now = new Date(), calendar = null) {
+        const date = new Date(now);
+        const parts = new Intl.DateTimeFormat('en-US', {
+            timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit', day: '2-digit'
+        }).formatToParts(date);
+        const part = name => parts.find(value => value.type === name).value;
+        const today = `${part('year')}-${part('month')}-${part('day')}`;
+        const terms = (Array.isArray(calendar?.terms) ? calendar.terms : []).filter(term =>
+            isRecord(term) &&
+            parseQuarter(`${term.quarter}-${term.year}`) &&
+            /^\d{4}-\d{2}-\d{2}$/.test(term.start) && /^\d{4}-\d{2}-\d{2}$/.test(term.end) &&
+            Number.isFinite(Date.parse(term.start)) && Number.isFinite(Date.parse(term.end)) &&
+            term.start <= term.end
+        ).sort((a, b) => a.start.localeCompare(b.start));
+        const active = terms.find(term => term.start <= today && today <= term.end);
+        // Between terms, focus the upcoming quarter for planning, labeled as such.
+        const upcoming = !active && terms.some(term => term.end < today) && terms.find(term => today < term.start &&
+            (Date.parse(term.start) - Date.parse(today)) / 86400000 <= 60);
+        const term = active || upcoming;
+        if (term) return {
+            ...parseQuarter(`${term.quarter}-${term.year}`),
+            quarter: term.quarter, today, start: term.start, end: term.end,
+            status: active ? 'current' : 'upcoming', isApproximate: false
+        };
+        // Outside the published calendar, keep the view useful without claiming exact term dates.
+        const month = Number(part('month'));
+        const quarter = month <= 3 ? 'winter' : month <= 6 ? 'spring' : month <= 8 ? 'summer' : 'fall';
+        return {
+            ...parseQuarter(`${quarter}-${part('year')}`), quarter, today,
+            start: null, end: null, status: 'estimated', isApproximate: true
+        };
+    }
+
     function courseLevel(code) {
         const number = Number(code.match(/\d{3}$/)[0]);
         if (number < 300) return 'foundation';
@@ -173,9 +206,10 @@ const EnrollmentViewModel = (function () {
         };
     }
 
-    function winterHistory(courses, allQuarters) {
-        const winters = allQuarters.filter(q => q.season === 'Winter');
-        const keys = winters.map(q => q.key);
+    function quarterHistory(courses, allQuarters, quarter) {
+        const season = quarter[0].toUpperCase() + quarter.slice(1);
+        const historyQuarters = allQuarters.filter(q => q.season === season);
+        const keys = historyQuarters.map(q => q.key);
         const rows = courses.filter(course => hasObservation(course, keys))
             .map(course => {
                 const values = keys.map(key => course.quarterly[key] ?? null);
@@ -186,11 +220,12 @@ const EnrollmentViewModel = (function () {
                 return { code: course.code, title: course.title, values, ...changes };
             }).sort((a, b) => a.code.localeCompare(b.code));
         return {
-            years: winters.map(q => q.year),
+            quarter, season,
+            years: historyQuarters.map(q => q.year),
             rows,
             totals: keys.map(key => recordedQuarterTotal(courses, key)),
-            first: winters[0]?.year || null,
-            last: winters[winters.length - 1]?.year || null
+            first: historyQuarters[0]?.year || null,
+            last: historyQuarters[historyQuarters.length - 1]?.year || null
         };
     }
 
@@ -202,7 +237,10 @@ const EnrollmentViewModel = (function () {
         const normalized = normalize(data, catalog);
         const meta = metadata(data, normalized);
         const settings = isRecord(options) ? options : {};
-        const year = settings.year === 'all' || meta.years.some(item => item.value === settings.year) ? settings.year : meta.defaultYear;
+        const term = currentTerm(settings.now, settings.calendar);
+        const year = settings.year === 'current' ? term.academicYear :
+            settings.year === 'all' || meta.years.some(item => item.value === settings.year) ? settings.year : meta.defaultYear;
+        const quarter = SEASONS.some(season => season.toLowerCase() === settings.quarter) ? settings.quarter : term.quarter;
         const level = LEVELS.some(item => item.key === settings.level) ? settings.level : 'all';
         const trend = TRENDS.includes(settings.trend) ? settings.trend : 'all';
         const matchingCourses = normalized.courses.filter(course =>
@@ -225,7 +263,9 @@ const EnrollmentViewModel = (function () {
         const trendCounts = Object.fromEntries(TRENDS.map(key => [key, 0]));
         courses.forEach(course => trendCounts[course.trend]++);
         return {
-            selection: { year, level, trend },
+            selection: { year, level, trend, quarter },
+            term,
+            currentTermHasRecords: normalized.quarters.some(quarter => quarter.key === term.key),
             hasData: courses.length > 0,
             courses,
             quarters,
@@ -238,11 +278,11 @@ const EnrollmentViewModel = (function () {
                 total: courses.filter(course => course.level === item.key).reduce((sum, course) => sum + course.periodTotal, 0)
             })),
             trendCounts,
-            winter: winterHistory(matchingCourses, normalized.quarters)
+            history: quarterHistory(matchingCourses, normalized.quarters, quarter)
         };
     }
 
-    return { create, build };
+    return { create, build, currentTerm };
 })();
 
 if (typeof window !== 'undefined') window.EnrollmentViewModel = EnrollmentViewModel;

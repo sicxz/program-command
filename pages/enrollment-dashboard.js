@@ -2,6 +2,8 @@ const EnrollmentDashboard = (function () {
     'use strict';
     let source = null;
     let catalog = null;
+    let calendar = null;
+    let term = null;
     let chart = null;
     let listenersBound = false;
     const number = new Intl.NumberFormat('en-US');
@@ -29,7 +31,7 @@ const EnrollmentDashboard = (function () {
     }
 
     async function fetchJson(url) {
-        const response = await fetch(url);
+        const response = await fetch(url, { cache: 'no-cache' });
         if (!response.ok) throw new Error(`Unable to read ${url} (${response.status})`);
         return response.json();
     }
@@ -37,21 +39,27 @@ const EnrollmentDashboard = (function () {
     async function init() {
         byId('main').setAttribute('aria-busy', 'true');
         byId('loadStatus').hidden = false;
+        byId('periodStatus').hidden = true;
         byId('loadStatus').className = 'load-status';
         text('loadStatus', 'Loading enrollment records…');
         byId('dashboardContent').hidden = true;
-        document.querySelectorAll('.filters select').forEach(select => { select.disabled = true; });
+        document.querySelectorAll('.filters select, #quarterFocus').forEach(select => { select.disabled = true; });
         try {
             const results = await Promise.all([
                 fetchJson('enrollment-dashboard-data.json'),
-                fetchJson('data/course-catalog.json').catch(() => null)
+                fetchJson('data/course-catalog.json').catch(() => null),
+                fetchJson('data/academic-calendar.json').catch(() => null)
             ]);
             source = results[0];
             catalog = results[1];
+            calendar = results[2];
             const meta = window.EnrollmentViewModel.create(source, catalog);
             if (!meta.years.length) throw new Error('The source contains no valid quarterly enrollment records.');
             const select = byId('academicYearFilter');
             select.replaceChildren();
+            const current = element('option', '', 'Automatic · current academic year');
+            current.value = 'current';
+            select.appendChild(current);
             const all = element('option', '', 'All recorded years');
             all.value = 'all';
             select.appendChild(all);
@@ -60,7 +68,7 @@ const EnrollmentDashboard = (function () {
                 option.value = year.value;
                 select.appendChild(option);
             });
-            select.value = meta.defaultYear;
+            select.value = 'current';
             const date = meta.sourceDate ? new Date(meta.sourceDate).toLocaleDateString('en-US', {
                 month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC'
             }) : null;
@@ -68,12 +76,15 @@ const EnrollmentDashboard = (function () {
             text('sourceDate', date ? `Source generated ${date}` : 'Source generation date unavailable');
             text('sourceDescription', `${meta.firstQuarter} through ${meta.lastQuarter}. ${date ? `Snapshot generated ${date}.` : 'Generation date unavailable.'} Course counts come from recorded enrollment rows. A source gap is not a forecast or proof that a course had no students.`);
             if (!listenersBound) {
-                ['academicYearFilter', 'courseFilter', 'trendFilter'].forEach(id => {
+                ['academicYearFilter', 'courseFilter', 'trendFilter', 'quarterFocus'].forEach(id => {
                     byId(id).addEventListener('change', render);
                 });
+                window.addEventListener('focus', refreshAutomaticPeriod);
+                document.addEventListener('visibilitychange', refreshAutomaticPeriod);
+                window.setInterval(refreshAutomaticPeriod, 60000);
                 listenersBound = true;
             }
-            document.querySelectorAll('.filters select').forEach(control => { control.disabled = false; });
+            document.querySelectorAll('.filters select, #quarterFocus').forEach(control => { control.disabled = false; });
             byId('dashboardContent').hidden = false;
             byId('loadStatus').hidden = true;
             render();
@@ -82,7 +93,7 @@ const EnrollmentDashboard = (function () {
             if (chart) { chart.destroy(); chart = null; }
             byId('dashboardContent').hidden = true;
             byId('loadStatus').hidden = false;
-            document.querySelectorAll('.filters select').forEach(control => { control.disabled = true; });
+            document.querySelectorAll('.filters select, #quarterFocus').forEach(control => { control.disabled = true; });
             byId('loadStatus').className = 'load-status error';
             text('loadStatus', 'Enrollment records could not be loaded. No totals are shown.');
             const retry = element('button', '', 'Try again');
@@ -96,12 +107,37 @@ const EnrollmentDashboard = (function () {
         }
     }
 
+    function refreshAutomaticPeriod() {
+        if (!source || !byId('loadStatus').hidden || document.hidden) return;
+        const next = window.EnrollmentViewModel.currentTerm(new Date(), calendar);
+        if (!term || next.key !== term.key || next.status !== term.status) render();
+    }
+
+    function renderTerm(view) {
+        term = view.term;
+        byId('academicYearFilter').querySelector('[value="current"]').textContent = `Automatic · ${yearLabel(term.academicYear)}`;
+        byId('quarterFocus').querySelector('[value="current"]').textContent = `Automatic · ${term.season}`;
+        const startDate = term.start && new Date(`${term.start}T12:00:00Z`).toLocaleDateString('en-US', {
+            month: 'short', day: 'numeric', timeZone: 'America/Los_Angeles'
+        });
+        const context = term.status === 'upcoming' ? `Upcoming quarter · ${term.label} starts ${startDate}` :
+            term.isApproximate ? `Seasonal estimate · ${term.label}` : `Current quarter · ${term.label}`;
+        text('currentTermLabel', context);
+        const note = term.isApproximate ? 'Published term dates are unavailable for today; the automatic focus uses a seasonal estimate. ' : '';
+        text('periodStatus', note + (view.currentTermHasRecords ? `The source includes records for ${term.label}. Counts reflect the enrollment snapshot shown above.` : `No enrollment records for ${term.label} are available in this snapshot. Historical comparisons below use recorded data only.`));
+        byId('periodStatus').hidden = false;
+        if (!view.hasData) text('emptyState', `No matching records for ${yearLabel(view.selection.year)}. Choose a recorded academic year above to see its totals.`);
+    }
+
     function render() {
         const view = window.EnrollmentViewModel.build(source, catalog, {
             year: byId('academicYearFilter').value,
             level: byId('courseFilter').value,
-            trend: byId('trendFilter').value
+            trend: byId('trendFilter').value,
+            quarter: byId('quarterFocus').value,
+            calendar
         });
+        renderTerm(view);
         text('registrationCount', view.hasData ? format(view.totalRegistrations) : '—');
         text('totalCourses', format(view.courseCount));
         text('quarterCount', format(view.coverage.quarterCount));
@@ -115,7 +151,7 @@ const EnrollmentDashboard = (function () {
         byId('courseDetails').hidden = !view.hasData;
         byId('emptyState').hidden = view.hasData;
         if (chart) { chart.destroy(); chart = null; }
-        renderWinter(view.winter);
+        renderHistory(view.history);
         if (!view.hasData) return;
         renderQuarter(view);
         renderLevels(view);
@@ -228,12 +264,12 @@ const EnrollmentDashboard = (function () {
         return node;
     }
 
-    function winterChart(course, years, ceiling) {
+    function historyChart(course, years, ceiling, season) {
         const width = 264, height = 126, left = 38, right = 14, top = 23, bottom = 27;
         const plotHeight = height - top - bottom;
         const x = index => years.length < 2 ? width / 2 : left + index * (width - left - right) / (years.length - 1);
         const y = value => top + plotHeight * (1 - value / ceiling);
-        const svg = svgNode('svg', { viewBox: `0 0 ${width} ${height}`, role: 'img', 'aria-label': `${course.code}. ${years.map((year, index) => `Winter ${year}: ${course.values[index] === null ? 'no record' : `${course.values[index]} registrations`}`).join('. ')}` });
+        const svg = svgNode('svg', { viewBox: `0 0 ${width} ${height}`, role: 'img', 'aria-label': `${course.code}. ${years.map((year, index) => `${season} ${year}: ${course.values[index] === null ? 'no record' : `${course.values[index]} registrations`}`).join('. ')}` });
         [0, ceiling / 2, ceiling].forEach(value => {
             svg.appendChild(svgNode('line', { x1: left, x2: width - right, y1: y(value), y2: y(value), stroke: '#e9ecef', 'stroke-width': 1 }));
             if (value !== ceiling / 2) svg.appendChild(svgNode('text', { x: 16, y: y(value) + 3, 'text-anchor': 'end', fill: '#89929b', 'font-size': 9 }, value));
@@ -256,58 +292,62 @@ const EnrollmentDashboard = (function () {
         return svg;
     }
 
-    function winterChange(course, first) {
+    function historyChange(course, first, season) {
         if (course.delta === null) return 'A comparison needs records in both years';
-        if (course.delta === 0) return `Unchanged from Winter ${first}`;
-        return `${format(Math.abs(course.delta))} ${course.delta > 0 ? 'more' : 'fewer'} than Winter ${first}`;
+        if (course.delta === 0) return `Unchanged from ${season} ${first}`;
+        return `${format(Math.abs(course.delta))} ${course.delta > 0 ? 'more' : 'fewer'} than ${season} ${first}`;
     }
 
-    function renderWinter(winter) {
-        const rows = [...winter.rows].sort((a, b) => (b.values[b.values.length - 1] ?? -1) - (a.values[a.values.length - 1] ?? -1) || a.code.localeCompare(b.code));
+    function renderHistory(history) {
+        const season = history.season;
+        text('historyHeading', `${season} enrollment, course by course`);
+        text('historyEmpty', `No ${season} records match the selected course level and historical trend.`);
+        text('historyCaption', `All recorded ${season} course counts. A dash means no record.`);
+        const rows = [...history.rows].sort((a, b) => (b.values[b.values.length - 1] ?? -1) - (a.values[a.values.length - 1] ?? -1) || a.code.localeCompare(b.code));
         const ceiling = Math.max(10, Math.ceil(Math.max(0, ...rows.flatMap(row => row.values.filter(value => value !== null))) / 10) * 10);
-        const cards = byId('winterSmallMultiples');
+        const cards = byId('historySmallMultiples');
         cards.replaceChildren();
-        byId('winterEmpty').hidden = rows.length > 0;
-        byId('winterDetails').hidden = !rows.length;
-        text('winterScope', winter.years.length ? `Winters ${winter.first}–${winter.last} · all recorded winters, independent of the academic-year filter` : 'No recorded winters');
-        if (winter.years.length > 1 && rows.length) {
-            const lastIndex = winter.years.length - 1;
+        byId('historyEmpty').hidden = rows.length > 0;
+        byId('historyDetails').hidden = !rows.length;
+        text('historyScope', history.years.length ? `${season} ${history.first}–${history.last} · all recorded years, independent of the academic-year filter` : `No recorded ${season} quarters`);
+        if (history.years.length > 1 && rows.length) {
+            const lastIndex = history.years.length - 1;
             const observed = index => rows.some(row => row.values[index] !== null);
-            const last = winter.totals[lastIndex];
-            const previous = winter.totals[lastIndex - 1];
-            const previousYear = winter.years[winter.years.length - 2];
+            const last = history.totals[lastIndex];
+            const previous = history.totals[lastIndex - 1];
+            const previousYear = history.years[history.years.length - 2];
             const delta = last - previous;
             const amount = previous ? ` (${(Math.abs(delta) / previous * 100).toFixed(1)}%)` : '';
             let takeaway;
             if (!observed(lastIndex)) {
-                takeaway = `No matching course records are available for Winter ${winter.last}. Earlier recorded counts are shown below.`;
+                takeaway = `No matching course records are available for ${season} ${history.last}. Earlier recorded counts are shown below.`;
             } else if (!observed(lastIndex - 1)) {
-                takeaway = `${format(last)} registrations are recorded in Winter ${winter.last}. No matching records are available for Winter ${previousYear}, so a change cannot be calculated.`;
+                takeaway = `${format(last)} registrations are recorded in ${season} ${history.last}. No matching records are available for ${season} ${previousYear}, so a change cannot be calculated.`;
             } else takeaway = delta === 0
-                ? `Winter registrations held at ${format(last)} in ${winter.last}, unchanged from ${previousYear}.`
-                : `Winter registrations ${delta > 0 ? 'rose' : 'fell'} from ${format(previous)} in ${previousYear} to ${format(last)} in ${winter.last}, ${delta > 0 ? 'up' : 'down'} ${format(Math.abs(delta))}${amount}.`;
-            if (winter.years.length > 2 && observed(lastIndex) && observed(0)) {
-                const difference = last - winter.totals[0];
-                takeaway += difference === 0 ? ` That matches ${winter.first}.` : ` That is ${format(Math.abs(difference))} ${difference > 0 ? 'above' : 'below'} ${winter.first}.`;
+                ? `${season} registrations held at ${format(last)} in ${history.last}, unchanged from ${previousYear}.`
+                : `${season} registrations ${delta > 0 ? 'rose' : 'fell'} from ${format(previous)} in ${previousYear} to ${format(last)} in ${history.last}, ${delta > 0 ? 'up' : 'down'} ${format(Math.abs(delta))}${amount}.`;
+            if (history.years.length > 2 && observed(lastIndex) && observed(0)) {
+                const difference = last - history.totals[0];
+                takeaway += difference === 0 ? ` That matches ${history.first}.` : ` That is ${format(Math.abs(difference))} ${difference > 0 ? 'above' : 'below'} ${history.first}.`;
             }
-            text('winterTakeaway', takeaway);
-        } else text('winterTakeaway', rows.length ? 'Only one Winter is recorded. A year-to-year comparison is not available.' : 'Select another course level or historical trend to see Winter records.');
+            text('historyTakeaway', takeaway);
+        } else text('historyTakeaway', rows.length ? `Only one ${season} quarter is recorded. A year-to-year comparison is not available.` : `Select another quarter, course level, or historical trend to see recorded counts.`);
         const visible = rows.slice(0, 12);
-        text('winterDisplayNote', rows.length ? `${visible.length < rows.length ? `The ${visible.length} largest` : 'All'} courses by recorded Winter ${winter.last} registrations. Common scale: 0–${ceiling}.` : '');
+        text('historyDisplayNote', rows.length ? `${visible.length < rows.length ? `The ${visible.length} largest` : 'All'} courses by recorded ${season} ${history.last} registrations. Common scale: 0–${ceiling}.` : '');
         visible.forEach(course => {
-            const card = element('article', 'winter-course');
+            const card = element('article', 'history-course');
             const heading = element('h3', '', course.code);
             heading.appendChild(element('span', 'course-name', course.title || 'Course title unavailable'));
-            card.append(heading, winterChart(course, winter.years, ceiling), element('p', `course-change ${changeClass(course.delta)}`, winterChange(course, winter.first)));
+            card.append(heading, historyChart(course, history.years, ceiling, season), element('p', `course-change ${changeClass(course.delta)}`, historyChange(course, history.first, season)));
             cards.appendChild(card);
         });
-        text('winterTableSummary', `Read all ${format(rows.length)} Winter courses as a table`);
+        text('historyTableSummary', `Read all ${format(rows.length)} ${season} courses as a table`);
         const head = element('tr');
-        ['Course', ...winter.years.map(year => `Winter ${year}`), `Change since ${winter.first || 'first Winter'}`].forEach(label => {
+        ['Course', ...history.years.map(year => `${season} ${year}`), `Change since ${history.first || `first ${season}`}`].forEach(label => {
             const th = element('th', '', label); th.scope = 'col'; head.appendChild(th);
         });
-        byId('winterTableHead').replaceChildren(head);
-        const body = byId('winterTableBody');
+        byId('historyTableHead').replaceChildren(head);
+        const body = byId('historyTableBody');
         body.replaceChildren();
         rows.forEach(course => {
             const row = element('tr');

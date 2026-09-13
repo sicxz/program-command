@@ -1,0 +1,20 @@
+{
+  "timeZone": "America/Los_Angeles",
+  "verifiedOn": "2026-09-13",
+  "sourceUrl": "https://inside.ewu.edu/records-and-registration/calendar/calendar-quarter/",
+  "sources": [
+    "https://25livepub.collegenet.com/calendars/academic-calendar-quarter?date=20250901&filter1=_2025-26_&filter3=_Finals+Dates_Instruction+Dates_&filterfield1=28276&filterfield3=24739&media=print",
+    "https://25livepub.collegenet.com/calendars/academic-calendar-quarter?date=20260913&index=-1&filter1=_2025-26_&filter3=_Finals+Dates_Instruction+Dates_&filterfield1=28276&filterfield3=24739&media=print"
+  ],
+  "intervalDefinition": "Instruction begins through the last listed final exam, inclusive. Summer ends on the last day of instruction because no separate finals event is listed. Between these intervals, the dashboard focuses the upcoming term and labels it Upcoming.",
+  "terms": [
+    { "quarter": "fall", "year": 2025, "start": "2025-09-24", "end": "2025-12-11" },
+    { "quarter": "winter", "year": 2026, "start": "2026-01-05", "end": "2026-03-20" },
+    { "quarter": "spring", "year": 2026, "start": "2026-03-30", "end": "2026-06-11" },
+    { "quarter": "summer", "year": 2026, "start": "2026-06-22", "end": "2026-08-14" },
+    { "quarter": "fall", "year": 2026, "start": "2026-09-23", "end": "2026-12-10", "startEvent": 1361083432, "endEvent": 1361083470 },
+    { "quarter": "winter", "year": 2027, "start": "2027-01-04", "end": "2027-03-19", "startEvent": 1361083481, "endEvent": 1361083546 },
+    { "quarter": "spring", "year": 2027, "start": "2027-03-29", "end": "2027-06-10", "startEvent": 1361083569, "endEvent": 1361083640 },
+    { "quarter": "summer", "year": 2027, "start": "2027-06-21", "end": "2027-08-13", "startEvent": 1361083659, "endEvent": 1361083723 }
+  ]
+}
