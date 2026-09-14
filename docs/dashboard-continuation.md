@@ -189,3 +189,39 @@ link to Enrollment.
 Validation: 31 Capacity tests (pure calculations and page behavior), the full
 48-suite / 359-test run, and the existing Vite build pass. Browser checks cover
 the all-years default, historical targets, missing sources, and period filters.
+
+## Applied Learning dashboard alignment
+
+Applied Learning now shares Enrollment's shell and Capacity's source discipline.
+The default is **All recorded years** with all quarters and all configured
+applied-learning courses. Year, quarter and course filters affect both
+registrations and supervision records. Automatic year/quarter selections use
+the shared EWU/Pacific calendar, including the upcoming term during breaks.
+
+Registration activity reuses `EnrollmentViewModel` with the existing historical
+source and complete EagleNET captures. For the active Design profile, all
+recorded years contains **468 registrations** across 13 quarters: DESN 399 = 21,
+DESN 491 = 17, DESN 495 = 165, DESN 499 = 265. Historical records contribute 412;
+Winter 2026 adds 21, Spring adds 29, and provisional Fall adds 6. These are course
+seats, not unique students. No enrollment source files are changed.
+
+Supervision uses exact-year `WorkloadIntegration` course records and unresolved
+assignments, preserving explicit weighted workload and saved manual rates.
+Missing records remain unavailable. Schedule entries contain course credits;
+manual entries contain student-credit inputs. Raw inputs stay in the detail
+table and are not presented as a combined student-credit total. Workload-record
+counts do not claim distinct students or verified sections.
+
+Do not consume `faculty.appliedLearning.students`: the integration summary falls
+back to credits when students are missing. Do not promote
+`workloadData.appliedLearningTrends` to actual supervision data: its calculator
+assumes one student per section and five credits, omits DESN 399, and carries a
+different DESN 491 rate. The dashboard preserves active-profile defaults and
+explicit record rates rather than changing those shared policies. Registration
+counts are never converted into supervision workload. Invalid/missing optional
+capture data is excluded with a warning while healthy historical data remains.
+
+Validation: 27 Applied Learning tests, including actual Enrollment and
+WorkloadIntegration fixtures; 50 suites / 386 tests pass. Vite build passes.
+Browser checks confirm 468 registrations, current Fall Internship = 3 provisional
+registrations, unavailable supervision, filter behavior and no page overflow.
