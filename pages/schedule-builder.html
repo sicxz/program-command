@@ -10,6 +10,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <link rel="stylesheet" href="../css/schedule-builder.css">
     <link rel="stylesheet" href="../css/program-command-dashboard-theme.css">
+    <script defer src="../js/workload-notice.js?v=20260914"></script>
 </head>
 <body>
     <div class="container">
@@ -19,7 +20,7 @@
                 <a href="../program-command.html" class="back-link">&larr; Back to Schedule</a>
                 <nav class="builder-quick-nav" aria-label="Builder shortcuts">
                     <a href="../program-command.html" class="builder-quick-link">Main Scheduler</a>
-                    <a href="workload-dashboard.html" class="builder-quick-link">Workload Review</a>
+                    <a href="workload-dashboard.html" class="builder-quick-link" data-workload-unavailable aria-disabled="true" aria-haspopup="dialog" title="Under development">Workload Review</a>
                     <a href="academic-year-setup.html" class="builder-quick-link">AY Setup</a>
                 </nav>
             </div>
@@ -363,7 +364,7 @@
             <button class="btn-secondary" type="button" onclick="exportToEditor()">
                 Open in Main Schedule →
             </button>
-            <button class="btn-primary" type="button" onclick="openWorkloadReview()">
+            <button class="btn-primary" type="button" onclick="openWorkloadReview()" data-workload-unavailable aria-disabled="true" aria-haspopup="dialog" title="Under development">
                 <span aria-hidden="true">👥 </span>Review Workloads →
             </button>
             <button class="btn-settings" type="button" onclick="openApiSettingsModal()" title="AI Settings" aria-label="AI Settings">
@@ -631,7 +632,7 @@
     <script src="../js/schedule-generator.js"></script>
     <script src="../js/schedule-analyzer.js"></script>
     <script src="../js/faculty-manager.js"></script>
-    <script src="schedule-builder.js"></script>
+    <script src="schedule-builder.js?v=20260914"></script>
     <script>
         // Initialize faculty panel
         async function initFacultyPanel() {

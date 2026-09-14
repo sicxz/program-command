@@ -3187,23 +3187,7 @@ function persistBuilderScheduleForProgramCommand(year, scheduleData) {
 }
 
 function openWorkloadReview() {
-    if (!currentSchedule) {
-        showToast('No schedule to export', 'error');
-        return;
-    }
-
-    syncCurrentQuarterIntoAllQuartersSchedule();
-    const scheduleData = buildProgramCommandScheduleDataFromBuilder();
-    const saved = persistBuilderScheduleForProgramCommand(currentSchedule.year, scheduleData);
-    if (!saved) {
-        showToast('Could not prepare workload handoff', 'error');
-        return;
-    }
-
-    showToast(`Opening workload review for ${currentSchedule.year}...`, 'info');
-    setTimeout(() => {
-        window.location.href = `workload-dashboard.html?year=${encodeURIComponent(currentSchedule.year)}`;
-    }, 300);
+    window.WorkloadNotice.show();
 }
 
 function exportToEditor() {

@@ -5356,6 +5356,7 @@
     <script defer src="js/components/advising-pathway-planner.js?v=20260814-4"></script>
     <script defer src="js/advising-controller.js?v=20260814-4"></script>
 
+    <script defer src="js/workload-notice.js?v=20260914"></script>
 </head>
 
 <body class="foundry-production">
@@ -5435,7 +5436,7 @@
                 <div class="nav-row" id="workloadNavigation">
                     <span class="nav-row-header">Workload</span>
                     <div class="nav-row-items">
-                        <a href="pages/workload-dashboard.html" class="nav-link"><span
+                        <a href="pages/workload-dashboard.html" class="nav-link" data-workload-unavailable aria-disabled="true" aria-haspopup="dialog" title="Under development"><span
                                 class="icon">👥</span>Faculty Workload</a>
                         <a href="pages/release-time-dashboard.html" class="nav-link"><span
                                 class="icon">🔧</span>Release Time</a>
@@ -5516,7 +5517,7 @@
                         </button>
                         <button type="button" id="openAdvisingWorkspace" class="btn-ewu-accent btn-add-course-main advising-launch-button"
                             aria-haspopup="dialog" aria-controls="advisingWorkspaceDialog">Advising</button>
-                        <button class="btn-ewu-accent btn-add-course-main" onclick="openWorkloadReviewFromScheduler()">Make Workloads</button>
+                        <button class="btn-ewu-accent btn-add-course-main" onclick="openWorkloadReviewFromScheduler()" data-workload-unavailable aria-disabled="true" aria-haspopup="dialog" title="Under development">Make Workloads</button>
                     </div>
                 </div>
                 <div class="schedule-grid-scroll">
@@ -6796,7 +6797,7 @@
                 navigateWithDirtyGuard('pages/capacity-planning-dashboard.html');
             } else if (action === 'nav-workload') {
                 e.preventDefault();
-                navigateWithDirtyGuard('pages/workload-dashboard.html');
+                window.WorkloadNotice.show();
             }
         });
 
@@ -13644,34 +13645,8 @@
             normalizeScheduleCourseCodes(scheduleData);
         }
 
-        function openWorkloadReviewFromScheduler(options = {}) {
-            const {
-                yearOverride = null,
-                skipScheduleSave = false,
-                clssWorkloadImport = false
-            } = options || {};
-
-            if (!skipScheduleSave) {
-                try {
-                    saveScheduleData();
-                } catch (error) {
-                    console.warn('Could not persist schedule before workload handoff:', error);
-                }
-            }
-
-            const navComponent = document.getElementById('mainQuarterNav');
-            const academicYear = yearOverride
-                || (navComponent ? navComponent.currentYear : (window.StateManager?.get('currentAcademicYear') || currentAcademicYear || '2025-26'));
-            if (!academicYear) {
-                showToast('Could not determine academic year for workload review', 'critical');
-                return;
-            }
-
-            const params = new URLSearchParams({ year: academicYear });
-            if (clssWorkloadImport) {
-                params.set('clssImport', 'workloads');
-            }
-            window.location.href = `pages/workload-dashboard.html?${params.toString()}`;
+        function openWorkloadReviewFromScheduler() {
+            window.WorkloadNotice.show();
         }
 
         function migrateTimeSlots(data) {

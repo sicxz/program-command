@@ -374,6 +374,7 @@
         }
     </style>
     <link rel="stylesheet" href="../css/program-command-dashboard-theme.css">
+    <script defer src="../js/workload-notice.js?v=20260914"></script>
 </head>
 <body>
     <div class="container">
@@ -405,7 +406,7 @@
             <button id="redoBtn" style="background: #f3f4f6; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer;" disabled>↪ Redo</button>
 
             <button onclick="window.location.href='schedule-editor.html'">Edit Schedule</button>
-            <button onclick="window.location.href='workload-dashboard.html'">Workload</button>
+            <button onclick="window.location.href='workload-dashboard.html'" data-workload-unavailable aria-disabled="true" aria-haspopup="dialog" title="Under development">Workload</button>
             <button onclick="window.location.href='capacity-planning-dashboard.html'">Capacity</button>
             <button onclick="window.location.href='pamcam-playground.html'">PamCam Lab</button>
         </div>

@@ -114,11 +114,12 @@
     <script src="../js/config/constants.js"></script>
     <script src="../js/data-loader.js"></script>
     <script src="../js/workload-integration.js"></script>
+    <script defer src="../js/workload-notice.js?v=20260914"></script>
 </head>
 <body>
     <div class="container">
         <header>
-            <a href="./workload-dashboard.html" class="back-link">← Back to Faculty Workload</a>
+            <a href="./workload-dashboard.html" class="back-link" data-workload-unavailable aria-disabled="true" aria-haspopup="dialog" title="Under development">← Back to Faculty Workload</a>
             <h1>📄 Faculty Workload Detail</h1>
             <p class="subtitle">Manage DESN 399 / 491 / 495 / 499 student-credit entries and workload conversion.</p>
         </header>
@@ -198,7 +199,7 @@
                 <div class="form-actions">
                     <button id="saveEntryBtn" class="btn-primary" type="button">Add Entry</button>
                     <button id="cancelEditBtn" class="btn-secondary" type="button" style="display: none;">Cancel Edit</button>
-                    <button id="openDashboardBtn" class="btn-secondary" type="button">Open Workload Dashboard</button>
+                    <button id="openDashboardBtn" data-workload-unavailable aria-disabled="true" aria-haspopup="dialog" title="Under development" class="btn-secondary" type="button">Open Workload Dashboard</button>
                 </div>
             </div>
 
@@ -222,7 +223,7 @@
         </div>
     </div>
 
-    <script src="./faculty-workload-detail.js"></script>
+    <script src="./faculty-workload-detail.js?v=20260914"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../js/supabase-config.js"></script>
     <script src="../js/auth-service.js"></script>
