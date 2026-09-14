@@ -1,0 +1,44 @@
+/* The dashboard shell is shared with Enrollment. */
+.applied-takeaway { font-size: 18px; line-height: 1.5; max-width: 85ch; margin: 0 0 22px; }
+.applied-overview { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(280px, 1fr); gap: 24px; margin-bottom: 24px; }
+.applied-panel { margin-bottom: 24px; }
+.applied-quarter-bars { display: grid; gap: 17px; padding: 14px 0; }
+.applied-quarter-row { display: grid; grid-template-columns: 100px minmax(0, 1fr) 40px; gap: 14px; align-items: center; font-size: 13px; }
+.applied-quarter-label { line-height: 1.3; }
+.applied-quarter-label small { display: block; font-size: 10px; color: #8b6529; }
+.applied-track { height: 9px; background: #edf0f2; border-radius: 2px; }
+.applied-fill { display: block; height: 100%; background: var(--teal); border-radius: 2px; }
+.applied-fill.provisional { background: #b48338; }
+.applied-quarter-row strong { font-size: 16px; font-weight: 500; text-align: right; font-variant-numeric: tabular-nums; }
+.applied-course-cards { display: grid; gap: 0; }
+.applied-course { padding: 19px 0; border-bottom: 1px solid var(--border); }
+.applied-course:last-child { border: 0; }
+.applied-course-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+.applied-course h3 { font-size: 15px; }
+.applied-course strong { font-size: 30px; line-height: 1.2; font-weight: 500; font-variant-numeric: tabular-nums; }
+.applied-course p { color: var(--muted); font-size: 13px; margin: 4px 0 12px; }
+.applied-course small { display: block; color: var(--muted); margin-top: 9px; font-size: 11px; }
+.applied-action { color: var(--red); font-size: 13px; text-decoration: none; }
+.applied-action:hover { text-decoration: underline; }
+.applied-empty { border-left: 3px solid #aab5bd; background: #f1f3f5; padding: 18px 20px; }
+.applied-empty h3 { font-size: 15px; margin-bottom: 7px; }
+.applied-empty p { color: var(--muted); font-size: 13px; max-width: 90ch; }
+.supervision-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; padding: 14px 0 24px; border-bottom: 1px solid var(--border); margin-bottom: 10px; }
+.supervision-summary span { display: block; color: var(--muted); font-size: 12px; }
+.supervision-summary strong { display: block; font-size: 25px; font-weight: 500; margin-top: 5px; font-variant-numeric: tabular-nums; }
+.applied-faculty-bars { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 30px; }
+.applied-faculty { padding: 16px 0; min-width: 0; }
+.applied-faculty-topline { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 10px; align-items: baseline; }
+.applied-faculty h3 { font-size: 14px; }
+.applied-faculty strong { font-weight: 500; font-size: 18px; font-variant-numeric: tabular-nums; }
+.applied-faculty small { display: block; font-size: 12px; color: var(--muted); margin-top: 7px; }
+.applied-rates { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; padding-top: 12px; }
+.applied-rate { border-right: 1px solid var(--border); padding-right: 16px; }
+.applied-rate:last-child { border: 0; }
+.applied-rate h3 { font-size: 14px; }
+.applied-rate strong { display: block; font-weight: 500; font-size: 25px; margin: 5px 0; }
+.applied-rate p { color: var(--muted); font-size: 12px; }
+@media (max-width:1000px) { .filters { flex-wrap: wrap; } .filter-note { margin-left: 0; } }
+@media (max-width:850px) { .applied-overview { grid-template-columns: 1fr; } .applied-course-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 24px; } .applied-course:nth-last-child(2) { border: 0; } }
+@media (max-width:600px) { .applied-faculty-bars { grid-template-columns: 1fr; } .applied-rates, .supervision-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; } .applied-rate:nth-child(2) { border: 0; } }
+@media (max-width:520px) { .filter-note { flex-basis: 100%; } .applied-takeaway { font-size: 16px; } .applied-overview { gap: 18px; } .applied-quarter-row { grid-template-columns: 75px minmax(0, 1fr) 30px; gap: 10px; font-size: 12px; } .applied-course-cards { grid-template-columns: 1fr; } .applied-course:nth-last-child(2) { border-bottom: 1px solid var(--border); } .applied-panel .panel-heading { flex-wrap: wrap; } }
