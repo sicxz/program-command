@@ -11,6 +11,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script defer src="js/enrollment-view-model.js"></script>
     <script defer src="pages/enrollment-dashboard.js"></script>
+    <script defer src="js/workload-notice.js?v=20260914"></script>
 </head>
 <body>
     <a class="skip-link" href="#main">Skip to enrollment data</a>
@@ -20,7 +21,7 @@
             <a href="pages/applied-learning-dashboard.html">Applied Learning</a>
             <a href="enrollment-dashboard.html" aria-current="page">Enrollment</a>
             <a href="pages/capacity-planning-dashboard.html">Capacity</a>
-            <a class="workload-link" href="pages/workload-dashboard.html">Workload</a>
+            <a class="workload-link" href="pages/workload-dashboard.html" data-workload-unavailable aria-disabled="true" aria-haspopup="dialog" title="Under development">Workload</a>
         </nav>
     </header>
     <main id="main" class="page" aria-busy="true">
@@ -90,7 +91,7 @@
             </div>
             <details class="source-details"><summary>About these numbers</summary><div class="source-details-grid"><div><h3>What is counted</h3><p>Course registrations are summed across sections and recorded quarters. They do not measure unique students, class size, room capacity, or faculty workload.</p></div><div><h3>How years are compared</h3><p>The program confirms a cap of 20 students per section as of 2026. Captured EagleNET capacities are preserved as recorded.</p><p>Academic years begin in Fall. A prior-year comparison uses the same recorded quarters in both years. A partial year is never compared with a full year. Comparisons involving provisional registration counts are withheld.</p><h3>Automatic quarter</h3><p>The automatic view uses EWU term dates and Pacific time. During breaks it focuses the upcoming quarter. Outside the published date range it uses a labeled seasonal estimate. You can select another quarter without changing the academic year.</p><p><a href="https://inside.ewu.edu/records-and-registration/calendar/calendar-quarter/">EWU quarter calendar</a></p></div><div><h3>Source and coverage</h3><p id="sourceDescription"></p><p><a href="enrollment-dashboard-data.json">Historical dataset</a> · <a href="data/enrollment-registration-snapshots.json">Registration captures</a> · <a href="data/course-catalog.json">Course titles</a></p></div></div></details>
         </div>
-        <footer class="page-footer"><span>EWU Design · Enrollment</span><span>Faculty teaching demand and capacity are reviewed in <a href="pages/workload-dashboard.html">Workload</a> and <a href="pages/capacity-planning-dashboard.html">Capacity</a>.</span></footer>
+        <footer class="page-footer"><span>EWU Design · Enrollment</span><span>Faculty teaching demand and capacity are reviewed in <a href="pages/workload-dashboard.html" data-workload-unavailable aria-disabled="true" aria-haspopup="dialog" title="Under development">Workload</a> and <a href="pages/capacity-planning-dashboard.html">Capacity</a>.</span></footer>
     </main>
 </body>
 </html>

@@ -419,7 +419,7 @@ class AppHeader extends HTMLElement {
                             </a>
                             <div class="header-settings-divider"></div>
                             <div class="header-settings-section-label">Workload</div>
-                            <a class="header-settings-item" href="${dashboardBase}pages/workload-dashboard.html" data-action="nav-workload">
+                            <a class="header-settings-item" href="${dashboardBase}pages/workload-dashboard.html" data-action="nav-workload" data-workload-unavailable aria-disabled="true" aria-haspopup="dialog" title="Under development">
                                 <span class="header-settings-item-icon">👥</span>
                                 <span>Faculty Workload</span>
                             </a>

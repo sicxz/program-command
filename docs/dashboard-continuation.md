@@ -225,3 +225,23 @@ Validation: 27 Applied Learning tests, including actual Enrollment and
 WorkloadIntegration fixtures; 50 suites / 386 tests pass. Vite build passes.
 Browser checks confirm 468 registrations, current Fall Internship = 3 provisional
 registrations, unavailable supervision, filter behavior and no page overflow.
+
+## Next: Workload (paused; under development)
+
+The user requested that Workload be disabled while it awaits the same dashboard
+reset. Workload links now open an **Under development** dialog. The direct
+Workload URL serves a status page and does not load the legacy controller.
+Schedule handoff buttons also show the notice before saving or navigating.
+Existing workload data, integration/calculation modules, and the legacy
+controller remain intact.
+
+Follow-up work before re-enabling:
+- Align Workload's UI and academic-year/quarter filters with the other dashboards.
+- Explain each faculty member's annual target, releases, teaching and supervision.
+- Trace missing workload records and verify the schedule/import/detail connection.
+- Reconcile labels, sources and filtered totals across all four dashboards.
+
+Re-enable deliberately after that work is verified: replace the status page with
+the completed dashboard, remove `workload-notice.js` loading and unavailable
+attributes, and restore reviewed navigation/handoff behavior. Do not re-enable
+merely because source data changes or a new academic year begins.

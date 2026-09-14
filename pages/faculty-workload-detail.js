@@ -337,8 +337,7 @@ function handleSelectionChange() {
 }
 
 function openDashboard() {
-    const params = new URLSearchParams({ year: state.year });
-    window.location.href = `./workload-dashboard.html?${params.toString()}`;
+    window.WorkloadNotice.show();
 }
 
 async function init() {
