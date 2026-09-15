@@ -645,6 +645,30 @@
             color: var(--color-accent-emphasis);
         }
 
+        .conflict-filter {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            margin: 0 0 0 auto;
+            padding: 0;
+            border: 0;
+        }
+
+        .conflict-filter legend {
+            float: left;
+            margin-right: var(--space-1);
+            color: var(--color-fg-muted);
+            font-size: 12px;
+        }
+
+        .conflict-filter label {
+            display: flex;
+            align-items: center;
+            gap: var(--space-1);
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
         .content {
             padding: 30px;
         }
@@ -718,6 +742,11 @@
         .course-block.conflict-2 {
             background: #fff9c4;
             border-left-color: #ffd93d;
+        }
+
+        .conflict-highlight {
+            outline: 3px solid var(--conflict-highlight-color, #ff6b6b);
+            outline-offset: 2px;
         }
 
         .course-name {
@@ -5491,6 +5520,13 @@
                 <span class="stat-number" id="utilizationRate">—</span>
                 <span class="stat-label">Utilization</span>
             </div>
+            <fieldset class="conflict-filter" id="conflictFilter">
+                <legend>Highlight sections</legend>
+                <label><input type="radio" name="conflictSeverityFilter" value="all" checked> All</label>
+                <label><input type="radio" name="conflictSeverityFilter" value="critical"> Critical</label>
+                <label><input type="radio" name="conflictSeverityFilter" value="high"> High</label>
+                <label><input type="radio" name="conflictSeverityFilter" value="none"> No conflict</label>
+            </fieldset>
         </div>
 
         <div class="content">
@@ -7497,6 +7533,7 @@
             // Setup drag-and-drop after grid is rendered
             setupDragAndDrop();
             renderFacultyLegend();
+            applyConflictFilter();
         }
 
         // ============================================
@@ -8204,6 +8241,64 @@
             return match ? match[0] : null;
         }
 
+        function conflictCodesForSeverity(conflicts, severity) {
+            const targetSeverity = String(severity || '').toLowerCase();
+            const codes = new Set();
+            if (targetSeverity === 'none') return codes;
+
+            (Array.isArray(conflicts) ? conflicts : []).forEach((conflict) => {
+                if (String(conflict?.severity || '').toLowerCase() !== targetSeverity) return;
+                (Array.isArray(conflict?.courses) ? conflict.courses : []).forEach((courseLabel) => {
+                    const code = extractConflictCourseCode(courseLabel);
+                    if (code) codes.add(code);
+                });
+            });
+
+            return codes;
+        }
+
+        function applyConflictFilter() {
+            const grid = document.getElementById('scheduleGrid');
+            const filter = document.querySelector('#conflictFilter input[type="radio"]:checked');
+            if (!grid) return;
+
+            const selectedSeverity = filter?.value || 'all';
+            const cards = grid.querySelectorAll('[data-course-code]');
+            cards.forEach((card) => card.classList.remove('conflict-highlight'));
+
+            if (selectedSeverity === 'all') {
+                grid.style.removeProperty('--conflict-highlight-color');
+                return;
+            }
+
+            const activeQuarter = getCurrentSchedulerQuarter();
+            const conflicts = conflictData[activeQuarter] || [];
+            const matchingCodes = new Set(
+                [...conflictCodesForSeverity(conflicts, selectedSeverity)].map(normalizeCourseCode)
+            );
+            const allConflictCodes = new Set();
+
+            conflicts.forEach((conflict) => {
+                (Array.isArray(conflict?.courses) ? conflict.courses : []).forEach((courseLabel) => {
+                    const code = extractConflictCourseCode(courseLabel);
+                    if (code) allConflictCodes.add(normalizeCourseCode(code));
+                });
+            });
+
+            const highlightColor = selectedSeverity === 'critical'
+                ? '#ff6b6b'
+                : selectedSeverity === 'high' ? '#ffa726' : '#51cf66';
+            grid.style.setProperty('--conflict-highlight-color', highlightColor);
+
+            cards.forEach((card) => {
+                const courseCode = normalizeCourseCode(card.dataset.courseCode);
+                const matches = selectedSeverity === 'none'
+                    ? !allConflictCodes.has(courseCode)
+                    : matchingCodes.has(courseCode);
+                card.classList.toggle('conflict-highlight', matches);
+            });
+        }
+
         function getConflictPatternLabel(conflict) {
             const codes = (conflict.courses || [])
                 .map(extractConflictCourseCode)
@@ -8799,6 +8894,7 @@
 
                 conflictsList.appendChild(group);
             });
+            applyConflictFilter();
         }
 
         function renderConflictSolver(quarter) {
@@ -14371,6 +14467,7 @@
 
             // Keep swap/displace mode reactive without relying on inline handlers.
             document.getElementById('swapModeToggle')?.addEventListener('change', updateSwapModeLabels);
+            document.getElementById('conflictFilter')?.addEventListener('change', applyConflictFilter);
 
             // Load displaced courses from localStorage
             loadDisplacedCourses();
