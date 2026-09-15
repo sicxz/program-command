@@ -4,6 +4,10 @@
  * Falls back to local JSON files when Supabase is not configured
  */
 
+const facultyUtils = typeof module !== 'undefined' && module.exports
+    ? require('./faculty-utils.js')
+    : globalThis;
+
 const dbService = {
     departmentId: null,
     initialized: false,
@@ -236,6 +240,17 @@ const dbService = {
         }
 
         await this.initialize();
+        const findFacultyByName = facultyUtils.findFacultyByName || globalThis.findFacultyByName;
+        if (typeof findFacultyByName === 'function') {
+            const existingFaculty = findFacultyByName(await this.getFaculty(), faculty.name);
+            if (existingFaculty) {
+                console.warn(`Faculty already exists: ${faculty.name}`);
+                return existingFaculty;
+            }
+        } else {
+            console.warn('Faculty duplicate check unavailable; continuing with insert');
+        }
+
         const currentUserId = await this._resolveCurrentAuthUserId();
         const { data, error } = await getSupabaseClient()
             .from('faculty')
