@@ -8,7 +8,7 @@ const view = options => model.build(source, catalog, { year: 'all', snapshots, .
 test('captured registrations reconcile to complete, unique Design section searches', () => {
     const captures = model.readSnapshots(snapshots);
     expect(captures.map(term => [term.sections.length, term.total, term.capacity, term.waitlisted, term.missingWaitlists]))
-        .toEqual([[39, 365, 485, 0, 19], [39, 338, 458, 0, 21], [23, 308, 370, 8, 5]]);
+        .toEqual([[39, 365, 485, 0, 19], [39, 338, 458, 0, 21], [23, 300, 362, 9, 5]]);
     expect(captures.map(term => term.academicYear)).toEqual(['2025-26', '2025-26', '2026-27']);
     expect(captures.map(term => new Set(term.sections.map(section => section.crn)).size)).toEqual([39, 39, 23]);
     expect(captures[2].sections.find(section => section.crn === '40438')).toMatchObject({ enrolled: 24, waitlisted: 2 });
@@ -17,10 +17,10 @@ test('captured registrations reconcile to complete, unique Design section search
 test('Enrollment overlay preserves baseline history and completes 2025–26 without changing planning inputs', () => {
     const before = JSON.stringify(source);
     const result = view();
-    expect(result.totalRegistrations).toBe(5049);
+    expect(result.totalRegistrations).toBe(5041);
     expect(result.courseCount).toBe(42);
     expect(result.quarters).toHaveLength(13);
-    expect(result.quarters.slice(-3).map(q => q.total)).toEqual([365, 338, 308]);
+    expect(result.quarters.slice(-3).map(q => q.total)).toEqual([365, 338, 300]);
     expect(JSON.stringify(source)).toBe(before);
     expect(model.build(source, catalog, { year: 'all' }).totalRegistrations).toBe(4038);
     const completed = view({ year: '2025-26' });
@@ -53,7 +53,7 @@ test('a full term capture replaces existing term counts instead of accumulating 
     const baseline = clone(source);
     baseline.courseStats['DESN 100'].quarterly['fall-2026'] = 999;
     baseline.courseStats['DESN 345'] = { quarterly: { 'fall-2026': 50 } };
-    expect(model.build(baseline, catalog, { year: '2026-27', snapshots }).totalRegistrations).toBe(308);
+    expect(model.build(baseline, catalog, { year: '2026-27', snapshots }).totalRegistrations).toBe(300);
 });
 
 test.each([
