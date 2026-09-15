@@ -274,6 +274,84 @@ function formatFacultyName(name, facultyData) {
 }
 
 /**
+ * Build a stable identity key from the common faculty-name formats.
+ * A last name without a first initial intentionally leaves the key's
+ * initial portion empty so lookups can treat it as a wildcard.
+ * @param {string} name - Faculty name
+ * @returns {string} Lower-case "lastname|initial" key
+ */
+function canonicalFacultyKey(name) {
+    const normalizedName = String(name || '').trim().replace(/\s+/g, ' ');
+    if (!normalizedName) return '|';
+
+    let lastName = '';
+    let firstName = '';
+    const commaIndex = normalizedName.indexOf(',');
+
+    if (commaIndex !== -1) {
+        lastName = normalizedName.slice(0, commaIndex);
+        firstName = normalizedName.slice(commaIndex + 1);
+    } else {
+        const initialAndLastName = normalizedName.match(/^([^\s.])\.\s*(.+)$/u);
+        if (initialAndLastName) {
+            firstName = initialAndLastName[1];
+            lastName = initialAndLastName[2];
+        } else {
+            const nameParts = normalizedName.split(' ');
+            lastName = nameParts.pop();
+            firstName = nameParts.join(' ');
+        }
+    }
+
+    const normalizedLastName = String(lastName || '')
+        .trim()
+        .replace(/^\.+|\.+$/g, '')
+        .replace(/\s+/g, ' ')
+        .toLowerCase();
+    const firstInitialMatch = String(firstName || '').match(/[\p{L}\p{N}]/u);
+    const firstInitial = firstInitialMatch ? firstInitialMatch[0].toLowerCase() : '';
+
+    return `${normalizedLastName}|${firstInitial}`;
+}
+
+/**
+ * Find an existing faculty row representing the supplied name.
+ * @param {Array<Object>} rows - Existing faculty rows
+ * @param {string} name - Faculty name to find
+ * @returns {Object|null} Matching existing row, if the match is unambiguous
+ */
+function findFacultyByName(rows, name) {
+    if (!Array.isArray(rows)) return null;
+
+    const normalizedName = String(name || '').trim().toLowerCase();
+    const [lastName, firstInitial] = canonicalFacultyKey(name).split('|');
+    if (!lastName) return null;
+
+    const exactMatch = rows.find(row => (
+        String(row?.name || '').trim().toLowerCase() === normalizedName
+    ));
+    if (exactMatch) return exactMatch;
+
+    const sameLastName = rows
+        .map(row => ({ row, key: canonicalFacultyKey(row?.name) }))
+        .filter(candidate => candidate.key.split('|')[0] === lastName);
+
+    if (firstInitial) {
+        const initialMatch = sameLastName.find(candidate => (
+            candidate.key.split('|')[1] === firstInitial
+        ));
+        if (initialMatch) return initialMatch.row;
+    }
+
+    if (sameLastName.length === 1) {
+        const candidateInitial = sameLastName[0].key.split('|')[1];
+        if (!firstInitial || !candidateInitial) return sameLastName[0].row;
+    }
+
+    return null;
+}
+
+/**
  * Get utilization color class based on status
  * @param {string} status - Utilization status
  * @returns {string} CSS class name
@@ -378,4 +456,13 @@ function calculateCapacitySummary(yearData) {
         : 0;
 
     return summary;
+}
+
+if (typeof window !== 'undefined') {
+    window.canonicalFacultyKey = canonicalFacultyKey;
+    window.findFacultyByName = findFacultyByName;
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { canonicalFacultyKey, findFacultyByName };
 }
