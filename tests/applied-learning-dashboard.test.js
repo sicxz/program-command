@@ -51,7 +51,7 @@ function addWorkload() {
 }
 
 test('all recorded years shows sourced registrations, provisional context and unavailable supervision', async () => {
-    await dashboard.init();
+    await dashboard.init(); select('academicYearFilter', 'all');
     expect(byId('academicYearFilter').value).toBe('all');
     expect(byId('quarterFilter').value).toBe('annual');
     expect(byId('registrationCount').textContent).toBe('468');
@@ -63,12 +63,21 @@ test('all recorded years shows sourced registrations, provisional context and un
     expect(byId('main').getAttribute('aria-busy')).toBe('false');
 });
 
+test('academic year defaults to the current year when no selection was previously made', async () => {
+    await dashboard.init();
+    expect(byId('academicYearFilter').value).toBe('current');
+    expect(byId('quarterScope').textContent).toContain('2026–27');
+});
+
 test('year, quarter and course filter both registrations and actual supervision records', async () => {
     addWorkload(); await dashboard.init(); select('academicYearFilter', 'current'); select('quarterFilter', 'current');
     expect(byId('registrationCount').textContent).toBe('6');
     expect(byId('workloadCount').textContent).toBe('1');
     expect(byId('unassignedCredits').textContent).toBe('0.5');
     expect(byId('workloadRecords').textContent).toBe('2');
+    expect(byId('courseFacultyDrilldown').children).toHaveLength(1);
+    expect(byId('courseFacultyDrilldown').textContent).toContain('DESN 495 · 2 sections · 10 credits');
+    expect(byId('courseFacultyDrilldown').textContent).toContain('Unassigned');
     select('courseFilter', 'DESN 495');
     expect(byId('registrationCount').textContent).toBe('3');
     expect(byId('workloadCount').textContent).toBe('1');
@@ -103,7 +112,7 @@ test('automatic quarter follows the calendar while explicit quarter is preserved
 
 test('missing captures produce a warning and the historical registration total', async () => {
     fetchJson.mockImplementation(async url => ({ ok: !url.includes('snapshots'), json: async () => data[url] }));
-    await dashboard.init();
+    await dashboard.init(); select('academicYearFilter', 'all');
     expect(byId('registrationCount').textContent).toBe('412');
     expect(byId('sourceWarning').hidden).toBe(false);
     expect(byId('provisionalNote').hidden).toBe(true);
@@ -129,7 +138,7 @@ test('profile changes force reload and workload names are escaped', async () => 
 
 test('invalid capture bundle is quarantined without hiding healthy historical registrations', async () => {
     fetchJson.mockImplementation(async url => ({ ok: true, json: async () => url.includes('snapshots') ? { schemaVersion: 1, terms: [{}] } : data[url] }));
-    await dashboard.init();
+    await dashboard.init(); select('academicYearFilter', 'all');
     expect(byId('registrationCount').textContent).toBe('412');
     expect(byId('dashboardContent').hidden).toBe(false);
     expect(byId('sourceWarning').textContent).toContain('registration captures could not be loaded');
