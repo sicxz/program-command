@@ -59,8 +59,8 @@ describe('AdvisingCurriculum', () => {
         });
         expect(snapshot.sources['program-command-course-catalog']).toMatchObject({
             path: 'data/course-catalog.json',
-            version: '2026-04-20',
-            capturedOn: '2026-04-20',
+            version: '2026-09-15',
+            capturedOn: '2026-09-15',
             reviewedOn: '2026-08-14'
         });
     });

@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "lastModified": "2026-04-20",
+  "lastModified": "2026-09-15",
   "department": "Design",
   "courses": [
     {
@@ -139,7 +139,7 @@
     },
     {
       "code": "DESN 368",
-      "title": "Code + Design 1",
+      "title": "Web Design + Code 1",
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "300",
@@ -169,7 +169,7 @@
     },
     {
       "code": "DESN 378",
-      "title": "Code + Design 2",
+      "title": "Web Design + Code 2",
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "300",
@@ -212,7 +212,7 @@
     },
     {
       "code": "DESN 374",
-      "title": "AI + Design",
+      "title": "Applied Design",
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "300",
@@ -523,7 +523,7 @@
     },
     {
       "code": "DESN 468",
-      "title": "Code + Design 3",
+      "title": "Web Design + Code 3",
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "400",
