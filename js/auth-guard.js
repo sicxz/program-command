@@ -81,6 +81,13 @@
                 message: 'Insufficient permissions: only admins can access Department Onboarding.'
             };
         }
+        if (/\/pages\/faculty-management\.html$/i.test(window.location.pathname)) {
+            return {
+                action: 'manage',
+                resource: 'system-config',
+                message: 'Insufficient permissions: only admins can access Faculty Management.'
+            };
+        }
         return null;
     }
 

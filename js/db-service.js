@@ -269,6 +269,37 @@ const dbService = {
         return data;
     },
 
+    /**
+     * Update editable fields for an existing faculty member
+     */
+    async updateFaculty(id, fields) {
+        if (!isSupabaseConfigured()) {
+            console.warn('Cannot update faculty: Supabase not configured');
+            return null;
+        }
+
+        await this.initialize();
+        const currentUserId = await this._resolveCurrentAuthUserId();
+        const updateData = { updated_by: currentUserId };
+
+        ['name', 'email', 'category', 'max_workload'].forEach(field => {
+            if (Object.prototype.hasOwnProperty.call(fields, field)) {
+                updateData[field] = fields[field];
+            }
+        });
+
+        const { data, error } = await getSupabaseClient()
+            .from('faculty')
+            .update(updateData)
+            .eq('id', id)
+            .eq('department_id', this.departmentId)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    },
+
     // ============================================
     // ROOMS
     // ============================================

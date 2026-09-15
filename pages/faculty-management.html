@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faculty Management - EWU Design</title>
+    <link rel="stylesheet" href="../css/design-system.css">
+    <style>
+        .faculty-navigation {
+            display: flex;
+            gap: var(--space-3);
+            margin-bottom: var(--space-4);
+        }
+
+        .faculty-category {
+            display: inline-flex;
+            padding: 2px 8px;
+            border-radius: var(--radius-sm);
+            background: var(--color-background-1);
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .faculty-actions {
+            display: flex;
+            gap: var(--space-2);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-4);
+        }
+
+        @media (max-width: 640px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="ds-page">
+        <nav class="faculty-navigation" aria-label="Management pages">
+            <a href="../program-command.html" class="ds-back-link"><span>&larr;</span> Back to Dashboard</a>
+            <a href="course-management.html" class="ds-back-link">Course Management</a>
+        </nav>
+
+        <div class="ds-page-header">
+            <div>
+                <h1>Faculty Management</h1>
+                <p class="text-muted">Manage faculty records and workload limits</p>
+            </div>
+            <button class="ds-btn ds-btn-secondary" type="button" onclick="refreshFaculty()">Refresh</button>
+        </div>
+
+        <div class="ds-tabs" aria-label="Faculty management sections">
+            <button class="ds-tab active" type="button">Faculty</button>
+        </div>
+
+        <div class="ds-tab-content active">
+            <div class="ds-card">
+                <div class="ds-toolbar">
+                    <div class="ds-search">
+                        <span class="ds-search-icon" aria-hidden="true">&#128269;</span>
+                        <label class="ds-sr-only" for="facultySearch">Search faculty</label>
+                        <input type="search" id="facultySearch" class="ds-input" placeholder="Search faculty..." oninput="filterFaculty()">
+                    </div>
+                    <button class="ds-btn ds-btn-primary" type="button" onclick="openAddFacultyModal()">+ Add faculty</button>
+                </div>
+
+                <div class="ds-table-container" id="facultyTableContainer">
+                    <table class="ds-table" id="facultyTable">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Category</th>
+                                <th>Max workload</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="facultyTableBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="ds-empty-state ds-hidden" id="facultyEmptyState">
+                    <div class="ds-empty-state-icon">&#128100;</div>
+                    <h3>No faculty found</h3>
+                    <p>Add a faculty member or adjust your search.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="ds-toast" id="toast" role="status" aria-live="polite"></div>
+    </div>
+
+    <div class="ds-modal-overlay" id="facultyModal">
+        <div class="ds-modal">
+            <div class="ds-modal-header">
+                <h3 class="ds-modal-title" id="facultyModalTitle">Add faculty</h3>
+                <button class="ds-modal-close" type="button" onclick="closeFacultyModal()" aria-label="Close">&times;</button>
+            </div>
+            <form id="facultyForm" onsubmit="handleFacultySubmit(event)">
+                <div class="ds-modal-body">
+                    <input type="hidden" id="facultyId">
+                    <div class="ds-form-group">
+                        <label class="ds-label" for="facultyName">Name *</label>
+                        <input type="text" id="facultyName" class="ds-input" placeholder="First Initial.LastName, e.g. J.Smith" required>
+                        <p class="text-xs text-muted">First Initial.LastName, e.g. J.Smith</p>
+                    </div>
+                    <div class="ds-form-group">
+                        <label class="ds-label" for="facultyEmail">Email</label>
+                        <input type="email" id="facultyEmail" class="ds-input" placeholder="name@ewu.edu">
+                    </div>
+                    <div class="form-row">
+                        <div class="ds-form-group">
+                            <label class="ds-label" for="facultyCategory">Category</label>
+                            <select id="facultyCategory" class="ds-select">
+                                <option value="fullTime">Full time</option>
+                                <option value="adjunct">Adjunct</option>
+                                <option value="former">Former</option>
+                            </select>
+                        </div>
+                        <div class="ds-form-group">
+                            <label class="ds-label" for="facultyMaxWorkload">Max workload</label>
+                            <input type="number" id="facultyMaxWorkload" class="ds-input" value="45" min="0" step="0.1" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="ds-modal-footer">
+                    <button type="button" class="ds-btn ds-btn-secondary" onclick="closeFacultyModal()">Cancel</button>
+                    <button type="submit" class="ds-btn ds-btn-primary">Save faculty</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/supabase-config.js"></script>
+    <script src="../js/db-service.js"></script>
+    <script src="../js/auth-service.js"></script>
+    <script src="../js/auth-guard.js"></script>
+    <script src="../js/faculty-utils.js"></script>
+    <script src="faculty-management.js"></script>
+</body>
+</html>
