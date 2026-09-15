@@ -13,6 +13,33 @@ const build = (all, options = {}, meta = {}) => CapacityViewModel.build({ all, m
 });
 
 describe('CapacityViewModel', () => {
+    test('builds weighted faculty load directly from regular and applied-learning course records', () => {
+        const appliedConfig = WorkloadIntegration.getAppliedLearningCourseConfig();
+        const source = CapacityViewModel.loadFromCourseRecords([
+            { assignedFaculty: 'Taylor', courseCode: 'DESN 100', credits: 5, quarter: 'Fall' },
+            { instructor: 'Taylor', courseCode: 'DESN 200', credits: 5, quarter: 'Winter' },
+            { assignedFaculty: 'Taylor', courseCode: 'DESN 495', credits: 5, quarter: 'Spring' }
+        ], appliedConfig);
+        const record = source.all.Taylor;
+        expect(record.totalCredits).toBe(15);
+        expect(record.totalWorkloadCredits).toBe(10 + (5 * appliedConfig['DESN 495'].rate));
+        expect(record.appliedLearningLoad.sections).toBe(1);
+        expect(record.appliedLearningLoad.workloadCredits).toBe(5 * appliedConfig['DESN 495'].rate);
+        expect(record).toMatchObject({ facultyName: 'Taylor', category: 'fullTime', source: 'course-records' });
+    });
+
+    test('keeps an unassigned course record out of every faculty record', () => {
+        const source = CapacityViewModel.loadFromCourseRecords([
+            { assignedFaculty: 'TBD', courseCode: 'DESN 100', credits: 5, quarter: 'Fall' }
+        ], WorkloadIntegration.getAppliedLearningCourseConfig());
+        expect(Object.keys(source.all)).toEqual([]);
+        expect(source.meta.unresolvedScheduleCourses).toMatchObject({ count: 1, totalWorkloadCredits: 5 });
+        const result = CapacityViewModel.build(source);
+        expect(result.rows).toEqual([]);
+        expect(result.unassigned).toHaveLength(1);
+        expect(result.totals.unassignedWorkload).toBe(5);
+    });
+
     test('empty workload remains unknown rather than unused annual capacity', () => {
         const result = build({ Taylor: faculty([], { totalWorkloadCredits: 0, sections: 0 }) });
         expect(result.hasWorkload).toBe(false);

@@ -1,6 +1,5 @@
 const CapacityDashboard = (function () {
     'use strict';
-    let workload = null;
     let history = null;
     let calendar = null;
     let term = null;
@@ -12,7 +11,9 @@ const CapacityDashboard = (function () {
     const number = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 });
     const format = value => value === null || value === undefined ? '—' : number.format(value);
     const yearLabel = year => year.replace('-', '–');
-    const sourceLabel = kind => ({ draft: 'Saved planning draft', historical: 'Historical workload', details: 'Faculty detail entries', missing: 'No workload records' }[kind] || 'No workload records');
+    const sourceLabel = (kind, year) => kind === 'course-records'
+        ? `Course records · ${yearLabel(year)}`
+        : ({ missing: 'No course records' }[kind] || 'No course records');
     const quarters = ['Fall', 'Winter', 'Spring', 'Summer'];
 
     function element(tag, className, value) {
@@ -42,7 +43,7 @@ const CapacityDashboard = (function () {
     }
     function recordYears() {
         return [...new Set([
-            ...WorkloadIntegration.getAcademicYearOptions(workload || {}),
+            ...WorkloadIntegration.getAcademicYearOptions({}),
             ...Object.keys(history?.capacityPlanning || {}), term.academicYear
         ])].filter(year => /^\d{4}-\d{2}$/.test(year)).sort().reverse();
     }
@@ -64,9 +65,38 @@ const CapacityDashboard = (function () {
     function buildModels() {
         const quarter = period();
         return recordYears().map(year => {
-            const source = CapacityViewModel.exactYearSource(workload || {}, year);
-            const integrated = WorkloadIntegration.buildIntegratedWorkloadYearData(source, year);
-            return CapacityViewModel.build(integrated, {
+            const source = CapacityViewModel.loadFromCourseRecords(
+                WorkloadIntegration.getProgramCommandScheduleCourses(year),
+                WorkloadIntegration.getAppliedLearningCourseConfig()
+            );
+            const targetSource = WorkloadIntegration.buildIntegratedWorkloadYearData({}, year);
+            const targetFields = [
+                'ayTargetCredits', 'ayReleaseCredits', 'ayNetTargetCredits', 'ayRole',
+                'rank', 'ayActive', 'ayReleaseReason', 'category'
+            ];
+            const recordsByName = new Map(Object.values(source.all).map(record => [
+                WorkloadIntegration.normalizeNameKey(record.facultyName), record
+            ]));
+            Object.values(targetSource.all || {}).forEach(target => {
+                const name = String(target.facultyName || '').trim();
+                if (!name) return;
+                const key = WorkloadIntegration.normalizeNameKey(name);
+                let record = recordsByName.get(key);
+                if (!record) {
+                    record = { facultyName: name, category: 'fullTime', courses: [], byQuarter: {}, source: 'course-records' };
+                    source.all[name] = record;
+                    recordsByName.set(key, record);
+                }
+                targetFields.forEach(field => {
+                    if (Object.prototype.hasOwnProperty.call(target, field) && target[field] !== undefined) record[field] = target[field];
+                });
+            });
+            source.meta.ayFaculty = targetSource.meta?.ayFaculty || 0;
+            source.meta.fallbackTargetRulesApplied = targetSource.meta?.fallbackTargetRulesApplied || [];
+            source.meta.preliminaryAssumptions = (targetSource.meta?.preliminaryAssumptions || []).filter(note =>
+                String(note).startsWith('Fallback planning targets') || String(note).startsWith('Unlisted instructors')
+            );
+            return CapacityViewModel.build(source, {
                 year, quarter, includeAppliedLearning: byId('includeAppliedLearning').value === 'yes',
                 recordedTargets: history?.capacityPlanning?.[year]?.fullTimeFaculty || []
             });
@@ -79,11 +109,9 @@ const CapacityDashboard = (function () {
     }
     function sourceInfo(selected) {
         const views = selected ? [selected] : models;
-        const draftYears = views.filter(model => model.sourceKind === 'draft').length;
-        text('sourceCoverage', draftYears ? 'Saved planning records · completeness unverified' : 'Recorded targets and workload coverage');
-        text('sourceDate', workload?.generatedAt && Number.isFinite(Date.parse(workload.generatedAt))
-            ? `Historical file: ${new Date(workload.generatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles' })}` : 'Historical file date unavailable');
-        text('sourceDescription', `${draftYears ? 'Saved schedule/import records take precedence over the historical courses for that academic year, even when only one quarter is entered. ' : ''}Planning records come from this browser’s saved Workload sources. No saved-draft timestamp or completeness guarantee is available. Historical target configurations may lack verified release credits.`);
+        text('sourceCoverage', selected ? `Course records · ${yearLabel(selected.year)}` : 'Course records · by academic year');
+        text('sourceDate', selected ? `Academic year ${yearLabel(selected.year)}` : `${views.length} academic years shown`);
+        text('sourceDescription', 'Teaching load is computed from saved course records for each academic year. AY Setup supplies faculty targets and releases; historical target configurations may lack verified release credits.');
         const assumptions = new Set(views.flatMap(model => model.assumptions || []));
         byId('sourceAssumptions').replaceChildren(...[...assumptions].map(value => element('li', '', value)));
     }
@@ -117,7 +145,7 @@ const CapacityDashboard = (function () {
             cell(row, format(model.totals.totalWorkload), 'numeric');
             cell(row, format(model.totals.unassignedWorkload), 'numeric');
             cell(row, model.quarters.filter(q => q.recorded).map(q => q.name).join(' · ') || 'Not recorded');
-            cell(row, sourceLabel(model.sourceKind));
+            cell(row, sourceLabel(model.sourceKind, model.year));
             return row;
         }));
     }
@@ -172,7 +200,9 @@ const CapacityDashboard = (function () {
             const top = element('div', 'faculty-topline');
             top.append(element('h3', '', row.name));
             const values = element('span', 'faculty-values', row.workload === null && row.recordedTarget !== null ? format(row.recordedTarget) : format(row.workload));
-            values.append(element('small', '', row.workload === null && row.recordedTarget !== null ? ' recorded target' : row.category === 'fullTime' && row.active ? ` / ${format(row.netTarget)} annual` : ' credits'));
+            const applied = row.appliedLearningLoad || { sections: 0, workloadCredits: 0 };
+            const appliedLabel = `${format(applied.sections)} applied-learning ${applied.sections === 1 ? 'section' : 'sections'} · ${format(applied.workloadCredits)} weighted ${applied.workloadCredits === 1 ? 'credit' : 'credits'}`;
+            values.append(element('small', '', `${row.workload === null && row.recordedTarget !== null ? ' recorded target' : row.category === 'fullTime' && row.active ? ` / ${format(row.netTarget)} annual` : ' credits'} · ${appliedLabel}`));
             top.append(values);
             const track = element('div', 'capacity-track'); track.setAttribute('aria-hidden', 'true');
             track.hidden = row.workload === null && row.netTarget === null;
@@ -186,6 +216,8 @@ const CapacityDashboard = (function () {
         byId('facultyTableBody').replaceChildren(...rows.map(row => {
             const tr = element('tr'); cell(tr, row.name); cell(tr, role(row));
             [row.grossTarget ?? row.recordedTarget, row.release, row.netTarget, row.workload].forEach(value => cell(tr, format(value), 'numeric'));
+            const applied = row.appliedLearningLoad || { sections: 0, workloadCredits: 0 };
+            cell(tr, `${format(applied.sections)} / ${format(applied.workloadCredits)}`, 'numeric');
             cell(tr, `${reading(row)}${row.targetSource === 'recorded' ? ' · recorded target; release basis unverified' : ''}`); return tr;
         }));
     }
@@ -210,7 +242,7 @@ const CapacityDashboard = (function () {
             setReading(`No workload records for ${annual ? yearLabel(model.year) : `${period()} · ${yearLabel(model.year)}`}.`, 'Teaching targets alone cannot establish demand, utilization or available capacity. Review saved assignments in Workload or select a year with workload records.', 'is-missing');
         } else {
             const missing = model.quarters.filter(q => !q.recorded && q.name !== 'Summer').map(q => q.name);
-            setReading(`${format(model.totals.totalWorkload)} workload credits are recorded${annual ? ' for the year' : ` for ${period()}`}.`, `${sourceLabel(model.sourceKind)}. ${missing.length ? `No ${missing.join(' or ')} workload records for this year. ` : ''}${annual && model.totals.overTarget > 0 ? `${format(model.totals.overTarget)} credits exceed individual full-time annual targets. ` : ''}Recorded assignments may be incomplete; remaining annual capacity is not confirmed.`, 'is-caution');
+            setReading(`${format(model.totals.totalWorkload)} workload credits are recorded${annual ? ' for the year' : ` for ${period()}`}.`, `${sourceLabel(model.sourceKind, model.year)}. ${missing.length ? `No ${missing.join(' or ')} workload records for this year. ` : ''}${annual && model.totals.overTarget > 0 ? `${format(model.totals.overTarget)} credits exceed individual full-time annual targets. ` : ''}Recorded assignments may be incomplete; remaining annual capacity is not confirmed.`, 'is-caution');
         }
         renderBreakdown(model); renderFaculty(model); renderQuarterCoverage(model);
     }
@@ -253,16 +285,15 @@ const CapacityDashboard = (function () {
         document.querySelectorAll('.filters select').forEach(select => { select.disabled = true; });
         try {
             const results = await Promise.all([
-                fetchJson('../workload-data.json').catch(() => null),
                 fetchJson('../enrollment-dashboard-data.json').catch(() => null),
                 fetchJson('../data/academic-calendar.json').catch(() => null),
                 DepartmentProfileManager.initialize({ forceReload: options.forceProfileReload === true })
             ]);
-            [workload, history, calendar] = results;
+            [history, calendar] = results;
             updateTerm(); populateYears(); models = buildModels();
-            if (!workload && !history && !models.some(model => model.hasWorkload || model.targetKnown)) throw new Error('No sources available');
-            byId('sourceWarning').hidden = Boolean(workload && history);
-            text('sourceWarning', 'Some historical sources could not be loaded. Available saved planning records are shown; source gaps remain unavailable.');
+            if (!history && !models.some(model => model.hasWorkload || model.targetKnown)) throw new Error('No sources available');
+            byId('sourceWarning').hidden = Boolean(history);
+            text('sourceWarning', 'Historical target records could not be loaded. Available course records and AY Setup targets are shown.');
             ready = true; bindEvents(); render();
             byId('loadStatus').hidden = true;
             byId('dashboardContent').hidden = false;

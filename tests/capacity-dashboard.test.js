@@ -10,7 +10,7 @@ const history = JSON.parse(read('enrollment-dashboard-data.json'));
 const workload = JSON.parse(read('workload-data.json'));
 const calendar = JSON.parse(read('data/academic-calendar.json'));
 const byId = id => document.getElementById(id);
-let dashboard, events, interval, sourceByYear, fetchJson, profile;
+let dashboard, events, interval, sourceByYear, targetByYear, fetchJson, profile;
 const course = (quarter, workloadCredits, extra = {}) => ({ courseCode: 'DESN 100', credits: workloadCredits, workloadCredits, quarter, ...extra });
 
 beforeEach(() => {
@@ -18,6 +18,7 @@ beforeEach(() => {
     jest.setSystemTime(new Date('2026-09-13T20:00:00Z'));
     document.body.innerHTML = html.match(/<body>([\s\S]*)<\/body>/)[1];
     sourceByYear = {};
+    targetByYear = {};
     events = {};
     fetchJson = jest.fn(async url => ({ ok: true, json: async () => url.includes('academic-calendar') ? calendar : url.includes('enrollment-dashboard') ? history : workload }));
     profile = {
@@ -31,7 +32,19 @@ beforeEach(() => {
         CapacityViewModel: model, EnrollmentViewModel: enrollment, DepartmentProfileManager: profile,
         WorkloadIntegration: {
             getAcademicYearOptions: () => ['2025-26', '2026-27'],
-            buildIntegratedWorkloadYearData: (data, year) => sourceByYear[year] || { ...data.workloadByYear.byYear[year], meta: { year } }
+            normalizeNameKey: name => String(name || '').trim().toLowerCase(),
+            getAppliedLearningCourseConfig: () => ({ 'DESN 499': { title: 'Independent Study', rate: 0.2 } }),
+            getProgramCommandScheduleCourses: year => {
+                const source = sourceByYear[year] || {};
+                const assigned = Object.values(source.all || {}).flatMap(record => (record.courses || []).map(item => ({
+                    ...item, assignedFaculty: record.facultyName, category: record.category
+                })));
+                const unassigned = (source.meta?.unresolvedScheduleCourses?.courses || []).map(item => ({ ...item, assignedFaculty: 'TBD' }));
+                return [...assigned, ...unassigned];
+            },
+            buildIntegratedWorkloadYearData: (data, year) => targetByYear[year] || {
+                all: {}, meta: { fallbackTargetRulesApplied: [] }
+            }
         },
         window: { addEventListener: (name, handler) => { events[name] = handler; }, setInterval: handler => { interval = handler; } }
     });
@@ -50,6 +63,13 @@ function addDraft() {
             courses: [course('Fall', 15), course('Winter', 15), course('Fall', 1, { courseCode: 'DESN 499', credits: 5, multiplier: 0.2, type: 'applied-learning' })]
         } },
         meta: { hasLiveSchedule: true, ayFaculty: 1, unresolvedScheduleCourses: { courses: [course('Fall', 5, { section: '01' })] } }
+    };
+    targetByYear['2026-27'] = {
+        all: { 'Faculty Example': {
+            facultyName: 'Faculty Example', category: 'fullTime', ayActive: true,
+            ayTargetCredits: 36, ayReleaseCredits: 9, ayNetTargetCredits: 27
+        } },
+        meta: { fallbackTargetRulesApplied: [] }
     };
 }
 
@@ -75,6 +95,8 @@ test('period and applied-learning controls change weighted demand and unassigned
     expect(byId('metric2Value').textContent).toBe('36');
     expect(byId('metric3Value').textContent).toBe('5');
     expect(byId('metric4Value').textContent).toBe('4');
+    expect(byId('sourceCoverage').textContent).toBe('Course records · 2026–27');
+    expect(byId('facultyBars').textContent).toContain('1 applied-learning section · 1 weighted credit');
     select('quarterFilter', 'current');
     expect(byId('metric2Value').textContent).toBe('21');
     expect(byId('metric4Label').textContent).toBe('Workload records');
@@ -87,6 +109,56 @@ test('period and applied-learning controls change weighted demand and unassigned
     expect(byId('metric2Value').textContent).toBe('—');
     expect(byId('unassignedPanel').hidden).toBe(true);
     expect(byId('readingHeading').textContent).toContain('No workload records for Spring');
+});
+
+test('saved course records retain the preliminary roster target when AY Setup is missing', async () => {
+    sourceByYear['2026-27'] = {
+        all: { 'Travis Masingale': {
+            facultyName: 'Travis Masingale', category: 'fullTime',
+            courses: [course('Fall', 5)]
+        } },
+        meta: { hasLiveSchedule: true }
+    };
+    targetByYear['2026-27'] = {
+        all: { 'Travis Masingale': {
+            facultyName: 'Travis Masingale', category: 'fullTime', rank: 'Full Professor',
+            ayRole: 'Full Professor', ayActive: true, ayTargetCredits: 36,
+            ayReleaseCredits: 0, ayNetTargetCredits: 36, ayReleaseReason: ''
+        } },
+        meta: { fallbackTargetRulesApplied: [{ matchedFaculty: ['Travis Masingale'] }] }
+    };
+
+    await dashboard.init();
+    select('academicYearFilter', 'current');
+
+    expect(byId('grossTarget').textContent).toBe('36');
+    expect(byId('netTarget').textContent).toBe('36');
+});
+
+test('AY Setup targets stay authoritative without saved course records', async () => {
+    targetByYear['2025-26'] = {
+        all: {
+            'Travis Masingale': {
+                facultyName: 'Travis Masingale', category: 'fullTime', ayActive: true,
+                ayTargetCredits: 36, ayReleaseCredits: 9, ayNetTargetCredits: 27
+            },
+            'Colin Manikoth': {
+                facultyName: 'Colin Manikoth', category: 'fullTime', ayActive: true,
+                ayTargetCredits: 36, ayReleaseCredits: 0, ayNetTargetCredits: 36
+            }
+        },
+        meta: { ayFaculty: 2, fallbackTargetRulesApplied: [] }
+    };
+
+    await dashboard.init();
+    select('academicYearFilter', '2025-26');
+
+    expect(byId('grossTarget').textContent).toBe('72');
+    expect(byId('netTarget').textContent).toBe('63');
+    expect(byId('facultyTableBody').children).toHaveLength(2);
+    expect(byId('facultyTableBody').textContent).toContain('Travis Masingale');
+    expect(byId('facultyTableBody').textContent).toContain('Colin Manikoth');
+    expect(byId('facultyTableBody').textContent).not.toContain('Melinda Breen');
 });
 
 test('all-year quarter filter uses the same scope without summing annual targets', async () => {
