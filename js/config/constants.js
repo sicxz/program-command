@@ -4,6 +4,8 @@
  */
 
 const CONSTANTS = {
+    SECTION_CAP_DEFAULT: 20,
+
     // ===========================================
     // WORKLOAD CONFIGURATION
     // ===========================================

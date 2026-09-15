@@ -19,6 +19,7 @@
         quarter: 'fall',
         programCode: 'ewu-design'
     });
+    const SECTION_CAP_DEFAULT = Number(root.CONSTANTS?.SECTION_CAP_DEFAULT) || 20;
 
     const PUBLIC_YEARS = Object.freeze(['2026-27', '2025-26']);
     const QUARTERS = Object.freeze(['fall', 'winter', 'spring']);
@@ -435,7 +436,7 @@
         const details = [];
         if (course.section) details.push(`Section ${course.section}`);
         if (course.credits) details.push(`${course.credits} cr`);
-        if (course.enrollmentCap) details.push(`Cap ${course.enrollmentCap}`);
+        details.push(`Cap ${Number(course.enrollmentCap) || SECTION_CAP_DEFAULT}`);
         const section = createElement(documentRef, 'div', 'public-course-section', details.join(' | '));
 
         block.appendChild(code);
