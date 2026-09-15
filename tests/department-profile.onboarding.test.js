@@ -169,7 +169,7 @@ describe('DepartmentProfileManager onboarding helpers', () => {
         expect(snapshot.profile.import.clss.roomMatchPriority).toEqual(['206', '207', '209', '210', '212', 'CEB 102', 'CEB 104']);
         expect(snapshot.profile.scheduler.roomLabelsByYear['2025-26'].roomLabels['207']).toBe('207 Media Lab');
         expect(snapshot.profile.scheduler.roomLabelsByYear['2025-26'].roomLabels['212']).toBe('212 Project Lab');
-        expect(snapshot.profile.scheduler.roomLabelsByYear['2026-27'].roomLabels['207']).toBe('207 Media Lab');
-        expect(snapshot.profile.scheduler.roomLabelsByYear['2026-27'].roomLabels['212']).toBe('212 Project Lab');
+        expect(snapshot.profile.scheduler.roomLabelsByYear['2026-27'].roomLabels['ISL 156']).toBe('ISL 156 UX Lab');
+        expect(snapshot.profile.scheduler.roomLabelsByYear['2026-27'].roomLabels['ISL 101']).toBe('ISL 101 Design Lab');
     });
 });
