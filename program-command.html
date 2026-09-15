@@ -5724,6 +5724,10 @@
             '209': '209 Mac Lab',
             '210': '210 Mac Lab',
             '212': '212 Project Lab',
+            'ISL 156': 'ISL 156 UX Lab',
+            'ISL 154': 'ISL 154 Motion Lab',
+            'ISL 155': 'ISL 155 Mac Lab',
+            'ISL 101': 'ISL 101 Design Lab',
             'CEB 102': 'CEB 102',
             'CEB 104': 'CEB 104'
         };
@@ -5733,9 +5737,55 @@
             '209': 'Motion Lab',
             '210': 'Mac Lab',
             '212': 'Design Lab',
+            'ISL 156': 'UX Lab',
+            'ISL 154': 'Motion Lab',
+            'ISL 155': 'Mac Lab',
+            'ISL 101': 'Design Lab',
             'CEB 102': 'CEB Mac Lab',
             'CEB 104': 'CEB Design Lab'
         };
+        const SCHEDULE_GRID_ROOM_SETS = Object.freeze({
+            catalyst: Object.freeze(['206', '209', '210', '212', 'CEB 102', 'CEB 104']),
+            isleHall: Object.freeze(['ISL 156', 'ISL 154', 'ISL 155', 'ISL 101', 'CEB 102', 'CEB 104'])
+        });
+        const ISLE_HALL_ROOM_BY_CATALYST_ROOM = Object.freeze({
+            '206': 'ISL 156',
+            '209': 'ISL 154',
+            '210': 'ISL 155',
+            '212': 'ISL 101'
+        });
+
+        function getScheduleGridRoomsForYear(academicYear) {
+            const startYear = Number.parseInt(String(academicYear || '').split('-')[0], 10);
+            const usesIsleHall = Number.isFinite(startYear) && startYear >= 2026;
+            const configuredRooms = getSchedulerRoomOptionList({
+                year: academicYear,
+                includeHistoricalRooms: true
+            });
+
+            if (!usesIsleHall) {
+                const isleHallRooms = new Set(Object.values(ISLE_HALL_ROOM_BY_CATALYST_ROOM));
+                return configuredRooms.filter((room) => !isleHallRooms.has(room));
+            }
+
+            const roomSet = SCHEDULE_GRID_ROOM_SETS.isleHall;
+            const pairedRoomsFromOtherBuilding = Object.keys(ISLE_HALL_ROOM_BY_CATALYST_ROOM);
+            const excludedRooms = new Set([...roomSet, ...pairedRoomsFromOtherBuilding]);
+            const additionalRooms = configuredRooms.filter((room) => !excludedRooms.has(room));
+            return [...roomSet, ...additionalRooms];
+        }
+
+        function normalizeScheduleGridRoomForYear(roomCode, academicYear) {
+            const code = String(roomCode || '').trim();
+            const startYear = Number.parseInt(String(academicYear || '').split('-')[0], 10);
+            if (Number.isFinite(startYear) && startYear >= 2026) {
+                return ISLE_HALL_ROOM_BY_CATALYST_ROOM[code] || code;
+            }
+
+            const catalystRoom = Object.entries(ISLE_HALL_ROOM_BY_CATALYST_ROOM)
+                .find(([, isleHallRoom]) => isleHallRoom === code)?.[0];
+            return catalystRoom || code;
+        }
         let schedulerDayPatterns = DEFAULT_SCHEDULER_DAY_PATTERNS.map((pattern) => ({
             ...pattern,
             aliases: Array.isArray(pattern.aliases) ? pattern.aliases.slice() : []
@@ -7505,7 +7555,7 @@
                 quarter
             );
             syncSchedulerRoomLabelsForYear(currentAcademicYear, { includeHistoricalRooms: true });
-            const rooms = getSchedulerRoomOptionList({ year: currentAcademicYear, includeHistoricalRooms: true });
+            const rooms = getScheduleGridRoomsForYear(currentAcademicYear);
             grid.style.setProperty('--scheduler-room-count', String(rooms.length));
             grid.style.gridTemplateColumns = `104px repeat(${rooms.length}, minmax(132px, 1fr))`;
 
@@ -7539,7 +7589,7 @@
 
                     rooms.forEach(room => {
                         const courses = data[day] && data[day][time] ?
-                            data[day][time].filter(c => c.room === room) : [];
+                            data[day][time].filter(c => normalizeScheduleGridRoomForYear(c.room, currentAcademicYear) === room) : [];
 
                         const cell = document.createElement('div');
                         cell.className = 'schedule-cell drop-zone';
@@ -7802,7 +7852,9 @@
             if (draggedCourse.isFromDisplacedTray) {
                 // Check if target cell has existing courses with same room
                 if (data[targetDay] && data[targetDay][targetTime]) {
-                    const existingInRoom = data[targetDay][targetTime].filter(c => c.room === targetRoom);
+                    const existingInRoom = data[targetDay][targetTime].filter(c =>
+                        normalizeScheduleGridRoomForYear(c.room, currentAcademicYear) === targetRoom
+                    );
                     // Move existing courses to displaced tray
                     existingInRoom.forEach(existing => {
                         addToDisplacedTray({
@@ -7882,7 +7934,9 @@
                     if (!data[newDay]) data[newDay] = {};
                     if (!data[newDay][newTime]) data[newDay][newTime] = [];
 
-                    const existingInRoom = data[newDay][newTime].filter(c => c.room === newRoom);
+                    const existingInRoom = data[newDay][newTime].filter(c =>
+                        normalizeScheduleGridRoomForYear(c.room, currentAcademicYear) === newRoom
+                    );
                     const hasExisting = existingInRoom.length > 0;
                     let swappedCourse = null;
 
@@ -7893,7 +7947,10 @@
                                 swappedCourse = { ...existing }; // Copy for toast message
 
                                 // First, remove from target location (before changing room)
-                                const idx = data[newDay][newTime].findIndex(c => c.code === existing.code && c.room === newRoom);
+                                const idx = data[newDay][newTime].findIndex(c =>
+                                    c.code === existing.code
+                                    && normalizeScheduleGridRoomForYear(c.room, currentAcademicYear) === newRoom
+                                );
                                 if (idx > -1) {
                                     const removedCourse = data[newDay][newTime].splice(idx, 1)[0];
                                     // Update the removed course's room to original room

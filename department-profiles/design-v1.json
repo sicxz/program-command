@@ -83,11 +83,10 @@
       "2026-27": {
         "inheritDefault": false,
         "roomLabels": {
-          "206": "206 UX Lab",
-          "207": "207 Media Lab",
-          "209": "209 Mac Lab",
-          "210": "210 Mac Lab",
-          "212": "212 Project Lab",
+          "ISL 156": "ISL 156 UX Lab",
+          "ISL 154": "ISL 154 Motion Lab",
+          "ISL 155": "ISL 155 Mac Lab",
+          "ISL 101": "ISL 101 Design Lab",
           "CEB 102": "CEB 102",
           "CEB 104": "CEB 104"
         }

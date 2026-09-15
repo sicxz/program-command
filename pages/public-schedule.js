@@ -33,15 +33,59 @@
         { id: 'TR', label: 'Tuesday / Thursday' }
     ]);
     const TIME_SLOTS = Object.freeze(['10:00-12:20', '13:00-15:20', '16:00-18:20']);
-    const ROOM_ORDER = Object.freeze(['206', '209', '210', '212', 'CEB 102', 'CEB 104']);
-    const ROOM_LABELS = Object.freeze({
-        '206': 'UX Lab',
-        '209': 'Motion Lab',
-        '210': 'Mac Lab',
-        '212': 'Design Lab',
-        'CEB 104': 'CEB Design Lab',
-        'CEB 102': 'CEB Mac Lab'
+    const ROOM_SETS = Object.freeze({
+        catalyst: Object.freeze([
+            Object.freeze({ code: '206', label: 'UX Lab' }),
+            Object.freeze({ code: '209', label: 'Motion Lab' }),
+            Object.freeze({ code: '210', label: 'Mac Lab' }),
+            Object.freeze({ code: '212', label: 'Design Lab' }),
+            Object.freeze({ code: 'CEB 102', label: 'CEB Mac Lab' }),
+            Object.freeze({ code: 'CEB 104', label: 'CEB Design Lab' })
+        ]),
+        isleHall: Object.freeze([
+            Object.freeze({ code: 'ISL 156', label: 'UX Lab' }),
+            Object.freeze({ code: 'ISL 154', label: 'Motion Lab' }),
+            Object.freeze({ code: 'ISL 155', label: 'Mac Lab' }),
+            Object.freeze({ code: 'ISL 101', label: 'Design Lab' }),
+            Object.freeze({ code: 'CEB 102', label: 'CEB Mac Lab' }),
+            Object.freeze({ code: 'CEB 104', label: 'CEB Design Lab' })
+        ])
     });
+    const ROOM_LABELS = Object.freeze({
+        ...Object.fromEntries(ROOM_SETS.catalyst.map(({ code, label }) => [code, label])),
+        ...Object.fromEntries(ROOM_SETS.isleHall.map(({ code, label }) => [code, label]))
+    });
+    const ISLE_HALL_ROOM_BY_CATALYST_ROOM = Object.freeze({
+        '206': 'ISL 156',
+        '209': 'ISL 154',
+        '210': 'ISL 155',
+        '212': 'ISL 101'
+    });
+
+    function roomsForYear(academicYear) {
+        const startYear = Number.parseInt(String(academicYear || '').split('-')[0], 10);
+        const roomSet = Number.isFinite(startYear) && startYear >= 2026
+            ? ROOM_SETS.isleHall
+            : ROOM_SETS.catalyst;
+        return {
+            order: roomSet.map(({ code }) => code),
+            labels: ROOM_LABELS
+        };
+    }
+
+    function normalizeRoomForYear(roomCode, academicYear) {
+        const code = String(roomCode || '').trim();
+        const startYear = Number.parseInt(String(academicYear || '').split('-')[0], 10);
+        if (Number.isFinite(startYear) && startYear >= 2026) {
+            return ISLE_HALL_ROOM_BY_CATALYST_ROOM[code] || code;
+        }
+
+        const catalystRoom = Object.entries(ISLE_HALL_ROOM_BY_CATALYST_ROOM)
+            .find(([, isleHallRoom]) => isleHallRoom === code)?.[0];
+        return catalystRoom || code;
+    }
+
+    const ROOM_ORDER = Object.freeze(roomsForYear(DEFAULTS.year).order);
     const COURSE_CATALOG_PATH = 'data/course-catalog.json';
     const COURSE_TITLE_OVERRIDES = Object.freeze({
         'DESN 100': 'Drawing for Communication',
@@ -97,7 +141,7 @@
         'DESN 498': 'Seminar',
         'DESN 499': 'Directed Study'
     });
-    const PUBLIC_ROOM_SET = new Set(ROOM_ORDER);
+    const PUBLIC_ROOM_SET = new Set(Object.keys(ROOM_LABELS));
     const PUBLIC_SPECIAL_ROOM_SET = new Set(['ONLINE', 'ARRANGED']);
     const FACULTY_COLORS = Object.freeze({
         'T.Masingale': { className: 'faculty-masingale', color: '#667eea', name: 'T.Masingale' },
@@ -457,14 +501,14 @@
         return slot;
     }
 
-    function getCoursesForCell(scheduleData, quarter, day, time, room) {
+    function getCoursesForCell(scheduleData, quarter, day, time, room, academicYear) {
         const list = scheduleData?.[quarter]?.[day]?.[time];
         if (!Array.isArray(list)) return [];
-        return list.filter((course) => String(course.room || '').trim() === room);
+        return list.filter((course) => normalizeRoomForYear(course.room, academicYear) === room);
     }
 
-    function getKnownRooms(scheduleData, quarter) {
-        return ROOM_ORDER;
+    function getKnownRooms(scheduleData, quarter, academicYear) {
+        return roomsForYear(academicYear).order;
     }
 
     function renderYearTabs(state) {
@@ -525,14 +569,15 @@
     }
 
     function renderScheduleGrid(state) {
-        const { documentRef, scheduleData, activeQuarter } = state;
+        const { documentRef, scheduleData, activeQuarter, year } = state;
         const grid = documentRef.getElementById('publicScheduleGrid');
         clearElement(grid);
 
-        const rooms = getKnownRooms(scheduleData, activeQuarter);
+        const roomConfiguration = roomsForYear(year);
+        const rooms = getKnownRooms(scheduleData, activeQuarter, year);
         grid.style.gridTemplateColumns = `104px repeat(${rooms.length}, minmax(132px, 1fr))`;
 
-        ['Time', ...rooms.map((room) => ROOM_LABELS[room] || room)].forEach((label) => {
+        ['Time', ...rooms.map((room) => roomConfiguration.labels[room] || room)].forEach((label) => {
             grid.appendChild(createElement(documentRef, 'div', 'public-grid-header', label));
         });
 
@@ -545,7 +590,8 @@
 
                 rooms.forEach((room) => {
                     const cell = createElement(documentRef, 'div', 'public-schedule-cell');
-                    const courses = getCoursesForCell(scheduleData, activeQuarter, day.id, time, room);
+                    cell.dataset.room = room;
+                    const courses = getCoursesForCell(scheduleData, activeQuarter, day.id, time, room, year);
                     courses.forEach((course) => cell.appendChild(createCourseBlock(documentRef, course)));
                     grid.appendChild(cell);
                 });
@@ -851,6 +897,7 @@
         loadCourseCatalog,
         formatTimeSlot,
         normalizePublicYear,
-        normalizePublicScheduleRows
+        normalizePublicScheduleRows,
+        roomsForYear
     };
 });

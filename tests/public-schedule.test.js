@@ -35,6 +35,51 @@ describe('public schedule page', () => {
         expect(PublicSchedulePage.formatQuarterTitle('2026-27', 'fall')).toBe('Fall 2026');
     });
 
+    test('renders 2026-27 headers over the Isle Hall room columns', async () => {
+        const rpc = jest.fn((name) => {
+            if (name === 'get_public_current_term') {
+                return Promise.resolve({ data: [{ academic_year: '2026-27', quarter: 'fall' }], error: null });
+            }
+            return Promise.resolve({
+                data: [{
+                    academic_year: '2026-27',
+                    quarter: 'fall',
+                    day_pattern: 'MW',
+                    time_slot: '10:00-12:20',
+                    section: '001',
+                    course_code: 'DESN 368',
+                    course_title: 'Code + Design 1',
+                    credits: 5,
+                    instructor_name: 'T. Masingale',
+                    room_code: '206',
+                    projected_enrollment: 24
+                }],
+                error: null
+            });
+        });
+        const app = PublicSchedulePage.createPublicScheduleApp({
+            document,
+            scheduleDataUtils: ScheduleDataUtils,
+            getClient: () => ({ rpc })
+        });
+
+        await app.init();
+        await flushPromises();
+
+        const headers = Array.from(document.querySelectorAll('.public-grid-header')).map((header) => header.textContent);
+        const firstRoomRow = Array.from(document.querySelectorAll('.public-schedule-cell')).slice(0, 6);
+        expect(headers).toEqual(['Time', 'UX Lab', 'Motion Lab', 'Mac Lab', 'Design Lab', 'CEB Mac Lab', 'CEB Design Lab']);
+        expect(firstRoomRow.map((cell) => cell.dataset.room)).toEqual([
+            'ISL 156',
+            'ISL 154',
+            'ISL 155',
+            'ISL 101',
+            'CEB 102',
+            'CEB 104'
+        ]);
+        expect(firstRoomRow[0].textContent).toContain('DESN 368');
+    });
+
     test('maps known and unmapped faculty to stable color-coded blocks', () => {
         expect(PublicSchedulePage.getFacultyInfo('T. Masingale')).toMatchObject({
             className: 'faculty-masingale',
@@ -260,6 +305,23 @@ describe('public schedule page', () => {
         expect(document.getElementById('publicScheduleGrid').textContent).toContain('Visual Communication Design');
         expect(document.getElementById('publicScheduleGrid').textContent).not.toContain('User Experience Design I');
         expect(document.getElementById('publicScheduleGrid').textContent).not.toContain('DESN 368');
+        expect(Array.from(document.querySelectorAll('.public-grid-header')).map((header) => header.textContent)).toEqual([
+            'Time',
+            'UX Lab',
+            'Motion Lab',
+            'Mac Lab',
+            'Design Lab',
+            'CEB Mac Lab',
+            'CEB Design Lab'
+        ]);
+        expect(Array.from(document.querySelectorAll('.public-schedule-cell')).slice(0, 6).map((cell) => cell.dataset.room)).toEqual([
+            '206',
+            '209',
+            '210',
+            '212',
+            'CEB 102',
+            'CEB 104'
+        ]);
     });
 
     test('shows an unavailable state when the public RPC fails', async () => {
