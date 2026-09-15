@@ -35,11 +35,11 @@
     const ROOM_ORDER = Object.freeze(['206', '209', '210', '212', 'CEB 102', 'CEB 104']);
     const ROOM_LABELS = Object.freeze({
         '206': 'UX Lab',
-        '209': 'Mac Lab 1',
-        '210': 'Mac Lab 2',
-        '212': 'Mac Lab 3',
-        'CEB 104': 'Mac Lab 4',
-        'CEB 102': 'Design Studio'
+        '209': 'Motion Lab',
+        '210': 'Mac Lab',
+        '212': 'Design Lab',
+        'CEB 104': 'CEB Design Lab',
+        'CEB 102': 'CEB Mac Lab'
     });
     const COURSE_CATALOG_PATH = 'data/course-catalog.json';
     const COURSE_TITLE_OVERRIDES = Object.freeze({

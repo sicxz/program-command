@@ -170,7 +170,7 @@ describe('public schedule page', () => {
         expect(document.getElementById('publicFacultyLegend').textContent).not.toMatch(/\bcr\b/i);
 
         const headers = Array.from(document.querySelectorAll('.public-grid-header')).map((header) => header.textContent);
-        expect(headers).toEqual(['Time', 'UX Lab', 'Mac Lab 1', 'Mac Lab 2', 'Mac Lab 3', 'Design Studio', 'Mac Lab 4']);
+        expect(headers).toEqual(['Time', 'UX Lab', 'Motion Lab', 'Mac Lab', 'Design Lab', 'CEB Mac Lab', 'CEB Design Lab']);
         expect(headers).not.toContain('207 Media Lab');
         expect(headers).not.toContain('CEB 102');
         expect(headers).not.toContain('CEB 104');
