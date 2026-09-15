@@ -190,6 +190,30 @@ describe('AppliedLearningViewModel workload', () => {
         expect(result.workload.faculty).toEqual([{ name: 'Taylor', workload: 3, credits: 20, recordCount: 2 }]);
     });
 
+    test('groups course sections by faculty while keeping unassigned work separate', () => {
+        const result = build({}, { '2026-27': {
+            all: {
+                Alpha: { courses: [record('DESN 495', 'Fall', 5, 0.5)] },
+                Zeta: { courses: [record('DESN 495', 'Winter', 10, 1)] }
+            },
+            meta: { unresolvedScheduleCourses: { courses: [record('DESN 499', 'Spring', 6, 1.2)] } }
+        } });
+        expect(result.byCourseFaculty).toEqual([
+            {
+                courseCode: 'DESN 495', label: 'DESN 495', sections: 2, credits: 15,
+                faculty: [
+                    { name: 'Alpha', sections: 1, credits: 5, workload: 0.5 },
+                    { name: 'Zeta', sections: 1, credits: 10, workload: 1 }
+                ]
+            },
+            {
+                courseCode: 'DESN 499', label: 'DESN 499', sections: 1, credits: 6,
+                faculty: [{ name: 'Unassigned', sections: 1, credits: 6, workload: 1.2 }]
+            }
+        ]);
+        expect(result.workload.supervisorCount).toBe(2);
+    });
+
     test('only unassigned records imply zero named supervisors rather than a missing source', () => {
         const result = build({}, { '2026-27': { meta: { unresolvedScheduleCourses: {
             totalWorkloadCredits: 999, courses: [record('DESN 495', 'Fall', 10, 1)]

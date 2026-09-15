@@ -91,6 +91,32 @@ const AppliedLearningViewModel = (function() {
         return faculty;
     }
 
+    function byCourseFaculty(rows) {
+        const grouped = new Map();
+        rows.forEach(row => {
+            if (!grouped.has(row.courseCode)) grouped.set(row.courseCode, []);
+            grouped.get(row.courseCode).push(row);
+        });
+        return [...grouped.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([courseCode, records]) => {
+            const facultyGroups = new Map();
+            records.forEach(record => {
+                const key = record.faculty === null ? null : record.faculty;
+                if (!facultyGroups.has(key)) facultyGroups.set(key, []);
+                facultyGroups.get(key).push(record);
+            });
+            const faculty = [...facultyGroups.entries()].map(([name, facultyRecords]) => ({
+                name: name === null ? 'Unassigned' : name,
+                sections: facultyRecords.length,
+                credits: sum(facultyRecords.map(record => record.credits)),
+                workload: sum(facultyRecords.map(record => record.workloadCredits))
+            })).sort((a, b) => a.name.localeCompare(b.name));
+            return {
+                courseCode, label: courseCode, sections: records.length,
+                credits: sum(records.map(record => record.credits)), faculty
+            };
+        });
+    }
+
     function workload(integratedYears, configured, year, quarter) {
         const selectedCodes = new Set(configured.map(course => course.code));
         const rows = [];
@@ -152,10 +178,12 @@ const AppliedLearningViewModel = (function() {
         const quarter = quarterName(options.quarter) || 'annual';
         const course = !options.course || options.course === 'all' ? 'all' : code(options.course);
         const configured = configuredCourses(data.courses, course);
+        const workloadModel = workload(data.integratedYears, configured, year, quarter);
         return {
             selection: { year, quarter, course },
             registrations: registrations(data.enrollment, configured, year, quarter),
-            workload: workload(data.integratedYears, configured, year, quarter)
+            workload: workloadModel,
+            byCourseFaculty: byCourseFaculty(workloadModel.rows)
         };
     }
 
