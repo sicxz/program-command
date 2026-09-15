@@ -179,11 +179,11 @@ test('2026 captures update all recorded years and make provisional Fall explicit
     await dashboard.init();
     expect(errors).not.toHaveBeenCalled();
     expect(byId('academicYearFilter').value).toBe('all');
-    expect(byId('registrationCount').textContent).toBe('5,049');
+    expect(byId('registrationCount').textContent).toBe('5,041');
     expect(byId('sourceCoverage').textContent).toBe('Records through Fall 2026 · provisional');
-    expect(byId('periodStatus').textContent).toContain('308 registrations captured Sep 13, 2026');
+    expect(byId('periodStatus').textContent).toContain('300 registrations captured Sep 15, 2026');
     expect(byId('snapshotCards').children).toHaveLength(3);
-    expect(byId('snapshotCards').textContent).toContain('8 displayed waitlist entries');
+    expect(byId('snapshotCards').textContent).toContain('9 displayed waitlist entries');
     expect(byId('snapshotTerm').value).toBe('fall-2026');
     expect(byId('snapshotTableBody').children).toHaveLength(23);
     expect(byId('snapshotTableBody').textContent).toContain('APPLIED AI');
@@ -197,7 +197,7 @@ test('2026 captures update all recorded years and make provisional Fall explicit
     expect(graph.querySelectorAll('line[stroke="#a10022"]')).toHaveLength(3);
     expect(byId('quarterTableBody').textContent).toContain('Fall 2026 · provisional');
     select('academicYearFilter', 'current');
-    expect(byId('registrationCount').textContent).toBe('308');
+    expect(byId('registrationCount').textContent).toBe('300');
     expect(byId('periodChange').textContent).toBe('—');
     expect(byId('periodComparison').textContent).toContain('Comparison withheld');
     select('academicYearFilter', '2025-26');
