@@ -43,6 +43,88 @@ const CapacityViewModel = (function() {
         return values.every(value => value !== null) ? round(values.reduce((sum, value) => sum + value, 0)) : null;
     }
 
+    function loadFromCourseRecords(scheduleCourses, appliedConfig) {
+        const config = Object.entries(appliedConfig && typeof appliedConfig === 'object' ? appliedConfig : {})
+            .reduce((result, [code, details]) => {
+                const normalizedCode = String(code || '').trim().toUpperCase();
+                const configuredRate = number(details && typeof details === 'object' ? details.rate : details);
+                if (normalizedCode && configuredRate !== null) result[normalizedCode] = configuredRate;
+                return result;
+            }, {});
+        const all = {};
+        const recordsByName = new Map();
+        const unassigned = [];
+        const isUnassigned = name => ['', 'tbd', 'staff', 'staff/other', 'unassigned'].includes(String(name || '').trim().toLowerCase());
+        const emptyQuarter = () => ({ credits: 0, workload: 0, workloadCredits: 0, sections: 0 });
+
+        (Array.isArray(scheduleCourses) ? scheduleCourses : []).forEach((section, index) => {
+            if (!section || typeof section !== 'object') return;
+            const facultyName = String(section.assignedFaculty || section.instructor || '').trim();
+            const courseCode = String(section.courseCode || section.code || '').trim().toUpperCase();
+            const credits = number(section.credits);
+            const quarter = quarterName(section.quarter);
+            const multiplier = config[courseCode] ?? 1;
+            const workloadCredits = credits === null ? null : round(credits * multiplier);
+            const course = {
+                courseCode, credits, quarter, workloadCredits,
+                ...(section.id ? { id: section.id } : {}),
+                ...(section.section ? { section: String(section.section) } : {}),
+                multiplier,
+                type: Object.prototype.hasOwnProperty.call(config, courseCode) ? 'applied-learning' : 'scheduled'
+            };
+
+            if (isUnassigned(facultyName)) {
+                unassigned.push({ ...course, instructor: facultyName || 'TBD', id: course.id || `unassigned-${index}` });
+                return;
+            }
+
+            const nameKey = facultyName.toLowerCase();
+            if (!recordsByName.has(nameKey)) {
+                const category = String(section.category || section.facultyCategory || 'fullTime').trim() || 'fullTime';
+                recordsByName.set(nameKey, {
+                    facultyName, category, courses: [], byQuarter: {}, source: 'course-records',
+                    totalCredits: 0, totalWorkloadCredits: 0, sections: 0,
+                    appliedLearningLoad: { sections: 0, workloadCredits: 0 }
+                });
+            }
+            const record = recordsByName.get(nameKey);
+            record.courses.push(course);
+            record.sections += 1;
+            if (credits !== null) record.totalCredits = round(record.totalCredits + credits);
+            if (workloadCredits !== null) record.totalWorkloadCredits = round(record.totalWorkloadCredits + workloadCredits);
+            if (course.type === 'applied-learning') {
+                record.appliedLearningLoad.sections += 1;
+                if (workloadCredits !== null) {
+                    record.appliedLearningLoad.workloadCredits = round(record.appliedLearningLoad.workloadCredits + workloadCredits);
+                }
+            }
+            if (quarter) {
+                if (!record.byQuarter[quarter]) record.byQuarter[quarter] = emptyQuarter();
+                const bucket = record.byQuarter[quarter];
+                bucket.sections += 1;
+                if (credits !== null) bucket.credits = round(bucket.credits + credits);
+                if (workloadCredits !== null) {
+                    bucket.workload = round(bucket.workload + workloadCredits);
+                    bucket.workloadCredits = bucket.workload;
+                }
+            }
+        });
+
+        recordsByName.forEach(record => { all[record.facultyName] = record; });
+        const unassignedWorkload = sumKnown(unassigned.map(course => course.workloadCredits));
+        const unassignedCredits = sumKnown(unassigned.map(course => course.credits));
+        return {
+            all,
+            meta: {
+                source: 'course-records', hasLiveSchedule: (Array.isArray(scheduleCourses) ? scheduleCourses.length : 0) > 0,
+                unresolvedScheduleCourses: {
+                    courses: unassigned, count: unassigned.length, sections: unassigned.length,
+                    credits: unassignedCredits, totalWorkloadCredits: unassignedWorkload
+                }
+            }
+        };
+    }
+
     function fromCourses(courses, includeAppliedLearning) {
         const selected = includeAppliedLearning ? courses : courses.filter(course => !course.applied);
         return {
@@ -127,11 +209,20 @@ const CapacityViewModel = (function() {
         const rowRecords = records.map(record => {
             const courses = (Array.isArray(record.courses) ? record.courses : []).map(courseData);
             const annual = courses.length ? fromCourses(courses, includeAppliedLearning) : fromSummary(record, includeAppliedLearning);
+            annual.appliedLearningLoad = {
+                sections: courses.filter(course => course.applied).length,
+                workloadCredits: sumKnown(courses.filter(course => course.applied).map(course => course.workloadCredits))
+            };
             const quarters = QUARTERS.map(name => {
                 const matching = courses.filter(course => course.quarter === name);
                 return { name, ...(matching.length ? fromCourses(matching, includeAppliedLearning)
                     : courses.length ? { recorded: false, workload: null, sections: null }
-                        : fromSummary(record.byQuarter?.[name] || {}, includeAppliedLearning, true)) };
+                        : fromSummary(record.byQuarter?.[name] || {}, includeAppliedLearning, true)),
+                    appliedLearningLoad: {
+                        sections: matching.filter(course => course.applied).length,
+                        workloadCredits: sumKnown(matching.filter(course => course.applied).map(course => course.workloadCredits))
+                    }
+                };
             });
             const category = ['fullTime', 'adjunct', 'former'].includes(record.category) ? record.category : 'other';
             const active = record.ayActive !== false && record.active !== false && category !== 'former';
@@ -177,7 +268,7 @@ const CapacityViewModel = (function() {
                 grossTarget: row.grossTarget, release: row.release, netTarget: row.netTarget,
                 recordedTarget: row.recordedTarget,
                 targetInferred: row.targetInferred, targetSource: row.targetSource, releaseReason: row.releaseReason,
-                workload, sections, annualWorkload: row.annualWorkload,
+                workload, sections, annualWorkload: row.annualWorkload, appliedLearningLoad: bucket.appliedLearningLoad,
                 overTarget: quarter === 'annual' && row.active && row.category === 'fullTime'
                     && row.annualWorkload !== null && row.netTarget !== null
                     ? round(Math.max(0, row.annualWorkload - row.netTarget)) : null
@@ -214,6 +305,7 @@ const CapacityViewModel = (function() {
             fullTimeCount: activeFullTime.length
         };
         const sourceKind = !hasWorkload ? 'missing'
+            : meta.source === 'course-records' ? 'course-records'
             : meta.hasLiveSchedule ? 'draft'
                 : meta.source === 'integrated' && meta.detailFaculty > 0 ? 'details' : 'historical';
         const assumptions = (meta.preliminaryAssumptions || []).filter(text =>
@@ -241,7 +333,7 @@ const CapacityViewModel = (function() {
         return result;
     }
 
-    return { build, exactYearSource };
+    return { build, exactYearSource, loadFromCourseRecords };
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = CapacityViewModel;
