@@ -42,7 +42,7 @@ async function loadData() {
         await ScheduleManager.init();
 
         // Load workload data
-        workloadData = await loadWorkloadData('../data/workload-data.json');
+        workloadData = await loadWorkloadData('../workload-data.json');
 
         // Import data into ScheduleManager if not already done
         if (ScheduleManager.getAvailableYears().length === 0 && workloadData) {
@@ -117,7 +117,7 @@ async function loadWorkloadData(url) {
  * Build list of all faculty members
  */
 function buildFacultyList() {
-    if (!workloadData) return;
+    if (!workloadData || !Array.isArray(workloadData.academicYears)) return;
 
     const yearData = workloadData.academicYears.find(y => y.year === currentYear);
     if (!yearData) return;
