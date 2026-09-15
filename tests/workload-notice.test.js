@@ -81,4 +81,11 @@ test('all active workload entry pages load the gate and direct access never boot
     expect(workloadPage).not.toMatch(/<script[^>]+src=["'][^"']*\/workload-dashboard\.js/);
     expect(workloadPage).not.toContain('schedule-manager.js');
     expect(workloadPage).toContain('../js/auth-guard.js');
+
+    const facultyWorkloadDetailPage = read('pages/faculty-workload-detail.html');
+    expect(facultyWorkloadDetailPage).toContain('Under development');
+    expect(facultyWorkloadDetailPage).not.toMatch(/<script[^>]+src=["'][^"']*faculty-workload-detail\.js/);
+    expect(facultyWorkloadDetailPage).not.toContain('data-loader.js');
+    expect(facultyWorkloadDetailPage).not.toContain('workload-integration.js');
+    expect(facultyWorkloadDetailPage).toContain('../js/auth-guard.js');
 });
