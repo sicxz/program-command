@@ -245,3 +245,191 @@ Re-enable deliberately after that work is verified: replace the status page with
 the completed dashboard, remove `workload-notice.js` loading and unavailable
 attributes, and restore reviewed navigation/handoff behavior. Do not re-enable
 merely because source data changes or a new academic year begins.
+
+## Workload trace: MasingaleT, 2025-26
+
+### Path
+
+- Identity: `MasingaleT_Wkld_2526_20May2025.xlsx` cell `A2` contains
+  `Masingale Travis`, but the generator's source file is
+  `enrollment-data/processed/corrected-all-quarters.csv`: its `Instructor`
+  column would feed `normalizeFacultyName()` and
+  `generateWorkloadReportByYear()` -> the intended JSON key is
+  `workloadByYear.byYear["2025-26"].all["Travis Masingale"].facultyName` ->
+  `js/year-filter.js:getYearData()` ->
+  `js/workload-integration.js:buildIntegratedWorkloadYearData()` field
+  `record.facultyName` -> `pages/faculty-workload-detail.js:getFacultyOptionsForYear()`
+  -> `#facultySelect`. All 360 CSV rows have a blank `Instructor`, including all
+  29 rows for 2025-26, so `generateWorkloadReport()` returns early at
+  `if (!instructor) return;` for every row and never creates the JSON key.
+  Independently, `pages/faculty-workload-detail.html` does not load
+  `js/year-filter.js`, so `getYearData` is unavailable and
+  `buildIntegratedWorkloadYearData()` always uses the empty `baseYearData`
+  fallback on that page. Even a populated JSON key would not reach
+  `#facultySelect` through the integrated record.
+- Courses: workbook cells `B2:J4` contain six named scheduled-course rows and
+  three `DESN X95/99` aggregate rows, with workload credits in `D2:D4`,
+  `G2:G4`, and `J2:J4` -> `calculateFacultyWorkload()` would emit
+  `courses[]` -> `applyBaseFacultyData()` copies `baseData.courses` and
+  `recalcFacultyRecord()` reads each course -> `renderEntries()` renders rows
+  in `#entriesBody`. The page does not read integrated `courses[]`; it renders
+  separate detail entries from `getFacultyWorkloadDetailEntries()`, so the
+  workbook rows do not reach that UI element.
+- Totals: workbook formula `K8` is `SUM(D8:J8)` with cached value `36`, and
+  `P2` is `36` -> `calculateFacultyWorkload()` would emit
+  `totalWorkloadCredits`, while `calculateUtilization()` would emit
+  `maxWorkload` and `currentWorkload` -> `recalcFacultyRecord()` sets
+  `record.utilizationRate` and `record.availableCapacity` -> `renderSummary()` writes
+  `#totalWorkloadCredits`. That UI value is instead calculated from detail-entry
+  `studentCredits * workloadRate`; it does not read the integrated faculty
+  record.
+- Generated snapshot: `workload-data.json` was generated at
+  `2026-02-26T05:55:14.528Z`; its `facultyWorkload` and `fullTimeFaculty` objects
+  are empty, and every object under `workloadByYear.byYear`, including
+  `"2025-26"`, is empty. `package.json:calculate-workload` runs
+  `scripts/workload-calculator.js enrollment-data/processed`, whose only CSV is
+  `corrected-all-quarters.csv`; the blank `Instructor` values explain why the
+  faculty objects are empty while `appliedLearningTrends` and
+  `summary.totalSections: 360` are populated. The chair workbook is therefore a
+  source and reconciliation record, not an input that the current generator
+  consumed.
+
+### Field table
+
+| Field | Read by | Source of record | Present for MasingaleT 2025-26? | Status |
+| --- | --- | --- | --- | --- |
+| `facultyName` | `js/workload-integration.js:buildIntegratedWorkloadYearData()` | `corrected-all-quarters.csv:Instructor`; workbook `A2` and `faculty-mapping.json:nameNormalization` identify the chair record | partial — workbook `Masingale Travis` maps to `Travis Masingale`, but all 29 CSV rows for 2025-26 have blank `Instructor`, so the JSON faculty key is absent | Source identity exists outside the generator input; generated record missing |
+| `originalName` | `js/workload-integration.js:applyBaseFacultyData()` | Workbook `A2` | yes — `Masingale Travis` | Available in the workbook only |
+| `rank` | `js/workload-integration.js:applyBaseFacultyData()` and `buildIntegratedWorkloadYearData()` | `faculty-mapping.json:facultyRanks`, workbook `A1`, browser localStorage key `programCommandAySetup`, and `DEFAULT_PRELIMINARY_ROSTER_TARGET_RULES` rule `travis-tenure` | partial — mapping says `Associate Professor`, workbook says `Tenured/Tenure-track`, and the fallback says `Full Professor`; the browser's AY Setup value is not knowable from repository files | If a Travis record exists and the browser has no matching `programCommandAySetup["2025-26"]` entry, the fallback wins in the integrated record's `rank`; no current UI element displays rank |
+| `category` | `js/workload-integration.js:applyBaseFacultyData()` | `faculty-mapping.json:facultyStatusByYear["2025-26"].fullTime` | yes — `Travis Masingale` is listed | Available to the generator; generated record missing |
+| `maxWorkload` | `js/workload-integration.js:applyBaseFacultyData()`, `buildIntegratedWorkloadYearData()`, and `recalcFacultyRecord()` | `faculty-mapping.json:individualCapacities["2025-26"]`; workbook `P2`; `DEFAULT_PRELIMINARY_ROSTER_TARGET_RULES` rule `travis-tenure.annualTargetCredits` | partial — all three sources say `36`, and the fallback writes `36`, but the JSON faculty record is absent | Available from source and fallback; generated field missing |
+| `manualOverride` | `js/workload-integration.js:applyBaseFacultyData()` | Generated faculty record | no — no value in the workbook or mapping | Missing base-record metadata |
+| `manualOverrideNote` | `js/workload-integration.js:applyBaseFacultyData()` | Generated faculty record | no — no value in the workbook or mapping | Missing base-record metadata |
+| `displayName` | `js/workload-integration.js:listFacultyNamesFromDetailEntries()` and `buildIntegratedWorkloadYearData()` | Browser localStorage key `programCommandFacultyWorkloadDetails`; workbook `A2` supplies the source name | partial — `Masingale Travis` is present in the workbook, but repository files cannot establish whether the browser-local detail bucket exists | The detail page writes it through `saveEntries()` -> `saveFacultyWorkloadDetailEntries()` |
+| `entries` | `js/workload-integration.js:getFacultyWorkloadDetailEntries()` and `buildIntegratedWorkloadYearData()` | Browser localStorage key `programCommandFacultyWorkloadDetails` | partial — repository files cannot establish whether the current browser has saved MasingaleT entries | The detail page writes them through `saveEntries()` -> `saveFacultyWorkloadDetailEntries()` |
+| `courses` | `js/workload-integration.js:applyBaseFacultyData()` and `recalcFacultyRecord()` | Workbook quarter rows | partial — nine displayed rows, but three are aggregated as `DESN X95/99` and the JSON `courses` array is absent | Workbook snapshot cannot be copied as a complete course array |
+| `id` | `js/workload-integration.js:recalcFacultyRecord()` | Course record | no — workbook rows have no IDs | Integration would generate unstable fallback IDs |
+| `courseCode` / `code` | `js/workload-integration.js:recalcFacultyRecord()` | Workbook `B2:B4`, `E2:E4`, `H2:H4` | partial — scheduled codes are present; `DESN X95/99` does not identify the underlying `DESN 399/491/495/499` records | Applied-learning codes must be restored before integration |
+| `assignedFaculty` / `instructor` | `js/workload-integration.js:buildIntegratedWorkloadYearData()` | Per-course schedule/import record; workbook `A2` identifies the sheet owner | partial — the sheet is for `Masingale Travis`, but the individual rows have no faculty field | Each imported course needs an explicit assignment |
+| `section` | `js/workload-integration.js:recalcFacultyRecord()` | Workbook notes/section cells `C2:C7`, `F2:F7`, `I2:I7` | no — the populated course rows have blank section cells | Integration would default to `001`, which is not source evidence |
+| `credits` | `js/workload-integration.js:recalcFacultyRecord()` | Workbook workload-credit columns and underlying course records | partial — scheduled rows show `5`; `DESN X95/99` rows show workload-equivalent `2`, not raw student credits | Scheduled credits are usable; applied-learning raw credits are missing |
+| `studentCredits` | `js/workload-integration.js:buildIntegratedWorkloadYearData()` | Saved faculty detail entry | no — the workbook has only the aggregate `DESN X95/99` workload-equivalent values | Required by the detail-entry bridge and `renderSummary()` |
+| `workloadRate` | `js/workload-integration.js:buildIntegratedWorkloadYearData()` | Saved faculty detail entry | no — the workbook has no applied-learning rate | Required by the detail-entry bridge and `renderSummary()` |
+| `enrolled` / `students` | `js/workload-integration.js:recalcFacultyRecord()` | Enrollment or detail-entry course record | no — workbook has no enrollment/student counts | Missing course detail |
+| `multiplier` | `js/workload-integration.js:recalcFacultyRecord()` | Course record or `getAppliedLearningRate()` | no — workbook has no rate, and `DESN X95/99` is not a configured applied-learning code | Cannot reproduce the aggregate from raw credits |
+| `type` | written by `js/workload-integration.js:recalcFacultyRecord()` | Derived from whether `multiplier < 1` | no — no generated course objects exist; the workbook does not label rows `scheduled` or `applied-learning` | Computed course field missing with `courses[]` |
+| `workloadCredits` | `js/workload-integration.js:recalcFacultyRecord()` | Workbook `D2:D4`, `G2:G4`, `J2:J4` | yes — each quarter has `5`, `5`, and `2` | Present as displayed workload values; generated course objects missing |
+| `quarter` | `js/workload-integration.js:recalcFacultyRecord()` | Workbook headers `B1`, `E1`, `H1` | yes — Fall 2025, Winter 2026, Spring 2026 | Present in the workbook layout |
+| `notes` | `js/workload-integration.js:recalcFacultyRecord()` | Workbook notes/section cells | no — the populated course rows have blank notes | Missing optional course detail |
+| `source` | `js/workload-integration.js:recalcFacultyRecord()` | Generated or integrated course record | no — workbook rows carry no source tag | Integration would default to `integrated` |
+| `totalCredits` | written by `js/workload-integration.js:recalcFacultyRecord()` | Raw course `credits` | no — workbook `K8` is workload, while applied-learning raw credits are absent | Cannot calculate the raw-credit total |
+| `totalWorkloadCredits` | written by `scripts/workload-calculator.js:calculateFacultyWorkload()` and `js/workload-integration.js:recalcFacultyRecord()` | Workbook formula `K8` | partial — cached source value is `36`, but the generated JSON field is absent | Source total exists; generated field missing |
+| `scheduledCredits` | written by `scripts/workload-calculator.js:calculateFacultyWorkload()` and `js/workload-integration.js:recalcFacultyRecord()` | Six scheduled workbook rows | partial — six `5`-credit rows imply `30`, but no `scheduledCredits` field is stored | Derivable from the workbook; generated field missing |
+| `appliedLearningCredits` | written by `scripts/workload-calculator.js:calculateFacultyWorkload()` and `js/workload-integration.js:recalcFacultyRecord()` | Underlying applied-learning course records | no — workbook stores only three `DESN X95/99` workload-equivalent values | Raw applied-learning credits are missing |
+| `appliedLearningWorkload` | written by `scripts/workload-calculator.js:calculateFacultyWorkload()` and `js/workload-integration.js:recalcFacultyRecord()` | Workbook `DESN X95/99` rows | partial — three `2`-credit workload values total `6`, but the underlying course codes and rates are absent | Reconciliation total only; generated field missing |
+| `totalStudents` | written by `scripts/workload-calculator.js:calculateFacultyWorkload()` and `js/workload-integration.js:recalcFacultyRecord()` | Course `enrolled` or `students` | no — workbook has neither | Generated field missing with course detail |
+| `sections` | written by `scripts/workload-calculator.js:calculateFacultyWorkload()` and `js/workload-integration.js:recalcFacultyRecord()` | Course rows | partial — six scheduled rows are distinct, but each `DESN X95/99` row aggregates an unknown number of records | Displayed-row count is not a section count; generated field missing |
+| `appliedLearning` | written by `js/workload-integration.js:recalcFacultyRecord()` | Underlying applied-learning records grouped by configured course code | no — workbook combines them as `DESN X95/99` | Structured course-code buckets cannot be rebuilt |
+| `byQuarter` | written by `js/workload-integration.js:recalcFacultyRecord()` | Course `quarter`, `credits`, and `workloadCredits` | partial — quarter workload totals are `12`, `12`, and `12`, but raw applied-learning credits and section counts are missing | Workload can be reconciled; generated field missing |
+| `currentWorkload` | written by `js/workload-integration.js:recalcFacultyRecord()` | Calculated from `totalWorkloadCredits` | partial — the source implies `36`, but no faculty record exists to receive it | Computable after record creation; generated field missing |
+| `utilizationRate` | written by `js/workload-integration.js:recalcFacultyRecord()` | Calculated from `totalWorkloadCredits / maxWorkload` | partial — `36 / 36` implies `100`, but no JSON faculty record exists | Computable after record creation; generated field missing; workbook percentages use a separate 45-credit summary denominator |
+| `availableCapacity` | written by `js/workload-integration.js:recalcFacultyRecord()` | Calculated from `maxWorkload - totalWorkloadCredits` | partial — `36 - 36` implies `0`, but no JSON faculty record exists | Computable after record creation; generated field missing |
+| `status` | written by `js/workload-integration.js:recalcFacultyRecord()` | Calculated from `utilizationRate` | partial — an integration rate of `100` implies `optimal`, but the workbook does not store the field and JSON has no faculty record | Computed field missing with the record |
+| `specialRole` | `js/workload-integration.js:buildIntegratedWorkloadYearData()` | Browser AY Setup `isChair`/`releaseReason`, preliminary roster rule `specialRole`; separately, `scripts/workload-calculator.js:getChairAssignment()` and `calculateFacultyWorkload()` read `faculty-mapping.json:chairAssignments` but do not emit `specialRole` | partial — calendar keys `fall-2025`, `winter-2026`, and `spring-2026` name `Melinda Breen`; the generator instead constructs `quarter + '-' + academicYear.split('-')[0]`, so Winter 2025-26 resolves to `winter-2025`, which names `Travis Masingale` with `releaseTime: "none"`; the browser's AY Setup value is unknown, and the `travis-tenure` fallback has no `specialRole` | Key conventions conflict: `calculateFacultyWorkload()` marks Winter courses `chairThisQuarter: true` and excludes DESN 495/499 from its total, but `recalcFacultyRecord()` discards that flag and re-sums finite course `workloadCredits`; WorkloadIntegration assigns `Chair` only from browser AY Setup or a matching fallback rule |
+| AY Setup `name` | `js/workload-integration.js:buildIntegratedWorkloadYearData()` | Browser localStorage `programCommandAySetup["2025-26"].faculty[]` | partial — repository files cannot establish whether the current browser has this entry | Entered in AY Setup and written by `js/academic-year-setup.js:saveStore()`; needed to match Travis's identity |
+| AY Setup `role` | `js/workload-integration.js:buildIntegratedWorkloadYearData()` | Browser localStorage `programCommandAySetup["2025-26"].faculty[]` | partial — repository files cannot establish whether the current browser has this entry | Entered in AY Setup and written by `saveStore()`; `travis-tenure.role` falls back to `Full Professor` only when the entry is absent |
+| AY Setup `annualTargetCredits` | `js/workload-integration.js:buildIntegratedWorkloadYearData()` | Browser localStorage `programCommandAySetup["2025-26"].faculty[]` | partial — repository files cannot establish whether the current browser has this entry | Entered in AY Setup and written by `saveStore()`; `travis-tenure.annualTargetCredits` falls back to `36` only when the entry is absent |
+| AY Setup `releaseCredits` | `js/workload-integration.js:buildIntegratedWorkloadYearData()` | Browser localStorage `programCommandAySetup["2025-26"].faculty[]` | partial — repository files cannot establish whether the current browser has this entry | Entered in AY Setup and written by `saveStore()`; `travis-tenure.releaseCredits` falls back to `0` only when the entry is absent |
+| AY Setup `releasePercent` | `js/workload-integration.js:buildIntegratedWorkloadYearData()` | Browser localStorage `programCommandAySetup["2025-26"].faculty[]` | partial — repository files cannot establish whether the current browser has this entry | Entered in AY Setup and written by `saveStore()`; the fallback path computes `0` from `0 / 36` only when the entry is absent |
+| AY Setup `releaseReason` | `js/workload-integration.js:buildIntegratedWorkloadYearData()` | Browser localStorage `programCommandAySetup["2025-26"].faculty[]` | partial — repository files cannot establish whether the current browser has this entry | Entered in AY Setup and written by `saveStore()` to derive `ayReleaseReason` and potentially `specialRole` |
+| AY Setup `notes` | `js/workload-integration.js:buildIntegratedWorkloadYearData()` | Browser localStorage `programCommandAySetup["2025-26"].faculty[]` | partial — repository files cannot establish whether the current browser has this entry | Entered in AY Setup and written by `saveStore()` to derive `ayNotes` |
+| AY Setup `active` | `js/workload-integration.js:buildIntegratedWorkloadYearData()` | Browser localStorage `programCommandAySetup["2025-26"].faculty[]` | partial — repository files cannot establish whether the current browser has this entry | Entered in AY Setup and written by `saveStore()` to derive `ayActive` |
+| AY Setup `isChair` | `js/workload-integration.js:buildIntegratedWorkloadYearData()` | Browser localStorage `programCommandAySetup["2025-26"].faculty[]` | partial — repository files cannot establish whether the current browser has this entry | Entered in AY Setup and written by `saveStore()`; with `releaseReason`, it can derive `specialRole` |
+| `ayRole` | written by `js/workload-integration.js:buildIntegratedWorkloadYearData()` | Browser AY Setup `role` or `travis-tenure.role` fallback | partial — browser AY Setup state is unknown; if no matching entry exists, a created integrated record gets fallback `Full Professor` | No current UI element displays this field |
+| `ayTargetCredits` | written by `js/workload-integration.js:buildIntegratedWorkloadYearData()` | Browser AY Setup `annualTargetCredits` or `travis-tenure.annualTargetCredits` fallback | partial — browser AY Setup state is unknown; if no matching entry exists, a created integrated record gets fallback `36` | No current UI element displays this field |
+| `ayReleaseCredits` | written by `js/workload-integration.js:buildIntegratedWorkloadYearData()` | Browser AY Setup `releaseCredits` or `travis-tenure.releaseCredits` fallback | partial — browser AY Setup state is unknown; if no matching entry exists, a created integrated record gets fallback `0` | No current UI element displays this field |
+| `ayNetTargetCredits` | written by `js/workload-integration.js:buildIntegratedWorkloadYearData()` | Browser AY Setup target minus release, or `travis-tenure` fallback | partial — browser AY Setup state is unknown; if no matching entry exists, a created integrated record gets fallback `36` | No current UI element displays this field |
+| `ayReleasePercent` | written by `js/workload-integration.js:buildIntegratedWorkloadYearData()` | Browser AY Setup `releasePercent` or calculated release/target ratio | partial — browser AY Setup state is unknown; if no matching entry exists, a created integrated record gets fallback `0` | No current UI element displays this field |
+| `ayReleaseReason` | `js/workload-integration.js:buildIntegratedWorkloadYearData()` | Browser AY Setup `releaseReason` | partial — repository files cannot establish whether the current browser supplies it; `travis-tenure` does not | Missing from an integrated record only when the browser entry is absent or empty |
+| `ayNotes` | `js/workload-integration.js:buildIntegratedWorkloadYearData()` | Browser AY Setup `notes` | partial — repository files cannot establish whether the current browser supplies it; `travis-tenure` does not | Missing from an integrated record only when the browser entry is absent or empty |
+| `ayActive` | written by `js/workload-integration.js:buildIntegratedWorkloadYearData()` | Browser AY Setup `active` | partial — repository files cannot establish whether the current browser supplies it; `travis-tenure` does not | Missing from an integrated record only when the browser entry is absent |
+
+### Missing fields
+
+Because `workloadByYear.byYear["2025-26"].all` is `{}`, every generated faculty
+field below is absent even when the workbook, mapping, or fallback provides a
+source value.
+
+- `facultyName`: fill `Instructor` on the 29 2025-26 rows in `enrollment-data/processed/corrected-all-quarters.csv`; `generateWorkloadReport()` currently skips all of them before it can emit the normalized `Travis Masingale` key.
+- `originalName`: carry workbook `A2` (`Masingale Travis`) into the generated base record.
+- `rank`: resolve the three-way conflict among workbook `A1` (`Tenured/Tenure-track`), `facultyRanks` (`Associate Professor`), and `travis-tenure.role` (`Full Professor`); the fallback wins in the integrated record only if browser localStorage has no matching `programCommandAySetup["2025-26"]` entry.
+- `category`: carry the `facultyStatusByYear["2025-26"].fullTime` classification into the generated record.
+- `maxWorkload`: carry the shared source/fallback value `36` into the generated record.
+- `manualOverride`: supply it through generated faculty metadata if an override is intended.
+- `manualOverrideNote`: supply it with the corresponding generated `manualOverride` metadata.
+- `displayName`: if the browser's `programCommandFacultyWorkloadDetails` key lacks the bucket, use the detail page's `saveEntries()` -> `saveFacultyWorkloadDetailEntries()` path to save the workbook identity or normalized name.
+- `entries`: if absent from browser localStorage, save underlying applied-learning records through `saveFacultyWorkloadDetailEntries()` on the detail page.
+- `courses`: first fill `Instructor` on the 2025-26 `corrected-all-quarters.csv` rows so the calculator groups its unaggregated course records under Travis; Program Command schedule or browser detail entries are the other sources read by `buildIntegratedWorkloadYearData()`.
+- `id`: supply stable IDs on those course or detail records.
+- `courseCode` / `code`: replace each `DESN X95/99` aggregate with its underlying `DESN 399/491/495/499` records.
+- `assignedFaculty` / `instructor`: identify `Travis Masingale` on each schedule/import course rather than only at workbook level.
+- `section`: supply actual section identifiers from enrollment or schedule records; the workbook cells are blank.
+- `credits`: supply raw applied-learning student credits; the workbook rows contain workload-equivalent values.
+- `studentCredits`: supply raw credits in saved applied-learning detail entries.
+- `workloadRate`: supply the saved detail rate or an exact code recognized by `getAppliedLearningRate()`.
+- `enrolled` / `students`: supply counts from enrollment or saved detail records.
+- `multiplier`: supply a recorded `workloadRate` or an exact applied-learning code.
+- `type`: let `recalcFacultyRecord()` classify each generated course as `scheduled` or `applied-learning` from its multiplier.
+- `workloadCredits`: carry the workbook's per-row workload values into generated course objects or recalculate them from raw records.
+- `quarter`: carry Fall 2025, Winter 2026, and Spring 2026 from the workbook headers into generated course objects.
+- `notes`: supply optional notes from a schedule/detail source; the workbook note cells are blank.
+- `source`: tag each generated or integrated course with its actual source.
+- `totalCredits`: recalculate it from complete raw `credits` records.
+- `totalWorkloadCredits`: persist the workbook reconciliation value `36` only after `calculateFacultyWorkload()` reproduces it.
+- `scheduledCredits`: sum the six scheduled workbook rows to `30` once course records feed `calculateFacultyWorkload()`.
+- `appliedLearningCredits`: sum raw credits from unaggregated applied-learning records.
+- `appliedLearningWorkload`: reproduce the workbook's three `DESN X95/99` rows totaling `6` from exact codes and rates.
+- `totalStudents`: sum populated `enrolled` or `students` fields.
+- `sections`: count unaggregated course records rather than the workbook's aggregate display rows.
+- `appliedLearning`: build configured course-code buckets from unaggregated records.
+- `byQuarter`: build the full summary from exact course `quarter`, `credits`, and `workloadCredits`; only the `12`/`12`/`12` workload totals are present in the workbook.
+- `currentWorkload`: write it from a reproduced `totalWorkloadCredits` value of `36`.
+- `utilizationRate`: calculate the implied `100` after both `totalWorkloadCredits` and `maxWorkload` are present.
+- `availableCapacity`: calculate the implied `0` after both `maxWorkload` and `totalWorkloadCredits` are present.
+- `status`: let `recalcFacultyRecord()` derive the implied `optimal` value from `utilizationRate`.
+- `specialRole`: resolve the calendar-key chair entries versus `getChairAssignment()`'s AY-start-year lookup; the latter makes Travis chair for Winter 2025-26 and drops DESN 495/499 from the calculator total even though `releaseTime` is `none`, but `recalcFacultyRecord()` re-adds finite course workload. The `travis-tenure` fallback supplies no `Chair` role; browser AY Setup may supply one, but repository files cannot establish that state.
+- `baseYearData` / `getYearData`: load `js/year-filter.js` on `pages/faculty-workload-detail.html` so `buildIntegratedWorkloadYearData()` can obtain `workloadByYear.byYear["2025-26"]`; without that global function, the page substitutes empty base-year objects.
+- AY Setup `name`: browser state is unknown; if absent, enter the identity in AY Setup, whose `saveStore()` writes `programCommandAySetup["2025-26"].faculty[]`.
+- AY Setup `role`: browser state is unknown; if absent, enter it in AY Setup, otherwise `travis-tenure.role` falls back to `Full Professor`.
+- AY Setup `annualTargetCredits`: browser state is unknown; if absent, enter it in AY Setup, otherwise `travis-tenure.annualTargetCredits` falls back to `36`.
+- AY Setup `releaseCredits`: browser state is unknown; if absent, enter it in AY Setup, otherwise `travis-tenure.releaseCredits` falls back to `0`.
+- AY Setup `releasePercent`: browser state is unknown; if absent, enter it in AY Setup, otherwise the fallback path calculates `0` from `0 / 36`.
+- AY Setup `releaseReason`: browser state is unknown; if absent, enter it in AY Setup to explain release and participate in chair detection.
+- AY Setup `notes`: browser state is unknown; if intended and absent, enter planning notes in AY Setup.
+- AY Setup `active`: browser state is unknown; if absent, enter it in AY Setup to establish whether Travis is active.
+- AY Setup `isChair`: browser state is unknown; if WorkloadIntegration should assign `specialRole: "Chair"`, enter it in AY Setup.
+- `ayRole`: comes from browser AY Setup `role`; only when that entry is absent does a created integrated record receive fallback `Full Professor`.
+- `ayTargetCredits`: comes from browser AY Setup `annualTargetCredits`; only when that entry is absent does a created integrated record receive fallback `36`.
+- `ayReleaseCredits`: comes from browser AY Setup `releaseCredits`; only when that entry is absent does a created integrated record receive fallback `0`.
+- `ayNetTargetCredits`: comes from browser AY Setup target and release values; only when that entry is absent does a created integrated record receive fallback `36`.
+- `ayReleasePercent`: comes from browser AY Setup `releasePercent`; only when that entry is absent does a created integrated record receive fallback `0`.
+- `ayReleaseReason`: supply browser AY Setup `releaseReason`; the `travis-tenure` fallback does not write this field.
+- `ayNotes`: supply browser AY Setup `notes`; the `travis-tenure` fallback does not write this field.
+- `ayActive`: supply browser AY Setup `active`; the `travis-tenure` fallback does not write this field.
+
+### What it would take
+
+- Fill the `Instructor` column for the 29 2025-26 records in
+  `enrollment-data/processed/corrected-all-quarters.csv`, then run
+  `package.json:calculate-workload` so `generateWorkloadReportByYear()` can emit
+  `workloadByYear.byYear["2025-26"].all["Travis Masingale"]`; also reconcile the
+  generator's `specialMultipliers` with `DEFAULT_APPLIED_LEARNING_COURSES` for
+  `DESN 399` and `DESN 491` before treating workbook `K8` as reproduced.
+- Make `js/year-filter.js:getYearData()` available to
+  `pages/faculty-workload-detail.html` so the generated year object can become
+  `baseYearData` in `buildIntegratedWorkloadYearData()` and reach
+  `#facultySelect`.
+- Preserve the workbook as the 36-credit reconciliation snapshot. Use AY Setup
+  to write intended role/release fields to `programCommandAySetup`, and the
+  detail page's `saveFacultyWorkloadDetailEntries()` path to write exact
+  applied-learning records to `programCommandFacultyWorkloadDetails`.
