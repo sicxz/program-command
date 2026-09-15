@@ -5756,6 +5756,10 @@
         let CLSS_IMPORT_PROFILE_COURSE_ALIAS_LOOKUP = {};
         let CLSS_IMPORT_MATCHING_ORDER = DEFAULT_CLSS_IMPORT_MATCHING_ORDER.slice();
 
+        function lowEnrollmentThreshold() {
+            return window.CONSTANTS?.THRESHOLDS?.LOW_ENROLLMENT ?? 10;
+        }
+
         function normalizeSchedulerLookupKey(value) {
             return String(value || '')
                 .toUpperCase()
@@ -8012,7 +8016,7 @@
             allCourses.forEach(course => {
                 const enrollment = getEnrollmentData(course.code);
                 if (enrollment.average >= 30) highEnrollment.push({ ...course, enrollment });
-                if (enrollment.average < 15 && enrollment.average > 0) lowEnrollment.push({ ...course, enrollment });
+                if (enrollment.average < lowEnrollmentThreshold() && enrollment.average > 0) lowEnrollment.push({ ...course, enrollment });
                 if (enrollment.trend === 'declining') decliningTrend.push({ ...course, enrollment });
             });
 
@@ -8161,7 +8165,7 @@
             // Low Enrollment section
             if (lowEnrollment.length > 0) {
                 container.appendChild(createEnrollmentCategory(
-                    '🟢 Low Enrollment Courses (<15 students)',
+                    `🟢 Low Enrollment Courses (<${lowEnrollmentThreshold()} students)`,
                     'Consider consolidation or review offering frequency',
                     lowEnrollment,
                     'low',
@@ -14402,6 +14406,7 @@
             scheduleData,
             readAySetupDataForYear,
             getDatabaseClient,
+            lowEnrollmentThreshold,
             normalizeCourseCode,
             normalizeLookupKey,
             showToast,
@@ -16068,7 +16073,7 @@
 
                 // Low enrollment courses - many empty seats
                 const lowEnrollmentCourses = winterEnrollmentData.courses.filter(c =>
-                    c.capacity >= 20 && c.enrolled <= 8 && c.scheduleType === 'Performance'
+                    c.capacity >= 20 && c.enrolled < lowEnrollmentThreshold() && c.scheduleType === 'Performance'
                 );
                 lowEnrollmentCourses.forEach(course => {
                     const remainingSeats = course.waitlist;

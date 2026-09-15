@@ -410,6 +410,8 @@ const CONSTANTS = {
     }
 };
 
+CONSTANTS.THRESHOLDS = CONSTANTS.NOTIFICATIONS.THRESHOLDS;
+
 // Freeze the object to prevent accidental modifications
 if (typeof Object.freeze === 'function') {
     Object.freeze(CONSTANTS);
@@ -434,10 +436,13 @@ if (typeof Object.freeze === 'function') {
     Object.freeze(CONSTANTS.CONFLICTS.ESCALATION);
     Object.freeze(CONSTANTS.DATA);
     Object.freeze(CONSTANTS.NOTIFICATIONS);
+    Object.freeze(CONSTANTS.THRESHOLDS);
     Object.freeze(CONSTANTS.EXPORT);
     Object.freeze(CONSTANTS.VALIDATION);
     Object.freeze(CONSTANTS.BACKUP);
 }
+
+if (typeof window !== 'undefined') window.CONSTANTS = CONSTANTS;
 
 // Export for both browser and Node.js environments
 if (typeof module !== 'undefined' && module.exports) {
