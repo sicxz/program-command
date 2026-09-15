@@ -48,7 +48,9 @@ the next workstream; its existing implementation is preserved.
    must produce an unavailable state, not “Within Baseline” or unused capacity.
    See [#279](https://github.com/sicxz/program-command/issues/279).
 
-Steps 2 and 4 remain outstanding. Enrollment's presentation and recorded-count
+Steps 2 and 4 were completed in #295 (Applied Learning) and #294 (Capacity);
+see "Applied Learning dashboard alignment" and "Capacity dashboard alignment"
+below. Enrollment's presentation and recorded-count
 contract have now been updated as described below; further source-pipeline
 validation is separate from that work.
 

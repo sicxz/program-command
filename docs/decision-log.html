@@ -43,6 +43,90 @@
 
     <article class="docs-decision">
       <header class="docs-decision-head">
+        <span class="docs-decision-date">2026-09-15</span>
+        <span class="docs-decision-title">Local-build review merged as #303–#306; load from course records; Banner's enrollment field</span>
+      </header>
+      <dl>
+        <dt>Chose</dt>
+        <dd>File Travis's review of the local build as issues #297–#300 and
+        merge each as its own PR: low enrollment means fewer than 10 students,
+        read from <code>LOW_ENROLLMENT</code> in
+        <code>js/config/constants.js</code> (#303, closes #300); Applied
+        Learning defaults to the current academic year and drills down course
+        type by faculty (#304, closes #297); a radio filter highlights
+        Critical, High, or No-conflict sections in the current quarter (#305,
+        closes #299); Capacity computes faculty load from the saved schedule's
+        course records, weighted by the applied-learning multipliers, and never
+        from Workload (#306, closes #298). #301 fixed the Schedule Editor's
+        <code>workload-data.json</code> path and added
+        <code>docs/audit-2026-09-14.md</code> and the MasingaleT workload
+        trace. Fall 2026 (term 202640) registrations come from the enrollment
+        field in Banner's own Design search JSON (issue #302). Every change was
+        built by one model and reviewed YES or NO against a written spec by a
+        model from another family.</dd>
+        <dt>Why</dt>
+        <dd>One issue per review comment gives each change one spec, one PR,
+        and one closing reference. Workload is paused (#296) and the generated
+        faculty tables in <code>workload-data.json</code> are empty, so
+        Capacity cannot take load from Workload. Program Command hard-coded 15
+        and 8 for low enrollment while <code>constants.js</code> already
+        defined 10. Banner's search JSON carries exact enrollment, which the
+        2026-09-13 capture derived as capacity minus seats available. The
+        cross-model reviewer caught defects the builder missed: the #303
+        helper in the wrong script block, and two target regressions in #306
+        before its YES.</dd>
+        <dt>Rejected</dt>
+        <dd>Capacity load from Workload records; page-local low-enrollment
+        thresholds; capacity minus seats available as the Fall 2026 enrollment
+        count; a builder reviewing its own work; editing the schedule to match
+        Banner without Travis's decision.</dd>
+        <dt>Evidence</dt>
+        <dd>Each PR body, and the #302 commit message, records the builder,
+        reviewers, rounds, harness piece, and any reviewer run that returned no
+        verdict. The Fall 2026 capture and its reconciliation against the AY
+        2026-27 Fall schedule are in
+        <a href="./dashboard-continuation.md"><code>dashboard-continuation.md</code></a>,
+        section "Fall 2026 refresh, September 15". A merged PR does not update
+        production; Deploy Pages is run by hand.</dd>
+      </dl>
+    </article>
+
+    <article class="docs-decision">
+      <header class="docs-decision-head">
+        <span class="docs-decision-date">2026-09-13</span>
+        <span class="docs-decision-title">Dashboard reset: schedule first, three analytics dashboards, Workload paused</span>
+      </header>
+      <dl>
+        <dt>Chose</dt>
+        <dd>Keep the schedule as the main workspace and order analytics
+        Applied Learning → Enrollment → Capacity (#287). Move Builder, AY
+        Setup, Onboarding, EagleNet Compare, Courses, Constraints, and Demand
+        into a closed Archived features disclosure with their pages and
+        permissions intact (#287). Enrollment defaults to All recorded years
+        (#290). The section cap reads 20 students as of 2026, with no quarter
+        named (#292, #293). Capacity (#294) and Applied Learning (#295) share
+        Enrollment's shell and source discipline. Workload is paused: its links
+        open an Under development notice and its URL serves a status page
+        (#296).</dd>
+        <dt>Why</dt>
+        <dd>Travis asked on 2026-09-01 for navigation focused on core
+        analytics, and the work resumed on 2026-09-13 under epic #274. Travis
+        preferred all recorded years as the Enrollment default and dated the
+        cap to 2026 without naming a quarter. Travis asked that Workload be
+        disabled while it awaits the same reset.
+        "Reset" means product focus and navigation; no schedule, local storage,
+        Supabase, or source data was cleared.</dd>
+        <dt>Rejected</dt>
+        <dd>Epic #274's proposal to absorb Applied Learning and Faculty
+        Workload Detail into Workload; deleting the Build/Planning tools;
+        inventing a quarter for the cap or rewriting captured section limits;
+        re-enabling Workload because source data changed or a new academic year
+        began.</dd>
+      </dl>
+    </article>
+
+    <article class="docs-decision">
+      <header class="docs-decision-head">
         <span class="docs-decision-date">2026-08-11</span>
         <span class="docs-decision-title">Solo-maintainer delivery: zero approvals with gated autonomous merge</span>
       </header>
@@ -411,7 +495,7 @@
   </main>
 
   <footer class="docs-footer">
-    <span>Last edited: 2026-08-11</span>
+    <span>Last edited: 2026-09-15</span>
     <span><a href="./ONBOARDING.html">Onboarding →</a></span>
   </footer>
 
