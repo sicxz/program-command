@@ -165,6 +165,7 @@ describe('public schedule page', () => {
         expect(document.getElementById('publicScheduleGrid').textContent).not.toContain('Interaction Design');
         expect(document.getElementById('publicScheduleGrid').textContent).not.toContain('DESN 999');
         expect(document.getElementById('publicSpecialSections').textContent).toContain('DESN 216');
+        expect(document.getElementById('publicSpecialSections').textContent).toContain('Cap 20');
         expect(document.querySelector('.public-course-block').className).toContain('faculty-masingale');
         expect(document.getElementById('publicFacultyLegend').textContent).toContain('T.Masingale');
         expect(document.getElementById('publicFacultyLegend').textContent).not.toMatch(/\bcr\b/i);
