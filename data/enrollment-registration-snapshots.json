@@ -3,7 +3,7 @@
   "source": "EWU EagleNET Browse Classes",
   "sourceUrl": "https://reg-prod.ec.ewu.edu/StudentRegistrationSsb/ssb/term/termSelection?mode=search",
   "subject": "Design (DESN)",
-  "method": "Complete Design subject results, all sections, 50 results per page. Enrollment = section capacity minus seats available. Enrollment/Waitlist detail verified for CRNs 11091, 20538, and 40438. Waitlisted null means not displayed; waitlists are excluded from registrations. Counts are registration search snapshots, not census counts or unique students.",
+  "method": "Complete Design subject results, all sections, 50 results per page. Enrollment = section capacity minus seats available. Enrollment/Waitlist detail verified for CRNs 11091, 20538, and 40438. Waitlisted null means not displayed; waitlists are excluded from registrations. Counts are registration search snapshots, not census counts or unique students. Fall 2026 refreshed 2026-09-15 from Banner searchResults JSON (see the term's own method field); instructor, meeting, campus, scheduleType, enrolled, waitlistCapacity, openSection added to that term's sections.",
   "terms": [
     {
       "quarter": "winter-2026",
@@ -814,10 +814,11 @@
       "termCode": "202640",
       "label": "Fall Quarter 2026",
       "academicYear": "2026-27",
-      "observedAt": "2026-09-13T15:25:11.454Z",
+      "observedAt": "2026-09-15T20:37:47Z",
       "status": "provisional",
       "expectedSections": 23,
       "completeSearch": true,
+      "method": "Banner searchResults JSON for subject DESN, term 202640, pageMaxSize 50, one page, read from the signed-in Browse Classes session. enrollment is Banner's enrollment field; available is seatsAvailable; capacity is maximumEnrollment. Instructor, meeting, campus, and scheduleType added in this capture. Rooms are only published for two sections.",
       "sections": [
         {
           "course": "DESN 100",
@@ -827,7 +828,21 @@
           "credits": 5,
           "available": 0,
           "capacity": 23,
-          "waitlisted": 0
+          "waitlisted": 0,
+          "enrolled": 23,
+          "waitlistCapacity": 10,
+          "openSection": true,
+          "instructor": "Mills, Simeon",
+          "scheduleType": "Performance and Simulation",
+          "campus": "Cheney",
+          "meeting": {
+            "days": "MW",
+            "beginTime": "1600",
+            "endTime": "1820",
+            "arranged": false,
+            "building": null,
+            "room": null
+          }
         },
         {
           "course": "DESN 200",
@@ -837,7 +852,21 @@
           "credits": 5,
           "available": 0,
           "capacity": 24,
-          "waitlisted": 2
+          "waitlisted": 2,
+          "enrolled": 24,
+          "waitlistCapacity": 10,
+          "openSection": true,
+          "instructor": "Mills, Simeon",
+          "scheduleType": "Performance and Simulation",
+          "campus": "Cheney",
+          "meeting": {
+            "days": "TT",
+            "beginTime": "1000",
+            "endTime": "1220",
+            "arranged": false,
+            "building": null,
+            "room": null
+          }
         },
         {
           "course": "DESN 216",
@@ -847,7 +876,21 @@
           "credits": 5,
           "available": 0,
           "capacity": 22,
-          "waitlisted": 0
+          "waitlisted": 0,
+          "enrolled": 22,
+          "waitlistCapacity": 10,
+          "openSection": true,
+          "instructor": "Sopu, Ariel",
+          "scheduleType": "Performance and Simulation",
+          "campus": "Cheney",
+          "meeting": {
+            "days": "MW",
+            "beginTime": "1300",
+            "endTime": "1520",
+            "arranged": false,
+            "building": null,
+            "room": null
+          }
         },
         {
           "course": "DESN 216",
@@ -857,7 +900,21 @@
           "credits": 5,
           "available": 0,
           "capacity": 22,
-          "waitlisted": 0
+          "waitlisted": 0,
+          "enrolled": 22,
+          "waitlistCapacity": 10,
+          "openSection": true,
+          "instructor": "Sopu, Ariel",
+          "scheduleType": "Performance and Simulation",
+          "campus": "Online",
+          "meeting": {
+            "days": null,
+            "beginTime": null,
+            "endTime": null,
+            "arranged": true,
+            "building": "WEB",
+            "room": null
+          }
         },
         {
           "course": "DESN 243",
@@ -867,7 +924,21 @@
           "credits": 5,
           "available": 8,
           "capacity": 20,
-          "waitlisted": 0
+          "waitlisted": 0,
+          "enrolled": 12,
+          "waitlistCapacity": 10,
+          "openSection": true,
+          "instructor": "Durr, Sonja",
+          "scheduleType": "Performance and Simulation",
+          "campus": "Cheney",
+          "meeting": {
+            "days": "TT",
+            "beginTime": "1000",
+            "endTime": "1220",
+            "arranged": false,
+            "building": null,
+            "room": null
+          }
         },
         {
           "course": "DESN 263",
@@ -877,7 +948,21 @@
           "credits": 5,
           "available": 6,
           "capacity": 20,
-          "waitlisted": 0
+          "waitlisted": 0,
+          "enrolled": 14,
+          "waitlistCapacity": 10,
+          "openSection": true,
+          "instructor": "Hustrulid, Ginelle",
+          "scheduleType": "Performance and Simulation",
+          "campus": "Cheney",
+          "meeting": {
+            "days": "MW",
+            "beginTime": "1000",
+            "endTime": "1220",
+            "arranged": false,
+            "building": null,
+            "room": null
+          }
         },
         {
           "course": "DESN 301",
@@ -887,7 +972,21 @@
           "credits": 5,
           "available": 0,
           "capacity": 24,
-          "waitlisted": 1
+          "waitlisted": 2,
+          "enrolled": 24,
+          "waitlistCapacity": 10,
+          "openSection": true,
+          "instructor": "Mills, Simeon",
+          "scheduleType": "Performance and Simulation",
+          "campus": "Cheney",
+          "meeting": {
+            "days": "MW",
+            "beginTime": "1300",
+            "endTime": "1520",
+            "arranged": false,
+            "building": null,
+            "room": null
+          }
         },
         {
           "course": "DESN 326",
@@ -897,7 +996,21 @@
           "credits": 5,
           "available": 0,
           "capacity": 24,
-          "waitlisted": 4
+          "waitlisted": 4,
+          "enrolled": 24,
+          "waitlistCapacity": 10,
+          "openSection": true,
+          "instructor": "Hustrulid, Ginelle",
+          "scheduleType": "Performance and Simulation",
+          "campus": "Cheney",
+          "meeting": {
+            "days": "TT",
+            "beginTime": "1300",
+            "endTime": "1520",
+            "arranged": false,
+            "building": null,
+            "room": null
+          }
         },
         {
           "course": "DESN 338",
@@ -907,7 +1020,21 @@
           "credits": 5,
           "available": 1,
           "capacity": 22,
-          "waitlisted": 0
+          "waitlisted": 0,
+          "enrolled": 21,
+          "waitlistCapacity": 10,
+          "openSection": true,
+          "instructor": "Poosri, Tyreil",
+          "scheduleType": "Performance and Simulation",
+          "campus": "Cheney",
+          "meeting": {
+            "days": "MW",
+            "beginTime": "1600",
+            "endTime": "1820",
+            "arranged": false,
+            "building": null,
+            "room": null
+          }
         },
         {
           "course": "DESN 359",
@@ -917,7 +1044,21 @@
           "credits": 5,
           "available": 2,
           "capacity": 18,
-          "waitlisted": 0
+          "waitlisted": 0,
+          "enrolled": 16,
+          "waitlistCapacity": 10,
+          "openSection": true,
+          "instructor": "Durr, Sonja",
+          "scheduleType": "Performance and Simulation",
+          "campus": "Cheney",
+          "meeting": {
+            "days": "TT",
+            "beginTime": "1300",
+            "endTime": "1520",
+            "arranged": false,
+            "building": "Patterson Hall",
+            "room": "118"
+          }
         },
         {
           "course": "DESN 368",
@@ -927,7 +1068,21 @@
           "credits": 5,
           "available": 6,
           "capacity": 20,
-          "waitlisted": 0
+          "waitlisted": 0,
+          "enrolled": 14,
+          "waitlistCapacity": 10,
+          "openSection": true,
+          "instructor": "Masingale, Travis",
+          "scheduleType": "Performance and Simulation",
+          "campus": "Cheney",
+          "meeting": {
+            "days": "MW",
+            "beginTime": "1300",
+            "endTime": "1520",
+            "arranged": false,
+            "building": null,
+            "room": null
+          }
         },
         {
           "course": "DESN 369",
@@ -937,7 +1092,21 @@
           "credits": 5,
           "available": 14,
           "capacity": 20,
-          "waitlisted": 0
+          "waitlisted": 0,
+          "enrolled": 6,
+          "waitlistCapacity": 10,
+          "openSection": true,
+          "instructor": "Manikoth, Colin",
+          "scheduleType": "Performance and Simulation",
+          "campus": "Cheney",
+          "meeting": {
+            "days": "TT",
+            "beginTime": "1000",
+            "endTime": "1220",
+            "arranged": false,
+            "building": null,
+            "room": null
+          }
         },
         {
           "course": "DESN 374",
@@ -947,7 +1116,21 @@
           "credits": 5,
           "available": 9,
           "capacity": 20,
-          "waitlisted": 0
+          "waitlisted": 0,
+          "enrolled": 11,
+          "waitlistCapacity": 10,
+          "openSection": true,
+          "instructor": "Masingale, Travis",
+          "scheduleType": "Performance and Simulation",
+          "campus": "Cheney",
+          "meeting": {
+            "days": "TT",
+            "beginTime": "1000",
+            "endTime": "1220",
+            "arranged": false,
+            "building": null,
+            "room": null
+          }
         },
         {
           "course": "DESN 463",
@@ -957,7 +1140,21 @@
           "credits": 5,
           "available": 0,
           "capacity": 23,
-          "waitlisted": 0
+          "waitlisted": 0,
+          "enrolled": 23,
+          "waitlistCapacity": 10,
+          "openSection": true,
+          "instructor": "Durr, Sonja",
+          "scheduleType": "Performance and Simulation",
+          "campus": "Cheney",
+          "meeting": {
+            "days": "MW",
+            "beginTime": "1300",
+            "endTime": "1520",
+            "arranged": false,
+            "building": null,
+            "room": null
+          }
         },
         {
           "course": "DESN 480",
@@ -967,7 +1164,21 @@
           "credits": 5,
           "available": 3,
           "capacity": 20,
-          "waitlisted": 0
+          "waitlisted": 0,
+          "enrolled": 17,
+          "waitlistCapacity": 10,
+          "openSection": true,
+          "instructor": "Manikoth, Colin",
+          "scheduleType": "Performance and Simulation",
+          "campus": "Cheney",
+          "meeting": {
+            "days": "TT",
+            "beginTime": "1300",
+            "endTime": "1520",
+            "arranged": false,
+            "building": null,
+            "room": null
+          }
         },
         {
           "course": "DESN 490",
@@ -977,7 +1188,21 @@
           "credits": 5,
           "available": 7,
           "capacity": 20,
-          "waitlisted": 0
+          "waitlisted": 0,
+          "enrolled": 13,
+          "waitlistCapacity": 10,
+          "openSection": true,
+          "instructor": "Breen, Melinda",
+          "scheduleType": "Performance and Simulation",
+          "campus": "Cheney",
+          "meeting": {
+            "days": "MW",
+            "beginTime": "1000",
+            "endTime": "1220",
+            "arranged": false,
+            "building": null,
+            "room": null
+          }
         },
         {
           "course": "DESN 491",
@@ -987,7 +1212,21 @@
           "credits": 5,
           "available": 5,
           "capacity": 5,
-          "waitlisted": 0
+          "waitlisted": 0,
+          "enrolled": 0,
+          "waitlistCapacity": 5,
+          "openSection": true,
+          "instructor": "Breen, Melinda",
+          "scheduleType": "Thesis or Research Project",
+          "campus": "Spokane U-District",
+          "meeting": {
+            "days": null,
+            "beginTime": null,
+            "endTime": null,
+            "arranged": true,
+            "building": null,
+            "room": null
+          }
         },
         {
           "course": "DESN 495",
@@ -997,7 +1236,21 @@
           "credits": 5,
           "available": 0,
           "capacity": 1,
-          "waitlisted": null
+          "waitlisted": null,
+          "enrolled": 1,
+          "waitlistCapacity": 0,
+          "openSection": false,
+          "instructor": "Hustrulid, Ginelle",
+          "scheduleType": "Internship",
+          "campus": "Cheney",
+          "meeting": {
+            "days": null,
+            "beginTime": null,
+            "endTime": null,
+            "arranged": true,
+            "building": null,
+            "room": null
+          }
         },
         {
           "course": "DESN 495",
@@ -1007,7 +1260,21 @@
           "credits": 5,
           "available": 0,
           "capacity": 1,
-          "waitlisted": null
+          "waitlisted": null,
+          "enrolled": 1,
+          "waitlistCapacity": 0,
+          "openSection": false,
+          "instructor": "Breen, Melinda",
+          "scheduleType": "Internship",
+          "campus": "Cheney",
+          "meeting": {
+            "days": null,
+            "beginTime": null,
+            "endTime": null,
+            "arranged": true,
+            "building": null,
+            "room": null
+          }
         },
         {
           "course": "DESN 495",
@@ -1017,7 +1284,21 @@
           "credits": 2,
           "available": 1,
           "capacity": 1,
-          "waitlisted": null
+          "waitlisted": null,
+          "enrolled": 0,
+          "waitlistCapacity": 0,
+          "openSection": true,
+          "instructor": "Breen, Melinda",
+          "scheduleType": "Internship",
+          "campus": "Cheney",
+          "meeting": {
+            "days": null,
+            "beginTime": null,
+            "endTime": null,
+            "arranged": true,
+            "building": null,
+            "room": null
+          }
         },
         {
           "course": "DESN 495",
@@ -1027,7 +1308,21 @@
           "credits": 4,
           "available": 0,
           "capacity": 1,
-          "waitlisted": null
+          "waitlisted": null,
+          "enrolled": 1,
+          "waitlistCapacity": 0,
+          "openSection": false,
+          "instructor": "Breen, Melinda",
+          "scheduleType": "Internship",
+          "campus": "Cheney",
+          "meeting": {
+            "days": null,
+            "beginTime": null,
+            "endTime": null,
+            "arranged": true,
+            "building": null,
+            "room": null
+          }
         },
         {
           "course": "DESN 496",
@@ -1036,8 +1331,22 @@
           "title": "PAPERMAKING",
           "credits": 3,
           "available": 0,
-          "capacity": 16,
-          "waitlisted": 1
+          "capacity": 8,
+          "waitlisted": 1,
+          "enrolled": 8,
+          "waitlistCapacity": 5,
+          "openSection": true,
+          "instructor": "Hewitt, Melanie",
+          "scheduleType": "Experimental (96's)",
+          "campus": "Cheney",
+          "meeting": {
+            "days": "F",
+            "beginTime": "0900",
+            "endTime": "1150",
+            "arranged": false,
+            "building": "Art Building",
+            "room": "108"
+          }
         },
         {
           "course": "DESN 499",
@@ -1047,7 +1356,21 @@
           "credits": 3,
           "available": 0,
           "capacity": 3,
-          "waitlisted": null
+          "waitlisted": null,
+          "enrolled": 3,
+          "waitlistCapacity": 0,
+          "openSection": false,
+          "instructor": "Durr, Sonja",
+          "scheduleType": "Independent Study",
+          "campus": "Cheney",
+          "meeting": {
+            "days": null,
+            "beginTime": null,
+            "endTime": null,
+            "arranged": true,
+            "building": null,
+            "room": null
+          }
         }
       ]
     }

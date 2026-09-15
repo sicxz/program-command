@@ -140,6 +140,71 @@ comparisons with provisional endpoints are withheld. The snapshot panel and its
 section table show the complete source independently of the dashboard filters.
 
 
+## Fall 2026 refresh, September 15
+
+Travis, signed in to EagleNET on September 15, 2026, asked for Fall 2026 course
+information and enrollment totals to be refreshed from the source of truth
+(issue #302). The complete **Design** subject search for term 202640 was read
+as Banner's own search JSON (23 sections, one page at 50 per page), which
+carries exact enrollment rather than capacity minus seats available, plus
+instructor, meeting pattern, campus, and schedule type. Those fields were added
+to the Fall 2026 sections in `data/enrollment-registration-snapshots.json`;
+the term stays provisional.
+
+| Capture | Sections | Registrations | Section capacity | Displayed waitlist |
+| --- | ---: | ---: | ---: | ---: |
+| September 13, 2026 | 23 | 308 | 370 | 8 |
+| September 15, 2026 | 23 | 300 | 362 | 9 |
+
+Twelve sections are full. Banner publishes rooms for only two sections
+(DESN 359 in Patterson Hall 118, DESN 496 in Art Building 108). All recorded
+years now total 5,041 registrations; the two enrollment test files were updated
+to the new capture.
+
+### Reconciliation against the AY 2026-27 Fall schedule
+
+Program Command stores its own section numbers in `scheduled_courses`, so
+sections were matched by course plus meeting pattern, not by section number.
+23 Banner sections, 18 scheduled sections, 16 matched.
+
+Differences that need a decision:
+
+- **DESN 100:** Banner lists Simeon Mills (MW 16:00-18:20, full at 23); the schedule lists A. Sopu for that slot. One of them is wrong.
+- **DESN 200:** the schedule has two sections (C. Manikoth MW 10:00-12:20 and S. Mills TR 10:00-12:20); Banner has only the Mills section (24 of 24). The Manikoth section is not offered in Banner.
+- **DESN 359:** Banner has it in Patterson Hall 118; the schedule assigns 210 Mac Lab.
+- **Caps:** Banner caps run 18 to 24 while every scheduled course carries a typical cap of 24. The 20-student cap note from September 13 does not match Banner for most sections.
+- **Not on the grid, by design:** DESN 491, the four DESN 495 internship sections, DESN 496 (Hewitt, Papermaking), and DESN 499 are arranged or experimental sections with no meeting slot.
+- **Schedule rows with no Banner match:** ITGS 110 sec 003 (S.Mills, MW 10:00-12:20); DESN 200 sec 013 (C.Manikoth, MW 10:00-12:20). ITGS 110 is outside the Design subject search.
+
+| CRN | Course / sec | Banner instructor | Banner meeting | Cap / enrolled | Schedule row (sec, faculty, days, time, room) | Note |
+|---|---|---|---|---|---|---|
+| 40436 | DESN 100 / 001 | Mills, Simeon | MW 1600-1820 | 23 / 23 | 002, A.Sopu, MW 16:00-18:20, 212 Project Lab | **instructor differs: schedule has A.Sopu**; Banner cap 23, typical cap 24; no room in Banner |
+| 40438 | DESN 200 / 001 | Mills, Simeon | TT 1000-1220 | 24 / 24 | 017, S.Mills, TR 10:00-12:20, CEB 102 | no room in Banner |
+| 40440 | DESN 216 / 001 | Sopu, Ariel | MW 1300-1520 | 22 / 22 | 007, A.Sopu, MW 13:00-15:20, CEB 102 | Banner cap 22, typical cap 24; no room in Banner |
+| 40441 | DESN 216 / 025 | Sopu, Ariel | Arranged | 22 / 22 | 001, A.Sopu, ONLINE async, - | Banner cap 22, typical cap 24; no room in Banner |
+| 40442 | DESN 243 / 001 | Durr, Sonja | TT 1000-1220 | 20 / 12 | 014, S.Durr, TR 10:00-12:20, 210 Mac Lab | Banner cap 20, typical cap 24; no room in Banner |
+| 40443 | DESN 263 / 001 | Hustrulid, Ginelle | MW 1000-1220 | 20 / 14 | 001, G.Hustrulid, MW 10:00-12:20, 209 Mac Lab | Banner cap 20, typical cap 24; no room in Banner |
+| 40444 | DESN 301 / 001 | Mills, Simeon | MW 1300-1520 | 24 / 24 | 006, S.Mills, MW 13:00-15:20, 210 Mac Lab | no room in Banner |
+| 40445 | DESN 326 / 001 | Hustrulid, Ginelle | TT 1300-1520 | 24 / 24 | 015, G.Hustrulid, TR 13:00-15:20, 209 Mac Lab | no room in Banner |
+| 40446 | DESN 338 / 001 | Poosri, Tyreil | MW 1600-1820 | 22 / 21 | 001, T.Poosri, MW 16:00-18:20, 206 UX Lab | Banner cap 22, typical cap 24; no room in Banner |
+| 40447 | DESN 359 / 001 | Durr, Sonja | TT 1300-1520 | 18 / 16 | 018, S.Durr, TR 13:00-15:20, 210 Mac Lab | Banner cap 18, typical cap 24; **room: Banner Patterson Hall 118, schedule 210 Mac Lab** |
+| 40448 | DESN 368 / 001 | Masingale, Travis | MW 1300-1520 | 20 / 14 | 001, T.Masingale, MW 13:00-15:20, 206 UX Lab | Banner cap 20, typical cap 24; no room in Banner |
+| 40449 | DESN 369 / 001 | Manikoth, Colin | TT 1000-1220 | 20 / 6 | 012, C.Manikoth, TR 10:00-12:20, 206 UX Lab | Banner cap 20, typical cap 24; no room in Banner |
+| 40450 | DESN 374 / 001 | Masingale, Travis | TT 1000-1220 | 20 / 11 | 011, T.Masingale, TR 10:00-12:20, 209 Mac Lab | Banner cap 20, typical cap 24; no room in Banner |
+| 40452 | DESN 463 / 001 | Durr, Sonja | MW 1300-1520 | 23 / 23 | 008, S.Durr, MW 13:00-15:20, 209 Mac Lab | Banner cap 23, typical cap 24; no room in Banner |
+| 40453 | DESN 480 / 001 | Manikoth, Colin | TT 1300-1520 | 20 / 17 | 016, C.Manikoth, TR 13:00-15:20, 206 UX Lab | Banner cap 20, typical cap 24; no room in Banner |
+| 40454 | DESN 490 / 001 | Breen, Melinda | MW 1000-1220 | 20 / 13 | 001, M.Breen, MW 10:00-12:20, 210 Mac Lab | Banner cap 20, typical cap 24; no room in Banner |
+| 40455 | DESN 491 / 001 | Breen, Melinda | Arranged | 5 / 0 | - | not on the grid: Thesis or Research Project / Spokane U-District |
+| 42216 | DESN 495 / 002 | Hustrulid, Ginelle | Arranged | 1 / 1 | - | not on the grid: Internship |
+| 42217 | DESN 495 / 003 | Breen, Melinda | Arranged | 1 / 1 | - | not on the grid: Internship |
+| 42277 | DESN 495 / 004 | Breen, Melinda | Arranged | 1 / 0 | - | not on the grid: Internship |
+| 42873 | DESN 495 / 005 | Breen, Melinda | Arranged | 1 / 1 | - | not on the grid: Internship |
+| 42102 | DESN 496 / 001 | Hewitt, Melanie | F 0900-1150 | 8 / 8 | - | not on the grid: Experimental (96's) |
+| 42164 | DESN 499 / 001 | Durr, Sonja | Arranged | 3 / 3 | - | not on the grid: Independent Study |
+
+The schedule itself was not edited; the differences above are for Travis to
+resolve against EagleNET.
+
 ## Section cap as of 2026
 
 On September 13, 2026, the user clarified that sections are capped at
