@@ -5775,11 +5775,11 @@
             'DESN 360': 'Zine and Publication Design',
             'DESN 365': 'Motion Design 2',
             'DESN 366': 'Production Design',
-            'DESN 368': 'Code + Design 1',
+            'DESN 368': 'Web Design + Code 1',
             'DESN 369': 'Web Development 1',
-            'DESN 374': 'AI + Design',
+            'DESN 374': 'Applied Design',
             'DESN 375': 'Digital Video',
-            'DESN 378': 'Code + Design 2',
+            'DESN 378': 'Web Design + Code 2',
             'DESN 379': 'Web Development 2',
             'DESN 384': 'Digital Sound',
             'DESN 396': 'Experimental Course',
@@ -5789,7 +5789,7 @@
             'DESN 446': '4D Animation',
             'DESN 458': 'User Experience Design 3',
             'DESN 463': 'Community-Driven Design',
-            'DESN 468': 'Code + Design 3',
+            'DESN 468': 'Web Design + Code 3',
             'DESN 469': 'Web Development 3',
             'DESN 480': 'Professional Practice',
             'DESN 490': 'Senior Capstone',
@@ -7047,9 +7047,6 @@
         let enrollmentData = {};
         let enrollmentDataByCode = {};
         let registrationSnapshots = null;
-        const NEW_COURSE_CODES = new Set(
-            ['DESN 345', 'DESN 369', 'DESN 379'].map((code) => normalizeCourseCode(code))
-        );
 
         function rebuildEnrollmentLookup() {
             enrollmentDataByCode = {};
@@ -7184,11 +7181,82 @@
                 || { average: 0, peak: 0, trend: "unknown", peakQuarter: "" };
         }
 
+        function getAcademicYearStart(academicYear) {
+            const match = String(academicYear || '').match(/^(\d{4})-\d{2}$/);
+            return match ? Number(match[1]) : null;
+        }
+
+        function isEarlierAcademicYear(candidateYear, referenceYear) {
+            const candidateStart = getAcademicYearStart(candidateYear);
+            const referenceStart = getAcademicYearStart(referenceYear);
+            return candidateStart !== null
+                && referenceStart !== null
+                && candidateStart < referenceStart;
+        }
+
+        function scheduleContainsCourseCode(value, normalizedCode) {
+            if (Array.isArray(value)) {
+                return value.some((item) => scheduleContainsCourseCode(item, normalizedCode));
+            }
+            if (!value || typeof value !== 'object') return false;
+            if (normalizeCourseCode(value.code) === normalizedCode) return true;
+            return Object.values(value).some((item) => scheduleContainsCourseCode(item, normalizedCode));
+        }
+
+        function getSavedScheduleHistory(storage = localStorage) {
+            const schedules = [];
+            const prefix = String(scheduleStorageKeyPrefix || 'designSchedulerData_').trim() || 'designSchedulerData_';
+
+            try {
+                for (let index = 0; index < storage.length; index += 1) {
+                    const key = storage.key(index);
+                    if (!key || !key.startsWith(prefix)) continue;
+                    const academicYear = key.slice(prefix.length);
+                    if (getAcademicYearStart(academicYear) === null) continue;
+
+                    const saved = storage.getItem(key);
+                    if (!saved) continue;
+                    schedules.push({ academicYear, schedule: JSON.parse(saved) });
+                }
+            } catch (error) {
+                console.warn('Could not inspect saved schedules for course history:', error);
+            }
+
+            return schedules;
+        }
+
+        function getNoHistoryBadgeText(courseCode, options = {}) {
+            const normalizedCode = normalizeCourseCode(courseCode);
+            const enrollment = options.enrollment || getEnrollmentData(courseCode);
+            const hasEnrollmentHistory = Object.keys(enrollment?.quarterly || {}).length > 0;
+            if (hasEnrollmentHistory) return '';
+
+            const snapshots = Object.prototype.hasOwnProperty.call(options, 'registrationSnapshots')
+                ? options.registrationSnapshots
+                : registrationSnapshots;
+            const academicYear = options.currentAcademicYear || currentAcademicYear;
+            const savedSchedules = options.savedSchedules || getSavedScheduleHistory();
+            const appearedInEarlierSnapshot = (snapshots?.terms || []).some((term) => (
+                isEarlierAcademicYear(term.academicYear, academicYear)
+                && (term.sections || []).some((section) => (
+                    normalizeCourseCode(section.course || section.code) === normalizedCode
+                ))
+            ));
+            const appearedInEarlierSchedule = savedSchedules.some((entry) => (
+                isEarlierAcademicYear(entry.academicYear, academicYear)
+                && scheduleContainsCourseCode(entry.schedule, normalizedCode)
+            ));
+
+            return appearedInEarlierSnapshot || appearedInEarlierSchedule
+                ? 'NO HISTORY'
+                : 'NEW';
+        }
+
         const scheduleData = {
             fall: {
                 'MW': {
                     '10:00-12:20': [
-                        { code: 'DESN 368', name: 'Code + Design 1', room: '206', instructor: 'T.Masingale', credits: 5 },
+                        { code: 'DESN 368', name: 'Web Design + Code 1', room: '206', instructor: 'T.Masingale', credits: 5 },
                         { code: 'DESN 243', name: 'Typography', room: '209', instructor: 'S.Durr', credits: 5 },
                         { code: 'DESN 490', name: 'Capstone', room: '210', instructor: 'C.Manikoth', credits: 5 },
                         { code: 'DESN 100', name: 'Drawing Com.', room: 'CEB 104', instructor: 'A.Sopu', credits: 5 }
@@ -7206,7 +7274,7 @@
                 },
                 'TR': {
                     '10:00-12:20': [
-                        { code: 'DESN 374', name: 'AI + Design', room: '209', instructor: 'T.Masingale', credits: 5 },
+                        { code: 'DESN 374', name: 'Applied Design', room: '209', instructor: 'T.Masingale', credits: 5 },
                         { code: 'DESN 200', name: 'Visual Thinking', room: '210', instructor: 'C.Manikoth', credits: 5 },
                         { code: 'DESN 359', name: 'Histories of Des.', room: 'CEB 102', instructor: 'S.Durr', credits: 5 },
                         { code: 'ITGS 110', name: 'FYE: Humanities', room: 'CEB 104', instructor: 'S.Mills', credits: 5 }
@@ -7239,7 +7307,7 @@
                     ],
                     '16:00-18:20': [
                         { code: 'DESN 338', name: 'UX 1', room: '206', instructor: 'M.Lybbert', credits: 5 },
-                        { code: 'DESN 378', name: 'Code + Design 2', room: '209', instructor: 'T. Masingale', credits: 5 }
+                        { code: 'DESN 378', name: 'Web Design + Code 2', room: '209', instructor: 'T. Masingale', credits: 5 }
                     ]
                 },
                 'TR': {
@@ -7250,7 +7318,7 @@
                         { code: 'DESN 200', name: 'Visual Thinking', room: 'CEB 102', instructor: 'S.Mills', credits: 5 }
                     ],
                     '13:00-15:20': [
-                        { code: 'DESN 374', name: 'AI + Design', room: '206', instructor: 'T. Masingale', credits: 5 },
+                        { code: 'DESN 374', name: 'Applied Design', room: '206', instructor: 'T. Masingale', credits: 5 },
                         { code: 'DESN 355', name: 'Motion Design', room: '209', instructor: 'G.Hustrulid', credits: 5 },
                         { code: 'DESN 263', name: 'VCD 1', room: '210', instructor: 'A.Sopu', credits: 5 },
                         { code: 'DESN 100', name: 'Drawing Com.', room: 'CEB 104', instructor: 'S.Allison', credits: 5 }
@@ -7274,7 +7342,7 @@
                 'MW': {
                     '10:00-12:20': [
                         { code: 'DESN 305', name: 'Social Media', room: '206', instructor: 'E.Norris', credits: 5 },
-                        { code: 'DESN 374', name: 'AI + Design', room: '209', instructor: 'T. Masingale', credits: 5 },
+                        { code: 'DESN 374', name: 'Applied Design', room: '209', instructor: 'T. Masingale', credits: 5 },
                         { code: 'DESN 490', name: 'Capstone', room: '210', instructor: 'TBD', credits: 5 },
                         { code: 'DESN 359', name: 'Histories of Des.', room: 'CEB 102', instructor: 'S.Durr', credits: 5 }
                     ],
@@ -7297,7 +7365,7 @@
                         { code: 'DESN 216', name: 'Digital Fdns.', room: 'CEB 102', instructor: 'A.Sopu', credits: 5 }
                     ],
                     '13:00-15:20': [
-                        { code: 'DESN 468', name: 'Code + Design 3', room: '206', instructor: 'T. Masingale', credits: 5 },
+                        { code: 'DESN 468', name: 'Web Design + Code 3', room: '206', instructor: 'T. Masingale', credits: 5 },
                         { code: 'DESN 365', name: 'Motion Des. 2', room: '209', instructor: 'G.Hustrulid', credits: 5 },
                         { code: 'DESN 243', name: 'Typography', room: '210', instructor: 'S.Durr', credits: 5 },
                         { code: 'DESN 100', name: 'Drawing Com.', room: 'CEB 104', instructor: 'A.Sopu', credits: 5 }
@@ -7510,24 +7578,18 @@
                                 && enrollment.quarterly
                                 && enrollment.quarterly[prevYearQuarter] !== undefined
                             );
-                            const treatAsNewCourse = Boolean(
-                                NEW_COURSE_CODES.has(normalizeCourseCode(course.code))
-                                ||
-                                enrollment.isNew
-                                || enrollment.trend === 'new'
-                                || (!hasPriorQuarterSample
-                                    && Number(enrollment.average) === 0
-                                    && Number(enrollment.peak) === 0)
-                            );
+                            const hasNoEnrollmentHistory = Object.keys(enrollment.quarterly || {}).length === 0;
 
                             if (hasPriorQuarterSample) {
                                 const prevYearData = enrollment.quarterly[prevYearQuarter];
                                 displayEnrollment = typeof prevYearData === 'object' ? prevYearData.total : prevYearData;
                                 tooltipText = quarter.charAt(0).toUpperCase() + quarter.slice(1) + ' 2025: ' + displayEnrollment + ' students';
                                 showYearIndicator = true;
-                            } else if (treatAsNewCourse) {
-                                displayEnrollment = 'NEW';
-                                tooltipText = 'New course - no historical data';
+                            } else if (hasNoEnrollmentHistory) {
+                                displayEnrollment = getNoHistoryBadgeText(course.code, { enrollment });
+                                tooltipText = displayEnrollment === 'NEW'
+                                    ? 'New course - no historical data'
+                                    : 'No enrollment history for this course and quarter';
                             }
 
                             const enrollmentLevel = typeof displayEnrollment === 'number' ? getEnrollmentLevel(displayEnrollment) : 'medium';
@@ -8052,12 +8114,12 @@
         }
 
         // Helper: Create quarter data cell content
-        function createQuarterCell(data, isNew) {
+        function createQuarterCell(data, noHistoryBadgeText = '') {
             const cell = document.createElement('td');
-            if (isNew) {
+            if (!data && noHistoryBadgeText) {
                 const span = document.createElement('span');
                 span.style.cssText = 'color: #9b59b6; font-weight: 600;';
-                span.textContent = 'NEW';
+                span.textContent = noHistoryBadgeText;
                 cell.appendChild(span);
             } else if (!data) {
                 cell.textContent = '-';
@@ -8230,9 +8292,10 @@
                     const isNewCourse = Boolean(
                         enrollment.isNew
                         || enrollment.trend === 'new'
-                        || NEW_COURSE_CODES.has(normalizeCourseCode(c.code))
                     );
                     const quarterly = enrollment.quarterly || {};
+                    const hasAnyQuarterlyHistory = Object.keys(quarterly).length > 0;
+                    const noHistoryBadgeText = getNoHistoryBadgeText(c.code, { enrollment });
                     const row = document.createElement('tr');
 
                     // Course code cell
@@ -8240,10 +8303,10 @@
                     const codeStrong = document.createElement('strong');
                     codeStrong.textContent = c.code;
                     codeCell.appendChild(codeStrong);
-                    if (isNewCourse) {
+                    if (!hasAnyQuarterlyHistory) {
                         const badge = document.createElement('span');
                         badge.className = 'course-note-badge';
-                        badge.textContent = 'NEW';
+                        badge.textContent = noHistoryBadgeText;
                         codeCell.appendChild(badge);
                     }
 
@@ -8261,9 +8324,9 @@
                     row.appendChild(codeCell);
                     row.appendChild(nameCell);
                     row.appendChild(instructorCell);
-                    row.appendChild(createQuarterCell(quarterly[q2023Key], isNewCourse));
-                    row.appendChild(createQuarterCell(quarterly[q2024Key], isNewCourse));
-                    row.appendChild(createQuarterCell(quarterly[q2025Key], isNewCourse));
+                    row.appendChild(createQuarterCell(quarterly[q2023Key], hasAnyQuarterlyHistory ? '' : noHistoryBadgeText));
+                    row.appendChild(createQuarterCell(quarterly[q2024Key], hasAnyQuarterlyHistory ? '' : noHistoryBadgeText));
+                    row.appendChild(createQuarterCell(quarterly[q2025Key], hasAnyQuarterlyHistory ? '' : noHistoryBadgeText));
                     row.appendChild(trendCell);
                     tbody.appendChild(row);
                 });
@@ -15042,13 +15105,13 @@
                             <option value="DESN 348">DESN 348 - UX Design 2</option>
                             <option value="DESN 355">DESN 355 - Motion Design</option>
                             <option value="DESN 359">DESN 359 - Histories of Design</option>
-                            <option value="DESN 368">DESN 368 - Code + Design 1</option>
+                            <option value="DESN 368">DESN 368 - Web Design + Code 1</option>
                             <option value="DESN 369">DESN 369 - Web Development 1</option>
-                            <option value="DESN 378">DESN 378 - Code + Design 2</option>
+                            <option value="DESN 378">DESN 378 - Web Design + Code 2</option>
                             <option value="DESN 379">DESN 379 - Web Development 2</option>
                             <option value="DESN 458">DESN 458 - UX Design 3</option>
                             <option value="DESN 463">DESN 463 - Community-Driven Design</option>
-                            <option value="DESN 468">DESN 468 - Code + Design 3</option>
+                            <option value="DESN 468">DESN 468 - Web Design + Code 3</option>
                             <option value="DESN 480">DESN 480 - Professional Practice</option>
                             <option value="DESN 490">DESN 490 - Senior Capstone</option>
                         </select>

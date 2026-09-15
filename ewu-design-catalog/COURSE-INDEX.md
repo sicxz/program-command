@@ -40,14 +40,14 @@ Core foundations and tool-specific courses.
 Specialized tracks and intermediate skills.
 
 **Web Development:**
-- **DESN-368** Code + Design 1 (5 cr) *[Prereq: 216]*
+- **DESN-368** Web Design + Code 1 (5 cr) *[Prereq: 216]*
 - **DESN-369** Web Development 1 (5 cr) *[Prereq: 216]*
-- **DESN-378** Code + Design 2 (5 cr) *[Prereq: 368]*
+- **DESN-378** Web Design + Code 2 (5 cr) *[Prereq: 368]*
 - **DESN-379** Web Development 2 (5 cr) *[Prereq: 369]*
 
 **AI & Emergent:**
 - **DESN-325** Emergent Design (5 cr, repeatable) *[Prereq: 216]*
-- **DESN-374** AI + Design (5 cr) *[Prereq: 216]*
+- **DESN-374** Applied Design (5 cr) *[Prereq: 216]*
 
 **Animation & Motion:**
 - **DESN-326** Introduction to Animation (5 cr) *[Prereq: 200 or 216]*
@@ -92,7 +92,7 @@ Specialized tracks and intermediate skills.
 Advanced, capstone, and professional development.
 
 **Web Development:**
-- **DESN-468** Code + Design 3 (5 cr) *[Prereq: 378]*
+- **DESN-468** Web Design + Code 3 (5 cr) *[Prereq: 378]*
 - **DESN-469** Web Development 3 (5 cr) *[Prereq: 379]*
 
 **Animation & Motion:**
@@ -174,15 +174,15 @@ Career preparation and real-world work.
 ## Course Sequences
 
 ### Web Development Track
-**Option A: Code + Design**
+**Option A: Web Design + Code**
 ```
 DESN-216 Digital Foundations
     ↓
-DESN-368 Code + Design 1
+DESN-368 Web Design + Code 1
     ↓
-DESN-378 Code + Design 2
+DESN-378 Web Design + Code 2
     ↓
-DESN-468 Code + Design 3
+DESN-468 Web Design + Code 3
     ↓
 DESN-490 Senior Capstone
 ```

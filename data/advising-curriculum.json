@@ -1077,8 +1077,8 @@
       "id": "program-command-course-catalog",
       "label": "Program Command shared course catalog",
       "path": "data/course-catalog.json",
-      "version": "2026-04-20",
-      "capturedOn": "2026-04-20",
+      "version": "2026-09-15",
+      "capturedOn": "2026-09-15",
       "reviewedOn": "2026-08-14",
       "reviewedBy": "EWU Design Department",
       "reviewState": "approved"
