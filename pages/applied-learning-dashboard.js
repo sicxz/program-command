@@ -45,7 +45,7 @@ const AppliedLearningDashboard = (function () {
         const oldYear = byId('academicYearFilter').value;
         const yearOptions = [option('all', 'All recorded years'), option('current', `Automatic · ${yearLabel(term.academicYear)}`), ...years().map(year => option(year, yearLabel(year)))];
         byId('academicYearFilter').replaceChildren(...yearOptions);
-        byId('academicYearFilter').value = yearOptions.some(item => item.value === oldYear) ? oldYear : 'all';
+        byId('academicYearFilter').value = yearOptions.some(item => item.value === oldYear) ? oldYear : 'current';
         const oldCourse = byId('courseFilter').value;
         const courseOptions = [option('all', 'All applied-learning courses'), ...courses.map(course => option(course.code, `${course.code} · ${course.title}`))];
         byId('courseFilter').replaceChildren(...courseOptions);
@@ -109,6 +109,25 @@ const AppliedLearningDashboard = (function () {
         byId('supervisionContent').hidden = !supervision.rows.length;
         text('recordedCredits', format(supervision.total)); text('workloadRecords', format(supervision.recordCount));
         text('supervisorCount', format(supervision.supervisorCount)); text('unassignedCredits', format(supervision.unassignedWorkload));
+        byId('courseFacultyDrilldown').replaceChildren(...view.byCourseFaculty.map(course => {
+            const details = element('details', 'chart-data');
+            details.append(element('summary', '', `${course.label} · ${format(course.sections)} sections · ${format(course.credits)} credits`));
+            const region = element('div', 'table-scroll'); region.tabIndex = 0; region.setAttribute('role', 'region');
+            region.setAttribute('aria-label', `${course.label} supervision by faculty`);
+            const table = element('table');
+            const caption = element('caption', 'sr-only', `${course.label} supervision grouped by faculty.`);
+            const head = element('thead'); const headingRow = element('tr');
+            [['Faculty', ''], ['Sections', 'numeric'], ['Credit input', 'numeric'], ['Workload credits', 'numeric']].forEach(([label, className]) => {
+                const heading = element('th', className, label); heading.scope = 'col'; headingRow.append(heading);
+            });
+            head.append(headingRow);
+            const body = element('tbody');
+            course.faculty.forEach(faculty => {
+                const row = element('tr'); cell(row, faculty.name); cell(row, format(faculty.sections), 'numeric');
+                cell(row, format(faculty.credits), 'numeric'); cell(row, format(faculty.workload), 'numeric'); body.append(row);
+            });
+            table.append(caption, head, body); region.append(table); details.append(region); return details;
+        }));
         const maximum = Math.max(1, ...supervision.faculty.map(faculty => faculty.workload || 0));
         byId('facultyBars').replaceChildren(...supervision.faculty.map(faculty => {
             const row = element('article', 'applied-faculty'); const top = element('div', 'applied-faculty-topline');
