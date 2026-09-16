@@ -5385,6 +5385,7 @@
     <script src="js/department-profile.js"></script>
     <script src="js/supabase-config.js"></script>
     <script src="js/db-service.js"></script>
+    <script src="js/default-term.js"></script>
     <script src="js/auth-service.js"></script>
     <script src="js/auth-guard.js"></script>
     <script src="js/dirty-state-tracker.js"></script>
@@ -6956,6 +6957,10 @@
         document.addEventListener('quarter-change', (e) => {
             const currentQuarter = e.detail.quarter;
 
+            if (!applyingInitialProgramTerm) {
+                saveProgramTermOverride(currentAcademicYear, currentQuarter);
+            }
+
             // Update main state manager (now a signal)
             if (window.StateManager) {
                 window.StateManager.set('currentQuarter', currentQuarter);
@@ -7001,6 +7006,9 @@
         });
 
         document.addEventListener('year-change', (e) => {
+            if (!applyingInitialProgramTerm) {
+                saveProgramTermOverride(e.detail.year, getCurrentSchedulerQuarter());
+            }
             if (typeof switchAcademicYear === 'function') {
                 switchAcademicYear(e.detail.year);
             }
@@ -13924,8 +13932,121 @@
             showToast(courseCode + ' added to schedule');
         }
 
-        // Current academic year
-        let currentAcademicYear = '2025-26';
+        const PROGRAM_TERM_SESSION_KEY = 'programCommand.term';
+        let currentAcademicYear = '';
+        let initialProgramQuarter = '';
+        let applyingInitialProgramTerm = true;
+
+        function validProgramTerm(term) {
+            return /^\d{4}-\d{2}$/.test(String(term?.academicYear || '')) &&
+                ['fall', 'winter', 'spring'].includes(String(term?.quarter || '').toLowerCase());
+        }
+
+        function readProgramTermOverride() {
+            try {
+                const saved = JSON.parse(sessionStorage.getItem(PROGRAM_TERM_SESSION_KEY) || 'null');
+                return validProgramTerm(saved)
+                    ? { academicYear: saved.academicYear, quarter: saved.quarter.toLowerCase() }
+                    : null;
+            } catch (error) {
+                return null;
+            }
+        }
+
+        function saveProgramTermOverride(academicYear, quarter) {
+            const term = { academicYear, quarter: String(quarter || '').toLowerCase() };
+            if (!validProgramTerm(term)) return;
+            try {
+                sessionStorage.setItem(PROGRAM_TERM_SESSION_KEY, JSON.stringify(term));
+            } catch (error) {
+                // The selected term still applies when session storage is unavailable.
+            }
+        }
+
+        async function loadProgramAcademicCalendar() {
+            try {
+                const response = await fetch('data/academic-calendar.json');
+                return response.ok ? await response.json() : null;
+            } catch (error) {
+                return null;
+            }
+        }
+
+        function resolveProgramTermWithoutScript(calendar, now) {
+            const date = Number.isFinite(new Date(now).getTime()) ? new Date(now) : new Date();
+            const parts = new Intl.DateTimeFormat('en-US', {
+                timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit', day: '2-digit'
+            }).formatToParts(date);
+            const part = name => parts.find(value => value.type === name)?.value;
+            const year = Number(part('year'));
+            const month = Number(part('month'));
+            const today = `${part('year')}-${part('month')}-${part('day')}`;
+            const terms = (Array.isArray(calendar?.terms) ? calendar.terms : [])
+                .filter(term => ['fall', 'winter', 'spring', 'summer'].includes(term?.quarter) &&
+                    Number.isInteger(term?.year) && /^\d{4}-\d{2}-\d{2}$/.test(term?.start) &&
+                    /^\d{4}-\d{2}-\d{2}$/.test(term?.end) && term.start <= term.end)
+                .sort((a, b) => a.start.localeCompare(b.start));
+            const active = terms.find(term => term.start <= today && today <= term.end);
+            const upcoming = !active && terms.some(term => term.end < today)
+                ? terms.find(term => today < term.start &&
+                    (Date.parse(term.start) - Date.parse(today)) / 86400000 <= 60)
+                : null;
+            const calendarTerm = active || upcoming;
+            if (calendarTerm) {
+                const startYear = calendarTerm.quarter === 'fall' ? calendarTerm.year : calendarTerm.year - 1;
+                const resolvedStartYear = calendarTerm.quarter === 'summer' ? startYear + 1 : startYear;
+                return {
+                    academicYear: `${resolvedStartYear}-${String(resolvedStartYear + 1).slice(-2)}`,
+                    quarter: calendarTerm.quarter === 'summer' ? 'fall' : calendarTerm.quarter
+                };
+            }
+            let startYear = month >= 9 ? year : year - 1;
+            const quarter = month <= 3 ? 'winter' : month <= 6 ? 'spring' : 'fall';
+            if (month >= 7 && month <= 8) startYear += 1;
+            return { academicYear: `${startYear}-${String(startYear + 1).slice(-2)}`, quarter };
+        }
+
+        async function resolveInitialProgramTerm(calendar) {
+            const now = new Date();
+            let pinned = null;
+            try {
+                const service = window.DbService || window.dbService;
+                pinned = typeof service?.getDefaultTerm === 'function'
+                    ? await service.getDefaultTerm()
+                    : null;
+            } catch (error) {
+                pinned = null;
+            }
+            let resolved = null;
+            try {
+                resolved = window.DefaultTerm?.resolve({ pinned, calendar, now, allowSummer: false }) || null;
+            } catch (error) {
+                resolved = null;
+            }
+            if (!validProgramTerm(resolved)) resolved = resolveProgramTermWithoutScript(calendar, now);
+            return readProgramTermOverride() || resolved;
+        }
+
+        function applyInitialProgramTerm(term) {
+            currentAcademicYear = term.academicYear;
+            initialProgramQuarter = term.quarter;
+            window.StateManager?.set('currentAcademicYear', term.academicYear);
+            window.StateManager?.set('currentQuarter', term.quarter);
+
+            const navComponent = document.getElementById('mainQuarterNav');
+            if (!navComponent) return;
+            navComponent.setAttribute('initial-quarter', term.quarter);
+            navComponent.initialQuarter = term.quarter;
+            navComponent.currentQuarter = term.quarter;
+            navComponent.currentYear = term.academicYear;
+            if (Array.isArray(navComponent.years) && !navComponent.years.includes(term.academicYear)) {
+                navComponent.years.push(term.academicYear);
+            }
+            if (typeof navComponent.render === 'function') {
+                navComponent.render();
+                navComponent.setupEventListeners?.();
+            }
+        }
 
         // Schedule data persistence (year-aware)
         function getStorageKey(year) {
@@ -14637,6 +14758,9 @@
 
         async function init() {
             await initializeDepartmentProfileContext();
+            const calendar = await loadProgramAcademicCalendar();
+            const initialTerm = await resolveInitialProgramTerm(calendar);
+            applyInitialProgramTerm(initialTerm);
             await loadEnrollmentData();
             await loadRegistrationSnapshots();
             await loadFacultyData();
@@ -14694,12 +14818,13 @@
             loadSwapMode();
             syncDirtyStateForCurrentYear();
 
-            const initialQuarter = (window.StateManager && window.StateManager.get('currentQuarter')) || 'spring';
+            const initialQuarter = initialProgramQuarter;
 
             // Dispatch a quarter-change event to sync UI headers and render the schedule
             document.dispatchEvent(new CustomEvent('quarter-change', {
                 detail: { quarter: initialQuarter }
             }));
+            applyingInitialProgramTerm = false;
 
             // Render non-grid UI sections
             renderOnlineCourses(initialQuarter);

@@ -87,6 +87,34 @@
 
     const ROOM_ORDER = Object.freeze(roomsForYear(DEFAULTS.year).order);
     const COURSE_CATALOG_PATH = 'data/course-catalog.json';
+    let defaultTermScriptPromise = null;
+
+    function ensureDefaultTermResolver(documentRef) {
+        if (root.DefaultTerm?.resolve) return Promise.resolve(root.DefaultTerm);
+        if (!documentRef?.head || typeof documentRef.createElement !== 'function') return Promise.resolve(null);
+        if (!defaultTermScriptPromise) {
+            defaultTermScriptPromise = new Promise(resolve => {
+                const script = documentRef.createElement('script');
+                script.src = 'js/default-term.js';
+                script.onload = () => resolve(root.DefaultTerm || null);
+                script.onerror = () => resolve(null);
+                documentRef.head.appendChild(script);
+            });
+        }
+        return defaultTermScriptPromise;
+    }
+
+    async function loadDefaultTermCalendar(options) {
+        if (options.calendar) return options.calendar;
+        const fetchImpl = options.fetch || root.fetch;
+        if (typeof fetchImpl !== 'function') return null;
+        try {
+            const response = await fetchImpl('data/academic-calendar.json');
+            return response.ok ? await response.json() : null;
+        } catch (error) {
+            return null;
+        }
+    }
     const COURSE_TITLE_OVERRIDES = Object.freeze({
         'DESN 100': 'Drawing for Communication',
         'DESN 200': 'Visual Thinking + Making',
@@ -871,6 +899,26 @@
                 if (term) {
                     state.year = term.year;
                     state.activeQuarter = term.quarter;
+                } else {
+                    const [resolver, calendar] = await Promise.all([
+                        ensureDefaultTermResolver(documentRef),
+                        loadDefaultTermCalendar(options)
+                    ]);
+                    let fallbackTerm = null;
+                    try {
+                        fallbackTerm = resolver?.resolve({
+                            pinned: null,
+                            calendar,
+                            now: options.now || new Date(),
+                            allowSummer: false
+                        }) || null;
+                    } catch (error) {
+                        fallbackTerm = null;
+                    }
+                    if (fallbackTerm) {
+                        state.year = normalizePublicYear(fallbackTerm.academicYear);
+                        state.activeQuarter = normalizePublicQuarter(fallbackTerm.quarter);
+                    }
                 }
                 await loadSelectedYear();
             }

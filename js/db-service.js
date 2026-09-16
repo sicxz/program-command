@@ -13,6 +13,36 @@ const dbService = {
     initialized: false,
     lastSaveAttribution: null,
 
+    /** Read the admin-selected default term for public schedule views. */
+    async getDefaultTerm(programCode = 'ewu-design', { timeoutMs = 3000 } = {}) {
+        // Never lets a page wait on the database: a slow or unreachable RPC yields null within timeoutMs,
+        // and callers fall through to the academic-calendar rule.
+        let timer = null;
+        try {
+            const client = getSupabaseClient();
+            if (!client || typeof client.rpc !== 'function') return null;
+            const call = Promise.resolve()
+                .then(() => client.rpc('get_public_current_term', { p_program_code: programCode }))
+                .then(result => ({ result }), () => ({ result: null }));
+            const timeout = new Promise(resolve => {
+                timer = setTimeout(() => resolve({ timedOut: true }), Math.max(0, Number(timeoutMs) || 0));
+            });
+            const outcome = await Promise.race([call, timeout]);
+            if (!outcome || outcome.timedOut || !outcome.result) return null;
+            const { data, error } = outcome.result;
+            if (error) return null;
+            const row = Array.isArray(data) ? data[0] : data;
+            const academicYear = String(row?.academic_year || '').trim();
+            const quarter = String(row?.quarter || '').trim().toLowerCase();
+            if (!academicYear || !quarter) return null;
+            return { academicYear, quarter };
+        } catch (error) {
+            return null;
+        } finally {
+            if (timer) clearTimeout(timer);
+        }
+    },
+
     /**
      * Initialize the database service
      * Gets or creates the department, ensures base data exists
@@ -1023,6 +1053,7 @@ const dbService = {
 
 if (typeof window !== 'undefined') {
     window.dbService = dbService;
+    window.DbService = dbService;
 }
 
 // Export for use in other scripts

@@ -1,13 +1,17 @@
 class QuarterNav extends HTMLElement {
+    static get observedAttributes() {
+        return ['initial-quarter'];
+    }
+
     constructor() {
         super();
         this.attachShadow({ mode: 'open' });
 
         // Initial state
         this.currentYear = '2025-26';
-        this.currentQuarter = 'spring';
         this.years = ['2025-26', '2026-27'];
         this.quarters = ['fall', 'winter', 'spring'];
+        this.currentQuarter = this.normalizeQuarter(this.getAttribute('initial-quarter'));
 
         // Map quarters to display years based on academic year
         this.getDisplayYear = (quarter) => {
@@ -19,6 +23,28 @@ class QuarterNav extends HTMLElement {
             if (quarter === 'fall') return startYear.toString();
             return (startYear + 1).toString();
         };
+    }
+
+    normalizeQuarter(value) {
+        const quarter = String(value || '').toLowerCase();
+        return this.quarters.includes(quarter) ? quarter : this.quarters[0];
+    }
+
+    get initialQuarter() {
+        return this.currentQuarter;
+    }
+
+    set initialQuarter(value) {
+        const quarter = this.normalizeQuarter(value);
+        if (quarter === this.currentQuarter) return;
+        this.currentQuarter = quarter;
+        if (this.isConnected) this.updateActiveTab();
+    }
+
+    attributeChangedCallback(name, oldValue, newValue) {
+        if (name === 'initial-quarter' && oldValue !== newValue) {
+            this.initialQuarter = newValue;
+        }
     }
 
     connectedCallback() {

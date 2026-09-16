@@ -4,8 +4,9 @@
  */
 
 // State
-let currentYear = '2025-26';
-let currentQuarter = 'Fall';
+const PROGRAM_TERM_SESSION_KEY = 'programCommand.term';
+let currentYear = '';
+let currentQuarter = '';
 let workloadData = null;
 let facultyList = [];
 
@@ -17,15 +18,100 @@ const unassignedCount = document.getElementById('unassignedCount');
 const courseSearch = document.getElementById('courseSearch');
 const academicYearFilter = document.getElementById('academicYearFilter');
 
+function validEditorTerm(term) {
+    return /^\d{4}-\d{2}$/.test(String(term?.academicYear || '')) &&
+        ['fall', 'winter', 'spring', 'summer'].includes(String(term?.quarter || '').toLowerCase());
+}
+
+function readEditorTermOverride() {
+    try {
+        const saved = JSON.parse(sessionStorage.getItem(PROGRAM_TERM_SESSION_KEY) || 'null');
+        return validEditorTerm(saved) ? saved : null;
+    } catch (error) {
+        return null;
+    }
+}
+
+function saveEditorTermOverride() {
+    const term = { academicYear: currentYear, quarter: currentQuarter.toLowerCase() };
+    if (!validEditorTerm(term)) return;
+    try {
+        sessionStorage.setItem(PROGRAM_TERM_SESSION_KEY, JSON.stringify(term));
+    } catch (error) {
+        // The selected term still applies when session storage is unavailable.
+    }
+}
+
+function loadDefaultTermScript() {
+    if (window.DefaultTerm) return Promise.resolve(window.DefaultTerm);
+    return new Promise(resolve => {
+        const script = document.createElement('script');
+        script.src = '../js/default-term.js';
+        script.onload = () => resolve(window.DefaultTerm || null);
+        script.onerror = () => resolve(null);
+        document.head.appendChild(script);
+    });
+}
+
+async function loadEditorCalendar() {
+    try {
+        const response = await fetch('../data/academic-calendar.json');
+        return response.ok ? await response.json() : null;
+    } catch (error) {
+        return null;
+    }
+}
+
+function editorDateFallback(now) {
+    const date = Number.isFinite(new Date(now).getTime()) ? new Date(now) : new Date();
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const startYear = month >= 9 ? year : year - 1;
+    const quarter = month <= 3 ? 'winter' : month <= 6 ? 'spring' : month <= 8 ? 'summer' : 'fall';
+    return { academicYear: `${startYear}-${String(startYear + 1).slice(-2)}`, quarter };
+}
+
+async function resolveInitialEditorTerm() {
+    const now = new Date();
+    const [resolver, calendar] = await Promise.all([loadDefaultTermScript(), loadEditorCalendar()]);
+    let pinned = null;
+    try {
+        const service = window.DbService || window.dbService;
+        pinned = typeof service?.getDefaultTerm === 'function' ? await service.getDefaultTerm() : null;
+    } catch (error) {
+        pinned = null;
+    }
+    let resolved = null;
+    try {
+        resolved = resolver?.resolve({ pinned, calendar, now, allowSummer: true }) || null;
+    } catch (error) {
+        resolved = null;
+    }
+    if (!validEditorTerm(resolved)) resolved = editorDateFallback(now);
+    const term = readEditorTermOverride() || resolved;
+    return {
+        academicYear: term.academicYear,
+        quarter: term.quarter.charAt(0).toUpperCase() + term.quarter.slice(1).toLowerCase()
+    };
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('Schedule Editor initializing...');
+
+    const initialTerm = await resolveInitialEditorTerm();
+    currentYear = initialTerm.academicYear;
+    currentQuarter = initialTerm.quarter;
 
     // Load data
     await loadData();
 
     // Set up event listeners
     setupEventListeners();
+
+    document.querySelectorAll('.quarter-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.quarter === currentQuarter);
+    });
 
     // Initial render
     render();
@@ -54,7 +140,6 @@ async function loadData() {
             const result = ScheduleManager.createYearFromTemplate('2026-27', '2025-26');
             if (result.success) {
                 console.log('✅ Auto-created 2026-27 schedule from 2025-26');
-                currentYear = '2026-27';
             }
         }
 
@@ -92,10 +177,13 @@ function populateYearDropdown() {
         select.appendChild(option);
     });
 
-    // If current year not in list, add it
-    if (!years.includes(currentYear) && years.length > 0) {
-        currentYear = years[0];
-        select.value = currentYear;
+    // Keep the resolved year available even before a schedule has been created for it.
+    if (!years.includes(currentYear)) {
+        const option = document.createElement('option');
+        option.value = currentYear;
+        option.textContent = currentYear;
+        option.selected = true;
+        select.appendChild(option);
     }
 }
 
@@ -154,6 +242,7 @@ function setupEventListeners() {
             document.querySelectorAll('.quarter-tab').forEach(t => t.classList.remove('active'));
             e.target.classList.add('active');
             currentQuarter = e.target.dataset.quarter;
+            saveEditorTermOverride();
             render();
         }
     });
@@ -161,6 +250,7 @@ function setupEventListeners() {
     // Academic year filter
     academicYearFilter.addEventListener('change', async (e) => {
         currentYear = e.target.value;
+        saveEditorTermOverride();
         buildFacultyList();
         render();
     });
