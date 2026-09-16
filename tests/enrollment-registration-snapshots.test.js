@@ -29,7 +29,8 @@ test('Enrollment overlay preserves baseline history and completes 2025–26 with
     expect(completed.comparison).toMatchObject({ current: 1071, previous: 1272, delta: -201 });
     expect(result.courses.find(course => course.code === 'DESN 369')).toMatchObject({
         trend: 'new',
-        trendComparison: { latestTerm: 'fall-2026', latestCount: 6, priorCount: null, delta: null }
+        registering: false,
+        trendComparison: { registering: false, latestTerm: 'fall-2026', latestCount: 6, priorCount: null, delta: null }
     });
 });
 

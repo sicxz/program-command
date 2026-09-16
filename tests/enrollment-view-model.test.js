@@ -68,6 +68,7 @@ test('level and historical trend filters apply consistently to table, totals, co
     expect(view.quarters[0].total).toBe(15);
     expect(view.levelTotals.map(level => level.total)).toEqual([15, 0, 0]);
     expect(view.trendCounts.growing).toBe(1);
+    expect(view.trendCounts.registering).toBe(0);
     expect(view.comparison).toMatchObject({ current: 15, previous: 10, delta: 5 });
     expect(view.history).toMatchObject({ years: [2024, 2025], totals: [10, 15], rows: [{ code: 'DESN 100', values: [10, 15], delta: 5, percent: 50 }] });
 });

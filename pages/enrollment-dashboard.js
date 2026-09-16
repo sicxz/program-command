@@ -449,6 +449,7 @@ const EnrollmentDashboard = (function () {
             cell(row, `${Object.values(course.quarterly).filter(value => value !== null).length} / ${view.quarters.length}`, 'numeric');
             const trend = cell(row, '');
             trend.appendChild(element('span', `trend-label ${course.trend}`, course.trend[0].toUpperCase() + course.trend.slice(1)));
+            if (course.registering) trend.appendChild(element('span', 'trend-label registering', 'Registering'));
             body.appendChild(row);
         });
     }

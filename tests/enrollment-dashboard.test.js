@@ -209,17 +209,18 @@ test('2026 captures update all recorded years and make provisional Fall explicit
     expect(byId('historyTakeaway').textContent).toContain('437 in 2025 to 365 in 2026');
     expect(byId('provisionalNote').hidden).toBe(true);
     select('courseFilter', 'advanced');
-    select('trendFilter', 'registering');
+    select('trendFilter', 'growing');
     select('quarterFocus', 'fall');
-    expect(byId('historyTakeaway').textContent).toContain('67 registrations are recorded for Fall 2026');
+    expect(byId('historyTakeaway').textContent).toContain('23 registrations are recorded for Fall 2026');
     expect(byId('historyTakeaway').textContent).toContain('provisional');
+    expect(byId('courseTableBody').textContent).toContain('Growing');
     expect(byId('courseTableBody').textContent).toContain('Registering');
     expect(byId('historyTakeaway').textContent).not.toContain('— registrations');
     expect(model.build(source, catalog, {
         year: '2026-27', quarter: 'fall', snapshots: captures, calendar, now: new Date()
     }).courses.find(course => course.code === 'DESN 326')).toMatchObject({
-        trend: 'registering',
-        trendComparison: { latestCount: 24, priorCount: 16, delta: 8 }
+        trend: 'growing', registering: true,
+        trendComparison: { registering: true, latestCount: 24, priorCount: 16, delta: 8 }
     });
     select('snapshotTerm', 'spring-2026');
     expect(byId('snapshotTableBody').children).toHaveLength(39);

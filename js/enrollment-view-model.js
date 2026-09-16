@@ -12,7 +12,7 @@ const EnrollmentViewModel = (function () {
         { key: 'intermediate', label: 'Intermediate · 300' },
         { key: 'advanced', label: 'Advanced · 400' }
     ];
-    const TRENDS = ['growing', 'stable', 'declining', 'new', 'registering', 'unknown'];
+    const TRENDS = ['growing', 'stable', 'declining', 'new', 'unknown'];
 
     function isRecord(value) {
         return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -110,7 +110,7 @@ const EnrollmentViewModel = (function () {
 
         const latest = [...observations.values()].sort((a, b) => b.order - a.order)[0];
         if (!latest) {
-            return { trend: null, latestTerm: null, latestCount: null,
+            return { trend: null, registering: false, latestTerm: null, latestCount: null,
                 priorTerm: null, priorCount: null, delta: null };
         }
         const expectedPriorTerm = `${latest.season.toLowerCase()}-${latest.year - 1}`;
@@ -122,10 +122,11 @@ const EnrollmentViewModel = (function () {
             isRecord(term) && `${String(term.quarter).toLowerCase()}-${term.year}` === latest.key &&
             /^\d{4}-\d{2}-\d{2}$/.test(term.start));
         const today = pacificCalendarDay(now);
-        if (calendarTerm && today && calendarTerm.start > today) trend = 'registering';
+        const registering = Boolean(calendarTerm && today && calendarTerm.start > today);
 
         return {
             trend,
+            registering,
             latestTerm: latest.key,
             latestCount: latest.count,
             priorTerm: prior?.key || null,
@@ -204,6 +205,7 @@ const EnrollmentViewModel = (function () {
             })).filter(term => term.sections.length) };
             const trendComparison = computeTrend({ history: course.history, current, calendar, now });
             course.trend = trendComparison.trend ?? course.storedTrend;
+            course.registering = trendComparison.registering;
             course.trendComparison = trendComparison;
             delete course.history;
         });
@@ -405,8 +407,11 @@ const EnrollmentViewModel = (function () {
             provisional: !!quarter.provisional,
             total: recordedQuarterTotal(matchingCourses, quarter.key)
         }));
-        const trendCounts = Object.fromEntries(TRENDS.map(key => [key, 0]));
-        courses.forEach(course => trendCounts[course.trend]++);
+        const trendCounts = { ...Object.fromEntries(TRENDS.map(key => [key, 0])), registering: 0 };
+        courses.forEach(course => {
+            trendCounts[course.trend]++;
+            if (course.registering) trendCounts.registering++;
+        });
         return {
             selection: { year, level, trend, quarter },
             term,

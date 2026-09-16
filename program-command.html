@@ -1342,31 +1342,36 @@
         }
 
         .trend-growing::after {
-            content: " ↗";
+            --trend-direction-icon: " ↗";
+            content: var(--trend-direction-icon);
             color: #51cf66;
             font-weight: bold;
         }
 
         .trend-declining::after {
-            content: " ↘";
+            --trend-direction-icon: " ↘";
+            content: var(--trend-direction-icon);
             color: #ff6b6b;
             font-weight: bold;
         }
 
         .trend-stable::after {
-            content: " →";
+            --trend-direction-icon: " →";
+            content: var(--trend-direction-icon);
             color: #4dabf7;
             font-weight: bold;
         }
 
         .trend-new::after {
-            content: " ✨";
+            --trend-direction-icon: " ✨";
+            content: var(--trend-direction-icon);
             color: #9b59b6;
             font-weight: bold;
         }
 
         .trend-registering::after {
-            content: " 🕒";
+            content: var(--trend-direction-icon) " 🕒";
+            font-size: 0.9em;
             font-weight: bold;
         }
 
@@ -7147,6 +7152,7 @@
                 enrollmentDataByCode[normalizedCode] = trendComparison ? {
                     ...stats,
                     trend: trendComparison.trend ?? stats.trend,
+                    registering: trendComparison.registering,
                     trendComparison
                 } : stats;
             });
@@ -7700,7 +7706,8 @@
                             }
 
                             const enrollmentLevel = typeof displayEnrollment === 'number' ? getEnrollmentLevel(displayEnrollment) : 'medium';
-                            const trendClass = 'trend-' + enrollment.trend;
+                            const trendClass = 'trend-' + enrollment.trend +
+                                (enrollment.registering ? ' trend-registering' : '');
 
                             // Generate a course ID for editing
                             const courseId = currentAcademicYear + '-' + quarter + '-' + course.code.replace(/\s+/g, '').toLowerCase() + '-001';
@@ -7722,7 +7729,8 @@
                             block.draggable = true;
                             const trendComparisonText = formatTrendComparison(enrollment.trendComparison);
                             block.title = (trendComparisonText ? trendComparisonText + ' | ' : '') +
-                                tooltipText + ' | Peak: ' + enrollment.peak + ' | Trend: ' + enrollment.trend + ' | Drag to move';
+                                tooltipText + ' | Peak: ' + enrollment.peak + ' | Trend: ' + enrollment.trend +
+                                (enrollment.registering ? ' · registering: counts before census' : '') + ' | Drag to move';
                             block.onclick = function (e) {
                                 // Don't trigger click if we're dragging
                                 if (!block.classList.contains('dragging')) {
@@ -8323,6 +8331,7 @@
                 if (enrollment.average < lowEnrollmentThreshold() && enrollment.average > 0) lowEnrollment.push({ ...course, enrollment });
                 if (enrollment.trend === 'declining') decliningTrend.push({ ...course, enrollment });
             });
+            decliningTrend.sort((a, b) => Number(a.enrollment.registering) - Number(b.enrollment.registering));
 
             const coursesWithHistory = allCourses
                 .reduce((unique, course) => {
@@ -8431,8 +8440,8 @@
                     const trendCell = document.createElement('td');
                     const trendValue = enrollment.trend;
                     const trendIcon = trendValue === 'declining' ? '📉' : trendValue === 'growing' ? '📈' :
-                        trendValue === 'new' ? '✨' : trendValue === 'registering' ? '🕒' : '➡️';
-                    trendCell.textContent = trendIcon + ' ' + trendValue;
+                        trendValue === 'new' ? '✨' : '➡️';
+                    trendCell.textContent = trendIcon + (enrollment.registering ? ' 🕒' : '') + ' ' + trendValue;
 
                     row.appendChild(codeCell);
                     row.appendChild(nameCell);
