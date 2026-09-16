@@ -5,6 +5,7 @@ function createQuery(result = { data: null, error: null }) {
         order: jest.fn().mockReturnThis(),
         insert: jest.fn().mockReturnThis(),
         update: jest.fn().mockReturnThis(),
+        delete: jest.fn().mockReturnThis(),
         single: jest.fn().mockResolvedValue(result),
         then(resolve, reject) {
             return Promise.resolve(result).then(resolve, reject);
@@ -83,29 +84,26 @@ describe('dbService faculty roster functions', () => {
         await expect(dbService.saveAppointment({
             faculty_id: 'f1',
             academic_year_id: 'year-1',
-            category: 'fullTime',
-            quarter: null
+            category: 'fullTime'
         })).resolves.toEqual({ id: 'a1', category: 'fullTime' });
         expect(appointmentQuery.insert).toHaveBeenCalledWith({
             faculty_id: 'f1',
             academic_year_id: 'year-1',
-            category: 'fullTime',
-            quarter: null
+            category: 'fullTime'
         });
 
-        await expect(dbService.saveAppointment({ id: 'a1', category: 'adjunct', quarter: 'fall' }))
+        await expect(dbService.saveAppointment({ id: 'a1', category: 'adjunct' }))
             .resolves.toEqual({ id: 'a1', category: 'adjunct' });
-        expect(appointmentQuery.update).toHaveBeenCalledWith({ category: 'adjunct', quarter: 'fall' });
+        expect(appointmentQuery.update).toHaveBeenCalledWith({ category: 'adjunct' });
         expect(appointmentQuery.eq).toHaveBeenCalledWith('id', 'a1');
     });
 
-    test('endAppointment sets end_date and returns the updated row', async () => {
-        const ended = { id: 'a1', end_date: '2026-09-16' };
-        const appointmentQuery = createQuery({ data: ended, error: null });
+    test('removeAppointment deletes the appointment and resolves true', async () => {
+        const appointmentQuery = createQuery({ data: null, error: null });
         const { dbService } = createConfiguredService({ faculty_appointments: appointmentQuery });
 
-        await expect(dbService.endAppointment('a1', '2026-09-16')).resolves.toBe(ended);
-        expect(appointmentQuery.update).toHaveBeenCalledWith({ end_date: '2026-09-16' });
+        await expect(dbService.removeAppointment('a1')).resolves.toBe(true);
+        expect(appointmentQuery.delete).toHaveBeenCalledTimes(1);
         expect(appointmentQuery.eq).toHaveBeenCalledWith('id', 'a1');
     });
 
@@ -113,7 +111,7 @@ describe('dbService faculty roster functions', () => {
         ['getAcademicYears', 'academic_years', service => service.getAcademicYears(), false],
         ['getRoster', 'faculty_appointments', service => service.getRoster('year-1'), false],
         ['saveAppointment', 'faculty_appointments', service => service.saveAppointment({ category: 'fullTime' }), true],
-        ['endAppointment', 'faculty_appointments', service => service.endAppointment('a1', '2026-09-16'), true]
+        ['removeAppointment', 'faculty_appointments', service => service.removeAppointment('a1'), false]
     ])('%s throws a Supabase error', async (name, table, invoke, resolvesAtSingle) => {
         const error = new Error(`${name} failed`);
         const query = createQuery({ data: null, error });
