@@ -10,6 +10,7 @@ let rosterAppointments = [];
 let currentRosterYearId = null;
 let canEditFaculty = false;
 let authStateSubscription = null;
+const FACULTY_RANKS = ['Tenured', 'Tenure-track', 'Adjunct lecturer'];
 
 document.addEventListener('DOMContentLoaded', async () => {
     await initializeFacultyPage();
@@ -146,7 +147,7 @@ function renderRosterTable() {
             <tr data-appointment-id="${escapeFacultyAttribute(appointment.id)}">
                 <td>${escapeFacultyHtml(faculty.name)}</td>
                 <td><span class="faculty-category">${escapeFacultyHtml(getFacultyCategoryLabel(getAppointmentCategory(appointment)))}</span></td>
-                <td>${escapeFacultyHtml(appointment.rank || '')}</td>
+                <td>${escapeFacultyHtml(isFacultyRank(appointment.rank) ? appointment.rank : '—')}</td>
                 <td>${escapeFacultyHtml(appointment.fte ?? '')}</td>
                 <td>${escapeFacultyHtml(appointment.teaching_target ?? '')}</td>
                 <td>${escapeFacultyHtml(appointment.start_date || '')}</td>
@@ -185,7 +186,23 @@ function getAppointmentFaculty(appointment) {
 }
 
 function getAppointmentCategory(appointment) {
+    if (isFacultyRank(appointment.rank)) return categoryForRank(appointment.rank);
     return appointment.category || getAppointmentFaculty(appointment).category || '';
+}
+
+function isFacultyRank(rank) {
+    return FACULTY_RANKS.includes(rank);
+}
+
+function categoryForRank(rank) {
+    return rank === 'Adjunct lecturer' ? 'adjunct' : 'fullTime';
+}
+
+function getCurrentAppointmentRank(facultyId) {
+    const appointment = rosterAppointments.find(item =>
+        String(item.faculty_id) === String(facultyId)
+    );
+    return isFacultyRank(appointment?.rank) ? appointment.rank : '';
 }
 
 function renderFacultyTable() {
@@ -236,7 +253,7 @@ function filterFaculty() {
 function openAddFacultyModal() {
     document.getElementById('facultyForm').reset();
     document.getElementById('facultyId').value = '';
-    document.getElementById('facultyCategory').value = 'fullTime';
+    document.getElementById('facultyRank').value = '';
     document.getElementById('facultyMaxWorkload').value = '45';
     document.getElementById('facultyModalTitle').textContent = 'Add faculty';
     document.getElementById('facultyModal').classList.add('active');
@@ -251,7 +268,7 @@ function openEditFacultyModal(id) {
     document.getElementById('facultyId').value = faculty.id;
     document.getElementById('facultyName').value = faculty.name || '';
     document.getElementById('facultyEmail').value = faculty.email || '';
-    document.getElementById('facultyCategory').value = faculty.category || 'fullTime';
+    document.getElementById('facultyRank').value = getCurrentAppointmentRank(faculty.id);
     document.getElementById('facultyMaxWorkload').value = faculty.max_workload ?? 45;
     document.getElementById('facultyModalTitle').textContent = 'Edit faculty';
     document.getElementById('facultyModal').classList.add('active');
@@ -263,10 +280,12 @@ function closeFacultyModal() {
 }
 
 function readFacultyForm() {
+    const rank = document.getElementById('facultyRank').value;
     return {
         name: document.getElementById('facultyName').value.trim(),
         email: document.getElementById('facultyEmail').value.trim(),
-        category: document.getElementById('facultyCategory').value,
+        rank,
+        category: categoryForRank(rank),
         max_workload: Number(document.getElementById('facultyMaxWorkload').value)
     };
 }
@@ -276,10 +295,16 @@ async function handleFacultySubmit(event) {
     const id = document.getElementById('facultyId').value;
     const fields = readFacultyForm();
 
+    if (!isFacultyRank(fields.rank)) {
+        showFacultyMessage('Select a rank.', 'error');
+        return;
+    }
+
     try {
         if (id) {
-            const updatedFaculty = await dbService.updateFaculty(id, fields);
-            replaceFacultyRow(updatedFaculty || { id, ...fields });
+            const { rank: _rank, ...facultyFields } = fields;
+            const updatedFaculty = await dbService.updateFaculty(id, facultyFields);
+            replaceFacultyRow(updatedFaculty || { id, ...facultyFields });
             closeFacultyModal();
             showFacultyMessage('Faculty updated', 'success');
             return;
@@ -287,10 +312,6 @@ async function handleFacultySubmit(event) {
 
         if (!currentRosterYearId) {
             showFacultyMessage('Select an academic year before adding faculty.', 'error');
-            return;
-        }
-        if (fields.category === 'former') {
-            showFacultyMessage('A new faculty member must be full time or adjunct.', 'error');
             return;
         }
         const addedFaculty = await dbService.addFaculty({
@@ -310,11 +331,19 @@ async function handleFacultySubmit(event) {
         const appointment = await dbService.saveAppointment({
             faculty_id: addedFaculty.id,
             academic_year_id: currentRosterYearId,
-            category: fields.category
+            category: fields.category,
+            rank: fields.rank
         });
         facultyMembers.push(addedFaculty);
         if (appointment) {
-            rosterAppointments.push({ ...appointment, faculty: addedFaculty });
+            rosterAppointments.push({
+                faculty_id: addedFaculty.id,
+                academic_year_id: currentRosterYearId,
+                category: fields.category,
+                rank: fields.rank,
+                ...appointment,
+                faculty: addedFaculty
+            });
             renderRosterTable();
         }
         filterFaculty();
@@ -347,11 +376,7 @@ function populateAppointmentPeople() {
 }
 
 function handleAppointmentPersonChange() {
-    const personId = document.getElementById('appointmentFacultyId').value;
-    const person = facultyMembers.find(item => String(item.id) === String(personId));
-    if (person) {
-        document.getElementById('appointmentCategory').value = person.category === 'adjunct' ? 'adjunct' : 'fullTime';
-    }
+    document.getElementById('appointmentRank').value = '';
 }
 
 function openEditAppointmentModal(id) {
@@ -363,8 +388,7 @@ function openEditAppointmentModal(id) {
     document.getElementById('appointmentFacultyId').value = appointment.faculty_id || '';
     document.getElementById('appointmentFacultyId').required = false;
     document.getElementById('appointmentPersonGroup').classList.add('ds-hidden');
-    document.getElementById('appointmentCategory').value = appointment.category || 'fullTime';
-    document.getElementById('appointmentRank').value = appointment.rank || '';
+    document.getElementById('appointmentRank').value = isFacultyRank(appointment.rank) ? appointment.rank : '';
     document.getElementById('appointmentFte').value = appointment.fte ?? '';
     document.getElementById('appointmentTeachingTarget').value = appointment.teaching_target ?? '';
     document.getElementById('appointmentStartDate').value = appointment.start_date || '';
@@ -372,7 +396,7 @@ function openEditAppointmentModal(id) {
     document.getElementById('appointmentNotes').value = appointment.notes || '';
     document.getElementById('appointmentModalTitle').textContent = `Edit ${getAppointmentFaculty(appointment).name || 'appointment'}`;
     document.getElementById('appointmentModal').classList.add('active');
-    document.getElementById('appointmentCategory').focus();
+    document.getElementById('appointmentRank').focus();
 }
 
 function closeAppointmentModal() {
@@ -386,12 +410,13 @@ function nullableNumber(value) {
 function readAppointmentForm() {
     const id = document.getElementById('appointmentId').value;
     const existing = rosterAppointments.find(item => String(item.id) === String(id));
+    const rank = document.getElementById('appointmentRank').value;
     return {
         ...(id ? { id } : {}),
         faculty_id: id ? existing?.faculty_id : document.getElementById('appointmentFacultyId').value,
         academic_year_id: currentRosterYearId,
-        category: document.getElementById('appointmentCategory').value,
-        rank: document.getElementById('appointmentRank').value.trim() || null,
+        category: categoryForRank(rank),
+        rank,
         fte: nullableNumber(document.getElementById('appointmentFte').value),
         teaching_target: nullableNumber(document.getElementById('appointmentTeachingTarget').value),
         start_date: document.getElementById('appointmentStartDate').value || null,
@@ -405,6 +430,10 @@ async function handleAppointmentSubmit(event) {
     const fields = readAppointmentForm();
     if (!fields.faculty_id || !fields.academic_year_id) {
         showFacultyMessage('Select a person and academic year.', 'error');
+        return;
+    }
+    if (!isFacultyRank(fields.rank)) {
+        showFacultyMessage('Select a rank.', 'error');
         return;
     }
     try {
