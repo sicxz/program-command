@@ -32,6 +32,16 @@
             gap: var(--space-4);
         }
 
+        .roster-year-control {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .roster-row-ended {
+            opacity: 0.55;
+        }
+
         @media (max-width: 640px) {
             .form-row {
                 grid-template-columns: 1fr;
@@ -55,10 +65,48 @@
         </div>
 
         <div class="ds-tabs" aria-label="Faculty management sections">
-            <button class="ds-tab active" type="button">Faculty</button>
+            <button class="ds-tab active" id="tabRoster" type="button" onclick="switchFacultyTab('roster')">Roster</button>
+            <button class="ds-tab" id="tabPeople" type="button" onclick="switchFacultyTab('people')">People</button>
         </div>
 
-        <div class="ds-tab-content active">
+        <div class="ds-tab-content active" id="rosterContent">
+            <div class="ds-card">
+                <div class="ds-toolbar">
+                    <div class="roster-year-control">
+                        <label class="ds-label" for="rosterYear">Academic year</label>
+                        <select id="rosterYear" class="ds-select" onchange="handleRosterYearChange()"></select>
+                    </div>
+                    <button class="ds-btn ds-btn-primary" type="button" onclick="openAddAppointmentModal()">+ Add to roster</button>
+                </div>
+
+                <div class="ds-table-container" id="rosterTableContainer">
+                    <table class="ds-table" id="rosterTable">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Category</th>
+                                <th>Rank</th>
+                                <th>Quarter</th>
+                                <th>FTE</th>
+                                <th>Teaching target</th>
+                                <th>Start</th>
+                                <th>End</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rosterTableBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="ds-empty-state ds-hidden" id="rosterEmptyState">
+                    <div class="ds-empty-state-icon">&#128101;</div>
+                    <h3>No roster appointments</h3>
+                    <p>Add a faculty appointment for this academic year.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="ds-tab-content" id="peopleContent">
             <div class="ds-card">
                 <div class="ds-toolbar">
                     <div class="ds-search">
@@ -116,7 +164,7 @@
                     <div class="form-row">
                         <div class="ds-form-group">
                             <label class="ds-label" for="facultyCategory">Category</label>
-                            <select id="facultyCategory" class="ds-select">
+                            <select id="facultyCategory" class="ds-select" onchange="updateFacultyQuarterVisibility()">
                                 <option value="fullTime">Full time</option>
                                 <option value="adjunct">Adjunct</option>
                                 <option value="former">Former</option>
@@ -127,10 +175,89 @@
                             <input type="number" id="facultyMaxWorkload" class="ds-input" value="45" min="0" step="0.1" required>
                         </div>
                     </div>
+                    <div class="ds-form-group ds-hidden" id="facultyQuarterGroup">
+                        <label class="ds-label" for="facultyQuarter">Appointment quarter *</label>
+                        <select id="facultyQuarter" class="ds-select">
+                            <option value="">Select quarter</option>
+                            <option value="fall">Fall</option>
+                            <option value="winter">Winter</option>
+                            <option value="spring">Spring</option>
+                            <option value="summer">Summer</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="ds-modal-footer">
                     <button type="button" class="ds-btn ds-btn-secondary" onclick="closeFacultyModal()">Cancel</button>
                     <button type="submit" class="ds-btn ds-btn-primary">Save faculty</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="ds-modal-overlay" id="appointmentModal">
+        <div class="ds-modal">
+            <div class="ds-modal-header">
+                <h3 class="ds-modal-title" id="appointmentModalTitle">Add to roster</h3>
+                <button class="ds-modal-close" type="button" onclick="closeAppointmentModal()" aria-label="Close">&times;</button>
+            </div>
+            <form id="appointmentForm" onsubmit="handleAppointmentSubmit(event)">
+                <div class="ds-modal-body">
+                    <input type="hidden" id="appointmentId">
+                    <div class="ds-form-group" id="appointmentPersonGroup">
+                        <label class="ds-label" for="appointmentFacultyId">Person *</label>
+                        <select id="appointmentFacultyId" class="ds-select" onchange="handleAppointmentPersonChange()" required></select>
+                    </div>
+                    <div class="form-row">
+                        <div class="ds-form-group">
+                            <label class="ds-label" for="appointmentCategory">Category *</label>
+                            <select id="appointmentCategory" class="ds-select" onchange="updateAppointmentQuarterVisibility()" required>
+                                <option value="fullTime">Full time</option>
+                                <option value="adjunct">Adjunct</option>
+                            </select>
+                        </div>
+                        <div class="ds-form-group">
+                            <label class="ds-label" for="appointmentRank">Rank</label>
+                            <input type="text" id="appointmentRank" class="ds-input">
+                        </div>
+                    </div>
+                    <div class="ds-form-group ds-hidden" id="appointmentQuarterGroup">
+                        <label class="ds-label" for="appointmentQuarter">Quarter *</label>
+                        <select id="appointmentQuarter" class="ds-select">
+                            <option value="">Select quarter</option>
+                            <option value="fall">Fall</option>
+                            <option value="winter">Winter</option>
+                            <option value="spring">Spring</option>
+                            <option value="summer">Summer</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="ds-form-group">
+                            <label class="ds-label" for="appointmentFte">FTE</label>
+                            <input type="number" id="appointmentFte" class="ds-input" min="0" step="0.01">
+                        </div>
+                        <div class="ds-form-group">
+                            <label class="ds-label" for="appointmentTeachingTarget">Teaching target</label>
+                            <input type="number" id="appointmentTeachingTarget" class="ds-input" min="0" step="0.1">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="ds-form-group">
+                            <label class="ds-label" for="appointmentStartDate">Start date</label>
+                            <input type="date" id="appointmentStartDate" class="ds-input">
+                        </div>
+                        <div class="ds-form-group">
+                            <label class="ds-label" for="appointmentEndDate">End date</label>
+                            <input type="date" id="appointmentEndDate" class="ds-input">
+                        </div>
+                    </div>
+                    <div class="ds-form-group">
+                        <label class="ds-label" for="appointmentNotes">Notes</label>
+                        <textarea id="appointmentNotes" class="ds-input" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="ds-modal-footer">
+                    <button type="button" class="ds-btn ds-btn-secondary" onclick="closeAppointmentModal()">Cancel</button>
+                    <button type="submit" class="ds-btn ds-btn-primary">Save appointment</button>
                 </div>
             </form>
         </div>
@@ -142,6 +269,7 @@
     <script src="../js/auth-service.js"></script>
     <script src="../js/auth-guard.js"></script>
     <script src="../js/faculty-utils.js"></script>
+    <script src="../js/default-term.js"></script>
     <script src="faculty-management.js"></script>
 </body>
 </html>
