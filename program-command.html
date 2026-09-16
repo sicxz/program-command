@@ -1365,6 +1365,11 @@
             font-weight: bold;
         }
 
+        .trend-registering::after {
+            content: " 🕒";
+            font-weight: bold;
+        }
+
         /* Enrollment tooltip */
         .enrollment-tooltip {
             position: absolute;
@@ -5392,6 +5397,7 @@
 
     <!-- Schedule Manager Scripts -->
     <script type="module" src="js/config/constants.js"></script>
+    <script src="js/enrollment-view-model.js"></script>
     <script defer src="js/section-registrations.js"></script>
     <script type="module" src="js/schedule-manager.js"></script>
     <script type="module" src="js/data-loader.js"></script>
@@ -7115,11 +7121,34 @@
         let enrollmentData = {};
         let enrollmentDataByCode = {};
         let registrationSnapshots = null;
+        let enrollmentCalendar = null;
 
         function rebuildEnrollmentLookup() {
             enrollmentDataByCode = {};
             Object.entries(enrollmentData || {}).forEach(([code, stats]) => {
-                enrollmentDataByCode[normalizeCourseCode(code)] = stats;
+                const normalizedCode = normalizeCourseCode(code);
+                const current = {
+                    terms: (registrationSnapshots?.terms || []).map(term => ({
+                        quarter: term.quarter,
+                        academicYear: term.academicYear,
+                        status: term.status,
+                        sections: (term.sections || [])
+                            .filter(section => normalizeCourseCode(section.course || section.code) === normalizedCode)
+                            .map(section => ({ enrolled: getSnapshotEnrollment(section) }))
+                            .filter(section => Number.isFinite(section.enrolled) && section.enrolled >= 0)
+                    })).filter(term => term.sections.length)
+                };
+                const trendComparison = window.EnrollmentViewModel?.computeTrend({
+                    history: stats?.quarterly,
+                    current,
+                    calendar: enrollmentCalendar,
+                    now: new Date()
+                });
+                enrollmentDataByCode[normalizedCode] = trendComparison ? {
+                    ...stats,
+                    trend: trendComparison.trend ?? stats.trend,
+                    trendComparison
+                } : stats;
             });
         }
 
@@ -7151,13 +7180,23 @@
                 const response = await fetch('data/enrollment-registration-snapshots.json');
                 if (response.ok) {
                     registrationSnapshots = await response.json();
+                    rebuildEnrollmentLookup();
                     return true;
                 }
             } catch (error) {
                 console.warn('Could not load section registration snapshots:', error);
             }
             registrationSnapshots = null;
+            rebuildEnrollmentLookup();
             return false;
+        }
+
+        function formatTrendComparison(comparison) {
+            if (!comparison?.latestTerm || comparison.latestCount === null) return '';
+            const priorTerm = comparison.priorTerm || 'no prior term';
+            const priorCount = comparison.priorCount ?? '—';
+            const delta = comparison.delta === null ? '—' : `${comparison.delta > 0 ? '+' : ''}${comparison.delta}`;
+            return `${comparison.latestTerm} ${comparison.latestCount} vs ${priorTerm} ${priorCount} (${delta})`;
         }
 
         function getScheduledSectionCap(course) {
@@ -7681,7 +7720,9 @@
                             block.dataset.time = time;
                             block.dataset.room = room;
                             block.draggable = true;
-                            block.title = tooltipText + ' | Peak: ' + enrollment.peak + ' | Trend: ' + enrollment.trend + ' | Drag to move';
+                            const trendComparisonText = formatTrendComparison(enrollment.trendComparison);
+                            block.title = (trendComparisonText ? trendComparisonText + ' | ' : '') +
+                                tooltipText + ' | Peak: ' + enrollment.peak + ' | Trend: ' + enrollment.trend + ' | Drag to move';
                             block.onclick = function (e) {
                                 // Don't trigger click if we're dragging
                                 if (!block.classList.contains('dragging')) {
@@ -8364,10 +8405,6 @@
                 const tbody = document.createElement('tbody');
                 coursesWithHistory.forEach(c => {
                     const enrollment = getEnrollmentData(c.code);
-                    const isNewCourse = Boolean(
-                        enrollment.isNew
-                        || enrollment.trend === 'new'
-                    );
                     const quarterly = enrollment.quarterly || {};
                     const hasAnyQuarterlyHistory = Object.keys(quarterly).length > 0;
                     const noHistoryBadgeText = getNoHistoryBadgeText(c.code, { enrollment });
@@ -8392,8 +8429,9 @@
                     instructorCell.textContent = c.instructor;
 
                     const trendCell = document.createElement('td');
-                    const trendValue = isNewCourse ? 'new' : enrollment.trend;
-                    const trendIcon = trendValue === 'declining' ? '📉' : trendValue === 'growing' ? '📈' : trendValue === 'new' ? '✨' : '➡️';
+                    const trendValue = enrollment.trend;
+                    const trendIcon = trendValue === 'declining' ? '📉' : trendValue === 'growing' ? '📈' :
+                        trendValue === 'new' ? '✨' : trendValue === 'registering' ? '🕒' : '➡️';
                     trendCell.textContent = trendIcon + ' ' + trendValue;
 
                     row.appendChild(codeCell);
@@ -14700,6 +14738,7 @@
         async function init() {
             await initializeDepartmentProfileContext();
             const calendar = await loadProgramAcademicCalendar();
+            enrollmentCalendar = calendar;
             const initialTerm = await resolveInitialProgramTerm(calendar);
             applyInitialProgramTerm(initialTerm);
             await loadEnrollmentData();
