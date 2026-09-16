@@ -369,7 +369,7 @@ const EnrollmentDashboard = (function () {
     function renderHistory(history) {
         const season = history.season;
         text('historyHeading', `${season} enrollment, course by course`);
-        text('historyEmpty', `No ${season} records match the selected course level and historical trend.`);
+        text('historyEmpty', `No ${season} records match the selected course level and trend.`);
         text('historyCaption', `All recorded ${season} course counts. A dash means no record.`);
         const provisional = history.provisional.some(Boolean);
         const lastIndex = history.years.length - 1;
@@ -403,7 +403,7 @@ const EnrollmentDashboard = (function () {
                 takeaway += difference === 0 ? ` That matches ${history.first}.` : ` That is ${format(Math.abs(difference))} ${difference > 0 ? 'above' : 'below'} ${history.first}.`;
             }
             text('historyTakeaway', takeaway);
-        } else text('historyTakeaway', rows.length ? `Only one ${season} quarter is recorded. A year-to-year comparison is not available.` : `Select another quarter, course level, or historical trend to see recorded counts.`);
+        } else text('historyTakeaway', rows.length ? `Only one ${season} quarter is recorded. A year-to-year comparison is not available.` : `Select another quarter, course level, or trend to see recorded counts.`);
         if (recentProvisional && rows.length && history.totals[lastIndex] !== null) {
             text('historyTakeaway', `${format(history.totals[lastIndex])} registrations are recorded for ${season} ${history.last}. ${season} ${history.years.filter((year, index) => history.provisional[index]).join(', ')} is provisional; changes from completed quarters are withheld.`);
         }

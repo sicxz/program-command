@@ -12,7 +12,7 @@ const EnrollmentViewModel = (function () {
         { key: 'intermediate', label: 'Intermediate · 300' },
         { key: 'advanced', label: 'Advanced · 400' }
     ];
-    const TRENDS = ['growing', 'stable', 'declining', 'new', 'unknown'];
+    const TRENDS = ['growing', 'stable', 'declining', 'new', 'registering', 'unknown'];
 
     function isRecord(value) {
         return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -72,6 +72,68 @@ const EnrollmentViewModel = (function () {
         };
     }
 
+    function pacificCalendarDay(now) {
+        const date = new Date(now);
+        if (!Number.isFinite(date.getTime())) return null;
+        const parts = new Intl.DateTimeFormat('en-US', {
+            timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit', day: '2-digit'
+        }).formatToParts(date);
+        const part = name => parts.find(value => value.type === name)?.value;
+        return `${part('year')}-${part('month')}-${part('day')}`;
+    }
+
+    function computeTrend({ history, current, calendar, now } = {}) {
+        const observations = new Map();
+        if (isRecord(history)) {
+            Object.entries(history).forEach(([key, count]) => {
+                const quarter = parseQuarter(key);
+                if (quarter && validCount(count)) observations.set(key, { ...quarter, count });
+            });
+        }
+
+        const terms = Array.isArray(current?.terms) ? current.terms :
+            Array.isArray(current) ? current : isRecord(current) ? [current] : [];
+        terms.forEach(term => {
+            if (!isRecord(term)) return;
+            const key = parseQuarter(term.quarter || term.key || '')?.key ||
+                (typeof term.quarter === 'string' && Number.isInteger(term.year)
+                    ? `${term.quarter.toLowerCase()}-${term.year}` : null);
+            const quarter = key && parseQuarter(key);
+            if (!quarter) return;
+            let count = validCount(term.count) ? term.count : null;
+            if (Array.isArray(term.sections) && term.sections.length) {
+                const enrolled = term.sections.map(section => section?.enrolled).filter(validCount);
+                if (enrolled.length) count = enrolled.reduce((sum, value) => sum + value, 0);
+            }
+            if (validCount(count)) observations.set(key, { ...quarter, count });
+        });
+
+        const latest = [...observations.values()].sort((a, b) => b.order - a.order)[0];
+        if (!latest) {
+            return { trend: null, latestTerm: null, latestCount: null,
+                priorTerm: null, priorCount: null, delta: null };
+        }
+        const expectedPriorTerm = `${latest.season.toLowerCase()}-${latest.year - 1}`;
+        const prior = observations.get(expectedPriorTerm) || null;
+        const delta = prior ? latest.count - prior.count : null;
+        let trend = !prior ? 'new' : delta >= 3 ? 'growing' : delta <= -3 ? 'declining' : 'stable';
+
+        const calendarTerm = (Array.isArray(calendar?.terms) ? calendar.terms : []).find(term =>
+            isRecord(term) && `${String(term.quarter).toLowerCase()}-${term.year}` === latest.key &&
+            /^\d{4}-\d{2}-\d{2}$/.test(term.start));
+        const today = pacificCalendarDay(now);
+        if (calendarTerm && today && calendarTerm.start > today) trend = 'registering';
+
+        return {
+            trend,
+            latestTerm: latest.key,
+            latestCount: latest.count,
+            priorTerm: prior?.key || null,
+            priorCount: prior?.count ?? null,
+            delta
+        };
+    }
+
     function courseLevel(code) {
         const number = Number(code.match(/\d{3}$/)[0]);
         if (number < 300) return 'foundation';
@@ -79,7 +141,7 @@ const EnrollmentViewModel = (function () {
         return 'advanced';
     }
 
-    function normalize(data, catalog, snapshots = null) {
+    function normalize(data, catalog, snapshots = null, calendar = null, now = undefined) {
         const titles = new Map();
         if (isRecord(catalog) && Array.isArray(catalog.courses)) {
             catalog.courses.forEach(course => {
@@ -107,7 +169,8 @@ const EnrollmentViewModel = (function () {
                 code,
                 title: titles.get(code) || '',
                 level: courseLevel(code),
-                trend: TRENDS.includes(source.trend) ? source.trend : 'unknown',
+                storedTrend: TRENDS.includes(source.trend) ? source.trend : 'unknown',
+                history: { ...quarterly },
                 quarterly,
                 average: validCount(source.average) ? source.average : null,
                 peak: validCount(source.peak) ? source.peak : null,
@@ -123,13 +186,26 @@ const EnrollmentViewModel = (function () {
                 let course = courses.find(item => item.code === section.course);
                 if (!course) {
                     course = { code: section.course, title: titles.get(section.course) || section.title,
-                        level: courseLevel(section.course), trend: 'unknown', quarterly: {},
+                        level: courseLevel(section.course), storedTrend: 'unknown', history: {}, quarterly: {},
                         average: null, peak: null, peakQuarter: null };
                     courses.push(course);
                 }
                 course.quarterly[capture.key] = (course.quarterly[capture.key] ?? 0) + section.enrolled;
             });
             quarterMap.set(capture.key, capture);
+        });
+        courses.forEach(course => {
+            const current = { terms: captures.map(capture => ({
+                quarter: capture.key,
+                academicYear: capture.academicYear,
+                status: capture.provisional ? 'provisional' : 'completed',
+                sections: capture.sections.filter(section => section.course === course.code)
+                    .map(section => ({ enrolled: section.enrolled }))
+            })).filter(term => term.sections.length) };
+            const trendComparison = computeTrend({ history: course.history, current, calendar, now });
+            course.trend = trendComparison.trend ?? course.storedTrend;
+            course.trendComparison = trendComparison;
+            delete course.history;
         });
         return {
             courses,
@@ -298,24 +374,29 @@ const EnrollmentViewModel = (function () {
 
     function build(data, catalog, options = {}) {
         const settings = isRecord(options) ? options : {};
-        const normalized = normalize(data, catalog, settings.snapshots);
+        const now = settings.now === undefined ? new Date() : settings.now;
+        const normalized = normalize(data, catalog, settings.snapshots, settings.calendar, now);
         const meta = metadata(data, normalized);
-        const term = currentTerm(settings.now, settings.calendar);
+        const term = currentTerm(now, settings.calendar);
         const year = settings.year === 'current' ? term.academicYear :
             settings.year === 'all' || meta.years.some(item => item.value === settings.year) ? settings.year : meta.defaultYear;
         const quarter = SEASONS.some(season => season.toLowerCase() === settings.quarter) ? settings.quarter : term.quarter;
         const level = LEVELS.some(item => item.key === settings.level) ? settings.level : 'all';
         const trend = TRENDS.includes(settings.trend) ? settings.trend : 'all';
         const matchingCourses = normalized.courses.filter(course =>
-            (level === 'all' || course.level === level) && (trend === 'all' || course.trend === trend));
+            (level === 'all' || course.level === level) &&
+            (trend === 'all' || course.trend === trend));
         const selectedQuarters = normalized.quarters.filter(quarter => year === 'all' || quarter.academicYear === year);
         const keys = selectedQuarters.map(q => q.key);
         const courses = matchingCourses.filter(course => hasObservation(course, keys))
-            .map(course => ({
-                ...course,
-                quarterly: Object.fromEntries(keys.map(key => [key, course.quarterly[key] ?? null])),
-                periodTotal: sumQuarters([course], keys)
-            })).sort((a, b) => b.periodTotal - a.periodTotal || a.code.localeCompare(b.code));
+            .map(course => {
+                const { storedTrend, ...publicCourse } = course;
+                return {
+                    ...publicCourse,
+                    quarterly: Object.fromEntries(keys.map(key => [key, course.quarterly[key] ?? null])),
+                    periodTotal: sumQuarters([course], keys)
+                };
+            }).sort((a, b) => b.periodTotal - a.periodTotal || a.code.localeCompare(b.code));
         const quarters = selectedQuarters.map(quarter => ({
             key: quarter.key,
             label: quarter.label,
@@ -348,7 +429,7 @@ const EnrollmentViewModel = (function () {
         };
     }
 
-    return { create, build, currentTerm, readSnapshots };
+    return { create, build, currentTerm, readSnapshots, computeTrend };
 })();
 
 if (typeof window !== 'undefined') window.EnrollmentViewModel = EnrollmentViewModel;

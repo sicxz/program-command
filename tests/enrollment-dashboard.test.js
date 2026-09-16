@@ -56,13 +56,14 @@ test('successive filters replace the chart and keep partial-year comparisons ali
     expect(byId('periodChange').textContent).toBe('−7.1%');
     expect(Chart.mock.calls[1][1].data.datasets.map(dataset => dataset.data)).toEqual([[368], [396]]);
     select('courseFilter', 'advanced');
-    select('trendFilter', 'growing');
+    select('trendFilter', 'new');
     expect(Chart.mock.results[1].value.destroy).toHaveBeenCalledTimes(1);
     expect(byId('registrationCount').textContent).toBe('—');
     expect(byId('periodOverview').hidden).toBe(true);
     expect(byId('courseDetails').hidden).toBe(true);
     expect(byId('history-comparison').hidden).toBe(false);
     expect(byId('historySmallMultiples').textContent).toContain('DESN 401');
+    expect(byId('historySmallMultiples').textContent).toContain('DESN 496');
     expect(byId('historyTakeaway').textContent).toContain('No matching records are available for Winter 2024');
 });
 
@@ -70,17 +71,19 @@ test('no matching quarter records are shown as gaps and never explained as a dec
     await dashboard.init();
     select('academicYearFilter', '2024-25');
     select('courseFilter', 'advanced');
-    select('trendFilter', 'growing');
+    select('trendFilter', 'new');
     const config = Chart.mock.calls[Chart.mock.calls.length - 1][1];
     expect(config.data.datasets).toHaveLength(1);
-    expect(config.data.datasets[0].data).toEqual([null, 21, null]);
+    expect(config.data.datasets[0].data).toEqual([null, 27, null]);
     expect(byId('quarterTableBody').textContent).toContain('—');
     expect(byId('periodChange').textContent).toBe('—');
     expect(byId('quarterTakeaway').textContent).toContain('Winter 2025');
+    expect(byId('courseTableBody').textContent).toContain('New');
+    expect(byId('courseTableBody').textContent).not.toContain('Declining');
     const ctx = { save: jest.fn(), restore: jest.fn(), fillText: jest.fn() };
     config.plugins[0].afterDatasetsDraw({ ctx, getDatasetMeta: () => ({ data: [{ x: 0, y: 0 }, { x: 1, y: 1 }, { x: 2, y: 2 }] }) });
     expect(ctx.fillText).toHaveBeenCalledTimes(1);
-    expect(ctx.fillText.mock.calls[0][0]).toBe('21');
+    expect(ctx.fillText.mock.calls[0][0]).toBe('27');
 });
 
 test('source failure hides stale totals and retry restores the dashboard', async () => {
@@ -206,10 +209,18 @@ test('2026 captures update all recorded years and make provisional Fall explicit
     expect(byId('historyTakeaway').textContent).toContain('437 in 2025 to 365 in 2026');
     expect(byId('provisionalNote').hidden).toBe(true);
     select('courseFilter', 'advanced');
-    select('trendFilter', 'growing');
+    select('trendFilter', 'registering');
     select('quarterFocus', 'fall');
-    expect(byId('historyTakeaway').textContent).toContain('Select another quarter');
+    expect(byId('historyTakeaway').textContent).toContain('67 registrations are recorded for Fall 2026');
+    expect(byId('historyTakeaway').textContent).toContain('provisional');
+    expect(byId('courseTableBody').textContent).toContain('Registering');
     expect(byId('historyTakeaway').textContent).not.toContain('— registrations');
+    expect(model.build(source, catalog, {
+        year: '2026-27', quarter: 'fall', snapshots: captures, calendar, now: new Date()
+    }).courses.find(course => course.code === 'DESN 326')).toMatchObject({
+        trend: 'registering',
+        trendComparison: { latestCount: 24, priorCount: 16, delta: 8 }
+    });
     select('snapshotTerm', 'spring-2026');
     expect(byId('snapshotTableBody').children).toHaveLength(39);
     expect(byId('snapshotTableCaption').textContent).toContain('Spring 2026');
@@ -237,7 +248,7 @@ test('missing provisional observations retain the missing-record explanation', a
         url === 'data/academic-calendar.json' ? calendar : url === 'data/course-catalog.json' ? catalog : history }));
     await dashboard.init();
     select('courseFilter', 'foundation');
-    select('trendFilter', 'growing');
+    select('trendFilter', 'new');
     expect(byId('historyTakeaway').textContent).toContain('No matching course records are available for Fall 2026');
     expect(byId('historyTakeaway').textContent).not.toContain('— registrations');
 });
