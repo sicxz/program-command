@@ -58,19 +58,21 @@ function runSupabaseConfig({
 }
 
 describe('Supabase environment config', () => {
-    test('localhost app pages default to the develop project and require a local key', () => {
+    test('localhost app pages default to the production project', () => {
         const { context, supabaseSdk } = runSupabaseConfig();
 
-        expect(context.window.getSupabaseEnvironment()).toBe('develop');
+        const client = context.window.initSupabase();
+
+        expect(context.window.getSupabaseEnvironment()).toBe('production');
         expect(context.window.getSupabaseEnvironmentConfig()).toMatchObject({
-            name: 'develop',
-            projectRef: 'cstcwplvioheazoghkgf',
-            url: 'https://cstcwplvioheazoghkgf.supabase.co',
-            anonKeyConfigured: false
+            name: 'production',
+            projectRef: 'ohnrhjxcjkrdtudpzjgn',
+            url: 'https://ohnrhjxcjkrdtudpzjgn.supabase.co',
+            anonKeyConfigured: true
         });
-        expect(context.window.isSupabaseConfigured()).toBe(false);
-        expect(context.window.initSupabase()).toBeNull();
-        expect(supabaseSdk.createClient).not.toHaveBeenCalled();
+        expect(context.window.isSupabaseConfigured()).toBe(true);
+        expect(client.url).toBe('https://ohnrhjxcjkrdtudpzjgn.supabase.co');
+        expect(supabaseSdk.createClient).toHaveBeenCalledTimes(1);
     });
 
     test('the public schedule defaults to production even on localhost', () => {
@@ -89,31 +91,6 @@ describe('Supabase environment config', () => {
         });
         expect(client.url).toBe('https://ohnrhjxcjkrdtudpzjgn.supabase.co');
         expect(supabaseSdk.createClient).toHaveBeenCalledTimes(1);
-    });
-
-    test('localhost can override the develop anon key from browser storage', () => {
-        const { context, supabaseSdk } = runSupabaseConfig({
-            localStorageValues: {
-                'programCommand.supabase.develop.anonKey': 'develop-anon-key'
-            }
-        });
-
-        const client = context.window.initSupabase();
-
-        expect(context.window.isSupabaseConfigured()).toBe(true);
-        expect(client).toMatchObject({
-            url: 'https://cstcwplvioheazoghkgf.supabase.co',
-            anonKey: 'develop-anon-key'
-        });
-        expect(supabaseSdk.createClient).toHaveBeenCalledWith(
-            'https://cstcwplvioheazoghkgf.supabase.co',
-            'develop-anon-key',
-            expect.objectContaining({
-                auth: expect.objectContaining({
-                    persistSession: true
-                })
-            })
-        );
     });
 
     test('deployed hosts default to the production project', () => {
