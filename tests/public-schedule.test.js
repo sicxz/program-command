@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const PublicSchedulePage = require('../pages/public-schedule.js');
 const ScheduleDataUtils = require('../js/schedule-data-utils.js');
+const DefaultTerm = require('../js/default-term.js');
 
 function setupDom() {
     document.body.innerHTML = `
@@ -26,6 +27,11 @@ function flushPromises() {
 describe('public schedule page', () => {
     beforeEach(() => {
         setupDom();
+        global.DefaultTerm = DefaultTerm;
+    });
+
+    afterEach(() => {
+        delete global.DefaultTerm;
     });
 
     test('uses AY 2026-27 Fall as the default context', () => {
@@ -60,7 +66,8 @@ describe('public schedule page', () => {
         const app = PublicSchedulePage.createPublicScheduleApp({
             document,
             scheduleDataUtils: ScheduleDataUtils,
-            getClient: () => ({ rpc })
+            getClient: () => ({ rpc }),
+            now: new Date('2026-09-15T12:00:00Z')
         });
 
         await app.init();
@@ -416,7 +423,8 @@ describe('public schedule page', () => {
         const app = PublicSchedulePage.createPublicScheduleApp({
             document,
             scheduleDataUtils: ScheduleDataUtils,
-            getClient: () => ({ rpc })
+            getClient: () => ({ rpc }),
+            now: new Date('2026-09-15T12:00:00Z')
         });
 
         await app.init();
@@ -428,6 +436,52 @@ describe('public schedule page', () => {
             p_program_code: 'ewu-design',
             p_quarter: null
         });
+    });
+
+    test('uses the shared resolver when the public term RPC returns null', async () => {
+        const resolve = jest.fn(() => ({ academicYear: '2025-26', quarter: 'winter' }));
+        global.DefaultTerm = { resolve };
+        const rpc = jest.fn((name) => {
+            if (name === 'get_public_current_term') {
+                return Promise.resolve({ data: null, error: { message: 'unavailable' } });
+            }
+            return Promise.resolve({
+                data: [{
+                    academic_year: '2025-26',
+                    quarter: 'winter',
+                    day_pattern: 'MW',
+                    time_slot: '10:00-12:20',
+                    section: '001',
+                    course_code: 'DESN 368',
+                    course_title: 'Code + Design 1',
+                    credits: 5,
+                    instructor_name: 'T. Masingale',
+                    room_code: '206',
+                    projected_enrollment: 24
+                }],
+                error: null
+            });
+        });
+        const now = new Date('2026-09-15T12:00:00Z');
+        const app = PublicSchedulePage.createPublicScheduleApp({
+            document,
+            scheduleDataUtils: ScheduleDataUtils,
+            getClient: () => ({ rpc }),
+            calendar: { terms: [] },
+            now
+        });
+
+        await app.init();
+        await flushPromises();
+
+        expect(resolve).toHaveBeenCalledWith({
+            pinned: null,
+            calendar: { terms: [] },
+            now,
+            allowSummer: false
+        });
+        expect(document.getElementById('publicScheduleTitle').textContent).toBe('Winter 2026');
+        expect(document.querySelector('[data-quarter="winter"]').getAttribute('aria-selected')).toBe('true');
     });
 
     test('public HTML does not load protected editor/auth scripts or save controls', () => {
