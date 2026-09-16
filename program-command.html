@@ -7010,6 +7010,9 @@
             if (typeof updateStats === 'function') {
                 updateStats(currentQuarter);
             }
+            if (typeof refreshInstructorPickerOptions === 'function') {
+                refreshInstructorPickerOptions(currentQuarter);
+            }
         });
 
         document.addEventListener('year-change', (e) => {
@@ -9628,6 +9631,7 @@
             ensureEditYearOption(currentAcademicYear);
             document.getElementById('editYear').value = currentAcademicYear;
             document.getElementById('editQuarter').value = currentCourseData.quarter || 'spring';
+            refreshInstructorPickerOptions(currentCourseData.quarter || 'spring', ['editFaculty']);
 
             // Use the department section cap unless the course has a special cap.
             const specialCaps = { 'DESN 399': 5, 'DESN 491': 10, 'DESN 495': 15, 'DESN 499': 10 };
@@ -13755,8 +13759,7 @@
             // Load courses from Supabase
             await ensureCourseCatalogLoaded();
             await loadCoursesFromSupabase();
-            // Load faculty from Supabase
-            await loadFacultyFromSupabase();
+            await ensureInstructorPickerRoster(currentAcademicYear, getCurrentSchedulerQuarter(), ['addFaculty']);
             applySelectedCourseDefaults();
         }
 
@@ -13824,49 +13827,6 @@
             } catch (err) {
                 console.warn('Could not load DB courses for Add Course modal:', err.message);
                 renderCourseOptionsFromCatalog(select);
-            }
-        }
-
-        async function loadFacultyFromSupabase() {
-            const select = document.getElementById('addFaculty');
-            const client = getDatabaseClient();
-            if (!client) return; // Keep hardcoded fallback if Supabase not configured
-
-            try {
-                const { data: faculty, error } = await client
-                    .from('faculty')
-                    .select('name')
-                    .order('name');
-
-                if (error) throw error;
-
-                if (faculty && faculty.length > 0) {
-                    // Clear existing options except the placeholder
-                    select.innerHTML = '<option value="">Select Instructor...</option>';
-
-                    // Add faculty from database
-                    faculty.forEach(f => {
-                        const option = document.createElement('option');
-                        // Format name as "F.Lastname"
-                        const nameParts = f.name.split(', ');
-                        const shortName = nameParts.length > 1
-                            ? `${nameParts[1].charAt(0)}.${nameParts[0]}`
-                            : f.name;
-                        option.value = shortName;
-                        option.textContent = f.name;
-                        select.appendChild(option);
-                    });
-
-                    // Add TBD option
-                    const tbdOption = document.createElement('option');
-                    tbdOption.value = 'TBD';
-                    tbdOption.textContent = 'TBD';
-                    select.appendChild(tbdOption);
-
-                    console.log(`Loaded ${faculty.length} faculty from Supabase`);
-                }
-            } catch (err) {
-                console.warn('Could not load faculty from Supabase, using fallback:', err.message);
             }
         }
 
@@ -14477,6 +14437,7 @@
 
             // Load the new year's shared schedule first, then fall back to local draft data.
             const loadResult = await hydrateScheduleDataForYear(newYear);
+            await ensureInstructorPickerRoster(newYear, getCurrentSchedulerQuarter());
             syncDirtyStateForCurrentYear();
 
             // Update quarter tab labels
@@ -14582,185 +14543,158 @@
             }
         }
 
-        // Initialize app - load data then render
-        // Faculty data from workload-data.json
-        let facultyList = [];
+        function getInstructorPickerNames(rosterRows, quarter, yearSchedule, fallbackToAssigned) {
+            const selectedQuarter = String(quarter || '').trim().toLowerCase();
+            const names = new Map();
+            const addName = (value) => {
+                const name = String(value || '').trim();
+                const key = name.toLocaleLowerCase();
+                if (name && !names.has(key)) names.set(key, name);
+            };
+            const collectAssigned = (quarterData) => {
+                if (!quarterData || typeof quarterData !== 'object') return;
+                Object.values(quarterData).forEach((dayBlock) => {
+                    if (!dayBlock || typeof dayBlock !== 'object') return;
+                    Object.values(dayBlock).forEach((courses) => {
+                        if (!Array.isArray(courses)) return;
+                        courses.forEach((course) => addName(course?.instructor));
+                    });
+                });
+            };
 
-        async function loadFacultyData() {
-            try {
-                const response = await fetch('workload-data.json');
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.facultyWorkload) {
-                        facultyList = Object.keys(data.facultyWorkload).sort();
-                        populateFacultyDropdowns();
-                        refreshFacultyAliasMap();
-                    }
-                }
-            } catch (error) {
-                console.warn('Could not load faculty data:', error);
+            addName('TBD');
+            addName('Adjunct');
+
+            if (fallbackToAssigned) {
+                Object.values(yearSchedule || {}).forEach(collectAssigned);
+            } else {
+                collectAssigned(yearSchedule?.[selectedQuarter]);
+                (Array.isArray(rosterRows) ? rosterRows : []).forEach((appointment) => {
+                    const joinedFaculty = Array.isArray(appointment?.faculty)
+                        ? appointment.faculty[0]
+                        : appointment?.faculty;
+                    const name = String(joinedFaculty?.name || '').trim();
+                    if (!name || appointment?.end_date) return;
+
+                    const appointmentQuarter = String(appointment?.quarter || '').trim().toLowerCase();
+                    const category = String(appointment?.category || joinedFaculty?.category || '').trim().toLowerCase();
+                    const isWholeYear = !appointmentQuarter;
+                    const isQuarterAdjunct = category === 'adjunct' && appointmentQuarter === selectedQuarter;
+                    if (isWholeYear || isQuarterAdjunct) addName(name);
+                });
             }
+
+            return Array.from(names.values()).sort((a, b) =>
+                a.localeCompare(b, 'en', { sensitivity: 'base' })
+            );
         }
 
-        function populateFacultyDropdowns() {
-            const addFacultySelect = document.getElementById('addFaculty');
-            const editFacultySelect = document.getElementById('editFaculty');
+        async function buildInstructorPickerOptions(academicYear, quarter, yearSchedule, service) {
+            let rosterRows = [];
+            let fallback = false;
+            let failure = null;
 
-            // Clear existing options except first placeholder
-            [addFacultySelect, editFacultySelect].forEach(select => {
-                if (!select) return;
-                // Keep first option (placeholder)
-                while (select.options.length > 1) {
-                    select.remove(1);
+            try {
+                if (!service || typeof service.getRoster !== 'function') {
+                    throw new Error('Roster service is unavailable');
                 }
-                // Add faculty options
-                facultyList.forEach(name => {
+
+                let academicYearId = academicYear;
+                if (typeof service.getAcademicYears === 'function') {
+                    const academicYears = await service.getAcademicYears();
+                    const matchingYear = (Array.isArray(academicYears) ? academicYears : [])
+                        .find((entry) => String(entry?.year || '') === String(academicYear || ''));
+                    if (!matchingYear) throw new Error(`Academic year ${academicYear} was not found`);
+                    academicYearId = matchingYear.id ?? matchingYear.year;
+                }
+
+                rosterRows = await service.getRoster(academicYearId);
+                if (!Array.isArray(rosterRows) || rosterRows.length === 0) {
+                    rosterRows = [];
+                    fallback = true;
+                }
+            } catch (error) {
+                failure = error;
+                rosterRows = [];
+                fallback = true;
+            }
+
+            if (fallback) {
+                console.warn(
+                    `Instructor roster unavailable for ${academicYear}; using instructors already assigned on the schedule.`,
+                    failure || 'No roster rows returned.'
+                );
+            }
+
+            return {
+                names: getInstructorPickerNames(rosterRows, quarter, yearSchedule, fallback),
+                rosterRows,
+                fallback
+            };
+        }
+
+        const instructorRosterStateByYear = new Map();
+        const instructorRosterRequestsByYear = new Map();
+
+        function renderInstructorPickerOptions(names, selectIds = ['addFaculty', 'editFaculty']) {
+            selectIds.forEach((selectId) => {
+                const select = document.getElementById(selectId);
+                if (!select) return;
+                const currentValue = select.value;
+                select.innerHTML = '<option value="">Select Instructor...</option>';
+                names.forEach((name) => {
                     const option = document.createElement('option');
                     option.value = name;
                     option.textContent = name;
                     select.appendChild(option);
                 });
-                // Add TBD option at end
-                const tbdOption = document.createElement('option');
-                tbdOption.value = 'TBD';
-                tbdOption.textContent = 'TBD';
-                select.appendChild(tbdOption);
+                if (currentValue && names.includes(currentValue)) select.value = currentValue;
             });
         }
 
-        // Custom faculty storage
-        let customFaculty = JSON.parse(localStorage.getItem('customFaculty') || '[]');
-        let pendingFacultySelectId = null;
+        function refreshInstructorPickerOptions(
+            quarter = getCurrentSchedulerQuarter(),
+            selectIds = ['addFaculty', 'editFaculty'],
+            academicYear = currentAcademicYear,
+            yearSchedule = scheduleData
+        ) {
+            const state = instructorRosterStateByYear.get(academicYear);
+            if (!state) return false;
+            const names = getInstructorPickerNames(state.rosterRows, quarter, yearSchedule, state.fallback);
+            renderInstructorPickerOptions(names, selectIds);
+            return true;
+        }
 
-        // Default faculty roster
-        const defaultFaculty = {
-            'Professors': [
-                { name: 'T.Masingale', rank: 'Professor' },
-                { name: 'G.Hustrulid', rank: 'Professor' },
-                { name: 'M.Breen', rank: 'Professor' },
-                { name: 'C.Manikoth', rank: 'Professor' }
-            ],
-            'Lecturers': [
-                { name: 'S.Mills', rank: 'Lecturer' },
-                { name: 'A.Sopu', rank: 'Lecturer' },
-                { name: 'S.Durr', rank: 'Lecturer' }
-            ],
-            'Adjuncts': [
-                { name: 'J.Braukmann', rank: 'Adjunct' }
-            ]
-        };
-
-        function rebuildFacultyDropdowns() {
-            const selects = [
-                document.getElementById('addFaculty'),
-                document.getElementById('editFaculty')
-            ];
-
-            selects.forEach(select => {
-                if (!select) return;
-                const currentValue = select.value;
-
-                // Clear and rebuild
-                select.innerHTML = '<option value="">Select Instructor...</option>';
-
-                // Add default faculty by rank
-                Object.entries(defaultFaculty).forEach(([groupLabel, members]) => {
-                    const optgroup = document.createElement('optgroup');
-                    optgroup.label = groupLabel;
-                    members.forEach(f => {
-                        const opt = document.createElement('option');
-                        opt.value = f.name;
-                        opt.textContent = f.name + ' (' + f.rank + ')';
-                        optgroup.appendChild(opt);
-                    });
-                    select.appendChild(optgroup);
-                });
-
-                // Add custom faculty if any
-                if (customFaculty.length > 0) {
-                    const customGroup = document.createElement('optgroup');
-                    customGroup.label = 'Custom Faculty';
-                    customFaculty.forEach(f => {
-                        const opt = document.createElement('option');
-                        opt.value = f.name;
-                        opt.textContent = f.name + ' (' + f.rank + ')';
-                        customGroup.appendChild(opt);
-                    });
-                    select.appendChild(customGroup);
+        async function ensureInstructorPickerRoster(
+            academicYear = currentAcademicYear,
+            quarter = getCurrentSchedulerQuarter(),
+            selectIds = ['addFaculty', 'editFaculty'],
+            yearSchedule = scheduleData,
+            renderForInactiveYear = false
+        ) {
+            let state = instructorRosterStateByYear.get(academicYear);
+            if (!state) {
+                let request = instructorRosterRequestsByYear.get(academicYear);
+                if (!request) {
+                    const service = window.DbService || window.dbService;
+                    request = buildInstructorPickerOptions(academicYear, quarter, yearSchedule, service)
+                        .then((result) => {
+                            instructorRosterStateByYear.set(academicYear, result);
+                            instructorRosterRequestsByYear.delete(academicYear);
+                            return result;
+                        });
+                    instructorRosterRequestsByYear.set(academicYear, request);
                 }
-
-                // Add TBD and Add New options
-                const tbdOpt = document.createElement('option');
-                tbdOpt.value = 'TBD';
-                tbdOpt.textContent = 'TBD';
-                select.appendChild(tbdOpt);
-
-                const addNewOpt = document.createElement('option');
-                addNewOpt.value = '__add_new__';
-                addNewOpt.textContent = '+ Add New Faculty...';
-                select.appendChild(addNewOpt);
-
-                // Restore selection if possible
-                if (currentValue) {
-                    select.value = currentValue;
-                }
-            });
-        }
-
-        function handleFacultySelectChange(selectId) {
-            const select = document.getElementById(selectId);
-            if (select.value === '__add_new__') {
-                pendingFacultySelectId = selectId;
-                select.value = ''; // Reset selection
-                openAddFacultyModal();
-            }
-        }
-
-        function openAddFacultyModal() {
-            document.getElementById('addFacultyForm').reset();
-            document.getElementById('addFacultyModal').classList.add('active');
-        }
-
-        function closeAddFacultyModal() {
-            document.getElementById('addFacultyModal').classList.remove('active');
-            pendingFacultySelectId = null;
-        }
-
-        function handleAddFacultySubmit(e) {
-            e.preventDefault();
-
-            const name = document.getElementById('newFacultyName').value.trim();
-            const rank = document.getElementById('newFacultyRank').value;
-
-            if (!name || !rank) {
-                showToast('Please fill in all fields', 'error');
-                return;
+                state = await request;
             }
 
-            // Check for duplicates
-            const allFaculty = [...Object.values(defaultFaculty).flat(), ...customFaculty];
-            if (allFaculty.some(f => f.name.toLowerCase() === name.toLowerCase())) {
-                showToast('Faculty member already exists', 'error');
-                return;
+            const editYearStillSelected = renderForInactiveYear
+                && String(document.getElementById('editYear')?.value || '') === String(academicYear);
+            if (academicYear === currentAcademicYear || editYearStillSelected) {
+                const names = getInstructorPickerNames(state.rosterRows, quarter, yearSchedule, state.fallback);
+                renderInstructorPickerOptions(names, selectIds);
             }
-
-            // Add to custom faculty
-            customFaculty.push({ name, rank });
-            localStorage.setItem('customFaculty', JSON.stringify(customFaculty));
-
-            // Rebuild dropdowns
-            rebuildFacultyDropdowns();
-
-            // Select the new faculty in the pending dropdown
-            if (pendingFacultySelectId) {
-                const select = document.getElementById(pendingFacultySelectId);
-                if (select) {
-                    select.value = name;
-                }
-            }
-
-            closeAddFacultyModal();
-            showToast('Faculty member added: ' + name);
+            return state;
         }
 
         async function init() {
@@ -14770,26 +14704,49 @@
             applyInitialProgramTerm(initialTerm);
             await loadEnrollmentData();
             await loadRegistrationSnapshots();
-            await loadFacultyData();
             await ensureCourseCatalogLoaded();
             await loadCoursesFromSupabase();
 
-            // Initialize custom faculty from localStorage
-            customFaculty = JSON.parse(localStorage.getItem('customFaculty') || '[]');
-
-            // Rebuild faculty dropdowns with current roster
-            rebuildFacultyDropdowns();
-
-            // Add change handlers to faculty selects
             document.getElementById('addCourseCode')?.addEventListener('change', applySelectedCourseDefaults);
-            document.getElementById('addFaculty')?.addEventListener('change', () => handleFacultySelectChange('addFaculty'));
-            document.getElementById('editFaculty')?.addEventListener('change', () => handleFacultySelectChange('editFaculty'));
-            document.getElementById('editYear')?.addEventListener('change', (event) => {
+            document.getElementById('editQuarter')?.addEventListener('change', async (event) => {
+                const academicYear = document.getElementById('editYear')?.value || currentAcademicYear;
+                const yearSchedule = academicYear === currentAcademicYear
+                    ? scheduleData
+                    : loadScheduleDataSnapshotForYear(academicYear);
+                const refreshed = refreshInstructorPickerOptions(
+                    event.target.value,
+                    ['editFaculty'],
+                    academicYear,
+                    yearSchedule
+                );
+                if (!refreshed) {
+                    await ensureInstructorPickerRoster(
+                        academicYear,
+                        event.target.value,
+                        ['editFaculty'],
+                        yearSchedule,
+                        true
+                    );
+                }
+            });
+            document.getElementById('editYear')?.addEventListener('change', async (event) => {
+                const academicYear = event.target.value || currentAcademicYear;
                 populateEditRoomDropdown({
-                    year: event.target.value || currentAcademicYear,
+                    year: academicYear,
                     selectedRoom: document.getElementById('editRoom')?.value || currentCourseData?.room || '',
                     includeHistoricalRooms: true
                 });
+                const quarter = document.getElementById('editQuarter')?.value || getCurrentSchedulerQuarter();
+                const yearSchedule = academicYear === currentAcademicYear
+                    ? scheduleData
+                    : loadScheduleDataSnapshotForYear(academicYear);
+                await ensureInstructorPickerRoster(
+                    academicYear,
+                    quarter,
+                    ['editFaculty'],
+                    yearSchedule,
+                    true
+                );
             });
 
             // Migrate old schedule data format to year-aware format
@@ -14797,6 +14754,7 @@
 
             // Load the shared schedule first, then fall back to a local draft or seeded defaults.
             await hydrateScheduleDataForYear(currentAcademicYear, { preserveExistingOnEmpty: true });
+            await ensureInstructorPickerRoster(currentAcademicYear, getCurrentSchedulerQuarter());
 
             // Check for imported schedule from schedule builder
             checkForImportedSchedule();
@@ -14883,10 +14841,8 @@
             clearClssImportResultsPanel,
             openAddCourseModal,
             closeAddCourseModal,
-            closeAddFacultyModal,
             handleAddCourseSubmit,
             handleEditFormSubmit,
-            handleAddFacultySubmit,
             toggleOnlineMode,
             updateSwapModeLabels,
             updateSaveDbButtonState,
@@ -14987,22 +14943,6 @@
                         <label for="editFaculty" class="form-label">Faculty</label>
                         <select id="editFaculty" class="form-select">
                             <option value="">Select Instructor...</option>
-                            <optgroup label="Professors">
-                                <option value="T.Masingale">T.Masingale (Professor)</option>
-                                <option value="G.Hustrulid">G.Hustrulid (Professor)</option>
-                                <option value="M.Breen">M.Breen (Professor)</option>
-                                <option value="C.Manikoth">C.Manikoth (Professor)</option>
-                            </optgroup>
-                            <optgroup label="Lecturers">
-                                <option value="S.Mills">S.Mills (Lecturer)</option>
-                                <option value="A.Sopu">A.Sopu (Lecturer)</option>
-                                <option value="S.Durr">S.Durr (Lecturer)</option>
-                            </optgroup>
-                            <optgroup label="Adjuncts">
-                                <option value="J.Braukmann">J.Braukmann (Adjunct)</option>
-                            </optgroup>
-                            <option value="TBD">TBD</option>
-                            <option value="__add_new__">+ Add New Faculty...</option>
                         </select>
                     </div>
 
@@ -15323,22 +15263,6 @@
                         <label for="addFaculty" class="form-label">Instructor</label>
                         <select id="addFaculty" class="form-select">
                             <option value="">Select Instructor...</option>
-                            <optgroup label="Professors">
-                                <option value="T.Masingale">T.Masingale (Professor)</option>
-                                <option value="G.Hustrulid">G.Hustrulid (Professor)</option>
-                                <option value="M.Breen">M.Breen (Professor)</option>
-                                <option value="C.Manikoth">C.Manikoth (Professor)</option>
-                            </optgroup>
-                            <optgroup label="Lecturers">
-                                <option value="S.Mills">S.Mills (Lecturer)</option>
-                                <option value="A.Sopu">A.Sopu (Lecturer)</option>
-                                <option value="S.Durr">S.Durr (Lecturer)</option>
-                            </optgroup>
-                            <optgroup label="Adjuncts">
-                                <option value="J.Braukmann">J.Braukmann (Adjunct)</option>
-                            </optgroup>
-                            <option value="TBD">TBD</option>
-                            <option value="__add_new__">+ Add New Faculty...</option>
                         </select>
                     </div>
 
@@ -15459,39 +15383,6 @@
                 <button type="button" class="btn-secondary" id="unsavedDiscardBtn">Discard</button>
                 <button type="button" class="btn-ewu-accent" id="unsavedSaveBtn">Save now</button>
             </div>
-        </div>
-    </div>
-
-    <!-- Add Faculty Modal -->
-    <div class="modal-overlay" id="addFacultyModal">
-        <div class="modal" style="max-width: 400px;">
-            <div class="modal-header">
-                <h2 class="modal-title">Add New Faculty</h2>
-                <button class="modal-close" onclick="closeAddFacultyModal()">&times;</button>
-            </div>
-            <form id="addFacultyForm" onsubmit="handleAddFacultySubmit(event)">
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label for="newFacultyName" class="form-label">Name (First Initial.LastName)</label>
-                        <input type="text" id="newFacultyName" class="form-input" placeholder="e.g., J.Smith" required>
-                        <small style="color: #6b7280; font-size: 0.85em;">Format: First initial + period + last
-                            name</small>
-                    </div>
-                    <div class="form-group">
-                        <label for="newFacultyRank" class="form-label">Rank</label>
-                        <select id="newFacultyRank" class="form-select" required>
-                            <option value="">Select Rank...</option>
-                            <option value="Professor">Professor</option>
-                            <option value="Lecturer">Lecturer</option>
-                            <option value="Adjunct">Adjunct</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="modal-actions">
-                    <button type="button" class="btn-secondary" onclick="closeAddFacultyModal()">Cancel</button>
-                    <button type="submit" class="btn-primary">Add Faculty</button>
-                </div>
-            </form>
         </div>
     </div>
 
