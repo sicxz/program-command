@@ -159,11 +159,12 @@
                     </div>
                     <div class="form-row">
                         <div class="ds-form-group">
-                            <label class="ds-label" for="facultyCategory">Category</label>
-                            <select id="facultyCategory" class="ds-select">
-                                <option value="fullTime">Full-time</option>
-                                <option value="adjunct">Adjunct</option>
-                                <option value="former">Former</option>
+                            <label class="ds-label" for="facultyRank">Rank *</label>
+                            <select id="facultyRank" class="ds-select" required>
+                                <option value="" disabled hidden>Select rank</option>
+                                <option value="Tenured">Tenured</option>
+                                <option value="Tenure-track">Tenure-track</option>
+                                <option value="Adjunct lecturer">Adjunct lecturer</option>
                             </select>
                         </div>
                         <div class="ds-form-group">
@@ -193,18 +194,14 @@
                         <label class="ds-label" for="appointmentFacultyId">Person *</label>
                         <select id="appointmentFacultyId" class="ds-select" onchange="handleAppointmentPersonChange()" required></select>
                     </div>
-                    <div class="form-row">
-                        <div class="ds-form-group">
-                            <label class="ds-label" for="appointmentCategory">Category *</label>
-                            <select id="appointmentCategory" class="ds-select" required>
-                                <option value="fullTime">Full-time</option>
-                                <option value="adjunct">Adjunct</option>
-                            </select>
-                        </div>
-                        <div class="ds-form-group">
-                            <label class="ds-label" for="appointmentRank">Rank</label>
-                            <input type="text" id="appointmentRank" class="ds-input">
-                        </div>
+                    <div class="ds-form-group">
+                        <label class="ds-label" for="appointmentRank">Rank *</label>
+                        <select id="appointmentRank" class="ds-select" required>
+                            <option value="" disabled hidden>Select rank</option>
+                            <option value="Tenured">Tenured</option>
+                            <option value="Tenure-track">Tenure-track</option>
+                            <option value="Adjunct lecturer">Adjunct lecturer</option>
+                        </select>
                     </div>
                     <div class="form-row">
                         <div class="ds-form-group">

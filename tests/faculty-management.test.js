@@ -125,6 +125,7 @@ describe('Faculty Management page', () => {
 
         harness.sandbox.openAddFacultyModal();
         document.getElementById('facultyName').value = 'A. Adams';
+        document.getElementById('facultyRank').value = 'Tenured';
         await harness.sandbox.handleFacultySubmit({ preventDefault: jest.fn() });
 
         expect(document.getElementById('toast').textContent).toBe('That person already exists as A.Adams');
@@ -134,14 +135,17 @@ describe('Faculty Management page', () => {
 
     test('edits with only the four editable fields', async () => {
         const existing = { id: 'f1', name: 'A.Adams', email: 'a@ewu.edu', category: 'fullTime', max_workload: 45 };
-        harness = createHarness([existing]);
+        harness = createHarness([existing], {
+            roster: [{ id: 'a1', faculty_id: 'f1', category: 'fullTime', rank: 'Tenured' }]
+        });
         harness.dbService.updateFaculty.mockResolvedValue({ ...existing, category: 'adjunct', max_workload: 30 });
         await harness.ready();
 
         harness.sandbox.openEditFacultyModal('f1');
+        expect(document.getElementById('facultyRank').value).toBe('Tenured');
         document.getElementById('facultyName').value = 'A.Adams';
         document.getElementById('facultyEmail').value = 'new@ewu.edu';
-        document.getElementById('facultyCategory').value = 'adjunct';
+        document.getElementById('facultyRank').value = 'Adjunct lecturer';
         document.getElementById('facultyMaxWorkload').value = '30';
         await harness.sandbox.handleFacultySubmit({ preventDefault: jest.fn() });
 
@@ -151,6 +155,7 @@ describe('Faculty Management page', () => {
             category: 'adjunct',
             max_workload: 30
         });
+        expect(harness.dbService.saveAppointment).not.toHaveBeenCalled();
     });
 
     test('retires by changing the category to former without any removal call', async () => {
@@ -198,12 +203,30 @@ describe('Faculty Management page', () => {
         expect(harness.dbService.getRoster).toHaveBeenCalledWith('default');
     });
 
+    test('renders the fixed rank options in order in both forms', () => {
+        harness = createHarness([]);
+
+        const optionsFor = id => [...document.querySelectorAll(`#${id} option`)]
+            .map(option => [option.textContent, option.value]);
+        const expected = [
+            ['Select rank', ''],
+            ['Tenured', 'Tenured'],
+            ['Tenure-track', 'Tenure-track'],
+            ['Adjunct lecturer', 'Adjunct lecturer']
+        ];
+
+        expect(optionsFor('facultyRank')).toEqual(expected);
+        expect(optionsFor('appointmentRank')).toEqual(expected);
+        expect(document.getElementById('facultyCategory')).toBeNull();
+        expect(document.getElementById('appointmentCategory')).toBeNull();
+    });
+
     test('groups the roster as Full-time then Adjunct with counts and name sorting', async () => {
         harness = createHarness([], {
             roster: [
-                { id: 'a3', faculty: { name: 'C.Carter' }, category: 'adjunct' },
-                { id: 'a2', faculty: { name: 'Z.Zimmer' }, category: 'fullTime' },
-                { id: 'a1', faculty: { name: 'A.Adams' }, category: 'fullTime' }
+                { id: 'a3', faculty: { name: 'C.Carter' }, category: 'adjunct', rank: 'Adjunct lecturer' },
+                { id: 'a2', faculty: { name: 'Z.Zimmer' }, category: 'fullTime', rank: 'Tenure-track' },
+                { id: 'a1', faculty: { name: 'A.Adams' }, category: 'fullTime', rank: 'Tenured' }
             ]
         });
 
@@ -216,32 +239,61 @@ describe('Faculty Management page', () => {
         expect(names).toEqual(['A.Adams', 'Z.Zimmer', 'C.Carter']);
     });
 
-    test('adding an adjunct appointment sends no quarter', async () => {
+    test.each([
+        ['Tenured', 'fullTime'],
+        ['Tenure-track', 'fullTime'],
+        ['Adjunct lecturer', 'adjunct']
+    ])('derives %s appointment category as %s and sends no quarter', async (rank, category) => {
         harness = createHarness([
             { id: 'f1', name: 'A.Adams', category: 'fullTime' },
             { id: 'f2', name: 'B.Brown', category: 'adjunct' },
             { id: 'f3', name: 'C.Carter', category: 'former' }
         ]);
         harness.dbService.saveAppointment.mockResolvedValue({
-            id: 'a2', faculty_id: 'f2', academic_year_id: 'year-2025', category: 'adjunct'
+            id: 'a2', faculty_id: 'f2', academic_year_id: 'year-2025', category, rank
         });
         await harness.ready();
 
         harness.sandbox.openAddAppointmentModal();
         expect(document.getElementById('appointmentFacultyId').textContent).not.toContain('C.Carter');
-        expect([...document.querySelectorAll('#appointmentCategory option')].map(option => [option.textContent, option.value]))
-            .toEqual([['Full-time', 'fullTime'], ['Adjunct', 'adjunct']]);
         document.getElementById('appointmentFacultyId').value = 'f2';
         harness.sandbox.handleAppointmentPersonChange();
+        document.getElementById('appointmentRank').value = rank;
         await harness.sandbox.handleAppointmentSubmit({ preventDefault: jest.fn() });
 
         const fields = harness.dbService.saveAppointment.mock.calls[0][0];
         expect(fields).toMatchObject({
             faculty_id: 'f2',
             academic_year_id: 'year-2025',
-            category: 'adjunct'
+            category,
+            rank
         });
         expect(fields).not.toHaveProperty('quarter');
+    });
+
+    test('blocks an appointment save when no rank is selected', async () => {
+        harness = createHarness([{ id: 'f1', name: 'A.Adams', category: 'fullTime' }]);
+        await harness.ready();
+
+        harness.sandbox.openAddAppointmentModal();
+        document.getElementById('appointmentFacultyId').value = 'f1';
+        await harness.sandbox.handleAppointmentSubmit({ preventDefault: jest.fn() });
+
+        expect(document.getElementById('toast').textContent).toBe('Select a rank.');
+        expect(harness.dbService.saveAppointment).not.toHaveBeenCalled();
+    });
+
+    test('shows a null appointment rank as an em dash and edits it as unselected', async () => {
+        harness = createHarness([], {
+            roster: [{
+                id: 'a1', faculty_id: 'f1', faculty: { name: 'A.Adams' }, category: 'fullTime', rank: null
+            }]
+        });
+        await harness.ready();
+
+        expect(document.querySelector('tr[data-appointment-id="a1"] td:nth-child(3)').textContent).toBe('—');
+        harness.sandbox.openEditAppointmentModal('a1');
+        expect(document.getElementById('appointmentRank').value).toBe('');
     });
 
     test('removes an appointment after confirmation and drops its row', async () => {
@@ -249,7 +301,8 @@ describe('Faculty Management page', () => {
             id: 'a1',
             faculty_id: 'f1',
             faculty: { name: 'A.Adams' },
-            category: 'fullTime'
+            category: 'fullTime',
+            rank: 'Tenured'
         };
         harness = createHarness([], { roster: [appointment] });
         harness.dbService.removeAppointment.mockResolvedValue(true);
@@ -266,7 +319,7 @@ describe('Faculty Management page', () => {
             .toEqual(['None', 'None']);
     });
 
-    test('adding a person also creates an appointment in the selected year', async () => {
+    test('adding a person derives category from rank and creates the matching appointment', async () => {
         const added = { id: 'f2', name: 'B.Brown', email: 'b@ewu.edu', category: 'adjunct', max_workload: 30 };
         harness = createHarness([]);
         harness.dbService.addFaculty.mockResolvedValue(added);
@@ -274,21 +327,29 @@ describe('Faculty Management page', () => {
             id: 'a2',
             faculty_id: 'f2',
             academic_year_id: 'year-2025',
-            category: 'adjunct'
+            category: 'adjunct',
+            rank: 'Adjunct lecturer'
         });
         await harness.ready();
 
         harness.sandbox.openAddFacultyModal();
         document.getElementById('facultyName').value = 'B.Brown';
         document.getElementById('facultyEmail').value = 'b@ewu.edu';
-        document.getElementById('facultyCategory').value = 'adjunct';
+        document.getElementById('facultyRank').value = 'Adjunct lecturer';
         document.getElementById('facultyMaxWorkload').value = '30';
         await harness.sandbox.handleFacultySubmit({ preventDefault: jest.fn() });
 
+        expect(harness.dbService.addFaculty).toHaveBeenCalledWith({
+            name: 'B.Brown',
+            email: 'b@ewu.edu',
+            category: 'adjunct',
+            maxWorkload: 30
+        });
         expect(harness.dbService.saveAppointment).toHaveBeenCalledWith({
             faculty_id: 'f2',
             academic_year_id: 'year-2025',
-            category: 'adjunct'
+            category: 'adjunct',
+            rank: 'Adjunct lecturer'
         });
         expect(document.querySelectorAll('tr[data-appointment-id]')).toHaveLength(1);
     });
@@ -328,6 +389,7 @@ describe('Faculty Management page', () => {
         harness.sandbox.openAddAppointmentModal();
         document.getElementById('appointmentFacultyId').value = 'f1';
         harness.sandbox.handleAppointmentPersonChange();
+        document.getElementById('appointmentRank').value = 'Tenured';
         await harness.sandbox.handleAppointmentSubmit({ preventDefault: jest.fn() });
 
         expect(document.getElementById('toast').textContent).toBe('Not saved: sign in as an editor first.');
