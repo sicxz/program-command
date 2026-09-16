@@ -417,7 +417,7 @@ const dbService = {
                 { year: '2023-24', is_active: false },
                 { year: '2024-25', is_active: false },
                 { year: '2025-26', is_active: true }
-            ];
+            ].sort((a, b) => b.year.localeCompare(a.year));
         }
 
         await this.initialize();
@@ -426,6 +426,65 @@ const dbService = {
             .select('*')
             .eq('department_id', this.departmentId)
             .order('year', { ascending: false });
+
+        if (error) throw error;
+        return (data || [])
+            .filter(row => /^\d{4}-\d{2}$/.test(String(row.year || '')))
+            .sort((a, b) => b.year.localeCompare(a.year));
+    },
+
+    /**
+     * Get the faculty roster for one academic year
+     */
+    async getRoster(academicYearId) {
+        if (!isSupabaseConfigured()) return [];
+
+        await this.initialize();
+        const { data, error } = await getSupabaseClient()
+            .from('faculty_appointments')
+            .select('*, faculty:faculty(name, email, category)')
+            .eq('academic_year_id', academicYearId)
+            .order('faculty(name)')
+            .order('quarter');
+
+        if (error) throw error;
+        return data || [];
+    },
+
+    /**
+     * Insert or update one faculty appointment
+     */
+    async saveAppointment(fields) {
+        if (!isSupabaseConfigured()) return null;
+
+        await this.initialize();
+        const { id, ...record } = fields;
+        let query = getSupabaseClient().from('faculty_appointments');
+
+        if (id) {
+            query = query.update(record).eq('id', id);
+        } else {
+            query = query.insert(record);
+        }
+
+        const { data, error } = await query.select().single();
+        if (error) throw error;
+        return data;
+    },
+
+    /**
+     * End an appointment without removing its historical row
+     */
+    async endAppointment(id, endDate) {
+        if (!isSupabaseConfigured()) return null;
+
+        await this.initialize();
+        const { data, error } = await getSupabaseClient()
+            .from('faculty_appointments')
+            .update({ end_date: endDate })
+            .eq('id', id)
+            .select()
+            .single();
 
         if (error) throw error;
         return data;
