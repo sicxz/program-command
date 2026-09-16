@@ -38,10 +38,6 @@
             gap: var(--space-2);
         }
 
-        .roster-row-ended {
-            opacity: 0.55;
-        }
-
         @media (max-width: 640px) {
             .form-row {
                 grid-template-columns: 1fr;
@@ -76,8 +72,10 @@
                         <label class="ds-label" for="rosterYear">Academic year</label>
                         <select id="rosterYear" class="ds-select" onchange="handleRosterYearChange()"></select>
                     </div>
-                    <button class="ds-btn ds-btn-primary" type="button" onclick="openAddAppointmentModal()">+ Add to roster</button>
+                    <button class="ds-btn ds-btn-primary" id="addRosterButton" type="button" onclick="openAddAppointmentModal()">+ Add to roster</button>
                 </div>
+
+                <p class="text-muted ds-hidden" id="rosterAuthNotice">Sign in to change the roster. Viewing is open to everyone.</p>
 
                 <div class="ds-table-container" id="rosterTableContainer">
                     <table class="ds-table" id="rosterTable">
@@ -86,11 +84,9 @@
                                 <th>Name</th>
                                 <th>Category</th>
                                 <th>Rank</th>
-                                <th>Quarter</th>
                                 <th>FTE</th>
                                 <th>Teaching target</th>
                                 <th>Start</th>
-                                <th>End</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -114,7 +110,7 @@
                         <label class="ds-sr-only" for="facultySearch">Search faculty</label>
                         <input type="search" id="facultySearch" class="ds-input" placeholder="Search faculty..." oninput="filterFaculty()">
                     </div>
-                    <button class="ds-btn ds-btn-primary" type="button" onclick="openAddFacultyModal()">+ Add faculty</button>
+                    <button class="ds-btn ds-btn-primary" id="addFacultyButton" type="button" onclick="openAddFacultyModal()">+ Add faculty</button>
                 </div>
 
                 <div class="ds-table-container" id="facultyTableContainer">
@@ -164,8 +160,8 @@
                     <div class="form-row">
                         <div class="ds-form-group">
                             <label class="ds-label" for="facultyCategory">Category</label>
-                            <select id="facultyCategory" class="ds-select" onchange="updateFacultyQuarterVisibility()">
-                                <option value="fullTime">Full time</option>
+                            <select id="facultyCategory" class="ds-select">
+                                <option value="fullTime">Full-time</option>
                                 <option value="adjunct">Adjunct</option>
                                 <option value="former">Former</option>
                             </select>
@@ -174,16 +170,6 @@
                             <label class="ds-label" for="facultyMaxWorkload">Max workload</label>
                             <input type="number" id="facultyMaxWorkload" class="ds-input" value="45" min="0" step="0.1" required>
                         </div>
-                    </div>
-                    <div class="ds-form-group ds-hidden" id="facultyQuarterGroup">
-                        <label class="ds-label" for="facultyQuarter">Appointment quarter *</label>
-                        <select id="facultyQuarter" class="ds-select">
-                            <option value="">Select quarter</option>
-                            <option value="fall">Fall</option>
-                            <option value="winter">Winter</option>
-                            <option value="spring">Spring</option>
-                            <option value="summer">Summer</option>
-                        </select>
                     </div>
                 </div>
                 <div class="ds-modal-footer">
@@ -210,8 +196,8 @@
                     <div class="form-row">
                         <div class="ds-form-group">
                             <label class="ds-label" for="appointmentCategory">Category *</label>
-                            <select id="appointmentCategory" class="ds-select" onchange="updateAppointmentQuarterVisibility()" required>
-                                <option value="fullTime">Full time</option>
+                            <select id="appointmentCategory" class="ds-select" required>
+                                <option value="fullTime">Full-time</option>
                                 <option value="adjunct">Adjunct</option>
                             </select>
                         </div>
@@ -219,16 +205,6 @@
                             <label class="ds-label" for="appointmentRank">Rank</label>
                             <input type="text" id="appointmentRank" class="ds-input">
                         </div>
-                    </div>
-                    <div class="ds-form-group ds-hidden" id="appointmentQuarterGroup">
-                        <label class="ds-label" for="appointmentQuarter">Quarter *</label>
-                        <select id="appointmentQuarter" class="ds-select">
-                            <option value="">Select quarter</option>
-                            <option value="fall">Fall</option>
-                            <option value="winter">Winter</option>
-                            <option value="spring">Spring</option>
-                            <option value="summer">Summer</option>
-                        </select>
                     </div>
                     <div class="form-row">
                         <div class="ds-form-group">

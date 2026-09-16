@@ -21,6 +21,18 @@ function createHarness(rows = [], options = {}) {
         return originalAddEventListener(eventName, handler, options);
     });
 
+    let authStateChangeHandler = null;
+    const session = options.session === undefined ? { user: { id: 'editor-1' } } : options.session;
+    const supabaseClient = {
+        auth: {
+            getSession: jest.fn().mockResolvedValue({ data: { session }, error: null }),
+            onAuthStateChange: jest.fn(handler => {
+                authStateChangeHandler = handler;
+                return { data: { subscription: { unsubscribe: jest.fn() } } };
+            })
+        }
+    };
+    const getSupabaseClient = jest.fn(() => supabaseClient);
     const dbService = {
         getFaculty: jest.fn().mockResolvedValue(rows),
         getAcademicYears: jest.fn().mockResolvedValue(options.years || [
@@ -35,7 +47,7 @@ function createHarness(rows = [], options = {}) {
         addFaculty: jest.fn(),
         updateFaculty: jest.fn(),
         saveAppointment: jest.fn(),
-        endAppointment: jest.fn()
+        removeAppointment: jest.fn()
     };
     const DefaultTerm = {
         resolve: jest.fn(() => ({ academicYear: options.defaultYear || '2025-26', quarter: 'fall' }))
@@ -44,6 +56,7 @@ function createHarness(rows = [], options = {}) {
         document,
         dbService,
         DefaultTerm,
+        getSupabaseClient,
         confirm: jest.fn(() => true),
         setTimeout: jest.fn()
     };
@@ -52,6 +65,7 @@ function createHarness(rows = [], options = {}) {
         document,
         dbService,
         DefaultTerm,
+        getSupabaseClient,
         Date,
         console,
         setTimeout: sandboxWindow.setTimeout
@@ -61,8 +75,12 @@ function createHarness(rows = [], options = {}) {
 
     return {
         dbService,
+        supabaseClient,
         sandbox,
         html,
+        emitAuthStateChange(nextSession) {
+            authStateChangeHandler?.('SIGNED_IN', nextSession);
+        },
         async ready() {
             await domReadyHandlers[0]();
             await flushPromises();
@@ -148,7 +166,7 @@ describe('Faculty Management page', () => {
         expect(Object.keys(harness.dbService)).not.toContain('deleteFaculty');
     });
 
-    test('contains no removal control or removal code path and loads the admin guard', () => {
+    test('keeps People records free of deletion and loads the admin guard', () => {
         harness = createHarness([]);
         const pageSource = fs.readFileSync(path.resolve(__dirname, '../pages/faculty-management.js'), 'utf8');
 
@@ -180,71 +198,72 @@ describe('Faculty Management page', () => {
         expect(harness.dbService.getRoster).toHaveBeenCalledWith('default');
     });
 
-    test('renders roster rows and labels a null quarter as Year', async () => {
+    test('groups the roster as Full-time then Adjunct with counts and name sorting', async () => {
         harness = createHarness([], {
-            roster: [{
-                id: 'a1',
-                faculty_id: 'f1',
-                faculty: { name: 'A.Adams', email: 'a@ewu.edu', category: 'fullTime' },
-                category: 'fullTime',
-                rank: 'Professor',
-                quarter: null,
-                fte: 1,
-                teaching_target: 45,
-                start_date: '2025-09-01',
-                end_date: null
-            }]
+            roster: [
+                { id: 'a3', faculty: { name: 'C.Carter' }, category: 'adjunct' },
+                { id: 'a2', faculty: { name: 'Z.Zimmer' }, category: 'fullTime' },
+                { id: 'a1', faculty: { name: 'A.Adams' }, category: 'fullTime' }
+            ]
         });
 
         await harness.ready();
 
-        expect(document.querySelectorAll('#rosterTableBody tr')).toHaveLength(1);
-        expect(document.getElementById('rosterTableBody').textContent).toContain('A.Adams');
-        expect(document.getElementById('rosterTableBody').textContent).toContain('Year');
+        const headers = [...document.querySelectorAll('.roster-group-header')].map(row => row.textContent.trim());
+        const names = [...document.querySelectorAll('tr[data-appointment-id] td:first-child')]
+            .map(cell => cell.textContent.trim());
+        expect(headers).toEqual(['Full-time (2)', 'Adjunct (1)']);
+        expect(names).toEqual(['A.Adams', 'Z.Zimmer', 'C.Carter']);
     });
 
-    test('requires a quarter for adjunct appointments and hides it for full-time appointments', async () => {
+    test('adding an adjunct appointment sends no quarter', async () => {
         harness = createHarness([
             { id: 'f1', name: 'A.Adams', category: 'fullTime' },
             { id: 'f2', name: 'B.Brown', category: 'adjunct' },
             { id: 'f3', name: 'C.Carter', category: 'former' }
         ]);
+        harness.dbService.saveAppointment.mockResolvedValue({
+            id: 'a2', faculty_id: 'f2', academic_year_id: 'year-2025', category: 'adjunct'
+        });
         await harness.ready();
 
         harness.sandbox.openAddAppointmentModal();
         expect(document.getElementById('appointmentFacultyId').textContent).not.toContain('C.Carter');
-        document.getElementById('appointmentCategory').value = 'adjunct';
-        harness.sandbox.updateAppointmentQuarterVisibility();
-        expect(document.getElementById('appointmentQuarter').required).toBe(true);
-        expect(document.getElementById('appointmentQuarterGroup').hidden).toBe(false);
+        expect([...document.querySelectorAll('#appointmentCategory option')].map(option => [option.textContent, option.value]))
+            .toEqual([['Full-time', 'fullTime'], ['Adjunct', 'adjunct']]);
+        document.getElementById('appointmentFacultyId').value = 'f2';
+        harness.sandbox.handleAppointmentPersonChange();
+        await harness.sandbox.handleAppointmentSubmit({ preventDefault: jest.fn() });
 
-        document.getElementById('appointmentCategory').value = 'fullTime';
-        harness.sandbox.updateAppointmentQuarterVisibility();
-        expect(document.getElementById('appointmentQuarter').required).toBe(false);
-        expect(document.getElementById('appointmentQuarterGroup').hidden).toBe(true);
+        const fields = harness.dbService.saveAppointment.mock.calls[0][0];
+        expect(fields).toMatchObject({
+            faculty_id: 'f2',
+            academic_year_id: 'year-2025',
+            category: 'adjunct'
+        });
+        expect(fields).not.toHaveProperty('quarter');
     });
 
-    test('ends an appointment with today and keeps the greyed row listed', async () => {
-        jest.useFakeTimers({ now: new Date('2026-09-17T01:30:00.000Z') });
+    test('removes an appointment after confirmation and drops its row', async () => {
         const appointment = {
             id: 'a1',
             faculty_id: 'f1',
             faculty: { name: 'A.Adams' },
-            category: 'fullTime',
-            quarter: null,
-            end_date: null
+            category: 'fullTime'
         };
         harness = createHarness([], { roster: [appointment] });
-        harness.dbService.endAppointment.mockResolvedValue({ ...appointment, end_date: '2026-09-16' });
-        const ready = harness.ready();
-        await jest.runAllTimersAsync();
-        await ready;
+        harness.dbService.removeAppointment.mockResolvedValue(true);
+        await harness.ready();
 
-        await harness.sandbox.endRosterAppointment('a1');
+        await harness.sandbox.removeRosterAppointment('a1');
 
-        expect(harness.dbService.endAppointment).toHaveBeenCalledWith('a1', '2026-09-16');
-        expect(document.querySelectorAll('#rosterTableBody tr')).toHaveLength(1);
-        expect(document.querySelector('#rosterTableBody tr').classList).toContain('roster-row-ended');
+        expect(harness.sandbox.window.confirm).toHaveBeenCalledWith(
+            'Remove A.Adams from the 2025-26 roster? They stay on the People list.'
+        );
+        expect(harness.dbService.removeAppointment).toHaveBeenCalledWith('a1');
+        expect(document.querySelectorAll('tr[data-appointment-id]')).toHaveLength(0);
+        expect([...document.querySelectorAll('.roster-group-empty')].map(row => row.textContent.trim()))
+            .toEqual(['None', 'None']);
     });
 
     test('adding a person also creates an appointment in the selected year', async () => {
@@ -255,8 +274,7 @@ describe('Faculty Management page', () => {
             id: 'a2',
             faculty_id: 'f2',
             academic_year_id: 'year-2025',
-            category: 'adjunct',
-            quarter: 'winter'
+            category: 'adjunct'
         });
         await harness.ready();
 
@@ -264,17 +282,54 @@ describe('Faculty Management page', () => {
         document.getElementById('facultyName').value = 'B.Brown';
         document.getElementById('facultyEmail').value = 'b@ewu.edu';
         document.getElementById('facultyCategory').value = 'adjunct';
-        harness.sandbox.updateFacultyQuarterVisibility();
-        document.getElementById('facultyQuarter').value = 'winter';
         document.getElementById('facultyMaxWorkload').value = '30';
         await harness.sandbox.handleFacultySubmit({ preventDefault: jest.fn() });
 
         expect(harness.dbService.saveAppointment).toHaveBeenCalledWith({
             faculty_id: 'f2',
             academic_year_id: 'year-2025',
-            quarter: 'winter',
             category: 'adjunct'
         });
-        expect(document.querySelectorAll('#rosterTableBody tr')).toHaveLength(1);
+        expect(document.querySelectorAll('tr[data-appointment-id]')).toHaveLength(1);
+    });
+
+    test('signed-out init disables write controls, shows the notice, and re-checks auth changes', async () => {
+        harness = createHarness([
+            { id: 'f1', name: 'A.Adams', category: 'fullTime', max_workload: 45 }
+        ], {
+            session: null,
+            roster: [{ id: 'a1', faculty_id: 'f1', faculty: { name: 'A.Adams' }, category: 'fullTime' }]
+        });
+
+        await harness.ready();
+
+        expect(harness.supabaseClient.auth.getSession).toHaveBeenCalledTimes(1);
+        expect(document.getElementById('addRosterButton').disabled).toBe(true);
+        expect(document.getElementById('addFacultyButton').disabled).toBe(true);
+        expect([...document.querySelectorAll('tr[data-appointment-id] button')].every(button => button.disabled)).toBe(true);
+        expect([...document.querySelectorAll('tr[data-faculty-id] button')].every(button => button.disabled)).toBe(true);
+        expect(document.getElementById('rosterAuthNotice').textContent.trim())
+            .toBe('Sign in to change the roster. Viewing is open to everyone.');
+        expect(document.getElementById('rosterAuthNotice').classList).not.toContain('ds-hidden');
+
+        harness.emitAuthStateChange({ user: { id: 'editor-1' } });
+        expect(document.getElementById('addRosterButton').disabled).toBe(false);
+        expect(document.getElementById('rosterAuthNotice').classList).toContain('ds-hidden');
+    });
+
+    test('shows the editor sign-in message for a PGRST116 save error', async () => {
+        harness = createHarness([{ id: 'f1', name: 'A.Adams', category: 'fullTime' }]);
+        harness.dbService.saveAppointment.mockRejectedValue({
+            code: 'PGRST116',
+            message: 'Cannot coerce the result to a single JSON object'
+        });
+        await harness.ready();
+
+        harness.sandbox.openAddAppointmentModal();
+        document.getElementById('appointmentFacultyId').value = 'f1';
+        harness.sandbox.handleAppointmentPersonChange();
+        await harness.sandbox.handleAppointmentSubmit({ preventDefault: jest.fn() });
+
+        expect(document.getElementById('toast').textContent).toBe('Not saved: sign in as an editor first.');
     });
 });
