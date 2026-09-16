@@ -44,6 +44,34 @@
     <article class="docs-decision">
       <header class="docs-decision-head">
         <span class="docs-decision-date">2026-09-15</span>
+        <span class="docs-decision-title">One Supabase database; the develop project is retired</span>
+      </header>
+      <dl>
+        <dt>Chose</dt>
+        <dd>Production (<code>ohnrhjxcjkrdtudpzjgn</code>) is the only
+        Supabase project. Localhost pages default to it like every other host
+        (#314). The <code>?supabaseEnv=</code> and browser-storage overrides
+        remain but have nowhere else to point. CI also runs on every push to
+        <code>main</code>, so Deploy Pages finds a passing <code>test</code>
+        check on the merged head without a manual dispatch.</dd>
+        <dt>Why</dt>
+        <dd>The develop project (<code>cstcwplvioheazoghkgf</code>) stopped
+        being used and its anon key was blank, so Program Command and the
+        Schedule Editor loaded nothing on localhost unless someone forced
+        production by query string. Deploy Pages refused the head of
+        <code>main</code> after the September 15 merges because CI ran only on
+        pull requests and the squash commit carried no <code>test</code>
+        check.</dd>
+        <dt>Rejected</dt>
+        <dd>A second database for local work; keeping the develop default and
+        documenting the override. Travis, 2026-09-15: "No longer use the
+        development database. We stopped doing that."</dd>
+      </dl>
+    </article>
+
+    <article class="docs-decision">
+      <header class="docs-decision-head">
+        <span class="docs-decision-date">2026-09-15</span>
         <span class="docs-decision-title">Local-build review merged as #303–#306; load from course records; Banner's enrollment field</span>
       </header>
       <dl>

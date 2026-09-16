@@ -8,6 +8,7 @@ on:
       - codex/merge-main-clss-rollout
   push:
     branches:
+      - main
       - develop
       - codex/merge-main-clss-rollout
   workflow_dispatch:

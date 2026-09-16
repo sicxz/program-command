@@ -1,15 +1,12 @@
 /**
  * Supabase Configuration
  *
- * Host defaults:
- * - public-schedule.html: production database
- * - other localhost / 127.0.0.1 pages: develop database
- * - deployed hosts: production database
- *
- * Local overrides:
- * - ?supabaseEnv=production or ?supabaseEnv=develop
- * - localStorage.setItem('programCommand.supabase.environment', 'develop')
- * - localStorage.setItem('programCommand.supabase.develop.anonKey', '<anon key>')
+ * Host defaults: every host, localhost included, uses the production database.
+     * The develop project was retired 2026-09-15 (#314).
+     *
+     * Local overrides (rarely needed now):
+     * - ?supabaseEnv=production
+     * - localStorage.setItem('programCommand.supabase.environment', 'production')
  */
 
 const SUPABASE_ENVIRONMENTS = Object.freeze({
@@ -169,7 +166,7 @@ function getDefaultSupabaseEnvironmentName() {
         return 'production';
     }
 
-    return isLocalSupabaseHost(hostname) ? 'develop' : 'production';
+    return 'production';
 }
 
 function getRequestedSupabaseEnvironmentName() {
