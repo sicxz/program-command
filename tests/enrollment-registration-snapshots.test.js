@@ -27,7 +27,10 @@ test('Enrollment overlay preserves baseline history and completes 2025–26 with
     expect(completed.totalRegistrations).toBe(1071);
     expect(completed.coverage.complete).toBe(true);
     expect(completed.comparison).toMatchObject({ current: 1071, previous: 1272, delta: -201 });
-    expect(result.courses.find(course => course.code === 'DESN 369').trend).toBe('unknown');
+    expect(result.courses.find(course => course.code === 'DESN 369')).toMatchObject({
+        trend: 'new',
+        trendComparison: { latestTerm: 'fall-2026', latestCount: 6, priorCount: null, delta: null }
+    });
 });
 
 test('observed zero stays distinct from an absent course or missing waitlist', () => {

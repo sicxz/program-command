@@ -121,11 +121,13 @@ test('building a view does not mutate source ordering or source fields', () => {
 });
 
 test('filtered quarters with no records remain gaps and cannot produce a prior-year comparison', () => {
-    const view = build(fixture, catalog, { year: '2024-25', level: 'advanced', trend: 'growing' });
-    expect(view.quarters.map(quarter => quarter.total)).toEqual([null, 21, null]);
-    expect(view.totalRegistrations).toBe(21);
+    const view = build(fixture, catalog, { year: '2024-25', level: 'advanced', trend: 'new' });
+    expect(view.quarters.map(quarter => quarter.total)).toEqual([null, 27, null]);
+    expect(view.totalRegistrations).toBe(27);
     expect(view.comparison).toBeNull();
-    expect(view.history.totals).toEqual([null, null, 21]);
+    expect(view.history.totals).toEqual([null, null, 27]);
+    expect(view.courses.every(course => course.trend === 'new')).toBe(true);
+    expect(view.courses.every(course => course.trendComparison.priorCount === null)).toBe(true);
 });
 
 test('recorded zero remains a valid observation in a seasonal comparison', () => {
