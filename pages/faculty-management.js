@@ -8,6 +8,8 @@ let filteredFaculty = [];
 let academicYears = [];
 let rosterAppointments = [];
 let currentRosterYearId = null;
+let canEditFaculty = false;
+let authStateSubscription = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
     await initializeFacultyPage();
@@ -15,6 +17,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function initializeFacultyPage() {
     try {
+        await initializeFacultyAuthState();
         const [facultyData, yearData] = await Promise.all([
             dbService.getFaculty(),
             dbService.getAcademicYears()
@@ -29,6 +32,45 @@ async function initializeFacultyPage() {
         console.error('Failed to load faculty:', error);
         showFacultyMessage('Failed to load faculty. Please refresh.', 'error');
     }
+}
+
+async function initializeFacultyAuthState() {
+    try {
+        const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : null;
+        if (!client?.auth?.getSession) {
+            setFacultyWriteAccess(false);
+            return;
+        }
+
+        const { data } = await client.auth.getSession();
+        setFacultyWriteAccess(Boolean(data?.session));
+
+        if (!authStateSubscription && typeof client.auth.onAuthStateChange === 'function') {
+            const { data: authData } = client.auth.onAuthStateChange((_event, session) => {
+                setFacultyWriteAccess(Boolean(session));
+            });
+            authStateSubscription = authData?.subscription || true;
+        }
+    } catch (error) {
+        console.error('Failed to read authentication state:', error);
+        setFacultyWriteAccess(false);
+    }
+}
+
+function setFacultyWriteAccess(enabled) {
+    canEditFaculty = enabled;
+    const addRosterButton = document.getElementById('addRosterButton');
+    const addFacultyButton = document.getElementById('addFacultyButton');
+    const notice = document.getElementById('rosterAuthNotice');
+    if (addRosterButton) addRosterButton.disabled = !enabled;
+    if (addFacultyButton) addFacultyButton.disabled = !enabled;
+    notice?.classList.toggle('ds-hidden', enabled);
+    renderRosterTable();
+    renderFacultyTable();
+}
+
+function writeDisabledAttribute() {
+    return canEditFaculty ? '' : ' disabled';
 }
 
 async function refreshFaculty() {
@@ -95,54 +137,46 @@ function renderRosterTable() {
     const emptyState = document.getElementById('rosterEmptyState');
     if (!tbody || !tableContainer || !emptyState) return;
 
-    if (rosterAppointments.length === 0) {
-        tbody.innerHTML = '';
-        tableContainer.classList.add('ds-hidden');
-        emptyState.classList.remove('ds-hidden');
-        return;
-    }
-
     tableContainer.classList.remove('ds-hidden');
     emptyState.classList.add('ds-hidden');
-    const today = getLocalDateString();
-    const hasEnded = appointment => Boolean(appointment.end_date && appointment.end_date <= today);
-    const sortedAppointments = [...rosterAppointments].sort((a, b) => {
-        const endedOrder = Number(hasEnded(a)) - Number(hasEnded(b));
-        if (endedOrder !== 0) return endedOrder;
-        const nameOrder = getAppointmentFaculty(a).name.localeCompare(getAppointmentFaculty(b).name);
-        if (nameOrder !== 0) return nameOrder;
-        return String(a.quarter || '').localeCompare(String(b.quarter || ''));
-    });
 
-    tbody.innerHTML = sortedAppointments.map(appointment => {
+    const renderAppointment = appointment => {
         const faculty = getAppointmentFaculty(appointment);
-        const endedClass = hasEnded(appointment) ? ' class="roster-row-ended"' : '';
-        const endDisabled = hasEnded(appointment) ? ' disabled' : '';
         return `
-            <tr data-appointment-id="${escapeFacultyAttribute(appointment.id)}"${endedClass}>
+            <tr data-appointment-id="${escapeFacultyAttribute(appointment.id)}">
                 <td>${escapeFacultyHtml(faculty.name)}</td>
-                <td><span class="faculty-category">${escapeFacultyHtml(getFacultyCategoryLabel(appointment.category))}</span></td>
+                <td><span class="faculty-category">${escapeFacultyHtml(getFacultyCategoryLabel(getAppointmentCategory(appointment)))}</span></td>
                 <td>${escapeFacultyHtml(appointment.rank || '')}</td>
-                <td>${escapeFacultyHtml(getQuarterLabel(appointment.quarter))}</td>
                 <td>${escapeFacultyHtml(appointment.fte ?? '')}</td>
                 <td>${escapeFacultyHtml(appointment.teaching_target ?? '')}</td>
                 <td>${escapeFacultyHtml(appointment.start_date || '')}</td>
-                <td>${escapeFacultyHtml(appointment.end_date || '')}</td>
                 <td><div class="faculty-actions">
-                    <button class="ds-btn ds-btn-secondary ds-btn-sm" type="button" data-appointment-id="${escapeFacultyAttribute(appointment.id)}" onclick="openEditAppointmentModal(this.dataset.appointmentId)">Edit</button>
-                    <button class="ds-btn ds-btn-secondary ds-btn-sm" type="button" data-appointment-id="${escapeFacultyAttribute(appointment.id)}" onclick="endRosterAppointment(this.dataset.appointmentId)"${endDisabled}>End</button>
+                    <button class="ds-btn ds-btn-secondary ds-btn-sm" type="button" data-appointment-id="${escapeFacultyAttribute(appointment.id)}" onclick="openEditAppointmentModal(this.dataset.appointmentId)"${writeDisabledAttribute()}>Edit</button>
+                    <button class="ds-btn ds-btn-secondary ds-btn-sm" type="button" data-appointment-id="${escapeFacultyAttribute(appointment.id)}" onclick="removeRosterAppointment(this.dataset.appointmentId)"${writeDisabledAttribute()}>Remove</button>
                 </div></td>
             </tr>
         `;
-    }).join('');
-}
+    };
 
-// The program's calendar day (Cheney, WA), matching js/default-term.js, so an evening
-// action does not record tomorrow's date and tests hold in any machine time zone.
-function getLocalDateString(date = new Date()) {
-    return new Intl.DateTimeFormat('en-CA', {
-        timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit', day: '2-digit'
-    }).format(date);
+    const groups = [
+        { category: 'fullTime', label: 'Full-time' },
+        { category: 'adjunct', label: 'Adjunct' }
+    ];
+    tbody.innerHTML = groups.map(group => {
+        const appointments = rosterAppointments
+            .filter(appointment => getAppointmentCategory(appointment) === group.category)
+            .sort((a, b) => String(getAppointmentFaculty(a).name || '')
+                .localeCompare(String(getAppointmentFaculty(b).name || '')));
+        const rows = appointments.length
+            ? appointments.map(renderAppointment).join('')
+            : '<tr class="roster-group-empty"><td colspan="7" class="text-muted">None</td></tr>';
+        return `
+            <tr class="roster-group-header" data-roster-group="${group.category}">
+                <th colspan="7" scope="rowgroup">${group.label} (${appointments.length})</th>
+            </tr>
+            ${rows}
+        `;
+    }).join('');
 }
 
 function getAppointmentFaculty(appointment) {
@@ -150,9 +184,8 @@ function getAppointmentFaculty(appointment) {
     return joinedFaculty || facultyMembers.find(person => String(person.id) === String(appointment.faculty_id)) || {};
 }
 
-function getQuarterLabel(quarter) {
-    if (!quarter) return 'Year';
-    return quarter.charAt(0).toUpperCase() + quarter.slice(1);
+function getAppointmentCategory(appointment) {
+    return appointment.category || getAppointmentFaculty(appointment).category || '';
 }
 
 function renderFacultyTable() {
@@ -174,7 +207,7 @@ function renderFacultyTable() {
         const category = escapeFacultyHtml(getFacultyCategoryLabel(faculty.category));
         const retireButton = faculty.category === 'former'
             ? ''
-            : `<button class="ds-btn ds-btn-secondary ds-btn-sm" type="button" data-faculty-id="${escapeFacultyAttribute(faculty.id)}" onclick="retireFaculty(this.dataset.facultyId)">Retire</button>`;
+            : `<button class="ds-btn ds-btn-secondary ds-btn-sm" type="button" data-faculty-id="${escapeFacultyAttribute(faculty.id)}" onclick="retireFaculty(this.dataset.facultyId)"${writeDisabledAttribute()}>Retire</button>`;
 
         return `
             <tr data-faculty-id="${escapeFacultyAttribute(faculty.id)}">
@@ -183,7 +216,7 @@ function renderFacultyTable() {
                 <td><span class="faculty-category">${category}</span></td>
                 <td>${escapeFacultyHtml(faculty.max_workload ?? '')}</td>
                 <td><div class="faculty-actions">
-                    <button class="ds-btn ds-btn-secondary ds-btn-sm" type="button" data-faculty-id="${escapeFacultyAttribute(faculty.id)}" onclick="openEditFacultyModal(this.dataset.facultyId)">Edit</button>
+                    <button class="ds-btn ds-btn-secondary ds-btn-sm" type="button" data-faculty-id="${escapeFacultyAttribute(faculty.id)}" onclick="openEditFacultyModal(this.dataset.facultyId)"${writeDisabledAttribute()}>Edit</button>
                     ${retireButton}
                 </div></td>
             </tr>
@@ -206,7 +239,6 @@ function openAddFacultyModal() {
     document.getElementById('facultyCategory').value = 'fullTime';
     document.getElementById('facultyMaxWorkload').value = '45';
     document.getElementById('facultyModalTitle').textContent = 'Add faculty';
-    updateFacultyQuarterVisibility();
     document.getElementById('facultyModal').classList.add('active');
     document.getElementById('facultyName').focus();
 }
@@ -222,15 +254,8 @@ function openEditFacultyModal(id) {
     document.getElementById('facultyCategory').value = faculty.category || 'fullTime';
     document.getElementById('facultyMaxWorkload').value = faculty.max_workload ?? 45;
     document.getElementById('facultyModalTitle').textContent = 'Edit faculty';
-    updateFacultyQuarterVisibility();
     document.getElementById('facultyModal').classList.add('active');
     document.getElementById('facultyName').focus();
-}
-
-function updateFacultyQuarterVisibility() {
-    const isNewAdjunct = !document.getElementById('facultyId')?.value &&
-        document.getElementById('facultyCategory')?.value === 'adjunct';
-    setQuarterVisibility('facultyQuarterGroup', 'facultyQuarter', isNewAdjunct);
 }
 
 function closeFacultyModal() {
@@ -268,14 +293,6 @@ async function handleFacultySubmit(event) {
             showFacultyMessage('A new faculty member must be full time or adjunct.', 'error');
             return;
         }
-        const quarter = fields.category === 'adjunct'
-            ? document.getElementById('facultyQuarter').value
-            : null;
-        if (fields.category === 'adjunct' && !quarter) {
-            showFacultyMessage('Select a quarter for an adjunct appointment.', 'error');
-            return;
-        }
-
         const addedFaculty = await dbService.addFaculty({
             name: fields.name,
             email: fields.email,
@@ -293,7 +310,6 @@ async function handleFacultySubmit(event) {
         const appointment = await dbService.saveAppointment({
             faculty_id: addedFaculty.id,
             academic_year_id: currentRosterYearId,
-            quarter,
             category: fields.category
         });
         facultyMembers.push(addedFaculty);
@@ -306,7 +322,7 @@ async function handleFacultySubmit(event) {
         showFacultyMessage('Faculty added', 'success');
     } catch (error) {
         console.error('Failed to save faculty:', error);
-        showFacultyMessage(`Failed to save faculty: ${error.message}`, 'error');
+        showFacultyMessage(getFacultyWriteErrorMessage(error, 'Failed to save faculty'), 'error');
     }
 }
 
@@ -336,7 +352,6 @@ function handleAppointmentPersonChange() {
     if (person) {
         document.getElementById('appointmentCategory').value = person.category === 'adjunct' ? 'adjunct' : 'fullTime';
     }
-    updateAppointmentQuarterVisibility();
 }
 
 function openEditAppointmentModal(id) {
@@ -350,31 +365,14 @@ function openEditAppointmentModal(id) {
     document.getElementById('appointmentPersonGroup').classList.add('ds-hidden');
     document.getElementById('appointmentCategory').value = appointment.category || 'fullTime';
     document.getElementById('appointmentRank').value = appointment.rank || '';
-    document.getElementById('appointmentQuarter').value = appointment.quarter || '';
     document.getElementById('appointmentFte').value = appointment.fte ?? '';
     document.getElementById('appointmentTeachingTarget').value = appointment.teaching_target ?? '';
     document.getElementById('appointmentStartDate').value = appointment.start_date || '';
     document.getElementById('appointmentEndDate').value = appointment.end_date || '';
     document.getElementById('appointmentNotes').value = appointment.notes || '';
     document.getElementById('appointmentModalTitle').textContent = `Edit ${getAppointmentFaculty(appointment).name || 'appointment'}`;
-    updateAppointmentQuarterVisibility();
     document.getElementById('appointmentModal').classList.add('active');
     document.getElementById('appointmentCategory').focus();
-}
-
-function updateAppointmentQuarterVisibility() {
-    const isAdjunct = document.getElementById('appointmentCategory')?.value === 'adjunct';
-    setQuarterVisibility('appointmentQuarterGroup', 'appointmentQuarter', isAdjunct);
-}
-
-function setQuarterVisibility(groupId, selectId, visible) {
-    const group = document.getElementById(groupId);
-    const select = document.getElementById(selectId);
-    if (!group || !select) return;
-    group.hidden = !visible;
-    group.classList.toggle('ds-hidden', !visible);
-    select.required = visible;
-    if (!visible) select.value = '';
 }
 
 function closeAppointmentModal() {
@@ -388,14 +386,12 @@ function nullableNumber(value) {
 function readAppointmentForm() {
     const id = document.getElementById('appointmentId').value;
     const existing = rosterAppointments.find(item => String(item.id) === String(id));
-    const category = document.getElementById('appointmentCategory').value;
     return {
         ...(id ? { id } : {}),
         faculty_id: id ? existing?.faculty_id : document.getElementById('appointmentFacultyId').value,
         academic_year_id: currentRosterYearId,
-        category,
+        category: document.getElementById('appointmentCategory').value,
         rank: document.getElementById('appointmentRank').value.trim() || null,
-        quarter: category === 'adjunct' ? document.getElementById('appointmentQuarter').value : null,
         fte: nullableNumber(document.getElementById('appointmentFte').value),
         teaching_target: nullableNumber(document.getElementById('appointmentTeachingTarget').value),
         start_date: document.getElementById('appointmentStartDate').value || null,
@@ -411,11 +407,6 @@ async function handleAppointmentSubmit(event) {
         showFacultyMessage('Select a person and academic year.', 'error');
         return;
     }
-    if (fields.category === 'adjunct' && !fields.quarter) {
-        showFacultyMessage('Select a quarter for an adjunct appointment.', 'error');
-        return;
-    }
-
     try {
         const saved = await dbService.saveAppointment(fields);
         const existingIndex = rosterAppointments.findIndex(item => String(item.id) === String(fields.id));
@@ -433,31 +424,27 @@ async function handleAppointmentSubmit(event) {
         showFacultyMessage('Appointment saved', 'success');
     } catch (error) {
         console.error('Failed to save appointment:', error);
-        showFacultyMessage(`Failed to save appointment: ${error.message}`, 'error');
+        showFacultyMessage(getFacultyWriteErrorMessage(error, 'Failed to save appointment'), 'error');
     }
 }
 
-async function endRosterAppointment(id) {
+async function removeRosterAppointment(id) {
     const index = rosterAppointments.findIndex(item => String(item.id) === String(id));
     if (index < 0) return;
     const appointment = rosterAppointments[index];
     const faculty = getAppointmentFaculty(appointment);
-    if (!window.confirm(`End ${faculty.name || 'this appointment'}? The appointment will remain in the roster history.`)) return;
+    const academicYear = academicYears.find(year => String(year.id ?? year.year) === String(currentRosterYearId));
+    const yearLabel = academicYear?.year || document.getElementById('rosterYear')?.selectedOptions?.[0]?.textContent || '';
+    if (!window.confirm(`Remove ${faculty.name || 'this person'} from the ${yearLabel} roster? They stay on the People list.`)) return;
 
-    const today = getLocalDateString();
     try {
-        const ended = await dbService.endAppointment(id, today);
-        rosterAppointments[index] = {
-            ...appointment,
-            ...(ended || {}),
-            end_date: ended?.end_date || today,
-            faculty: ended?.faculty || appointment.faculty
-        };
+        await dbService.removeAppointment(id);
+        rosterAppointments.splice(index, 1);
         renderRosterTable();
-        showFacultyMessage('Appointment ended', 'success');
+        showFacultyMessage('Removed from roster', 'success');
     } catch (error) {
-        console.error('Failed to end appointment:', error);
-        showFacultyMessage(`Failed to end appointment: ${error.message}`, 'error');
+        console.error('Failed to remove appointment:', error);
+        showFacultyMessage(getFacultyWriteErrorMessage(error, 'Failed to remove appointment'), 'error');
     }
 }
 
@@ -472,7 +459,7 @@ async function retireFaculty(id) {
         showFacultyMessage(`${faculty.name} retired`, 'success');
     } catch (error) {
         console.error('Failed to retire faculty:', error);
-        showFacultyMessage(`Failed to retire faculty: ${error.message}`, 'error');
+        showFacultyMessage(getFacultyWriteErrorMessage(error, 'Failed to update faculty'), 'error');
     }
 }
 
@@ -486,10 +473,17 @@ function replaceFacultyRow(updatedFaculty) {
 
 function getFacultyCategoryLabel(category) {
     return {
-        fullTime: 'Full time',
+        fullTime: 'Full-time',
         adjunct: 'Adjunct',
         former: 'Former'
     }[category] || category || '';
+}
+
+function getFacultyWriteErrorMessage(error, fallback) {
+    if (error?.code === 'PGRST116' || error?.code === '42501') {
+        return 'Not saved: sign in as an editor first.';
+    }
+    return `${fallback}: ${error?.message || 'Unknown error'}`;
 }
 
 function escapeFacultyHtml(value) {

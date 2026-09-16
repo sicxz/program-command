@@ -473,21 +473,19 @@ const dbService = {
     },
 
     /**
-     * End an appointment without removing its historical row
+     * Remove one faculty appointment from a roster
      */
-    async endAppointment(id, endDate) {
-        if (!isSupabaseConfigured()) return null;
+    async removeAppointment(id) {
+        if (!isSupabaseConfigured()) return true;
 
         await this.initialize();
-        const { data, error } = await getSupabaseClient()
+        const { error } = await getSupabaseClient()
             .from('faculty_appointments')
-            .update({ end_date: endDate })
-            .eq('id', id)
-            .select()
-            .single();
+            .delete()
+            .eq('id', id);
 
         if (error) throw error;
-        return data;
+        return true;
     },
 
     /**
