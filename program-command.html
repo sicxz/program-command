@@ -4779,6 +4779,8 @@
         }
 
         body.foundry-production .schedule-cell {
+            display: flex;
+            flex-direction: column;
             min-height: 126px;
             padding: 8px;
             background: var(--f-surface);
@@ -4790,7 +4792,8 @@
         }
 
         body.foundry-production .schedule-cell.single-course-cell {
-            display: block;
+            display: flex;
+            flex-direction: column;
             padding: 8px;
         }
 
@@ -4807,6 +4810,8 @@
         body.foundry-production .course-block {
             display: flex;
             flex-direction: column;
+            flex: 1 1 auto;
+            justify-content: flex-start;
             gap: 4px;
             min-height: 88px;
             padding: 8px 10px;
