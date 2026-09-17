@@ -225,7 +225,7 @@ const EnrollmentViewModel = (function () {
         return bundle.terms.map(term => {
             const quarter = isRecord(term) && parseQuarter(term.quarter);
             if (!quarter || knownTerms.has(quarter.key) || term.academicYear !== quarter.academicYear ||
-                !['completed', 'provisional'].includes(term.status) ||
+                !['completed', 'provisional', 'scheduled'].includes(term.status) ||
                 typeof term.observedAt !== 'string' || !Number.isFinite(Date.parse(term.observedAt)) ||
                 term.completeSearch !== true || !validCount(term.expectedSections) ||
                 !Array.isArray(term.sections) || term.sections.length !== term.expectedSections) {
@@ -245,13 +245,14 @@ const EnrollmentViewModel = (function () {
                 crns.add(section.crn);
                 return { ...section, enrolled: section.capacity - section.available };
             });
+            if (term.status === 'scheduled') return null;
             return { ...quarter, observedAt: term.observedAt, termCode: term.termCode,
                 provisional: term.status === 'provisional', sections,
                 total: sections.reduce((sum, section) => sum + section.enrolled, 0),
                 capacity: sections.reduce((sum, section) => sum + section.capacity, 0),
                 waitlisted: sections.reduce((sum, section) => sum + (section.waitlisted ?? 0), 0),
                 missingWaitlists: sections.filter(section => section.waitlisted === null).length };
-        }).sort((a, b) => a.order - b.order);
+        }).filter(Boolean).sort((a, b) => a.order - b.order);
     }
 
     function coverageFor(quarters, year) {
