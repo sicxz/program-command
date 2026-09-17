@@ -41,12 +41,12 @@ describe('Program Command schedule view headers', () => {
         const roomOrder = ['ISL 156', 'ISL 154', 'ISL 155', 'ISL 101', 'CEB 102', 'CEB 104'];
 
         expect(roomOrder.map(harness.getScheduleViewRoomHeaderLabel)).toEqual([
-            'ISL 156 UX Lab',
-            'ISL 154 Motion Lab',
-            'ISL 155 Mac Lab',
-            'ISL 101 Design Lab',
-            'CEB 102 Mac Lab',
-            'CEB 104 Design Lab'
+            'ISL 156 | UX Lab',
+            'ISL 154 | Motion Lab',
+            'ISL 155 | Mac Lab',
+            'ISL 101 | Design Lab',
+            'CEB 102 | Mac Lab',
+            'CEB 104 | Design Lab'
         ]);
     });
 
@@ -54,12 +54,12 @@ describe('Program Command schedule view headers', () => {
         const roomOrder = ['206', '209', '210', '212', 'CEB 102', 'CEB 104'];
 
         expect(roomOrder.map(harness.getScheduleViewRoomHeaderLabel)).toEqual([
-            '206 UX Lab',
-            '209 Motion Lab',
-            '210 Mac Lab',
-            '212 Design Lab',
-            'CEB 102 Mac Lab',
-            'CEB 104 Design Lab'
+            '206 | UX Lab',
+            '209 | Motion Lab',
+            '210 | Mac Lab',
+            '212 | Design Lab',
+            'CEB 102 | Mac Lab',
+            'CEB 104 | Design Lab'
         ]);
     });
 
