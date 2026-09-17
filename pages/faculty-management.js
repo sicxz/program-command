@@ -10,7 +10,7 @@ let rosterAppointments = [];
 let currentRosterYearId = null;
 let canEditFaculty = false;
 let authStateSubscription = null;
-const FACULTY_RANKS = ['Tenured', 'Tenure-track', 'Adjunct lecturer'];
+const FACULTY_RANKS = ['Professor', 'Lecturer', 'Adjunct'];
 
 document.addEventListener('DOMContentLoaded', async () => {
     await initializeFacultyPage();
@@ -147,7 +147,7 @@ function renderRosterTable() {
             <tr data-appointment-id="${escapeFacultyAttribute(appointment.id)}">
                 <td>${escapeFacultyHtml(faculty.name)}</td>
                 <td><span class="faculty-category">${escapeFacultyHtml(getFacultyCategoryLabel(getAppointmentCategory(appointment)))}</span></td>
-                <td>${escapeFacultyHtml(isFacultyRank(appointment.rank) ? appointment.rank : '—')}</td>
+                <td>${escapeFacultyHtml(normalizeFacultyRank(appointment.rank) || '—')}</td>
                 <td>${escapeFacultyHtml(appointment.fte ?? '')}</td>
                 <td>${escapeFacultyHtml(appointment.teaching_target ?? '')}</td>
                 <td>${escapeFacultyHtml(appointment.start_date || '')}</td>
@@ -186,23 +186,29 @@ function getAppointmentFaculty(appointment) {
 }
 
 function getAppointmentCategory(appointment) {
-    if (isFacultyRank(appointment.rank)) return categoryForRank(appointment.rank);
+    const rank = normalizeFacultyRank(appointment.rank);
+    if (rank) return categoryForRank(rank);
     return appointment.category || getAppointmentFaculty(appointment).category || '';
 }
 
+function normalizeFacultyRank(rank) {
+    if (rank === 'Adjunct lecturer') return 'Adjunct';
+    return FACULTY_RANKS.includes(rank) ? rank : '';
+}
+
 function isFacultyRank(rank) {
-    return FACULTY_RANKS.includes(rank);
+    return Boolean(normalizeFacultyRank(rank));
 }
 
 function categoryForRank(rank) {
-    return rank === 'Adjunct lecturer' ? 'adjunct' : 'fullTime';
+    return rank === 'Adjunct' ? 'adjunct' : 'fullTime';
 }
 
 function getCurrentAppointmentRank(facultyId) {
     const appointment = rosterAppointments.find(item =>
         String(item.faculty_id) === String(facultyId)
     );
-    return isFacultyRank(appointment?.rank) ? appointment.rank : '';
+    return normalizeFacultyRank(appointment?.rank);
 }
 
 function renderFacultyTable() {
@@ -388,7 +394,7 @@ function openEditAppointmentModal(id) {
     document.getElementById('appointmentFacultyId').value = appointment.faculty_id || '';
     document.getElementById('appointmentFacultyId').required = false;
     document.getElementById('appointmentPersonGroup').classList.add('ds-hidden');
-    document.getElementById('appointmentRank').value = isFacultyRank(appointment.rank) ? appointment.rank : '';
+    document.getElementById('appointmentRank').value = normalizeFacultyRank(appointment.rank);
     document.getElementById('appointmentFte').value = appointment.fte ?? '';
     document.getElementById('appointmentTeachingTarget').value = appointment.teaching_target ?? '';
     document.getElementById('appointmentStartDate').value = appointment.start_date || '';
