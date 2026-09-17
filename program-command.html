@@ -1168,6 +1168,12 @@
             border-left-color: #d35400 !important;
         }
 
+        .faculty-hughes {
+            --faculty-accent: #c2185b;
+            --faculty-glow: rgba(194, 24, 91, 0.28);
+            border-left-color: #c2185b !important;
+        }
+
         .faculty-online {
             --faculty-accent: #7f8c8d;
             --faculty-glow: rgba(127, 140, 141, 0.28);
@@ -5715,6 +5721,7 @@
             'E.Norris': { class: 'faculty-norris', color: '#1abc9c', name: 'E.Norris' },
             'J.Braukmann': { class: 'faculty-braukmann', color: '#34495e', name: 'J.Braukmann' },
             'S.Allison': { class: 'faculty-allison', color: '#d35400', name: 'S.Allison' },
+            'A.Hughes': { class: 'faculty-hughes', color: '#c2185b', name: 'A.Hughes' },
             'Barton/Pettigrew': { class: 'faculty-online', color: '#7f8c8d', name: 'Barton/Pettigrew' },
             'Adjunct': { class: 'faculty-adjunct', color: '#95a5a6', name: 'Adjunct' },
             'TBD': { class: 'faculty-tbd', color: '#bdc3c7', name: 'TBD' }
@@ -5751,22 +5758,23 @@
             'CEB 104': 'CEB 104'
         };
         const SCHEDULE_VIEW_ROOM_LABELS = {
-            '206': 'UX Lab',
-            '207': 'Media Lab',
-            '209': 'Motion Lab',
-            '210': 'Mac Lab',
-            '212': 'Design Lab',
-            'ISL 156': 'UX Lab',
-            'ISL 154': 'Motion Lab',
-            'ISL 155': 'Mac Lab',
-            'ISL 101': 'Design Lab',
-            'CEB 102': 'CEB Mac Lab',
-            'CEB 104': 'CEB Design Lab'
+            '206': '206 UX Lab',
+            '207': '207 Media Lab',
+            '209': '209 Motion Lab',
+            '210': '210 Mac Lab',
+            '212': '212 Design Lab',
+            'ISL 156': 'ISL 156 UX Lab',
+            'ISL 154': 'ISL 154 Motion Lab',
+            'ISL 155': 'ISL 155 Mac Lab',
+            'ISL 101': 'ISL 101 Design Lab',
+            'CEB 102': 'CEB 102 Mac Lab',
+            'CEB 104': 'CEB 104 Design Lab'
         };
         const SCHEDULE_GRID_ROOM_SETS = Object.freeze({
             catalyst: Object.freeze(['206', '209', '210', '212', 'CEB 102', 'CEB 104']),
             isleHall: Object.freeze(['ISL 156', 'ISL 154', 'ISL 155', 'ISL 101', 'CEB 102', 'CEB 104'])
         });
+        const SCHEDULE_GRID_EXCLUDED_ROOMS = Object.freeze(['207']);
         const ISLE_HALL_ROOM_BY_CATALYST_ROOM = Object.freeze({
             '206': 'ISL 156',
             '209': 'ISL 154',
@@ -5784,12 +5792,17 @@
 
             if (!usesIsleHall) {
                 const isleHallRooms = new Set(Object.values(ISLE_HALL_ROOM_BY_CATALYST_ROOM));
-                return configuredRooms.filter((room) => !isleHallRooms.has(room));
+                const excludedRooms = new Set([...isleHallRooms, ...SCHEDULE_GRID_EXCLUDED_ROOMS]);
+                return configuredRooms.filter((room) => !excludedRooms.has(room));
             }
 
             const roomSet = SCHEDULE_GRID_ROOM_SETS.isleHall;
             const pairedRoomsFromOtherBuilding = Object.keys(ISLE_HALL_ROOM_BY_CATALYST_ROOM);
-            const excludedRooms = new Set([...roomSet, ...pairedRoomsFromOtherBuilding]);
+            const excludedRooms = new Set([
+                ...roomSet,
+                ...pairedRoomsFromOtherBuilding,
+                ...SCHEDULE_GRID_EXCLUDED_ROOMS
+            ]);
             const additionalRooms = configuredRooms.filter((room) => !excludedRooms.has(room));
             return [...roomSet, ...additionalRooms];
         }
@@ -9180,7 +9193,8 @@
             const data = scheduleData[quarter] || {};
             const days = getSchedulerDayIds();
             const times = getSchedulerTimeSlotIds();
-            const rooms = getSchedulerRoomOptionList().filter((room) => room !== '207');
+            const rooms = getSchedulerRoomOptionList()
+                .filter((room) => !SCHEDULE_GRID_EXCLUDED_ROOMS.includes(room));
 
             refreshConflictData();
 
