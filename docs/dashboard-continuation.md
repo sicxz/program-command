@@ -207,6 +207,16 @@ Differences that need a decision:
 The schedule itself was not edited; the differences above are for Travis to
 resolve against EagleNET.
 
+## AY 2026-27 capture, September 17
+
+Fall 2026: 23 sections, 301 enrolled / 362 capacity.
+Winter 2027: 19 sections, 0 enrolled / 368 capacity.
+Spring 2027: 18 sections, 0 enrolled / 345 capacity.
+
+Winter and Spring 2027 are scheduled terms for scheduler section lists and are
+excluded from enrollment captures and totals. Banner now titles DESN 374
+"APPLIED AI" while the catalog keeps "Applied Design" (left as is).
+
 ## Section cap as of 2026
 
 On September 13, 2026, the user clarified that sections are capped at

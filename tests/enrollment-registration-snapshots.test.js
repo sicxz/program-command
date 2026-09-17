@@ -2,13 +2,14 @@ const model = require('../js/enrollment-view-model.js');
 const source = require('../enrollment-dashboard-data.json');
 const catalog = require('../data/course-catalog.json');
 const snapshots = require('../data/enrollment-registration-snapshots.json');
+const SectionRegistrations = require('../js/section-registrations.js');
 const clone = value => JSON.parse(JSON.stringify(value));
 const view = options => model.build(source, catalog, { year: 'all', snapshots, ...options });
 
 test('captured registrations reconcile to complete, unique Design section searches', () => {
     const captures = model.readSnapshots(snapshots);
     expect(captures.map(term => [term.sections.length, term.total, term.capacity, term.waitlisted, term.missingWaitlists]))
-        .toEqual([[39, 365, 485, 0, 19], [39, 338, 458, 0, 21], [23, 300, 362, 9, 5]]);
+        .toEqual([[39, 365, 485, 0, 19], [39, 338, 458, 0, 21], [23, 301, 362, 9, 5]]);
     expect(captures.map(term => term.academicYear)).toEqual(['2025-26', '2025-26', '2026-27']);
     expect(captures.map(term => new Set(term.sections.map(section => section.crn)).size)).toEqual([39, 39, 23]);
     expect(captures[2].sections.find(section => section.crn === '40438')).toMatchObject({ enrolled: 24, waitlisted: 2 });
@@ -17,10 +18,10 @@ test('captured registrations reconcile to complete, unique Design section search
 test('Enrollment overlay preserves baseline history and completes 2025–26 without changing planning inputs', () => {
     const before = JSON.stringify(source);
     const result = view();
-    expect(result.totalRegistrations).toBe(5041);
+    expect(result.totalRegistrations).toBe(5042);
     expect(result.courseCount).toBe(42);
     expect(result.quarters).toHaveLength(13);
-    expect(result.quarters.slice(-3).map(q => q.total)).toEqual([365, 338, 300]);
+    expect(result.quarters.slice(-3).map(q => q.total)).toEqual([365, 338, 301]);
     expect(JSON.stringify(source)).toBe(before);
     expect(model.build(source, catalog, { year: 'all' }).totalRegistrations).toBe(4038);
     const completed = view({ year: '2025-26' });
@@ -57,7 +58,23 @@ test('a full term capture replaces existing term counts instead of accumulating 
     const baseline = clone(source);
     baseline.courseStats['DESN 100'].quarterly['fall-2026'] = 999;
     baseline.courseStats['DESN 345'] = { quarterly: { 'fall-2026': 50 } };
-    expect(model.build(baseline, catalog, { year: '2026-27', snapshots }).totalRegistrations).toBe(300);
+    expect(model.build(baseline, catalog, { year: '2026-27', snapshots }).totalRegistrations).toBe(301);
+});
+
+test('scheduled terms provide Banner sections without becoming enrollment captures', () => {
+    expect(model.readSnapshots(snapshots)).toHaveLength(3);
+    const winter = SectionRegistrations.forTerm(snapshots, '2026-27', 'winter');
+    const spring = SectionRegistrations.forTerm(snapshots, '2026-27', 'spring');
+    expect(winter).toHaveLength(19);
+    expect(spring).toHaveLength(18);
+    expect(winter).toEqual(expect.arrayContaining([expect.objectContaining({ course: 'DESN 216', section: '025' })]));
+    expect(spring).toEqual(expect.arrayContaining([expect.objectContaining({ course: 'DESN 216', section: '025' })]));
+});
+
+test('rejects a scheduled term whose section count is incomplete', () => {
+    const bundle = clone(snapshots);
+    bundle.terms.find(term => term.status === 'scheduled').sections.pop();
+    expect(() => model.readSnapshots(bundle)).toThrow();
 });
 
 test.each([

@@ -100,8 +100,8 @@ test('the view model keeps shipped DESN 100 declining while registration is open
         registering: true,
         trendComparison: {
             registering: true,
-            latestTerm: 'fall-2026', latestCount: 23,
-            priorTerm: 'fall-2025', priorCount: 45, delta: -22
+            latestTerm: 'fall-2026', latestCount: 22,
+            priorTerm: 'fall-2025', priorCount: 45, delta: -23
         }
     });
     expect(view.trendCounts).toMatchObject({
