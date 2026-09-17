@@ -56,10 +56,20 @@ describe('Isle Hall room transition', () => {
     test('keeps the Program Command grid in its configured Catalyst order for 2025-26', () => {
         expect(extractScheduleGridRoomsForYear()('2025-26')).toEqual([
             '206',
-            '207',
             '209',
             '210',
             '212',
+            'CEB 102',
+            'CEB 104'
+        ]);
+    });
+
+    test('keeps the Program Command grid in its configured Isle Hall order for 2026-27', () => {
+        expect(extractScheduleGridRoomsForYear()('2026-27')).toEqual([
+            'ISL 156',
+            'ISL 154',
+            'ISL 155',
+            'ISL 101',
             'CEB 102',
             'CEB 104'
         ]);
