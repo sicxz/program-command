@@ -15922,6 +15922,19 @@
             return rows;
         }
 
+        function resolveSectionNumber(course, quarter, academicYear = currentAcademicYear) {
+            const sections = window.SectionRegistrations?.forTerm(registrationSnapshots, academicYear, quarter);
+            if (sections) {
+                const hit = window.SectionRegistrations.match(sections, {
+                    course: course.code,
+                    days: course.day,
+                    startTime: course.time
+                });
+                if (hit?.section) return String(hit.section).trim();
+            }
+            return String(course.section || '').trim() || '001';
+        }
+
         /**
          * Build a stable-enough sync key for year-scoped schedule saves.
          *
@@ -16227,7 +16240,7 @@
                             quarter: row.quarter,
                             day_pattern: row.day || null,
                             time_slot: row.time || null,
-                            section: row.section || String(index + 1).padStart(3, '0'),
+                            section: resolveSectionNumber(row, row.quarter),
                             projected_enrollment: Number.isFinite(projectedEnrollment) ? projectedEnrollment : null,
                             updated_at: new Date().toISOString()
                         };
@@ -16282,7 +16295,7 @@
             const quarterCourses = flattenQuarterData(scheduleData[quarter] || {});
             return quarterCourses.map((course, index) => ({
                 code: normalizeCourseCode(course.code),
-                section: course.section || String(index + 1).padStart(3, '0'),
+                section: resolveSectionNumber(course, quarter),
                 title: course.name || course.title || '',
                 instructor: course.instructor || 'TBD',
                 room: course.room || '',
@@ -16297,7 +16310,7 @@
             CONFLICT_QUARTERS.forEach((quarter) => {
                 quarterCourses[quarter] = flattenQuarterData(scheduleData[quarter] || {}).map((course, index) => ({
                     code: normalizeCourseCode(course.code),
-                    section: course.section || String(index + 1).padStart(3, '0'),
+                    section: resolveSectionNumber(course, quarter),
                     title: course.name || course.title || '',
                     instructor: course.instructor || 'TBD',
                     room: course.room || '',
@@ -17112,7 +17125,7 @@
                         }
                         snapshot[quarter].assignedCourses[key].push({
                             courseCode: course.code,
-                            section: course.section || String(index + 1).padStart(3, '0'),
+                            section: resolveSectionNumber({ ...course, day, time }, quarter),
                             courseTitle: course.name || course.title || '',
                             facultyName: normalizePromptInstructorName(course.instructor),
                             credits: Number(course.credits) || 5
