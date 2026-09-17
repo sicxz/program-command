@@ -35,20 +35,20 @@
     const TIME_SLOTS = Object.freeze(['10:00-12:20', '13:00-15:20', '16:00-18:20']);
     const ROOM_SETS = Object.freeze({
         catalyst: Object.freeze([
-            Object.freeze({ code: '206', label: 'UX Lab' }),
-            Object.freeze({ code: '209', label: 'Motion Lab' }),
-            Object.freeze({ code: '210', label: 'Mac Lab' }),
-            Object.freeze({ code: '212', label: 'Design Lab' }),
-            Object.freeze({ code: 'CEB 102', label: 'CEB Mac Lab' }),
-            Object.freeze({ code: 'CEB 104', label: 'CEB Design Lab' })
+            Object.freeze({ code: '206', label: '206 | UX Lab' }),
+            Object.freeze({ code: '209', label: '209 | Motion Lab' }),
+            Object.freeze({ code: '210', label: '210 | Mac Lab' }),
+            Object.freeze({ code: '212', label: '212 | Design Lab' }),
+            Object.freeze({ code: 'CEB 102', label: 'CEB 102 | Mac Lab' }),
+            Object.freeze({ code: 'CEB 104', label: 'CEB 104 | Design Lab' })
         ]),
         isleHall: Object.freeze([
-            Object.freeze({ code: 'ISL 156', label: 'UX Lab' }),
-            Object.freeze({ code: 'ISL 154', label: 'Motion Lab' }),
-            Object.freeze({ code: 'ISL 155', label: 'Mac Lab' }),
-            Object.freeze({ code: 'ISL 101', label: 'Design Lab' }),
-            Object.freeze({ code: 'CEB 102', label: 'CEB Mac Lab' }),
-            Object.freeze({ code: 'CEB 104', label: 'CEB Design Lab' })
+            Object.freeze({ code: 'ISL 156', label: 'ISL 156 | UX Lab' }),
+            Object.freeze({ code: 'ISL 154', label: 'ISL 154 | Motion Lab' }),
+            Object.freeze({ code: 'ISL 155', label: 'ISL 155 | Mac Lab' }),
+            Object.freeze({ code: 'ISL 101', label: 'ISL 101 | Design Lab' }),
+            Object.freeze({ code: 'CEB 102', label: 'CEB 102 | Mac Lab' }),
+            Object.freeze({ code: 'CEB 104', label: 'CEB 104 | Design Lab' })
         ])
     });
     const ROOM_LABELS = Object.freeze({
@@ -143,11 +143,11 @@
         'DESN 360': 'Zine and Publication Design',
         'DESN 365': 'Motion Design 2',
         'DESN 366': 'Production Design',
-        'DESN 368': 'Code + Design 1',
+        'DESN 368': 'Web Design + Code 1',
         'DESN 369': 'Web Development 1',
-        'DESN 374': 'AI + Design',
+        'DESN 374': 'Applied Design',
         'DESN 375': 'Digital Video',
-        'DESN 378': 'Code + Design 2',
+        'DESN 378': 'Web Design + Code 2',
         'DESN 379': 'Web Development 2',
         'DESN 384': 'Digital Sound',
         'DESN 396': 'Experimental Course',
@@ -157,7 +157,7 @@
         'DESN 446': '4D Animation',
         'DESN 458': 'User Experience Design 3',
         'DESN 463': 'Community-Driven Design',
-        'DESN 468': 'Code + Design 3',
+        'DESN 468': 'Web Design + Code 3',
         'DESN 469': 'Web Development 3',
         'DESN 480': 'Professional Practice',
         'DESN 490': 'Senior Capstone',

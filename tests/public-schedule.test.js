@@ -75,7 +75,7 @@ describe('public schedule page', () => {
 
         const headers = Array.from(document.querySelectorAll('.public-grid-header')).map((header) => header.textContent);
         const firstRoomRow = Array.from(document.querySelectorAll('.public-schedule-cell')).slice(0, 6);
-        expect(headers).toEqual(['Time', 'UX Lab', 'Motion Lab', 'Mac Lab', 'Design Lab', 'CEB Mac Lab', 'CEB Design Lab']);
+        expect(headers).toEqual(['Time', 'ISL 156 | UX Lab', 'ISL 154 | Motion Lab', 'ISL 155 | Mac Lab', 'ISL 101 | Design Lab', 'CEB 102 | Mac Lab', 'CEB 104 | Design Lab']);
         expect(firstRoomRow.map((cell) => cell.dataset.room)).toEqual([
             'ISL 156',
             'ISL 154',
@@ -131,8 +131,12 @@ describe('public schedule page', () => {
             }
         ], { scheduleDataUtils: ScheduleDataUtils });
 
-        expect(scheduleData.fall.MW['10:00-12:20'][0].name).toBe('Code + Design 1');
+        expect(scheduleData.fall.MW['10:00-12:20'][0].name).toBe('Web Design + Code 1');
         expect(scheduleData.spring.TR['10:00-12:20'][0].name).toBe('Web Development 2');
+    });
+
+    test('uses the canonical Applied Design title for DESN 374', () => {
+        expect(PublicSchedulePage.getCanonicalCourseTitleByCode('DESN 374', 'AI + Design', {})).toBe('Applied Design');
     });
 
     test('loads public schedule rows through the RPC and renders the Fall grid', async () => {
@@ -213,7 +217,7 @@ describe('public schedule page', () => {
         expect(document.getElementById('publicYearTabs').textContent).toContain('2025-26');
         expect(document.getElementById('publicYearTabs').textContent).not.toContain('2023-24');
         expect(document.getElementById('publicScheduleGrid').textContent).toContain('DESN 368');
-        expect(document.getElementById('publicScheduleGrid').textContent).toContain('Code + Design 1');
+        expect(document.getElementById('publicScheduleGrid').textContent).toContain('Web Design + Code 1');
         expect(document.getElementById('publicScheduleGrid').textContent).not.toContain('Interaction Design');
         expect(document.getElementById('publicScheduleGrid').textContent).not.toContain('DESN 999');
         expect(document.getElementById('publicSpecialSections').textContent).toContain('DESN 216');
@@ -223,7 +227,7 @@ describe('public schedule page', () => {
         expect(document.getElementById('publicFacultyLegend').textContent).not.toMatch(/\bcr\b/i);
 
         const headers = Array.from(document.querySelectorAll('.public-grid-header')).map((header) => header.textContent);
-        expect(headers).toEqual(['Time', 'UX Lab', 'Motion Lab', 'Mac Lab', 'Design Lab', 'CEB Mac Lab', 'CEB Design Lab']);
+        expect(headers).toEqual(['Time', 'ISL 156 | UX Lab', 'ISL 154 | Motion Lab', 'ISL 155 | Mac Lab', 'ISL 101 | Design Lab', 'CEB 102 | Mac Lab', 'CEB 104 | Design Lab']);
         expect(headers).not.toContain('207 Media Lab');
         expect(headers).not.toContain('CEB 102');
         expect(headers).not.toContain('CEB 104');
@@ -314,12 +318,12 @@ describe('public schedule page', () => {
         expect(document.getElementById('publicScheduleGrid').textContent).not.toContain('DESN 368');
         expect(Array.from(document.querySelectorAll('.public-grid-header')).map((header) => header.textContent)).toEqual([
             'Time',
-            'UX Lab',
-            'Motion Lab',
-            'Mac Lab',
-            'Design Lab',
-            'CEB Mac Lab',
-            'CEB Design Lab'
+            '206 | UX Lab',
+            '209 | Motion Lab',
+            '210 | Mac Lab',
+            '212 | Design Lab',
+            'CEB 102 | Mac Lab',
+            'CEB 104 | Design Lab'
         ]);
         expect(Array.from(document.querySelectorAll('.public-schedule-cell')).slice(0, 6).map((cell) => cell.dataset.room)).toEqual([
             '206',
@@ -515,6 +519,8 @@ describe('public schedule page', () => {
         expect(css).toContain('--f-bg: #F7F7F8;');
         expect(css).toContain('--f-mono: "SFMono-Regular", "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;');
         expect(css).toContain('.public-status::before');
+        expect(css).toMatch(/\.public-schedule-cell\s*{[^}]*display:\s*flex;/);
+        expect(css).toMatch(/\.public-course-block\s*{[^}]*flex:\s*1 1 auto;/);
         expect(css).toContain('border-left: 4px solid var(--faculty-accent');
     });
 

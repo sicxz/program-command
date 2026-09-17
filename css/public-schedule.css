@@ -561,6 +561,8 @@ body {
 }
 
 .public-schedule-cell {
+    display: flex;
+    flex-direction: column;
     min-height: 126px;
     padding: 8px;
     background: #ffffff;
@@ -575,6 +577,8 @@ body {
 .public-course-block {
     display: flex;
     flex-direction: column;
+    flex: 1 1 auto;
+    justify-content: flex-start;
     gap: 4px;
     min-height: 88px;
     padding: 8px 10px;
