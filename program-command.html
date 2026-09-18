@@ -7204,6 +7204,7 @@
                 const response = await fetch('data/enrollment-registration-snapshots.json');
                 if (response.ok) {
                     registrationSnapshots = await response.json();
+                    window.registrationSnapshots = registrationSnapshots;
                     rebuildEnrollmentLookup();
                     return true;
                 }
@@ -7211,6 +7212,7 @@
                 console.warn('Could not load section registration snapshots:', error);
             }
             registrationSnapshots = null;
+            window.registrationSnapshots = null;
             rebuildEnrollmentLookup();
             return false;
         }
@@ -15923,7 +15925,9 @@
         }
 
         function resolveSectionNumber(course, quarter, academicYear = currentAcademicYear) {
-            const sections = window.SectionRegistrations?.forTerm(registrationSnapshots, academicYear, quarter);
+            // registrationSnapshots is module-scoped (loadRegistrationSnapshots); this classic script reads the window copy.
+            const snapshots = typeof window !== 'undefined' ? (window.registrationSnapshots || null) : null;
+            const sections = window.SectionRegistrations?.forTerm(snapshots, academicYear, quarter);
             if (sections) {
                 const hit = window.SectionRegistrations.match(sections, {
                     course: course.code,

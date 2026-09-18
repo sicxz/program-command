@@ -128,4 +128,11 @@ describe('Program Command section numbers', () => {
     test('does not derive section numbers from list position', () => {
         expect(html).not.toContain("String(index + 1).padStart(3, '0')");
     });
+
+    test('the helper reads the window copy that the module script publishes', () => {
+        expect(html).toContain('window.registrationSnapshots = registrationSnapshots;');
+        expect(html).toContain('window.registrationSnapshots = null;');
+        expect(extractFunction(html, 'resolveSectionNumber')).toContain('window.registrationSnapshots');
+        expect(extractFunction(html, 'resolveSectionNumber')).not.toMatch(/forTerm\(registrationSnapshots/);
+    });
 });
