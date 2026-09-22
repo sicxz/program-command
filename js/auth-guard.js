@@ -555,15 +555,8 @@
             <span class="auth-session-email" title="${email}">${email}</span>
             <span class="auth-session-role">${role}</span>
             <span class="auth-session-presence" id="authSessionPresence">Presence offline</span>
-            <button type="button" class="auth-session-link" id="authSessionLinkLogin">Link login</button>
             <button type="button" class="auth-session-logout" id="authSessionLogout">Logout</button>
         `;
-
-        const linkLoginButton = document.getElementById('authSessionLinkLogin');
-        linkLoginButton.addEventListener('click', () => {
-            const next = encodeURIComponent(getCurrentPathWithQuery());
-            window.location.assign(`${loginUrl()}?mode=link&next=${next}`);
-        });
 
         const logoutButton = document.getElementById('authSessionLogout');
         logoutButton.addEventListener('click', async () => {

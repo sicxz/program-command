@@ -7,8 +7,9 @@ function loadAuthService({ isConfigured = true, authImpl = {} } = {}) {
     const source = fs.readFileSync(filePath, 'utf8');
 
     const mockAuth = {
-        signUp: jest.fn(),
         signInWithPassword: jest.fn(),
+        resetPasswordForEmail: jest.fn(),
+        updateUser: jest.fn(),
         signOut: jest.fn(),
         getSession: jest.fn(),
         getUser: jest.fn(),
@@ -23,10 +24,17 @@ function loadAuthService({ isConfigured = true, authImpl = {} } = {}) {
 
     const sandbox = {
         console,
+        URL,
+        URLSearchParams,
         module: { exports: {} },
         exports: {},
         document: mockDocument,
         window: {
+            location: {
+                origin: 'https://program-command.example',
+                search: '',
+                hash: ''
+            },
             getSupabaseClient: jest.fn(() => mockClient),
             isSupabaseConfigured: jest.fn(() => isConfigured)
         },
@@ -45,30 +53,30 @@ function loadAuthService({ isConfigured = true, authImpl = {} } = {}) {
 }
 
 describe('AuthService', () => {
-    test('signUp stores role metadata and returns normalized role', async () => {
+    test('requestPasswordReset sends a login-page redirect URL', async () => {
         const { AuthService, mockAuth } = loadAuthService();
-        mockAuth.signUp.mockResolvedValue({
-            data: {
-                user: {
-                    id: 'user-1',
-                    email: 'chair@example.edu',
-                    user_metadata: { role: 'chair' }
-                },
-                session: { access_token: 'token' }
-            },
+        mockAuth.resetPasswordForEmail.mockResolvedValue({
+            data: {},
             error: null
         });
 
-        const result = await AuthService.signUp('chair@example.edu', 'password123', 'chair');
+        await AuthService.requestPasswordReset('chair@example.edu');
 
-        expect(mockAuth.signUp).toHaveBeenCalledWith({
-            email: 'chair@example.edu',
-            password: 'password123',
-            options: { data: { role: 'chair' } }
+        expect(mockAuth.resetPasswordForEmail).toHaveBeenCalledWith(
+            'chair@example.edu',
+            { redirectTo: expect.stringMatching(/login\.html$/) }
+        );
+    });
+
+    test('updatePassword updates the current user password', async () => {
+        const { AuthService, mockAuth } = loadAuthService();
+        mockAuth.updateUser.mockResolvedValue({ data: {}, error: null });
+
+        await AuthService.updatePassword('a-secure-password');
+
+        expect(mockAuth.updateUser).toHaveBeenCalledWith({
+            password: 'a-secure-password'
         });
-        expect(result.role).toBe('chair');
-        expect(result.user.role).toBe('chair');
-        expect(result.session).toEqual({ access_token: 'token' });
     });
 
     test('signIn authenticates and returns session + user role', async () => {
@@ -188,7 +196,6 @@ describe('AuthService', () => {
     test('throws when Supabase is not configured for auth operations', async () => {
         const { AuthService } = loadAuthService({ isConfigured: false });
         await expect(AuthService.signIn('chair@example.edu', 'pw')).rejects.toThrow('Supabase is not configured.');
-        await expect(AuthService.signUp('chair@example.edu', 'pw', 'chair')).rejects.toThrow('Supabase is not configured.');
         await expect(AuthService.getSession()).resolves.toBeNull();
         await expect(AuthService.getUser()).resolves.toBeNull();
     });
