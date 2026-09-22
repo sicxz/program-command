@@ -85,6 +85,10 @@
             line-height: 1.4;
         }
 
+        .login-form[hidden] {
+            display: none;
+        }
+
         .login-form {
             display: grid;
             gap: 14px;
@@ -132,105 +136,33 @@
             background: var(--f-ink);
         }
 
-        .oauth-divider {
-            margin: 4px 0;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            color: var(--f-soft);
-            font-family: var(--f-mono);
-            font-size: 11px;
-            font-weight: 850;
-            text-transform: uppercase;
-            letter-spacing: 0;
-        }
-
-        .oauth-divider::before,
-        .oauth-divider::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: var(--f-hairline);
-        }
-
-        .oauth-buttons {
-            display: grid;
-            gap: 8px;
-        }
-
-        .oauth-button {
-            border: 1px solid var(--f-hairline);
-            background: var(--f-surface);
-            color: var(--f-ink);
-            border-radius: 0;
-            padding: 10px 12px;
-            font-size: 14px;
-            font-weight: 650;
-            text-align: center;
+        .login-text-button {
+            justify-self: start;
+            border: 0;
+            background: transparent;
+            color: var(--f-blue-text);
+            font: inherit;
+            font-size: 13px;
+            padding: 0;
             cursor: pointer;
         }
 
-        .oauth-button:hover {
-            background: var(--f-surface-subtle);
-            border-color: var(--f-rule);
+        .login-text-button:hover {
+            text-decoration: underline;
         }
 
-        .linking-panel {
-            margin-top: 14px;
-            border: 1px solid var(--f-hairline);
-            border-left: 4px solid var(--f-blue);
-            border-radius: 0;
-            background: var(--f-surface-subtle);
-            padding: 12px;
-            display: none;
-        }
-
-        .linking-panel.visible {
-            display: block;
-        }
-
-        .linking-title {
-            margin: 0 0 6px;
-            font-size: 13px;
+        .login-form-heading {
+            margin: 0;
+            font-size: 18px;
             font-weight: 760;
-            color: var(--f-ink);
         }
 
-        .linking-copy {
-            margin: 0 0 8px;
-            font-size: 12px;
+        .login-form-copy,
+        .login-password-help {
+            margin: 0;
             color: var(--f-muted);
+            font-size: 13px;
             line-height: 1.4;
-        }
-
-        .linked-providers {
-            margin: 8px 0 0;
-            padding: 0;
-            list-style: none;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-        }
-
-        .linked-providers li {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            border: 1px solid var(--f-hairline);
-            background: var(--f-blue-wash);
-            color: var(--f-blue-text);
-            border-radius: 0;
-            padding: 2px 8px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .linked-providers li::before {
-            content: "";
-            width: 7px;
-            height: 7px;
-            border-radius: 999px;
-            background: currentColor;
         }
 
         .login-error {
@@ -245,10 +177,22 @@
             padding: 10px 12px;
         }
 
-        .login-help {
+        .login-message {
+            display: none;
             margin-top: 14px;
+            border: 1px solid var(--f-blue);
+            border-left: 4px solid var(--f-blue);
+            background: var(--f-blue-wash);
+            color: var(--f-blue-text);
+            font-size: 13px;
+            padding: 10px 12px;
+        }
+
+        .login-footer {
+            margin: 14px 0 0;
             color: var(--f-muted);
             font-size: 13px;
+            line-height: 1.4;
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -273,25 +217,37 @@
             </div>
 
             <button type="submit" class="login-button" id="loginButton">Sign in</button>
+            <button type="button" class="login-text-button" id="showResetButton">Forgot your password?</button>
         </form>
 
-        <div class="oauth-divider">or continue with</div>
-        <div class="oauth-buttons">
-            <button type="button" class="oauth-button" id="oauthGoogleButton" data-provider="google">Continue with Google</button>
-            <button type="button" class="oauth-button" id="oauthGithubButton" data-provider="github">Continue with GitHub</button>
-            <button type="button" class="oauth-button" id="oauthAppleButton" data-provider="apple">Continue with Apple</button>
-        </div>
+        <form class="login-form" id="resetForm" hidden>
+            <h2 class="login-form-heading">Reset your password</h2>
+            <p class="login-form-copy">We'll email a reset link if this address belongs to an invited account.</p>
+            <div class="login-field">
+                <label for="resetEmail">Email</label>
+                <input id="resetEmail" type="email" autocomplete="email" required>
+            </div>
+            <button type="submit" class="login-button" id="resetButton">Send reset link</button>
+            <button type="button" class="login-text-button" id="backToSignInButton">Back to sign in</button>
+        </form>
 
-        <section class="linking-panel" id="linkingPanel" aria-live="polite">
-            <h2 class="linking-title">Link Additional Login Methods</h2>
-            <p class="linking-copy">
-                Link providers only after signing into your existing account first. Accounts are not auto-merged by email.
-            </p>
-            <ul class="linked-providers" id="linkedProvidersList"></ul>
-        </section>
+        <form class="login-form" id="setPasswordForm" hidden>
+            <h2 class="login-form-heading">Create your password</h2>
+            <div class="login-field">
+                <label for="newPassword">New password</label>
+                <input id="newPassword" type="password" minlength="12" autocomplete="new-password" required>
+            </div>
+            <div class="login-field">
+                <label for="confirmPassword">Confirm password</label>
+                <input id="confirmPassword" type="password" minlength="12" autocomplete="new-password" required>
+            </div>
+            <p class="login-password-help">Use at least 12 characters.</p>
+            <button type="submit" class="login-button" id="setPasswordButton">Save password and continue</button>
+        </form>
 
         <div class="login-error" id="loginError" role="alert"></div>
-        <p class="login-help">If you need access, ask an admin for an invite.</p>
+        <div class="login-message" id="loginMessage" role="status"></div>
+        <p class="login-footer">Access is by invitation only. Ask a Program Command administrator for an invitation.</p>
     </main>
 
     <script src="pages/login.js"></script>
