@@ -7147,24 +7147,27 @@
         let enrollmentDataByCode = {};
         let registrationSnapshots = null;
         let enrollmentCalendar = null;
+        let courseSeats = null;
 
         function rebuildEnrollmentLookup() {
             enrollmentDataByCode = {};
             Object.entries(enrollmentData || {}).forEach(([code, stats]) => {
                 const normalizedCode = normalizeCourseCode(code);
                 const current = {
-                    terms: (registrationSnapshots?.terms || []).map(term => ({
+                    // Scheduled terms are section lists, not registrations (as in EnrollmentViewModel.readSnapshots).
+                    terms: (registrationSnapshots?.terms || []).filter(term => term.status !== 'scheduled').map(term => ({
                         quarter: term.quarter,
                         academicYear: term.academicYear,
                         status: term.status,
                         sections: (term.sections || [])
                             .filter(section => normalizeCourseCode(section.course || section.code) === normalizedCode)
-                            .map(section => ({ enrolled: getSnapshotEnrollment(section) }))
+                            .map(section => ({ enrolled: getSnapshotEnrollment(section), capacity: Number(section.capacity) }))
                             .filter(section => Number.isFinite(section.enrolled) && section.enrolled >= 0)
                     })).filter(term => term.sections.length)
                 };
                 const trendComparison = window.EnrollmentViewModel?.computeTrend({
                     history: stats?.quarterly,
+                    seats: courseSeats?.courses?.[normalizedCode],
                     current,
                     calendar: enrollmentCalendar,
                     now: new Date()
@@ -7202,6 +7205,10 @@
         }
 
         async function loadRegistrationSnapshots() {
+            // Seats per course per quarter let trend labels compare fill rate; without them trends compare students.
+            courseSeats = await fetch('data/course-seats-by-quarter.json')
+                .then(response => response.ok ? response.json() : null)
+                .catch(() => null);
             try {
                 const response = await fetch('data/enrollment-registration-snapshots.json');
                 if (response.ok) {
@@ -7221,6 +7228,13 @@
 
         function formatTrendComparison(comparison) {
             if (!comparison?.latestTerm || comparison.latestCount === null) return '';
+            if (comparison.basis === 'fill') {
+                const termLabel = key => key.replace(/^(\w)(\w*)-(\d{4})$/, (match, first, rest, year) => `${first.toUpperCase()}${rest} ${year}`);
+                const percentFull = (count, seats) => `${Math.round(count / seats * 100)}% full`;
+                const points = `${comparison.fillDelta > 0 ? '+' : comparison.fillDelta < 0 ? '−' : ''}${Math.abs(comparison.fillDelta)} pts`;
+                return `${termLabel(comparison.priorTerm)} ${percentFull(comparison.priorCount, comparison.priorSeats)} → ` +
+                    `${termLabel(comparison.latestTerm)} ${percentFull(comparison.latestCount, comparison.latestSeats)} (${points})`;
+            }
             const priorTerm = comparison.priorTerm || 'no prior term';
             const priorCount = comparison.priorCount ?? '—';
             const delta = comparison.delta === null ? '—' : `${comparison.delta > 0 ? '+' : ''}${comparison.delta}`;

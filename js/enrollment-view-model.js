@@ -82,12 +82,18 @@ const EnrollmentViewModel = (function () {
         return `${part('year')}-${part('month')}-${part('day')}`;
     }
 
-    function computeTrend({ history, current, calendar, now } = {}) {
+    function computeTrend({ history, seats, current, calendar, now } = {}) {
         const observations = new Map();
+        // Seats per quarter key: a number, or { seats, sections } as in data/course-seats-by-quarter.json.
+        const seatsFor = key => {
+            const value = isRecord(seats) ? seats[key] : null;
+            const count = isRecord(value) ? value.seats : value;
+            return validCount(count) && count > 0 ? count : null;
+        };
         if (isRecord(history)) {
             Object.entries(history).forEach(([key, count]) => {
                 const quarter = parseQuarter(key);
-                if (quarter && validCount(count)) observations.set(key, { ...quarter, count });
+                if (quarter && validCount(count)) observations.set(key, { ...quarter, count, seats: seatsFor(key) });
             });
         }
 
@@ -101,22 +107,34 @@ const EnrollmentViewModel = (function () {
             const quarter = key && parseQuarter(key);
             if (!quarter) return;
             let count = validCount(term.count) ? term.count : null;
+            let termSeats = seatsFor(key);
             if (Array.isArray(term.sections) && term.sections.length) {
                 const enrolled = term.sections.map(section => section?.enrolled).filter(validCount);
                 if (enrolled.length) count = enrolled.reduce((sum, value) => sum + value, 0);
+                const capacities = term.sections.map(section => section?.capacity).filter(validCount);
+                const capacity = capacities.reduce((sum, value) => sum + value, 0);
+                if (capacity > 0) termSeats = capacity;
             }
-            if (validCount(count)) observations.set(key, { ...quarter, count });
+            if (validCount(count)) observations.set(key, { ...quarter, count, seats: termSeats });
         });
 
         const latest = [...observations.values()].sort((a, b) => b.order - a.order)[0];
         if (!latest) {
             return { trend: null, registering: false, latestTerm: null, latestCount: null,
-                priorTerm: null, priorCount: null, delta: null };
+                priorTerm: null, priorCount: null, delta: null,
+                latestSeats: null, priorSeats: null, fillDelta: null, basis: null };
         }
         const expectedPriorTerm = `${latest.season.toLowerCase()}-${latest.year - 1}`;
         const prior = observations.get(expectedPriorTerm) || null;
         const delta = prior ? latest.count - prior.count : null;
-        let trend = !prior ? 'new' : delta >= 3 ? 'growing' : delta <= -3 ? 'declining' : 'stable';
+        // Compare how full the course is when both years' seats are known, so a smaller
+        // section cap does not read as lost students; otherwise compare students.
+        const fillDelta = prior && latest.seats && prior.seats
+            ? Math.round((latest.count / latest.seats - prior.count / prior.seats) * 100) : null;
+        const basis = fillDelta === null ? 'seats' : 'fill';
+        const trend = !prior ? 'new' : basis === 'fill'
+            ? (fillDelta >= 10 ? 'growing' : fillDelta <= -10 ? 'declining' : 'stable')
+            : (delta >= 3 ? 'growing' : delta <= -3 ? 'declining' : 'stable');
 
         const calendarTerm = (Array.isArray(calendar?.terms) ? calendar.terms : []).find(term =>
             isRecord(term) && `${String(term.quarter).toLowerCase()}-${term.year}` === latest.key &&
@@ -131,7 +149,11 @@ const EnrollmentViewModel = (function () {
             latestCount: latest.count,
             priorTerm: prior?.key || null,
             priorCount: prior?.count ?? null,
-            delta
+            delta,
+            latestSeats: latest.seats,
+            priorSeats: prior?.seats ?? null,
+            fillDelta,
+            basis
         };
     }
 
@@ -142,7 +164,8 @@ const EnrollmentViewModel = (function () {
         return 'advanced';
     }
 
-    function normalize(data, catalog, snapshots = null, calendar = null, now = undefined) {
+    function normalize(data, catalog, snapshots = null, calendar = null, now = undefined, seats = null) {
+        const seatsByCourse = isRecord(seats) && isRecord(seats.courses) ? seats.courses : {};
         const titles = new Map();
         if (isRecord(catalog) && Array.isArray(catalog.courses)) {
             catalog.courses.forEach(course => {
@@ -201,9 +224,10 @@ const EnrollmentViewModel = (function () {
                 academicYear: capture.academicYear,
                 status: capture.provisional ? 'provisional' : 'completed',
                 sections: capture.sections.filter(section => section.course === course.code)
-                    .map(section => ({ enrolled: section.enrolled }))
+                    .map(section => ({ enrolled: section.enrolled, capacity: section.capacity }))
             })).filter(term => term.sections.length) };
-            const trendComparison = computeTrend({ history: course.history, current, calendar, now });
+            const trendComparison = computeTrend({ history: course.history,
+                seats: seatsByCourse[course.code], current, calendar, now });
             course.trend = trendComparison.trend ?? course.storedTrend;
             course.registering = trendComparison.registering;
             course.trendComparison = trendComparison;
@@ -371,14 +395,14 @@ const EnrollmentViewModel = (function () {
         };
     }
 
-    function create(data, catalog, snapshots) {
-        return metadata(data, normalize(data, catalog, snapshots));
+    function create(data, catalog, snapshots, seats) {
+        return metadata(data, normalize(data, catalog, snapshots, null, undefined, seats));
     }
 
     function build(data, catalog, options = {}) {
         const settings = isRecord(options) ? options : {};
         const now = settings.now === undefined ? new Date() : settings.now;
-        const normalized = normalize(data, catalog, settings.snapshots, settings.calendar, now);
+        const normalized = normalize(data, catalog, settings.snapshots, settings.calendar, now, settings.seats);
         const meta = metadata(data, normalized);
         const term = currentTerm(now, settings.calendar);
         const year = settings.year === 'current' ? term.academicYear :

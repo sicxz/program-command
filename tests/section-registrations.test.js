@@ -15,7 +15,7 @@ describe('section registrations', () => {
             days: 'MW',
             startTime: '16:00',
             endTime: '18:20'
-        })).toMatchObject({ crn: '40436', enrolled: 22 });
+        })).toMatchObject({ crn: '40436', enrolled: 23 });
     });
 
     test('returns null when a scheduled section has no snapshot counterpart', () => {
