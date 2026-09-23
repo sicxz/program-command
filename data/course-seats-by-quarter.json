@@ -1,0 +1,957 @@
+{
+  "generatedFrom": "enrollment-data/processed/corrected-all-quarters.csv",
+  "courses": {
+    "DESN 100": {
+      "fall-2022": {
+        "seats": 49,
+        "sections": 2
+      },
+      "winter-2023": {
+        "seats": 48,
+        "sections": 2
+      },
+      "spring-2023": {
+        "seats": 48,
+        "sections": 2
+      },
+      "fall-2023": {
+        "seats": 49,
+        "sections": 2
+      },
+      "winter-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2024": {
+        "seats": 48,
+        "sections": 2
+      },
+      "fall-2024": {
+        "seats": 48,
+        "sections": 2
+      },
+      "winter-2025": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2025": {
+        "seats": 24,
+        "sections": 1
+      },
+      "fall-2025": {
+        "seats": 48,
+        "sections": 2
+      }
+    },
+    "DESN 200": {
+      "fall-2022": {
+        "seats": 27,
+        "sections": 1
+      },
+      "winter-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "fall-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "winter-2024": {
+        "seats": 25,
+        "sections": 1
+      },
+      "spring-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "fall-2024": {
+        "seats": 48,
+        "sections": 2
+      },
+      "winter-2025": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2025": {
+        "seats": 24,
+        "sections": 1
+      },
+      "fall-2025": {
+        "seats": 48,
+        "sections": 2
+      }
+    },
+    "DESN 216": {
+      "fall-2022": {
+        "seats": 72,
+        "sections": 3
+      },
+      "winter-2023": {
+        "seats": 80,
+        "sections": 4
+      },
+      "spring-2023": {
+        "seats": 52,
+        "sections": 2
+      },
+      "fall-2023": {
+        "seats": 55,
+        "sections": 3
+      },
+      "winter-2024": {
+        "seats": 48,
+        "sections": 2
+      },
+      "spring-2024": {
+        "seats": 58,
+        "sections": 2
+      },
+      "fall-2024": {
+        "seats": 59,
+        "sections": 2
+      },
+      "winter-2025": {
+        "seats": 52,
+        "sections": 3
+      },
+      "spring-2025": {
+        "seats": 54,
+        "sections": 3
+      },
+      "fall-2025": {
+        "seats": 48,
+        "sections": 2
+      }
+    },
+    "DESN 243": {
+      "fall-2022": {
+        "seats": 24,
+        "sections": 1
+      },
+      "winter-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "fall-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "winter-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "fall-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "winter-2025": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2025": {
+        "seats": 24,
+        "sections": 1
+      },
+      "fall-2025": {
+        "seats": 24,
+        "sections": 1
+      }
+    },
+    "DESN 263": {
+      "fall-2022": {
+        "seats": 24,
+        "sections": 1
+      },
+      "winter-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2023": {
+        "seats": 27,
+        "sections": 1
+      },
+      "fall-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "winter-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "fall-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "winter-2025": {
+        "seats": 24,
+        "sections": 1
+      },
+      "fall-2025": {
+        "seats": 24,
+        "sections": 1
+      }
+    },
+    "DESN 301": {
+      "fall-2022": {
+        "seats": 24,
+        "sections": 1
+      },
+      "winter-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "fall-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "fall-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2025": {
+        "seats": 24,
+        "sections": 1
+      },
+      "fall-2025": {
+        "seats": 24,
+        "sections": 1
+      }
+    },
+    "DESN 305": {
+      "spring-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2025": {
+        "seats": 24,
+        "sections": 1
+      }
+    },
+    "DESN 325": {
+      "winter-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "winter-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "fall-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2025": {
+        "seats": 24,
+        "sections": 1
+      }
+    },
+    "DESN 326": {
+      "fall-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "fall-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "fall-2025": {
+        "seats": 24,
+        "sections": 1
+      }
+    },
+    "DESN 335": {
+      "winter-2025": {
+        "seats": 24,
+        "sections": 1
+      }
+    },
+    "DESN 336": {
+      "winter-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2025": {
+        "seats": 24,
+        "sections": 1
+      }
+    },
+    "DESN 338": {
+      "fall-2022": {
+        "seats": 48,
+        "sections": 2
+      },
+      "winter-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2023": {
+        "seats": 25,
+        "sections": 1
+      },
+      "fall-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "winter-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "fall-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "winter-2025": {
+        "seats": 28,
+        "sections": 2
+      },
+      "spring-2025": {
+        "seats": 24,
+        "sections": 1
+      },
+      "fall-2025": {
+        "seats": 22,
+        "sections": 1
+      }
+    },
+    "DESN 343": {
+      "fall-2024": {
+        "seats": 24,
+        "sections": 1
+      }
+    },
+    "DESN 348": {
+      "winter-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "winter-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "winter-2025": {
+        "seats": 24,
+        "sections": 1
+      }
+    },
+    "DESN 350": {
+      "fall-2022": {
+        "seats": 24,
+        "sections": 1
+      },
+      "winter-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "fall-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "winter-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "fall-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "winter-2025": {
+        "seats": 24,
+        "sections": 1
+      }
+    },
+    "DESN 351": {
+      "winter-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2025": {
+        "seats": 24,
+        "sections": 1
+      }
+    },
+    "DESN 355": {
+      "fall-2022": {
+        "seats": 24,
+        "sections": 1
+      },
+      "winter-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "winter-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "winter-2025": {
+        "seats": 24,
+        "sections": 1
+      }
+    },
+    "DESN 359": {
+      "winter-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "fall-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "winter-2024": {
+        "seats": 25,
+        "sections": 1
+      },
+      "spring-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "fall-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "winter-2025": {
+        "seats": 23,
+        "sections": 1
+      },
+      "spring-2025": {
+        "seats": 24,
+        "sections": 1
+      },
+      "fall-2025": {
+        "seats": 23,
+        "sections": 1
+      }
+    },
+    "DESN 360": {
+      "winter-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "winter-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "winter-2025": {
+        "seats": 24,
+        "sections": 1
+      }
+    },
+    "DESN 363": {
+      "fall-2022": {
+        "seats": 24,
+        "sections": 1
+      },
+      "winter-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "fall-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "winter-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "winter-2025": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2025": {
+        "seats": 24,
+        "sections": 1
+      }
+    },
+    "DESN 365": {
+      "spring-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2025": {
+        "seats": 24,
+        "sections": 1
+      }
+    },
+    "DESN 366": {
+      "fall-2022": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "fall-2025": {
+        "seats": 24,
+        "sections": 1
+      }
+    },
+    "DESN 368": {
+      "fall-2022": {
+        "seats": 24,
+        "sections": 1
+      },
+      "winter-2023": {
+        "seats": 48,
+        "sections": 2
+      },
+      "spring-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "fall-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "winter-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "fall-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "winter-2025": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2025": {
+        "seats": 24,
+        "sections": 1
+      },
+      "fall-2025": {
+        "seats": 24,
+        "sections": 1
+      }
+    },
+    "DESN 374": {
+      "fall-2025": {
+        "seats": 24,
+        "sections": 1
+      }
+    },
+    "DESN 378": {
+      "winter-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "winter-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "winter-2025": {
+        "seats": 24,
+        "sections": 1
+      }
+    },
+    "DESN 384": {
+      "winter-2023": {
+        "seats": 50,
+        "sections": 2
+      },
+      "winter-2024": {
+        "seats": 25,
+        "sections": 1
+      },
+      "spring-2025": {
+        "seats": 25,
+        "sections": 2
+      }
+    },
+    "DESN 385": {
+      "spring-2023": {
+        "seats": 20,
+        "sections": 1
+      },
+      "spring-2024": {
+        "seats": 24,
+        "sections": 1
+      }
+    },
+    "DESN 396": {
+      "winter-2023": {
+        "seats": 20,
+        "sections": 1
+      },
+      "fall-2023": {
+        "seats": 24,
+        "sections": 1
+      }
+    },
+    "DESN 399": {
+      "spring-2023": {
+        "seats": 5,
+        "sections": 1
+      },
+      "fall-2023": {
+        "seats": 4,
+        "sections": 2
+      },
+      "winter-2025": {
+        "seats": 4,
+        "sections": 1
+      },
+      "fall-2025": {
+        "seats": 6,
+        "sections": 2
+      }
+    },
+    "DESN 401": {
+      "spring-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "winter-2025": {
+        "seats": 24,
+        "sections": 1
+      }
+    },
+    "DESN 458": {
+      "fall-2022": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "fall-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2025": {
+        "seats": 24,
+        "sections": 1
+      }
+    },
+    "DESN 463": {
+      "fall-2022": {
+        "seats": 24,
+        "sections": 1
+      },
+      "winter-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "fall-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "winter-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "fall-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2025": {
+        "seats": 24,
+        "sections": 1
+      },
+      "fall-2025": {
+        "seats": 24,
+        "sections": 1
+      }
+    },
+    "DESN 468": {
+      "fall-2022": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2025": {
+        "seats": 24,
+        "sections": 1
+      }
+    },
+    "DESN 480": {
+      "fall-2022": {
+        "seats": 24,
+        "sections": 1
+      },
+      "winter-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "fall-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "fall-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2025": {
+        "seats": 24,
+        "sections": 1
+      },
+      "fall-2025": {
+        "seats": 24,
+        "sections": 1
+      }
+    },
+    "DESN 490": {
+      "fall-2022": {
+        "seats": 24,
+        "sections": 1
+      },
+      "winter-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "fall-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "winter-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "fall-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2025": {
+        "seats": 24,
+        "sections": 1
+      },
+      "fall-2025": {
+        "seats": 24,
+        "sections": 1
+      }
+    },
+    "DESN 491": {
+      "fall-2023": {
+        "seats": 7,
+        "sections": 2
+      },
+      "winter-2024": {
+        "seats": 10,
+        "sections": 1
+      },
+      "spring-2024": {
+        "seats": 1,
+        "sections": 1
+      },
+      "winter-2025": {
+        "seats": 5,
+        "sections": 2
+      },
+      "spring-2025": {
+        "seats": 5,
+        "sections": 2
+      }
+    },
+    "DESN 493": {
+      "fall-2022": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2023": {
+        "seats": 24,
+        "sections": 1
+      },
+      "winter-2024": {
+        "seats": 24,
+        "sections": 1
+      },
+      "spring-2024": {
+        "seats": 24,
+        "sections": 1
+      }
+    },
+    "DESN 495": {
+      "fall-2022": {
+        "seats": 10,
+        "sections": 3
+      },
+      "winter-2023": {
+        "seats": 15,
+        "sections": 3
+      },
+      "spring-2023": {
+        "seats": 14,
+        "sections": 4
+      },
+      "fall-2023": {
+        "seats": 12,
+        "sections": 4
+      },
+      "winter-2024": {
+        "seats": 5,
+        "sections": 2
+      },
+      "spring-2024": {
+        "seats": 10,
+        "sections": 3
+      },
+      "fall-2024": {
+        "seats": 17,
+        "sections": 4
+      },
+      "winter-2025": {
+        "seats": 21,
+        "sections": 5
+      },
+      "spring-2025": {
+        "seats": 35,
+        "sections": 9
+      },
+      "fall-2025": {
+        "seats": 25,
+        "sections": 6
+      }
+    },
+    "DESN 496": {
+      "winter-2025": {
+        "seats": 24,
+        "sections": 1
+      }
+    },
+    "DESN 499": {
+      "fall-2022": {
+        "seats": 17,
+        "sections": 8
+      },
+      "winter-2023": {
+        "seats": 17,
+        "sections": 7
+      },
+      "spring-2023": {
+        "seats": 24,
+        "sections": 10
+      },
+      "fall-2023": {
+        "seats": 14,
+        "sections": 4
+      },
+      "winter-2024": {
+        "seats": 25,
+        "sections": 10
+      },
+      "spring-2024": {
+        "seats": 42,
+        "sections": 12
+      },
+      "fall-2024": {
+        "seats": 28,
+        "sections": 7
+      },
+      "winter-2025": {
+        "seats": 47,
+        "sections": 12
+      },
+      "spring-2025": {
+        "seats": 35,
+        "sections": 11
+      },
+      "fall-2025": {
+        "seats": 12,
+        "sections": 3
+      }
+    }
+  }
+}

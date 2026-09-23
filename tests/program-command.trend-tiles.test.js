@@ -93,3 +93,35 @@ test('a registering-declining course keeps its direction on the tile and in anal
         expect.stringContaining('DESN 100')
     ]);
 });
+
+test('Program Command trends compare fill rate from the seats file and say so in the tooltip', () => {
+    const html = fs.readFileSync(path.resolve(__dirname, '..', 'program-command.html'), 'utf8');
+    const read = file => JSON.parse(fs.readFileSync(path.resolve(__dirname, '..', file), 'utf8'));
+    const sandbox = {
+        window: { EnrollmentViewModel: require('../js/enrollment-view-model.js') },
+        enrollmentData: read('enrollment-dashboard-data.json').courseStats,
+        enrollmentDataByCode: {},
+        registrationSnapshots: read('data/enrollment-registration-snapshots.json'),
+        enrollmentCalendar: read('data/academic-calendar.json'),
+        courseSeats: read('data/course-seats-by-quarter.json'),
+        normalizeCourseCode: code => code,
+        Date: class extends Date { constructor(...args) { super(...(args.length ? args : ['2026-09-22T12:00:00-07:00'])); } }
+    };
+    vm.createContext(sandbox);
+    ['getSnapshotEnrollment', 'rebuildEnrollmentLookup', 'formatTrendComparison']
+        .forEach(name => vm.runInContext(extractFunction(html, name), sandbox));
+    sandbox.rebuildEnrollmentLookup();
+
+    const course = code => vm.runInContext(`enrollmentDataByCode[${JSON.stringify(code)}]`, sandbox);
+    expect(course('DESN 263')).toMatchObject({ trend: 'declining', trendComparison: { basis: 'fill', fillDelta: -22 } });
+    expect(course('DESN 100')).toMatchObject({ trend: 'stable', trendComparison: { basis: 'fill', latestSeats: 23, priorSeats: 48 } });
+    expect(sandbox.formatTrendComparison(course('DESN 263').trendComparison))
+        .toBe('Fall 2025 92% full → Fall 2026 70% full (−22 pts)');
+    expect(sandbox.formatTrendComparison({
+        latestTerm: 'fall-2026', latestCount: 17, priorTerm: 'fall-2025', priorCount: 20, delta: -3, basis: 'seats'
+    })).toBe('fall-2026 17 vs fall-2025 20 (-3)');
+
+    vm.runInContext('courseSeats = null', sandbox);
+    sandbox.rebuildEnrollmentLookup();
+    expect(course('DESN 263').trendComparison).toMatchObject({ basis: 'seats', delta: -8, fillDelta: null });
+});

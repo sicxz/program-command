@@ -814,11 +814,11 @@
       "termCode": "202640",
       "label": "Fall Quarter 2026",
       "academicYear": "2026-27",
-      "observedAt": "2026-09-17T22:53:27Z",
+      "observedAt": "2026-09-23T02:40:06Z",
       "status": "provisional",
       "expectedSections": 23,
       "completeSearch": true,
-      "method": "Banner searchResults JSON for subject DESN, term 202640, pageMaxSize 50, one page, read from the signed-in Browse Classes session on 2026-09-17. enrollment is Banner's enrollment field; available is seatsAvailable; capacity is maximumEnrollment. Rooms are published for two sections.",
+      "method": "Banner searchResults JSON for subject DESN, term 202640, pageMaxSize 50, one page, read from the signed-in Browse Classes session on 2026-09-22. enrollment is Banner's enrollment field; available is seatsAvailable; capacity is maximumEnrollment. Rooms are published for all 23 sections.",
       "sections": [
         {
           "course": "DESN 100",
@@ -826,10 +826,10 @@
           "crn": "40436",
           "title": "DRAWING FOR COMMUNICATION",
           "credits": 5,
-          "available": 1,
+          "available": 0,
           "capacity": 23,
           "waitlisted": 0,
-          "enrolled": 22,
+          "enrolled": 23,
           "waitlistCapacity": 10,
           "openSection": true,
           "instructor": "Mills, Simeon",
@@ -840,8 +840,8 @@
             "beginTime": "1600",
             "endTime": "1820",
             "arranged": false,
-            "building": null,
-            "room": null
+            "building": "Isle Hall",
+            "room": "101"
           }
         },
         {
@@ -852,7 +852,7 @@
           "credits": 5,
           "available": 0,
           "capacity": 24,
-          "waitlisted": 2,
+          "waitlisted": 0,
           "enrolled": 24,
           "waitlistCapacity": 10,
           "openSection": true,
@@ -864,8 +864,8 @@
             "beginTime": "1000",
             "endTime": "1220",
             "arranged": false,
-            "building": null,
-            "room": null
+            "building": "Computer Engineering Bldg.",
+            "room": "102"
           }
         },
         {
@@ -874,13 +874,13 @@
           "crn": "40440",
           "title": "DIGITAL FOUNDATIONS",
           "credits": 5,
-          "available": 0,
+          "available": 1,
           "capacity": 22,
           "waitlisted": 0,
-          "enrolled": 22,
+          "enrolled": 21,
           "waitlistCapacity": 10,
           "openSection": true,
-          "instructor": "Sopu, Ariel",
+          "instructor": "Hughes, Ashleigh",
           "scheduleType": "Performance and Simulation",
           "campus": "Cheney",
           "meeting": {
@@ -888,8 +888,8 @@
             "beginTime": "1300",
             "endTime": "1520",
             "arranged": false,
-            "building": null,
-            "room": null
+            "building": "Computer Engineering Bldg.",
+            "room": "102"
           }
         },
         {
@@ -904,7 +904,7 @@
           "enrolled": 22,
           "waitlistCapacity": 10,
           "openSection": true,
-          "instructor": "Sopu, Ariel",
+          "instructor": "Hughes, Ashleigh",
           "scheduleType": "Performance and Simulation",
           "campus": "Online",
           "meeting": {
@@ -936,8 +936,8 @@
             "beginTime": "1000",
             "endTime": "1220",
             "arranged": false,
-            "building": null,
-            "room": null
+            "building": "Isle Hall",
+            "room": "155"
           }
         },
         {
@@ -960,8 +960,8 @@
             "beginTime": "1000",
             "endTime": "1220",
             "arranged": false,
-            "building": null,
-            "room": null
+            "building": "Isle Hall",
+            "room": "154"
           }
         },
         {
@@ -972,7 +972,7 @@
           "credits": 5,
           "available": 0,
           "capacity": 24,
-          "waitlisted": 2,
+          "waitlisted": 1,
           "enrolled": 24,
           "waitlistCapacity": 10,
           "openSection": true,
@@ -984,8 +984,8 @@
             "beginTime": "1300",
             "endTime": "1520",
             "arranged": false,
-            "building": null,
-            "room": null
+            "building": "Isle Hall",
+            "room": "155"
           }
         },
         {
@@ -1008,8 +1008,8 @@
             "beginTime": "1300",
             "endTime": "1520",
             "arranged": false,
-            "building": null,
-            "room": null
+            "building": "Isle Hall",
+            "room": "154"
           }
         },
         {
@@ -1018,10 +1018,10 @@
           "crn": "40446",
           "title": "USER EXPERIENCE DESIGN 1",
           "credits": 5,
-          "available": 1,
+          "available": 2,
           "capacity": 22,
           "waitlisted": 0,
-          "enrolled": 21,
+          "enrolled": 20,
           "waitlistCapacity": 10,
           "openSection": true,
           "instructor": "Poosri, Tyreil",
@@ -1032,8 +1032,8 @@
             "beginTime": "1600",
             "endTime": "1820",
             "arranged": false,
-            "building": null,
-            "room": null
+            "building": "Isle Hall",
+            "room": "156"
           }
         },
         {
@@ -1042,10 +1042,10 @@
           "crn": "40447",
           "title": "HISTORIES OF DESIGN",
           "credits": 5,
-          "available": 1,
+          "available": 0,
           "capacity": 18,
           "waitlisted": 0,
-          "enrolled": 17,
+          "enrolled": 18,
           "waitlistCapacity": 10,
           "openSection": true,
           "instructor": "Durr, Sonja",
@@ -1080,8 +1080,8 @@
             "beginTime": "1300",
             "endTime": "1520",
             "arranged": false,
-            "building": null,
-            "room": null
+            "building": "Isle Hall",
+            "room": "156"
           }
         },
         {
@@ -1104,8 +1104,8 @@
             "beginTime": "1000",
             "endTime": "1220",
             "arranged": false,
-            "building": null,
-            "room": null
+            "building": "Isle Hall",
+            "room": "156"
           }
         },
         {
@@ -1120,7 +1120,7 @@
           "enrolled": 11,
           "waitlistCapacity": 10,
           "openSection": true,
-          "instructor": "Masingale, Travis",
+          "instructor": "Hughes, Ashleigh",
           "scheduleType": "Performance and Simulation",
           "campus": "Cheney",
           "meeting": {
@@ -1128,8 +1128,8 @@
             "beginTime": "1000",
             "endTime": "1220",
             "arranged": false,
-            "building": null,
-            "room": null
+            "building": "Isle Hall",
+            "room": "154"
           }
         },
         {
@@ -1152,8 +1152,8 @@
             "beginTime": "1300",
             "endTime": "1520",
             "arranged": false,
-            "building": null,
-            "room": null
+            "building": "Isle Hall",
+            "room": "154"
           }
         },
         {
@@ -1176,8 +1176,8 @@
             "beginTime": "1300",
             "endTime": "1520",
             "arranged": false,
-            "building": null,
-            "room": null
+            "building": "Isle Hall",
+            "room": "156"
           }
         },
         {
@@ -1200,8 +1200,8 @@
             "beginTime": "1000",
             "endTime": "1220",
             "arranged": false,
-            "building": null,
-            "room": null
+            "building": "Isle Hall",
+            "room": "155"
           }
         },
         {

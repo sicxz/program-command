@@ -4,6 +4,7 @@ const EnrollmentDashboard = (function () {
     let catalog = null;
     let calendar = null;
     let snapshots = null;
+    let seats = null;
     let captures = [];
     let term = null;
     let chart = null;
@@ -56,14 +57,16 @@ const EnrollmentDashboard = (function () {
                 fetchJson('enrollment-dashboard-data.json'),
                 fetchJson('data/course-catalog.json').catch(() => null),
                 fetchJson('data/academic-calendar.json').catch(() => null),
-                fetchJson('data/enrollment-registration-snapshots.json').catch(() => null)
+                fetchJson('data/enrollment-registration-snapshots.json').catch(() => null),
+                fetchJson('data/course-seats-by-quarter.json').catch(() => null)
             ]);
             source = results[0];
             catalog = results[1];
             calendar = results[2];
             snapshots = results[3];
+            seats = results[4];
             byId('snapshotWarning').hidden = snapshots !== null;
-            const meta = window.EnrollmentViewModel.create(source, catalog, snapshots);
+            const meta = window.EnrollmentViewModel.create(source, catalog, snapshots, seats);
             captures = meta.captures;
             if (!meta.years.length) throw new Error('The source contains no valid quarterly enrollment records.');
             const select = byId('academicYearFilter');
@@ -192,7 +195,7 @@ const EnrollmentDashboard = (function () {
             level: byId('courseFilter').value,
             trend: byId('trendFilter').value,
             quarter: byId('quarterFocus').value,
-            calendar, snapshots
+            calendar, snapshots, seats
         });
         renderTerm(view);
         text('registrationCount', view.hasData ? format(view.totalRegistrations) : '—');

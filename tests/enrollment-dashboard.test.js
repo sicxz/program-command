@@ -184,9 +184,9 @@ test('2026 captures update all recorded years and make provisional Fall explicit
     expect(byId('academicYearFilter').value).toBe('all');
     expect(byId('registrationCount').textContent).toBe('5,042');
     expect(byId('sourceCoverage').textContent).toBe('Records through Fall 2026 · provisional');
-    expect(byId('periodStatus').textContent).toContain('301 registrations captured Sep 17, 2026');
+    expect(byId('periodStatus').textContent).toContain('301 registrations captured Sep 22, 2026');
     expect(byId('snapshotCards').children).toHaveLength(3);
-    expect(byId('snapshotCards').textContent).toContain('9 displayed waitlist entries');
+    expect(byId('snapshotCards').textContent).toContain('6 displayed waitlist entries');
     expect(byId('snapshotTerm').value).toBe('fall-2026');
     expect(byId('snapshotTableBody').children).toHaveLength(23);
     expect(byId('snapshotTableBody').textContent).toContain('APPLIED AI');
