@@ -387,47 +387,50 @@
         style.id = 'authSessionStyles';
         style.textContent = `
             .auth-session-indicator {
-                position: fixed;
-                top: 14px;
-                right: 14px;
-                z-index: 9999;
-                display: inline-flex;
+                position: relative;
+                z-index: auto;
+                display: flex;
+                justify-content: flex-end;
                 align-items: center;
                 gap: 10px;
-                background: #ffffff;
-                border: 1px solid #d0d7de;
-                border-radius: 999px;
-                padding: 8px 12px;
-                box-shadow: 0 6px 20px rgba(31, 35, 40, 0.12);
+                width: 100%;
+                box-sizing: border-box;
+                padding: 6px 16px;
+                background: #FFFFFF;
+                border: 0;
+                border-bottom: 1px solid #C9D1D9;
+                border-radius: 0;
+                box-shadow: none;
                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-                color: #1f2328;
+                color: #0D1117;
             }
             .auth-session-email {
                 font-size: 12px;
                 font-weight: 600;
+                color: #0D1117;
                 max-width: 220px;
                 overflow: hidden;
                 text-overflow: ellipsis;
                 white-space: nowrap;
             }
             .auth-session-role {
-                font-size: 11px;
-                font-weight: 700;
+                font: 850 10px/1.4 "SFMono-Regular", "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
                 text-transform: uppercase;
-                letter-spacing: 0.4px;
-                color: #0b5394;
-                background: #e7f0ff;
-                border: 1px solid #b6d3ff;
-                border-radius: 999px;
+                letter-spacing: 0;
+                color: #0550AE;
+                background: #DDF4FF;
+                border: 1px solid #C9D1D9;
+                border-radius: 0;
                 padding: 2px 8px;
             }
             .auth-session-presence {
-                font-size: 11px;
-                font-weight: 600;
-                color: #1f6feb;
-                background: #eef6ff;
-                border: 1px solid #b6d3ff;
-                border-radius: 999px;
+                font: 850 10px/1.4 "SFMono-Regular", "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+                text-transform: uppercase;
+                letter-spacing: 0;
+                color: #3F4652;
+                background: #F1F2F4;
+                border: 1px solid #C9D1D9;
+                border-radius: 0;
                 padding: 2px 8px;
                 max-width: 170px;
                 overflow: hidden;
@@ -435,30 +438,24 @@
                 white-space: nowrap;
             }
             .auth-session-logout {
-                border: 1px solid #d0d7de;
-                border-radius: 999px;
-                background: #f6f8fa;
-                color: #1f2328;
-                font-size: 12px;
-                font-weight: 600;
+                border: 1px solid #C9D1D9;
+                border-radius: 0;
+                background: transparent;
+                color: #0D1117;
+                font: 850 11px/1 "SFMono-Regular", "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+                text-transform: uppercase;
                 padding: 4px 10px;
                 cursor: pointer;
             }
             .auth-session-logout:hover {
-                background: #eef2f6;
+                background: #F1F2F4;
+                border-color: #111827;
             }
-            .auth-session-link {
-                border: 1px solid #b6d3ff;
-                border-radius: 999px;
-                background: #eef6ff;
-                color: #0b5394;
-                font-size: 12px;
-                font-weight: 700;
-                padding: 4px 10px;
-                cursor: pointer;
-            }
-            .auth-session-link:hover {
-                background: #e5f1ff;
+            @media (max-width: 640px) {
+                .auth-session-indicator {
+                    flex-wrap: wrap;
+                    justify-content: flex-start;
+                }
             }
             .edit-lock-warning-banner {
                 position: fixed;
@@ -545,7 +542,7 @@
             indicator = document.createElement('div');
             indicator.id = 'authSessionIndicator';
             indicator.className = 'auth-session-indicator';
-            document.body.appendChild(indicator);
+            document.body.prepend(indicator);
         }
 
         const email = user?.email || 'Authenticated User';
