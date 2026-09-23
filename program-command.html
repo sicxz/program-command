@@ -6936,7 +6936,8 @@
                     showToast('Insufficient permissions: only admins can manage users and accounts.', 'error');
                     return;
                 }
-                showToast('Users & accounts management UI is not implemented yet.');
+                e.preventDefault();
+                navigateWithDirtyGuard('pages/user-management.html');
             } else if (action === 'nav-applied-learning') {
                 e.preventDefault();
                 navigateWithDirtyGuard('pages/applied-learning-dashboard.html');
