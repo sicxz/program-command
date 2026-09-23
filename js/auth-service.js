@@ -167,7 +167,15 @@ const AuthService = (function() {
             return '/login.html';
         }
 
-        const redirectUrl = new URL('/login.html', window.location.origin);
+        // Resolve against the current page so the site's base path (e.g. /program-command/)
+        // is kept; pages under /pages/ point one folder up to the login page.
+        const pathname = String(window.location.pathname || '');
+        const relativeLogin = pathname.includes('/pages/') ? '../login.html' : 'login.html';
+        const base = window.location.href
+            || `${window.location.origin || ''}${pathname || '/'}`;
+        const redirectUrl = new URL(relativeLogin, base);
+        redirectUrl.search = '';
+        redirectUrl.hash = '';
         return redirectUrl.toString();
     }
 
@@ -365,6 +373,7 @@ const AuthService = (function() {
         getUser,
         can,
         onAuthStateChange,
+        _resolvePasswordResetRedirectUrl: resolvePasswordResetRedirectUrl,
         _resetForTests: resetForTests
     };
 })();

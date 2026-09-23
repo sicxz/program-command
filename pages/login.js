@@ -219,6 +219,23 @@
         }
     }
 
+    // Supabase sends people back with ?error_code=... (and the same in the hash) when an
+    // email link is expired or was already used, for example by a mail scanner opening it first.
+    function maybeShowLinkError() {
+        const hash = new URLSearchParams(String(window.location.hash || '').replace(/^#/, ''));
+        const query = getParams();
+        const errorCode = query.get('error_code') || hash.get('error_code');
+        if (!errorCode) return false;
+        showView('reset');
+        showError(errorCode === 'otp_expired'
+            ? 'That email link has expired or was already used. Enter your email to get a new one.'
+            : 'That email link could not be used. Enter your email to get a new one.');
+        if (window.history && typeof window.history.replaceState === 'function') {
+            window.history.replaceState(null, '', window.location.pathname);
+        }
+        return true;
+    }
+
     async function initLoginPage() {
         if (!window.AuthService) {
             showError('Authentication service is unavailable.');
@@ -227,6 +244,7 @@
 
         attachHandlers();
         maybeShowTimeoutMessage();
+        if (maybeShowLinkError()) return;
 
         const redirectType = typeof window.AuthService.getAuthRedirectType === 'function'
             ? window.AuthService.getAuthRedirectType()
