@@ -95,5 +95,22 @@ describe('invite-only login', () => {
         const markup = require('fs').readFileSync(require('path').resolve(__dirname, '..', 'login.html'), 'utf8');
         expect(markup).toMatch(/\.login-form\[hidden\]\s*\{\s*display:\s*none;/);
     });
+
+    test('password reset links keep the site base path', () => {
+        expect(loadAuthService('https://sicxz.github.io/program-command/login.html?next=x#y')
+            ._resolvePasswordResetRedirectUrl()).toBe('https://sicxz.github.io/program-command/login.html');
+        expect(loadAuthService('https://sicxz.github.io/program-command/pages/faculty-management.html')
+            ._resolvePasswordResetRedirectUrl()).toBe('https://sicxz.github.io/program-command/login.html');
+        expect(loadAuthService('http://127.0.0.1:8080/login.html')
+            ._resolvePasswordResetRedirectUrl()).toBe('http://127.0.0.1:8080/login.html');
+    });
+
+    test('an expired email link opens the reset form with a plain explanation', () => {
+        const script = projectFile('pages/login.js');
+        expect(script).toContain("function maybeShowLinkError()");
+        expect(script).toContain("if (maybeShowLinkError()) return;");
+        expect(script).toContain('That email link has expired or was already used.');
+        expect(script).toContain("showView('reset')");
+    });
 });
 
