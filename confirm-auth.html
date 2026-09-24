@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer">
+    <title>Confirm email link - Program Command</title>
+    <link rel="stylesheet" href="css/design-system.css">
+    <style>
+        :root {
+            --f-bg: #f7f7f8;
+            --f-surface: #ffffff;
+            --f-ink: #0d1117;
+            --f-muted: #3f4652;
+            --f-soft: #6a737d;
+            --f-hairline: #c9d1d9;
+            --f-rule: #111827;
+            --f-blue: #0969da;
+            --f-blue-text: #0550ae;
+            --f-red: #cf222e;
+            --f-red-wash: #ffebe9;
+            --f-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            --f-mono: "SFMono-Regular", "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+        }
+
+        body {
+            box-sizing: border-box;
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            background: var(--f-bg);
+            color: var(--f-ink);
+            font-family: var(--f-sans);
+            padding: 24px;
+        }
+
+        .confirm-shell {
+            box-sizing: border-box;
+            width: min(420px, 100%);
+            background: var(--f-surface);
+            border: 1px solid var(--f-hairline);
+            border-left: 4px solid var(--f-rule);
+            padding: 24px;
+        }
+
+        .confirm-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--f-soft);
+            font-family: var(--f-mono);
+            font-size: 11px;
+            font-weight: 850;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .confirm-eyebrow::before {
+            content: "";
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: var(--f-blue);
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            color: var(--f-ink);
+            font-size: 28px;
+            font-weight: 760;
+        }
+
+        .confirm-description,
+        .confirm-footer {
+            color: var(--f-muted);
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .confirm-description {
+            margin: 0 0 20px;
+        }
+
+        .confirm-button {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--f-rule);
+            border-radius: 0;
+            background: var(--f-rule);
+            color: #ffffff;
+            font: inherit;
+            font-weight: 760;
+            cursor: pointer;
+        }
+
+        .confirm-button:hover:not(:disabled) {
+            background: var(--f-ink);
+        }
+
+        .confirm-button:disabled {
+            opacity: .65;
+            cursor: wait;
+        }
+
+        .confirm-button:focus-visible,
+        .confirm-footer a:focus-visible {
+            outline: 3px solid var(--f-blue);
+            outline-offset: 3px;
+        }
+
+        .confirm-error {
+            margin: 14px 0 0;
+            border: 1px solid var(--f-red);
+            border-left: 4px solid var(--f-red);
+            background: var(--f-red-wash);
+            color: var(--f-red);
+            font-size: 13px;
+            line-height: 1.4;
+            padding: 10px 12px;
+        }
+
+        .confirm-error[hidden] {
+            display: none;
+        }
+
+        .confirm-footer {
+            margin: 16px 0 0;
+            font-size: 13px;
+        }
+
+        .confirm-footer a {
+            color: var(--f-blue-text);
+        }
+    </style>
+</head>
+<body>
+    <main class="confirm-shell" aria-labelledby="confirmHeading">
+        <div class="confirm-eyebrow">Program Command</div>
+        <h1 id="confirmHeading">Confirm email link</h1>
+        <p class="confirm-description" id="confirmDescription">Select Continue to create your password.</p>
+        <button class="confirm-button" id="confirmButton" type="button">Continue to create password</button>
+        <p class="confirm-error" id="confirmError" role="alert" hidden></p>
+        <p class="confirm-footer"><a href="login.html">Back to sign in</a></p>
+    </main>
+
+    <script src="pages/confirm-auth.js"></script>
+</body>
+</html>
