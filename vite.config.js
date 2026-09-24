@@ -36,6 +36,7 @@ export default defineConfig({
                 main: resolve(__dirname, 'index.html'),
                 programCommand: resolve(__dirname, 'program-command.html'),
                 login: resolve(__dirname, 'login.html'),
+                confirmAuth: resolve(__dirname, 'confirm-auth.html'),
                 publicSchedule: resolve(__dirname, 'public-schedule.html')
             }
         }
