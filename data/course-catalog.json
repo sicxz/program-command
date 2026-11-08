@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "lastModified": "2026-09-15",
+  "lastModified": "2026-11-08",
   "department": "Design",
   "courses": [
     {
@@ -212,7 +212,7 @@
     },
     {
       "code": "DESN 374",
-      "title": "Applied Design",
+      "title": "Applied AI",
       "defaultCredits": 5,
       "typicalEnrollmentCap": 24,
       "level": "300",

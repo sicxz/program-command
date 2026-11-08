@@ -47,7 +47,7 @@ Specialized tracks and intermediate skills.
 
 **AI & Emergent:**
 - **DESN-325** Emergent Design (5 cr, repeatable) *[Prereq: 216]*
-- **DESN-374** Applied Design (5 cr) *[Prereq: 216]*
+- **DESN-374** Applied AI (5 cr) *[Prereq: 216]*
 
 **Animation & Motion:**
 - **DESN-326** Introduction to Animation (5 cr) *[Prereq: 200 or 216]*

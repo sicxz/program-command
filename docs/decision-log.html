@@ -39,6 +39,42 @@
       <em>rejected</em>. Link to a PR or runbook if useful. Keep it terse.
     </p>
 
+    <h2>2026 — Q4</h2>
+
+    <article class="docs-decision">
+      <header class="docs-decision-head">
+        <span class="docs-decision-date">2026-11-08</span>
+        <span class="docs-decision-title">DESN 374 is "Applied AI"; the September 15 "Applied Design" title is superseded</span>
+      </header>
+      <dl>
+        <dt>Chose</dt>
+        <dd>DESN 374's title is <strong>Applied AI</strong> everywhere the app
+        shows a title: both <code>COURSE_TITLE_OVERRIDES</code> maps
+        (<code>program-command.html</code>, <code>pages/public-schedule.js</code>),
+        the legacy seed block, <code>data/course-catalog.json</code> and its
+        source <code>ewu-design-catalog/COURSE-INDEX.md</code>, the pinned
+        catalog version in <code>data/advising-curriculum.json</code>, and the
+        tests (#345). The Supabase <code>courses</code> row already reads
+        "Applied AI" from Travis's hand edit.</dd>
+        <dt>Why</dt>
+        <dd>Travis, 2026-11-07: the Winter schedule tile read "Applied Design";
+        the course is "Applied AI". Banner has titled CRN 40450 "APPLIED AI"
+        since the September 22 capture. Renaming in Course Management had no
+        visible effect because the schedule reads the override maps and the
+        catalog before the database title
+        (<a href="audit-2026-11-07.md">audit, 2026-11-07</a>, section 1). This
+        supersedes the title recorded in issue #311 and shipped in #316.</dd>
+        <dt>Rejected</dt>
+        <dd>Leaving the catalog as is, per the September 17 note in
+        <code>docs/dashboard-continuation.md</code>. Editing
+        <code>scripts/supabase-sync-course-catalog.sql</code>, which still says
+        "AI + Design": it is a forbidden path and needs a human edit before it
+        is run again. Making the database the title authority in the same
+        change: that is the audit's second piece, and it waits on the
+        <code>courses</code> rows being corrected by hand.</dd>
+      </dl>
+    </article>
+
     <h2>2026 — Q3</h2>
 
     <article class="docs-decision">
@@ -523,7 +559,7 @@
   </main>
 
   <footer class="docs-footer">
-    <span>Last edited: 2026-09-15</span>
+    <span>Last edited: 2026-11-08</span>
     <span><a href="./ONBOARDING.html">Onboarding →</a></span>
   </footer>
 

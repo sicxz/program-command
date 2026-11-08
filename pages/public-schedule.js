@@ -145,7 +145,7 @@
         'DESN 366': 'Production Design',
         'DESN 368': 'Web Design + Code 1',
         'DESN 369': 'Web Development 1',
-        'DESN 374': 'Applied Design',
+        'DESN 374': 'Applied AI',
         'DESN 375': 'Digital Video',
         'DESN 378': 'Web Design + Code 2',
         'DESN 379': 'Web Development 2',
