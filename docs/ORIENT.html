@@ -69,10 +69,16 @@
         </tr>
         <tr>
           <th scope="row">Latest on main</th>
-          <td>The 2026-09-13 dashboard reset (PRs #287–#296) and the five
-              2026-09-15 merges (#301, #303–#306). Production holds them once
-              Deploy Pages is run from <code>main</code>. This repo copy cannot
-              show whether that run has happened; read the live site's
+          <td>PR #345 (2026-11-09): DESN 374 reads "Applied AI" everywhere the
+              app shows a title, and the
+              <a href="./audit-2026-11-07.md">2026-11-07 application audit</a>
+              is added under <code>docs/</code>. It follows the 2026-09-15 to
+              2026-09-24 wave (#307–#343: Faculty Management and per-year
+              rosters, invite-only email login and the Users page, the Sep 22
+              Fall 2026 capture). The live site served <code>825a6ec</code>
+              (2026-09-24) when the audit ran, so #345 reaches production only
+              once Deploy Pages is run from <code>main</code>. This repo copy
+              cannot show whether that run has happened; read the live site's
               prod-state marker.</td>
         </tr>
         <tr>
@@ -106,9 +112,16 @@
         <tr>
           <th scope="row">RLS</th>
           <td><code>"Public read"</code> SELECT to <code>public</code> USING
-              <code>true</code> on 9 operational tables. Writes require
-              <code>public.is_editor()</code>; editor allowlist is 4 rows in
-              <code>public.editors</code>, mutable only via direct SQL.</td>
+              <code>true</code> on 9 operational tables is what Phase 0 shipped
+              (2026-05-19). Note, 2026-11-07: anonymous REST reads of the
+              operational tables now return <code>42501 permission denied</code>,
+              while the public RPC <code>get_public_schedule</code> still works,
+              so the public schedule is unaffected. Whether that tightening was
+              deliberate is unconfirmed; details under
+              <a href="./ONBOARDING.html">Onboarding</a>, "Row-level security".
+              Writes require <code>public.is_editor()</code>; editor allowlist
+              is 4 rows in <code>public.editors</code>, mutable only via direct
+              SQL.</td>
         </tr>
         <tr>
           <th scope="row">Prod DB access</th>
@@ -128,8 +141,11 @@
     Workload stays paused behind an Under development notice (#296).
     Build/Planning links are preserved in a closed Archived features area; new
     schedules use Copy to Next Year. The Fall 2026 EagleNET refresh (issue
-    #302) found differences between Banner and the AY 2026-27 Fall schedule
-    that need Travis's decision.
+    #302) found differences between Banner and the AY 2026-27 Fall schedule;
+    by the <a href="./audit-2026-11-07.md">2026-11-07 audit</a> (section 4)
+    the Fall schedule matched Banner on every instructor and slot, though the
+    decision log has no entry recording how. Winter and Spring 2027 still
+    differ from the Sep 17 captures; see Next action below.
     <a href="./dashboard-continuation.md">Repository boundary, agreed scope,
     restart sequence, and the Fall 2026 reconciliation</a> are recorded
     together. The dashboard reset is a navigation and focus change, not a
@@ -174,47 +190,77 @@
     <h2>Next action</h2>
     <aside class="docs-callout docs-callout--note">
       <p class="docs-callout-title">Do this next</p>
-      <p>Resolve the Fall 2026 reconciliation differences against EagleNET.
-      The <a href="./dashboard-continuation.md">continuation doc</a>, section
-      "Fall 2026 refresh, September 15", lists them: DESN 100's instructor
-      (Banner lists Simeon Mills; the schedule lists A. Sopu for that slot);
-      the extra DESN 200 section (C. Manikoth, MW 10:00-12:20) that Banner
-      does not offer; DESN 359's room (Banner: Patterson Hall 118; schedule:
-      210 Mac Lab); and section caps (Banner runs 18 to 24; every scheduled
-      course carries a typical cap of 24). Travis decides which source is
-      right for each. No schedule edit, Supabase write, deploy, or other
-      production action is authorized by this page.</p>
+      <p>Two pieces from the
+      <a href="./audit-2026-11-07.md">2026-11-07 application audit</a>,
+      "Recommended next three pieces". Piece 1 (DESN 374 reads "Applied AI")
+      shipped as PR #345. The Fall 2026 reconciliation that stood here before
+      is done: the AY 2026-27 Fall schedule matches Banner on every instructor
+      and slot (audit section 4).</p>
+      <p><strong>Piece 2: make the database the title authority.</strong>
+      On 2026-11-07 the Supabase <code>courses</code> table carried placeholder
+      titles for 30 of the 31 DESN courses on the 2025-26 and 2026-27
+      schedules, and DESN 490 carried 2 credits instead of 5 (audit
+      section 3). Data first: Travis edits
+      <code>scripts/supabase-sync-course-catalog.sql</code> to the current
+      titles (Web Design + Code 1/2/3, Applied AI, DESN 490 at 5 credits) and
+      runs it in the Supabase SQL editor. It is a <code>*.sql</code> file, so
+      agents cannot edit it. Code second, once the rows are right: delete both
+      <code>COURSE_TITLE_OVERRIDES</code> maps and the markdown parse in
+      <code>ensureCourseCatalogLoaded</code>, read titles from the
+      <code>courses</code> join, keep <code>data/course-catalog.json</code>
+      only as the no-database fallback, and change the two tests that assert
+      the overrides.</p>
+      <p><strong>Piece 3: a fresh EagleNET capture for Winter and Spring 2027.</strong>
+      Capture Winter 2027 (202710) and Spring 2027 (202720) again, then bring
+      the 11 differences the audit lists in section 4 (Sep 17 captures against
+      the published 2026-27 schedule) to Travis, one decision each, recorded
+      in the decision log.</p>
+      <p>No schedule edit, Supabase write, deploy, or other production action
+      is authorized by this page.</p>
     </aside>
 
     <h3>Copy this into the next Codex session</h3>
-<pre><code>Help Travis resolve the Fall 2026 reconciliation differences against EagleNET.
+<pre><code>Help Travis make the Supabase courses table the course-title authority, then
+resolve Winter and Spring 2027 against a fresh EagleNET capture.
 
 Repository boundary
 - Work only in /Users/tmasingale/Developer/GitHub/scheduler-v2-codex.
 - Confirm `git remote get-url origin` is https://github.com/sicxz/program-command.git.
 - Stop and report the mismatch if either path or remote is different.
-- Read AGENTS.md first, then docs/ORIENT.html and the section
-  "Fall 2026 refresh, September 15" in docs/dashboard-continuation.md.
+- Read AGENTS.md first, then docs/ORIENT.html, then sections 3 and 4 and
+  "Recommended next three pieces" in docs/audit-2026-11-07.md.
   AGENTS.md remains authoritative.
 
-Differences to resolve, one decision each
-1. DESN 100: Banner lists Simeon Mills (MW 16:00-18:20, full at 23); the
-   schedule lists A. Sopu for that slot.
-2. DESN 200: the schedule has two sections (C. Manikoth MW 10:00-12:20 and
-   S. Mills TR 10:00-12:20); Banner has only the Mills section.
-3. DESN 359: Banner has Patterson Hall 118; the schedule assigns 210 Mac Lab.
-4. Caps: Banner caps run 18 to 24; every scheduled course carries a typical
-   cap of 24. The 20-student cap note from September 13 does not match Banner
-   for most sections.
+Piece 2, data side (Travis runs it; the agent prepares it)
+- Travis edits scripts/supabase-sync-course-catalog.sql to the current titles
+  (Web Design + Code 1/2/3 for DESN 368/378/468, Applied AI for DESN 374, the
+  catalog titles for the remaining placeholder rows in audit section 3) and
+  default_credits = 5 for DESN 490, then runs it in the Supabase SQL editor.
+- The file is *.sql, so the forbidden-path guard blocks agents from editing
+  it. Propose the exact statements to Travis; do not commit them.
+- Confirm the result through get_public_schedule('2026-27') before any code
+  change: every title must match data/course-catalog.json.
 
-For each difference
-- Show Travis the Banner row and the schedule row side by side, with the
-  capture date (September 15, 2026).
+Piece 2, code side (only after the rows are right)
+- Delete both COURSE_TITLE_OVERRIDES maps and the markdown parse in
+  ensureCourseCatalogLoaded; read titles from the course:courses(...) join.
+- Keep data/course-catalog.json only as the no-database fallback.
+- Change the two tests that assert the overrides, so that
+  tests/public-schedule.test.js asserts the RPC title is shown, not hidden.
+- Fix the Courses page level select to the numeric scheme; remove the dead
+  syncCourseCatalogTitlesToSupabase.
+- Acceptance: renaming a course in Course Management changes the schedule
+  tile on reload; npm test passes.
+
+Piece 3, one decision each
+- Capture Winter 2027 (202710) and Spring 2027 (202720) from EagleNET again.
+- For each of the 11 differences in audit section 4, show Travis the Banner
+  row and the schedule row side by side, with both capture dates.
 - Record Travis's decision: which source is right and what must change.
 - Do not edit the schedule, write to Supabase, or change EagleNET yourself.
 
 Safety boundary
-- The Fall 2026 capture is provisional until a newer reviewed capture
+- Every EagleNET capture is provisional until a newer reviewed capture
   replaces it.
 - Do not deploy, run production SQL, change rulesets or secrets, or delete
   branches.
@@ -229,11 +275,12 @@ Safety boundary
         <tr>
           <td>Current-term Supabase migration
               (<code>scripts/supabase-current-term-setting.sql</code>)</td>
-          <td><span class="docs-pill docs-pill--warn">not applied to prod</span>
+          <td><span class="docs-pill docs-pill--ok">applied</span>
               — RPC <code>get_public_current_term</code> returned 404 on
-              2026-06-09; public page falls back to hardcoded defaults and the
-              admin term picker is dead until this runs. Verify by probing the
-              RPC for 200 after applying.</td>
+              2026-06-09 and 200 on 2026-11-07
+              (<a href="./audit-2026-11-07.md">audit</a>, section 5), so the
+              migration has run. The admin-only tightening in the last row of
+              this table is still open.</td>
           <td>PR&nbsp;#257 body; this ledger</td>
         </tr>
         <tr>
@@ -275,6 +322,7 @@ Safety boundary
       <li><a href="./decision-log.html">Decision log</a> — why current choices were made.</li>
       <li><a href="./ONBOARDING.html">Onboarding</a> — architecture, data model, deploy flow, autopilot rules.</li>
       <li><a href="./dashboard-continuation.md">Dashboard continuation</a> — agreed navigation, dashboard contracts, and the Fall 2026 reconciliation.</li>
+      <li><a href="./audit-2026-11-07.md">Application audit, 2026-11-07</a> — course-title root cause, Supabase <code>courses</code> rows, AY 2026-27 against Banner, docs and access drift, and the recommended next pieces.</li>
       <li><a href="./audit-2026-09-14.md">Application audit, 2026-09-14</a> — page inventory, data pipeline, test and build health, risks and drift.</li>
       <li><a href="./travis.html">Travis's maintainer note</a> — dated cleanup inventory, authority boundaries, and proposal ledger.</li>
       <li><a href="./phase0-handoff.html">Phase 0 → Phase 1 handoff</a> — the throwaway transition doc; ORIENT supersedes it once stable.</li>
@@ -294,7 +342,7 @@ Safety boundary
   </main>
 
   <footer class="docs-footer">
-    <span>Last edited: 2026-09-15</span>
+    <span>Last edited: 2026-11-09</span>
     <span><a href="./decision-log.html">Decision log →</a></span>
   </footer>
 
