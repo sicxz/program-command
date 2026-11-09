@@ -43,6 +43,47 @@
 
     <article class="docs-decision">
       <header class="docs-decision-head">
+        <span class="docs-decision-date">2026-11-09</span>
+        <span class="docs-decision-title">The Supabase <code>courses</code> row is the title and credits authority; the pages hold no title map</span>
+      </header>
+      <dl>
+        <dt>Chose</dt>
+        <dd>The schedule shows <code>courses.title</code> and
+        <code>courses.default_credits</code> from the database: Program Command
+        through the <code>course:courses(...)</code> join, the public schedule
+        through <code>get_public_schedule</code>'s <code>course_title</code> and
+        <code>credits</code>. Both <code>COURSE_TITLE_OVERRIDES</code> maps, the
+        parse of <code>ewu-design-catalog/courses/courses-202526.md</code>, and
+        the uncalled <code>syncCourseCatalogTitlesToSupabase</code> are deleted.
+        <code>data/course-catalog.json</code> is the fallback only: the Add
+        Course list when there is no database client, and a title or credits for
+        a row that has none. Course Management's level select and filter use the
+        numeric scheme the rows store (<code>100</code> to <code>400</code>).
+        Shipped as #347, a draft until the rows are corrected.</dd>
+        <dt>Why</dt>
+        <dd>Travis, 2026-11-07: renaming DESN 374 in Course Management changed
+        nothing on the schedule. The
+        <a href="audit-2026-11-07.md">audit, 2026-11-07</a> (section 1) traced
+        the cause: the hardcoded maps, then the generated catalog, won over the
+        database title, so the one page that edits titles edited the one source
+        the schedule ignored. Issue #280 makes Course Management the curriculum
+        authority; a title map copied into two pages, with nothing keeping the
+        copies identical, contradicts that.</dd>
+        <dt>Rejected</dt>
+        <dd>Keeping the maps as a safety net over the placeholder rows: they are
+        the cause of the report and hide the data problem rather than fix it.
+        Pushing the catalog into Supabase from the app (the dead sync function):
+        it would silently revert hand edits made in Course Management. Merging
+        before the data is right: the production <code>courses</code> table still
+        carries wrong titles for 30 of 31 scheduled courses and 2 credits for
+        DESN 490 (audit, section 3), so #347 stays a draft until Travis runs a
+        corrected <code>scripts/supabase-sync-course-catalog.sql</code>, a
+        forbidden <code>*.sql</code> path that only a human edits.</dd>
+      </dl>
+    </article>
+
+    <article class="docs-decision">
+      <header class="docs-decision-head">
         <span class="docs-decision-date">2026-11-08</span>
         <span class="docs-decision-title">DESN 374 is "Applied AI"; the September 15 "Applied Design" title is superseded</span>
       </header>
@@ -559,7 +600,7 @@
   </main>
 
   <footer class="docs-footer">
-    <span>Last edited: 2026-11-08</span>
+    <span>Last edited: 2026-11-09</span>
     <span><a href="./ONBOARDING.html">Onboarding →</a></span>
   </footer>
 
