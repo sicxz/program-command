@@ -46,7 +46,7 @@ test('the scheduler map and generated catalog use the four approved course title
         'DESN 368': 'Web Design + Code 1',
         'DESN 378': 'Web Design + Code 2',
         'DESN 468': 'Web Design + Code 3',
-        'DESN 374': 'Applied Design'
+        'DESN 374': 'Applied AI'
     };
     const titleOverrides = extractCourseTitleOverrides();
     const catalogByCode = Object.fromEntries(

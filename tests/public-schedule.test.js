@@ -135,8 +135,8 @@ describe('public schedule page', () => {
         expect(scheduleData.spring.TR['10:00-12:20'][0].name).toBe('Web Development 2');
     });
 
-    test('uses the canonical Applied Design title for DESN 374', () => {
-        expect(PublicSchedulePage.getCanonicalCourseTitleByCode('DESN 374', 'AI + Design', {})).toBe('Applied Design');
+    test('uses the canonical Applied AI title for DESN 374', () => {
+        expect(PublicSchedulePage.getCanonicalCourseTitleByCode('DESN 374', 'AI + Design', {})).toBe('Applied AI');
     });
 
     test('loads public schedule rows through the RPC and renders the Fall grid', async () => {

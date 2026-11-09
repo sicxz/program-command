@@ -215,7 +215,8 @@ Spring 2027: 18 sections, 0 enrolled / 345 capacity.
 
 Winter and Spring 2027 are scheduled terms for scheduler section lists and are
 excluded from enrollment captures and totals. Banner now titles DESN 374
-"APPLIED AI" while the catalog keeps "Applied Design" (left as is).
+"APPLIED AI"; the catalog kept "Applied Design" until 2026-11-08, when Travis
+confirmed the title is "Applied AI" (decision log, 2026-11-08).
 
 ## Section cap as of 2026
 
