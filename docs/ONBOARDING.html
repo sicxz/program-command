@@ -159,7 +159,9 @@ npm run test:coverage</code></pre>
     <ul>
       <li><strong>Reads</strong> — <code>"Public read"</code> policy:
           SELECT to <code>public</code> USING <code>true</code> on the
-          9 operational tables. Anon and authenticated can read freely.</li>
+          9 operational tables, as shipped in Phase 0 (2026-05-19). Anon and
+          authenticated could read freely. See the dated note below: anon
+          reads no longer behave this way.</li>
       <li><strong>Writes</strong> — <code>editor_insert/update/delete_*</code>
           policies require <code>public.is_editor()</code>, which checks
           membership in the <code>public.editors</code> table.</li>
@@ -169,10 +171,28 @@ npm run test:coverage</code></pre>
           Mutable only via direct SQL on the prod DB.</li>
     </ul>
 
+    <aside class="docs-callout docs-callout--warning">
+      <p class="docs-callout-title">Note, 2026-11-07: the anon table grants no longer match this description</p>
+      <p>Anonymous REST reads of <code>departments</code>, <code>courses</code>,
+      <code>faculty</code>, <code>rooms</code>, <code>academic_years</code>,
+      <code>scheduled_courses</code> and <code>release_time</code> returned
+      <code>42501 permission denied</code> on 2026-11-07, and
+      <code>editors</code> returned an empty list. The public schedule is
+      unaffected because it reads through the <code>SECURITY DEFINER</code>
+      RPC <code>get_public_schedule</code>, which still works; every other
+      page is behind sign-in, so no page depends on anon table reads. Nothing
+      records whether the tightening was deliberate. Travis has to confirm
+      that before the <a href="./phase0-rls-runbook.html">Phase 0 runbook</a>
+      (its production verification lists "PASS anon read courses") and
+      <code>scripts/phase0-policy-verify.mjs</code> (its first check expects
+      an anon read of <code>courses</code> to succeed) are updated. Source:
+      <a href="./audit-2026-11-07.md">2026-11-07 audit</a>, section 6.</p>
+    </aside>
+
     <p>The public-schedule path additionally goes through a
-    <code>SECURITY DEFINER</code> RPC, so it would survive a future
-    tightening of anon SELECT. Tightening anon-read is explicitly out of
-    Phase 0 scope (see the
+    <code>SECURITY DEFINER</code> RPC, so it survives a tightening of anon
+    SELECT, as the 2026-11-07 probe shows. Tightening anon-read was
+    explicitly out of Phase 0 scope (see the
     <a href="./phase0-rls-runbook.html">Phase 0 runbook</a> appendix).</p>
 
     <h2>Deploy flow</h2>
@@ -208,17 +228,20 @@ you ────┴─▶ short-lived branch ─▶ PR ─▶ [CI: test + onboar
     (not classic branch protection — the classic
     <code>branches/main/protection</code> API returns 404 by design):</p>
     <ul>
-      <li>Required status checks: <code>test</code> and <code>onboarding</code>,
+      <li>Required status checks: <code>test</code>, <code>onboarding</code>
+          and <code>guard-forbidden-paths</code>,
           strict (branch must be up to date). The <code>onboarding</code>
           check is static-artifact validation — never a live
           <code>/onboarding</code> skill invocation, so the maintainer can
           never be locked out by external skill availability.</li>
-      <li>Pull request required before merge; <strong>1 approving review</strong>
-          required. Direct push, force-push, and branch deletion are all
-          rejected.</li>
-      <li>The repo-admin role is the sole bypass actor — the solo maintainer
-          can merge their own hotfix (GitHub blocks self-approval); agents
-          are non-admin and stay fully bound.</li>
+      <li>Pull request required before merge; <strong>0 approving reviews</strong>
+          required since the 2026-08-11 decision
+          (<a href="./decision-log.html">decision log</a>, "Solo-maintainer
+          delivery"); review-thread resolution is still required. Direct push,
+          force-push, and branch deletion are all rejected.</li>
+      <li>The repo-admin role is the sole bypass actor (added 2026-05-21), so
+          the solo maintainer can land a hotfix even if an approval rule is
+          ever restored; agents are non-admin and stay fully bound.</li>
       <li>Merged head branches auto-delete.</li>
     </ul>
 
@@ -264,7 +287,7 @@ you ────┴─▶ short-lived branch ─▶ PR ─▶ [CI: test + onboar
                 workload, capacity, constraints, release time, applied
                 learning, etc.).</td></tr>
         <tr><td><code>js/</code></td>
-            <td>Shared business logic singletons (~26 files). State
+            <td>Shared business logic singletons (47 files on 2026-11-09). State
                 management, validation, chart utilities, scheduling engines.</td></tr>
         <tr><td><code>js/config/constants.js</code></td>
             <td>Centralized constants — workload multipliers, faculty
@@ -340,7 +363,7 @@ you ────┴─▶ short-lived branch ─▶ PR ─▶ [CI: test + onboar
   </main>
 
   <footer class="docs-footer">
-    <span>Last edited: 2026-06-09</span>
+    <span>Last edited: 2026-11-09</span>
     <span><a href="./ORIENT.html">Back to ORIENT</a></span>
   </footer>
 
