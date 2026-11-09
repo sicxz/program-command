@@ -5835,69 +5835,14 @@
         let schedulerRoomLabelsDefault = { ...DEFAULT_SCHEDULER_ROOM_LABELS };
         let schedulerRoomLabelsByYear = {};
         let schedulerRoomLabels = { ...DEFAULT_SCHEDULER_ROOM_LABELS };
-        const COURSE_TITLE_OVERRIDES = {
-            'DESN 100': 'Drawing for Communication',
-            'DESN 200': 'Visual Thinking + Making',
-            'DESN 210': 'Design Lab',
-            'DESN 213': 'Photoshop',
-            'DESN 214': 'Illustrator',
-            'DESN 215': 'Indesign',
-            'DESN 216': 'Digital Foundations',
-            'DESN 217': 'Figma',
-            'DESN 243': 'Typography',
-            'DESN 263': 'Visual Communication Design',
-            'DESN 301': 'Visual Storytelling',
-            'DESN 305': 'Social Media Design and Management',
-            'DESN 325': 'Emergent Design',
-            'DESN 326': 'Introduction to Animation',
-            'DESN 335': 'Board Game Design',
-            'DESN 336': '3D Animation',
-            'DESN 338': 'User Experience Design 1',
-            'DESN 343': 'Typography 2',
-            'DESN 345': 'Digital Game Design',
-            'DESN 348': 'User Experience Design 2',
-            'DESN 350': 'Digital Photography',
-            'DESN 351': 'Advanced Photography',
-            'DESN 355': 'Motion Design',
-            'DESN 359': 'Histories of Design',
-            'DESN 360': 'Zine and Publication Design',
-            'DESN 365': 'Motion Design 2',
-            'DESN 366': 'Production Design',
-            'DESN 368': 'Web Design + Code 1',
-            'DESN 369': 'Web Development 1',
-            'DESN 374': 'Applied AI',
-            'DESN 375': 'Digital Video',
-            'DESN 378': 'Web Design + Code 2',
-            'DESN 379': 'Web Development 2',
-            'DESN 384': 'Digital Sound',
-            'DESN 396': 'Experimental Course',
-            'DESN 398': 'Seminar',
-            'DESN 399': 'Directed Study',
-            'DESN 401': 'Imaginary Worlds',
-            'DESN 446': '4D Animation',
-            'DESN 458': 'User Experience Design 3',
-            'DESN 463': 'Community-Driven Design',
-            'DESN 468': 'Web Design + Code 3',
-            'DESN 469': 'Web Development 3',
-            'DESN 480': 'Professional Practice',
-            'DESN 490': 'Senior Capstone',
-            'DESN 491': 'Senior Project',
-            'DESN 493': 'Portfolio Practice',
-            'DESN 495': 'Internship',
-            'DESN 496': 'Experimental',
-            'DESN 497': 'Workshop, Short Course, Conference, Seminar',
-            'DESN 498': 'Seminar',
-            'DESN 499': 'Directed Study'
-        };
         const COURSE_METADATA_OVERRIDES = {
             'DESN 384': {
                 defaultModality: 'online'
             }
         };
-        let courseCatalog = null;
         let courseCatalogByCode = {};
         let canonicalCourseList = [];
-        let courseCatalogSyncedToDb = false;
+        let databaseCoursesByCode = {};
         let CLSS_IMPORT_PROFILE_FACULTY_ALIASES = {};
         let CLSS_IMPORT_PROFILE_COURSE_ALIASES = {};
         let CLSS_IMPORT_PROFILE_COURSE_ALIAS_LOOKUP = {};
@@ -8634,14 +8579,17 @@
             return upper.replace(/^([A-Z]{2,5})\s*(\d)/, '$1 $2');
         }
 
-        function getCanonicalCourseTitleByCode(courseCode, fallbackTitle = '') {
+        // The title stored on the course wins. For a database-loaded schedule
+        // that is the Supabase courses row, so a rename in Course Management
+        // shows on the schedule. data/course-catalog.json supplies a title only
+        // when the course carries none (or only its own code as a placeholder).
+        function getCanonicalCourseTitleByCode(courseCode, storedTitle = '') {
             const code = normalizeCourseCode(courseCode);
-            if (!code) return String(fallbackTitle || '').trim();
-            const overrideTitle = COURSE_TITLE_OVERRIDES[code];
-            if (overrideTitle) return String(overrideTitle).trim();
+            const stored = String(storedTitle || '').trim();
+            if (!code) return stored;
+            if (stored && normalizeCourseCode(stored) !== code) return stored;
             const catalogTitle = String(courseCatalogByCode?.[code]?.title || '').trim();
-            if (catalogTitle) return catalogTitle;
-            return String(fallbackTitle || '').trim();
+            return catalogTitle || stored;
         }
 
         function normalizeScheduleCourseCodes(data) {
@@ -13576,31 +13524,15 @@
         // ADD COURSE FUNCTIONALITY
         // ============================================
 
-        function formatCatalogTitle(rawTitle) {
-            return String(rawTitle || '')
-                .trim()
-                .toLowerCase()
-                .split(/\s+/)
-                .map((word) => {
-                    if (word === '+') return '+';
-                    if (/^\d+$/.test(word)) return word;
-                    if (word === 'ii' || word === 'iii' || word === 'iv') return word.toUpperCase();
-                    return word.charAt(0).toUpperCase() + word.slice(1);
-                })
-                .join(' ')
-                .replace(/\s\+\s/g, ' + ')
-                .trim();
-        }
-
         function renderCourseOptionsFromCatalog(select) {
             if (!select) return;
             select.innerHTML = '<option value="">Select Course...</option>';
             canonicalCourseList.forEach((course) => {
                 const code = normalizeCourseCode(course.code);
-                const title = COURSE_TITLE_OVERRIDES[code] || course.title;
+                const title = String(course.title || '').trim();
                 const option = document.createElement('option');
                 option.value = code;
-                option.textContent = `${code} - ${title}`;
+                option.textContent = title ? `${code} - ${title}` : code;
                 select.appendChild(option);
             });
         }
@@ -13611,15 +13543,18 @@
             (Array.isArray(courses) ? courses : []).forEach((course) => {
                 const code = normalizeCourseCode(course.code);
                 if (!code) return;
-                const canonicalTitle = String(COURSE_TITLE_OVERRIDES[code] || courseCatalogByCode?.[code]?.title || '').trim();
-                const title = canonicalTitle || String(course.title || code).trim();
+                const title = getCanonicalCourseTitleByCode(code, course.title);
                 const option = document.createElement('option');
                 option.value = code;
-                option.textContent = `${code} - ${title}`;
+                option.textContent = title ? `${code} - ${title}` : code;
                 select.appendChild(option);
             });
         }
 
+        // data/course-catalog.json is the fallback catalog. It fills the Add
+        // Course dropdown when there is no database client and supplies a
+        // title or default credits only for a course whose database row has
+        // none. The courses row is the authority for both.
         async function ensureCourseCatalogLoaded() {
             if (canonicalCourseList.length > 0) {
                 return canonicalCourseList;
@@ -13627,90 +13562,24 @@
 
             courseCatalogByCode = {};
 
-            const markdownPaths = [
-                'ewu-design-catalog/courses/courses-202526.md',
-                '/ewu-design-catalog/courses/courses-202526.md',
-                './ewu-design-catalog/courses/courses-202526.md'
-            ];
-
-            for (const markdownPath of markdownPaths) {
-                try {
-                    const offeringsResponse = await fetch(markdownPath);
-                    if (!offeringsResponse.ok) continue;
-                    const markdown = await offeringsResponse.text();
-                    const lines = String(markdown || '').split(/\r\n|\n|\r/);
-                    const parsed = [];
-
-                    lines.forEach((line) => {
-                        const match = String(line || '')
-                            .trim()
-                            .match(/^DESN\s+(\d{3})\.\s+(.+?)\.\s+\d+(?:-\d+)?\s+Credits\./i);
-                        if (!match) return;
-                        const code = `DESN ${match[1]}`;
-                        const title = formatCatalogTitle(match[2]);
-                        parsed.push(mergeCourseCatalogMetadata({ code, title, defaultCredits: 5 }));
-                    });
-
-                    if (parsed.length > 0) {
-                        const dedupedByCode = new Map();
-                        parsed.forEach((course) => {
-                            dedupedByCode.set(course.code, course);
-                        });
-                        canonicalCourseList = Array.from(dedupedByCode.values())
-                            .sort((a, b) => a.code.localeCompare(b.code, 'en', { numeric: true, sensitivity: 'base' }));
-                        canonicalCourseList.forEach((course) => {
-                            courseCatalogByCode[course.code] = course;
-                        });
-                        break;
-                    }
-                } catch (error) {
-                    console.warn(`Could not load markdown course offerings from ${markdownPath}:`, error);
-                }
-            }
-
-            if (canonicalCourseList.length === 0) {
-                try {
-                    const response = await fetch('data/course-catalog.json');
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                    const json = await response.json();
-                    courseCatalog = json;
-                    canonicalCourseList = (json.courses || [])
-                        .map((course) => mergeCourseCatalogMetadata({
-                            ...course,
-                            title: String(course.title || course.code || '').trim()
-                        }))
-                        .filter((course) => course.code);
-                    canonicalCourseList.forEach((course) => {
-                        courseCatalogByCode[course.code] = course;
-                    });
-                } catch (fallbackError) {
-                    console.warn('Could not load fallback JSON catalog for Add Course modal:', fallbackError);
-                }
+            try {
+                const response = await fetch('data/course-catalog.json');
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const json = await response.json();
+                canonicalCourseList = (json.courses || [])
+                    .map((course) => mergeCourseCatalogMetadata({
+                        ...course,
+                        title: String(course.title || course.code || '').trim()
+                    }))
+                    .filter((course) => course.code);
+                canonicalCourseList.forEach((course) => {
+                    courseCatalogByCode[course.code] = course;
+                });
+            } catch (error) {
+                console.warn('Could not load the fallback course catalog (data/course-catalog.json):', error);
             }
 
             return canonicalCourseList;
-        }
-
-        async function syncCourseCatalogTitlesToSupabase(client) {
-            if (!client || courseCatalogSyncedToDb || !canonicalCourseList.length) {
-                return;
-            }
-
-            const department = await resolveActiveDepartmentRecord(client);
-            if (!department?.id) return;
-
-            const payload = canonicalCourseList.map((course) => ({
-                department_id: department.id,
-                code: course.code,
-                title: course.title,
-                default_credits: Number(course.defaultCredits) || 5
-            }));
-
-            const upserted = await client
-                .from('courses')
-                .upsert(payload, { onConflict: 'department_id,code' });
-            if (upserted.error) throw upserted.error;
-            courseCatalogSyncedToDb = true;
         }
 
         async function resolveActiveDepartmentRecord(client) {
@@ -13821,8 +13690,11 @@
             if (!select || !creditsInput || !onlineCheckbox) return;
 
             const code = normalizeCourseCode(select.value);
-            const course = code ? courseCatalogByCode?.[code] : null;
-            creditsInput.value = Number(course?.defaultCredits) || 5;
+            const databaseCourse = code ? databaseCoursesByCode?.[code] : null;
+            const catalogCourse = code ? courseCatalogByCode?.[code] : null;
+            creditsInput.value = Number(databaseCourse?.default_credits)
+                || Number(catalogCourse?.defaultCredits)
+                || 5;
 
             const forceOnline = code ? getCourseDefaultModality(code) === 'online' : false;
             onlineCheckbox.checked = forceOnline;
@@ -13876,7 +13748,7 @@
 
             const client = getDatabaseClient();
             if (!client) {
-                // No live DB client available: fallback to canonical offerings snapshot.
+                // No live DB client available: fall back to the bundled catalog.
                 renderCourseOptionsFromCatalog(select);
                 return;
             }
@@ -13889,7 +13761,7 @@
                 }
                 const { data: courses, error } = await client
                     .from('courses')
-                    .select('code, title')
+                    .select('code, title, default_credits')
                     .eq('department_id', department.id)
                     .order('code');
                 if (error) throw error;
@@ -13901,9 +13773,11 @@
                         if (!code) return;
                         dedupedByCode.set(code, {
                             code,
-                            title: String(course.title || code).trim()
+                            title: String(course.title || '').trim(),
+                            default_credits: Number(course.default_credits) || null
                         });
                     });
+                    databaseCoursesByCode = Object.fromEntries(dedupedByCode);
                     renderCourseOptionsFromDatabase(select, Array.from(dedupedByCode.values()));
                     return;
                 }

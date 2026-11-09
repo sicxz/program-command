@@ -115,60 +115,6 @@
             return null;
         }
     }
-    const COURSE_TITLE_OVERRIDES = Object.freeze({
-        'DESN 100': 'Drawing for Communication',
-        'DESN 200': 'Visual Thinking + Making',
-        'DESN 210': 'Design Lab',
-        'DESN 213': 'Photoshop',
-        'DESN 214': 'Illustrator',
-        'DESN 215': 'Indesign',
-        'DESN 216': 'Digital Foundations',
-        'DESN 217': 'Figma',
-        'DESN 243': 'Typography',
-        'DESN 263': 'Visual Communication Design',
-        'DESN 301': 'Visual Storytelling',
-        'DESN 305': 'Social Media Design and Management',
-        'DESN 325': 'Emergent Design',
-        'DESN 326': 'Introduction to Animation',
-        'DESN 335': 'Board Game Design',
-        'DESN 336': '3D Animation',
-        'DESN 338': 'User Experience Design 1',
-        'DESN 343': 'Typography 2',
-        'DESN 345': 'Digital Game Design',
-        'DESN 348': 'User Experience Design 2',
-        'DESN 350': 'Digital Photography',
-        'DESN 351': 'Advanced Photography',
-        'DESN 355': 'Motion Design',
-        'DESN 359': 'Histories of Design',
-        'DESN 360': 'Zine and Publication Design',
-        'DESN 365': 'Motion Design 2',
-        'DESN 366': 'Production Design',
-        'DESN 368': 'Web Design + Code 1',
-        'DESN 369': 'Web Development 1',
-        'DESN 374': 'Applied AI',
-        'DESN 375': 'Digital Video',
-        'DESN 378': 'Web Design + Code 2',
-        'DESN 379': 'Web Development 2',
-        'DESN 384': 'Digital Sound',
-        'DESN 396': 'Experimental Course',
-        'DESN 398': 'Seminar',
-        'DESN 399': 'Directed Study',
-        'DESN 401': 'Imaginary Worlds',
-        'DESN 446': '4D Animation',
-        'DESN 458': 'User Experience Design 3',
-        'DESN 463': 'Community-Driven Design',
-        'DESN 468': 'Web Design + Code 3',
-        'DESN 469': 'Web Development 3',
-        'DESN 480': 'Professional Practice',
-        'DESN 490': 'Senior Capstone',
-        'DESN 491': 'Senior Project',
-        'DESN 493': 'Portfolio Practice',
-        'DESN 495': 'Internship',
-        'DESN 496': 'Experimental',
-        'DESN 497': 'Workshop, Short Course, Conference, Seminar',
-        'DESN 498': 'Seminar',
-        'DESN 499': 'Directed Study'
-    });
     const PUBLIC_ROOM_SET = new Set(Object.keys(ROOM_LABELS));
     const PUBLIC_SPECIAL_ROOM_SET = new Set(['ONLINE', 'ARRANGED']);
     const FACULTY_COLORS = Object.freeze({
@@ -267,22 +213,23 @@
         return byCode;
     }
 
-    function getCanonicalCourseTitleByCode(courseCode, fallbackTitle = '', courseCatalogByCode = {}) {
+    // The get_public_schedule RPC reads course_title and credits straight from
+    // the Supabase courses row, so those are shown as is. The bundled catalog
+    // (data/course-catalog.json) fills in only when a row carries neither.
+    function getCanonicalCourseTitleByCode(courseCode, rpcTitle = '', courseCatalogByCode = {}) {
+        const title = String(rpcTitle || '').trim();
+        if (title) return title;
         const code = normalizeCourseCode(courseCode);
-        if (!code) return String(fallbackTitle || '').trim();
-        const overrideTitle = COURSE_TITLE_OVERRIDES[code];
-        if (overrideTitle) return overrideTitle;
-        const catalogTitle = String(courseCatalogByCode?.[code]?.title || '').trim();
-        if (catalogTitle) return catalogTitle;
-        return String(fallbackTitle || '').trim();
+        if (!code) return '';
+        return String(courseCatalogByCode?.[code]?.title || '').trim();
     }
 
-    function getCanonicalCourseCreditsByCode(courseCode, fallbackCredits, courseCatalogByCode = {}) {
+    function getCanonicalCourseCreditsByCode(courseCode, rpcCredits, courseCatalogByCode = {}) {
+        const credits = Number(rpcCredits);
+        if (Number.isFinite(credits) && credits > 0) return credits;
         const code = normalizeCourseCode(courseCode);
         const catalogCredits = Number(courseCatalogByCode?.[code]?.defaultCredits);
-        if (Number.isFinite(catalogCredits) && catalogCredits > 0) return catalogCredits;
-        const credits = Number(fallbackCredits);
-        return Number.isFinite(credits) && credits > 0 ? credits : 5;
+        return Number.isFinite(catalogCredits) && catalogCredits > 0 ? catalogCredits : 5;
     }
 
     function normalizeFacultyKey(value) {
@@ -779,7 +726,7 @@
         try {
             return createCourseCatalogByCode(await fetchCatalog(options.catalogPath || COURSE_CATALOG_PATH));
         } catch (error) {
-            console.warn('Could not load public course catalog. Falling back to RPC course titles.', error);
+            console.warn('Could not load the fallback course catalog; rows without an RPC title will show their course code.', error);
             return {};
         }
     }
@@ -938,6 +885,7 @@
         countQuarterCourses,
         createPublicScheduleApp,
         formatQuarterTitle,
+        getCanonicalCourseCreditsByCode,
         getCanonicalCourseTitleByCode,
         getCanonicalFacultyName,
         getFallbackFacultyColor,
