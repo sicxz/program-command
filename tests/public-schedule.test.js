@@ -7,6 +7,7 @@ const DefaultTerm = require('../js/default-term.js');
 function setupDom() {
     document.body.innerHTML = `
         <div id="publicStatus"></div>
+        <button type="button" class="public-print-button" id="publicPrintButton">Print schedule</button>
         <span id="publicAcademicYearLabel"></span>
         <span id="publicQuarterLabel"></span>
         <div id="publicYearTabs"></div>
@@ -540,6 +541,57 @@ describe('public schedule page', () => {
         expect(anchors).toHaveLength(1);
         expect(html).toContain('href="login.html"');
         expect(html).toContain('Program Command');
+    });
+
+    test('public HTML offers a Print schedule button that is not a link', () => {
+        const html = fs.readFileSync(path.resolve(__dirname, '..', 'public-schedule.html'), 'utf8');
+
+        const button = html.match(/<button\b([^>]*)>\s*Print schedule\s*<\/button>/);
+        expect(button).not.toBeNull();
+        expect(button[1]).toContain('type="button"');
+        expect(button[1]).toContain('id="publicPrintButton"');
+        expect(button[1]).toContain('class="public-print-button"');
+        expect(html.indexOf('id="publicPrintButton"')).toBeLessThan(html.indexOf('href="login.html"'));
+    });
+
+    test('Print schedule hands the page to the browser print dialog', async () => {
+        const print = jest.spyOn(window, 'print').mockImplementation(() => {});
+        const app = PublicSchedulePage.createPublicScheduleApp({
+            document,
+            scheduleDataUtils: ScheduleDataUtils,
+            getClient: () => ({
+                rpc: jest.fn().mockResolvedValue({ data: [], error: null })
+            })
+        });
+
+        try {
+            await app.init();
+            await flushPromises();
+
+            const button = document.getElementById('publicPrintButton');
+            expect(button.textContent).toBe('Print schedule');
+            expect(print).not.toHaveBeenCalled();
+
+            button.click();
+
+            expect(print).toHaveBeenCalledTimes(1);
+        } finally {
+            print.mockRestore();
+        }
+    });
+
+    test('print stylesheet lays the selected quarter out on one landscape letter page', () => {
+        const css = fs.readFileSync(path.resolve(__dirname, '..', 'css', 'public-schedule.css'), 'utf8');
+        const printBlock = css.slice(css.indexOf('@media print'));
+
+        expect(css).toContain('@media print');
+        expect(printBlock).toMatch(/@page\s*{[^}]*size:\s*letter landscape;[^}]*margin:\s*0\.5in;/);
+        expect(printBlock).toMatch(/\.public-header-actions,[^{]*\.public-year-tabs,[^{]*\.public-quarter-tabs,[^{]*{[^}]*display:\s*none;/);
+        expect(printBlock).toMatch(/\.public-grid-scroll\s*{[^}]*overflow:\s*visible;/);
+        expect(printBlock).toMatch(/\.public-schedule-grid\s*{[^}]*min-width:\s*0;/);
+        expect(printBlock).toContain('print-color-adjust: exact;');
+        expect(printBlock).toContain('-webkit-print-color-adjust: exact;');
+        expect(printBlock).toMatch(/\.public-course-block\s*{[^}]*break-inside:\s*avoid;/);
     });
 
     test('public HTML and CSS use the Foundry surface contract', () => {

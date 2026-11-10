@@ -698,6 +698,16 @@
         renderSpecialSections(state);
     }
 
+    function bindPrintButton(documentRef) {
+        const button = documentRef.getElementById('publicPrintButton');
+        if (!button || button.dataset.printBound === 'true') return;
+        button.dataset.printBound = 'true';
+        button.addEventListener('click', () => {
+            const view = documentRef.defaultView || root;
+            if (typeof view.print === 'function') view.print();
+        });
+    }
+
     function setStatus(documentRef, text, state) {
         const status = documentRef.getElementById('publicStatus');
         if (!status) return;
@@ -842,6 +852,7 @@
             setYear,
             async init() {
                 if (!documentRef) return;
+                bindPrintButton(documentRef);
                 const term = await loadCurrentTerm();
                 if (term) {
                     state.year = term.year;
