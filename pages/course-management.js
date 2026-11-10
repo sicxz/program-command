@@ -15,6 +15,25 @@ let currentYearId = null;
 let filteredCourses = [];
 let filteredSections = [];
 
+// Course levels use the numeric scheme the courses table and
+// data/course-catalog.json store: '100', '200', '300', '400'.
+const COURSE_LEVELS = ['100', '200', '300', '400'];
+
+// '300' for 'DESN 374'; '' when the code carries no three-digit number.
+function deriveCourseLevel(code) {
+    const match = String(code || '').match(/(\d)\d{2}/);
+    const level = match ? `${match[1]}00` : '';
+    return COURSE_LEVELS.includes(level) ? level : '';
+}
+
+// The stored level when it is one of the numeric levels; otherwise the level
+// the course code implies, so rows saved with an empty or legacy level still
+// filter and edit correctly.
+function resolveCourseLevel(course) {
+    const stored = String(course?.level || '').trim();
+    return COURSE_LEVELS.includes(stored) ? stored : deriveCourseLevel(course?.code);
+}
+
 // ============================================
 // INITIALIZATION
 // ============================================
@@ -161,21 +180,11 @@ function filterCatalog() {
         const matchesSearch = !search ||
             course.code.toLowerCase().includes(search) ||
             course.title.toLowerCase().includes(search);
-        const matchesLevel = !level || course.level === level;
+        const matchesLevel = !level || resolveCourseLevel(course) === level;
         return matchesSearch && matchesLevel;
     });
 
     renderCatalogTable();
-}
-
-function getLevelLabel(level) {
-    const labels = {
-        intro: 'Intro',
-        intermediate: 'Intermediate',
-        advanced: 'Advanced',
-        graduate: 'Graduate'
-    };
-    return labels[level] || 'Intro';
 }
 
 // ============================================
@@ -365,7 +374,7 @@ function editCourse(id) {
     document.getElementById('courseTitle').value = course.title;
     document.getElementById('courseCredits').value = course.default_credits || 5;
     document.getElementById('courseCap').value = course.typical_cap || 24;
-    document.getElementById('courseLevel').value = course.level || 'intro';
+    document.getElementById('courseLevel').value = resolveCourseLevel(course);
 
     // Set scheduling preferences
     setCheckboxGroup('quarters', course.quarters_offered || ['Fall', 'Winter', 'Spring']);
@@ -422,15 +431,16 @@ async function handleCourseSubmit(event) {
     event.preventDefault();
 
     const id = document.getElementById('courseId').value;
+    const code = document.getElementById('courseCode').value.trim();
 
     // Collect all course data including scheduling preferences
     const courseData = {
         // Basic info
-        code: document.getElementById('courseCode').value.trim(),
+        code,
         title: document.getElementById('courseTitle').value.trim(),
         defaultCredits: parseInt(document.getElementById('courseCredits').value) || 5,
         typicalCap: parseInt(document.getElementById('courseCap').value) || 24,
-        level: document.getElementById('courseLevel').value,
+        level: document.getElementById('courseLevel').value || deriveCourseLevel(code),
 
         // Scheduling preferences
         quartersOffered: getCheckboxGroup('quarters'),

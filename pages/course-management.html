@@ -36,17 +36,6 @@
             font-weight: 500;
         }
 
-        .level-badge {
-            font-size: 12px;
-            padding: 2px 8px;
-            border-radius: var(--radius-sm);
-        }
-
-        .level-badge.intro { background: #E3F2FD; color: #1565C0; }
-        .level-badge.intermediate { background: #E8F5E9; color: #2E7D32; }
-        .level-badge.advanced { background: #F3E5F5; color: #7B1FA2; }
-        .level-badge.graduate { background: #FFF3E0; color: #E65100; }
-
         .section-faculty {
             display: flex;
             align-items: center;
@@ -257,10 +246,10 @@
                     <div class="ds-flex ds-gap-3">
                         <select id="levelFilter" class="ds-select" onchange="filterCatalog()" style="width: auto;">
                             <option value="">All Levels</option>
-                            <option value="intro">Intro (100-200)</option>
-                            <option value="intermediate">Intermediate (300)</option>
-                            <option value="advanced">Advanced (400)</option>
-                            <option value="graduate">Graduate (500+)</option>
+                            <option value="100">100-level</option>
+                            <option value="200">200-level</option>
+                            <option value="300">300-level</option>
+                            <option value="400">400-level</option>
                         </select>
                         <button class="ds-btn ds-btn-primary" onclick="openAddCourseModal()">
                             + Add Course
@@ -391,10 +380,10 @@
                         <div class="ds-form-group">
                             <label class="ds-label" for="courseLevel">Level</label>
                             <select id="courseLevel" class="ds-select">
-                                <option value="intro">Intro (100-200)</option>
-                                <option value="intermediate">Intermediate (300)</option>
-                                <option value="advanced">Advanced (400)</option>
-                                <option value="graduate">Graduate (500+)</option>
+                                <option value="100">100-level</option>
+                                <option value="200">200-level</option>
+                                <option value="300">300-level</option>
+                                <option value="400">400-level</option>
                             </select>
                         </div>
                     </div>

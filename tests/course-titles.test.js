@@ -1,19 +1,36 @@
 const fs = require('fs');
 const path = require('path');
+const vm = require('vm');
 
 const repoRoot = path.resolve(__dirname, '..');
 const programCommand = fs.readFileSync(path.join(repoRoot, 'program-command.html'), 'utf8');
+const publicSchedule = fs.readFileSync(path.join(repoRoot, 'pages', 'public-schedule.js'), 'utf8');
 const courseCatalog = JSON.parse(
     fs.readFileSync(path.join(repoRoot, 'data', 'course-catalog.json'), 'utf8')
 );
 
-function extractCourseTitleOverrides() {
-    const match = programCommand.match(/const COURSE_TITLE_OVERRIDES = \{([\s\S]*?)\n\s*\};/);
-    if (!match) throw new Error('COURSE_TITLE_OVERRIDES was not found');
+function extractFunction(source, name) {
+    const marker = `function ${name}(`;
+    const start = source.indexOf(marker);
+    if (start < 0) throw new Error(`Could not find ${name}`);
 
-    return Object.fromEntries(
-        Array.from(match[1].matchAll(/'([^']+)'\s*:\s*'([^']+)'/g), ([, code, title]) => [code, title])
-    );
+    const bodyStart = source.indexOf('{', start);
+    let depth = 0;
+    for (let index = bodyStart; index < source.length; index += 1) {
+        if (source[index] === '{') depth += 1;
+        if (source[index] === '}') depth -= 1;
+        if (depth === 0) return source.slice(start, index + 1);
+    }
+    throw new Error(`Could not find the end of ${name}`);
+}
+
+// The scheduler's title resolution with the fallback catalog under test control.
+function createSchedulerTitleSandbox(courseCatalogByCode) {
+    const sandbox = { courseCatalogByCode, normalizeOnlineQuarterBucket: () => {} };
+    vm.createContext(sandbox);
+    ['normalizeCourseCode', 'getCanonicalCourseTitleByCode', 'normalizeScheduleCourseCodes']
+        .forEach((name) => vm.runInContext(extractFunction(programCommand, name), sandbox));
+    return sandbox;
 }
 
 function extractNoHistoryBadgeText() {
@@ -41,20 +58,55 @@ function extractNoHistoryBadgeText() {
     );
 }
 
-test('the scheduler map and generated catalog use the four approved course titles', () => {
+test('the generated catalog carries the four approved titles and no page hardcodes a title map', () => {
     const expected = {
         'DESN 368': 'Web Design + Code 1',
         'DESN 378': 'Web Design + Code 2',
         'DESN 468': 'Web Design + Code 3',
         'DESN 374': 'Applied AI'
     };
-    const titleOverrides = extractCourseTitleOverrides();
     const catalogByCode = Object.fromEntries(
         courseCatalog.courses.map((course) => [course.code, course.title])
     );
 
-    expect(Object.fromEntries(Object.keys(expected).map((code) => [code, titleOverrides[code]]))).toEqual(expected);
     expect(Object.fromEntries(Object.keys(expected).map((code) => [code, catalogByCode[code]]))).toEqual(expected);
+
+    // The Supabase courses row is the title authority; nothing in the pages may win over it.
+    expect(programCommand).not.toContain('COURSE_TITLE_OVERRIDES');
+    expect(publicSchedule).not.toContain('COURSE_TITLE_OVERRIDES');
+    expect(programCommand).not.toContain('courses-202526.md');
+    expect(programCommand).not.toContain('syncCourseCatalogTitlesToSupabase');
+});
+
+test('the scheduler shows the database title and uses the catalog only for a course without one', () => {
+    const sandbox = createSchedulerTitleSandbox({
+        'DESN 368': { title: 'Web Design + Code 1' },
+        'DESN 374': { title: 'Applied Design' }
+    });
+    sandbox.data = {
+        fall: {
+            MW: {
+                '10:00-12:20': [
+                    { code: 'DESN 374', name: 'Applied AI' },
+                    { code: 'DESN 368', name: 'DESN 368' },
+                    { code: 'DESN 999', name: 'DESN 999' }
+                ]
+            }
+        }
+    };
+
+    const names = Array.from(vm.runInContext(
+        "normalizeScheduleCourseCodes(data); data.fall.MW['10:00-12:20'].map((course) => course.name)",
+        sandbox
+    ));
+
+    // The courses row ("Applied AI") beats a stale catalog ("Applied Design");
+    // the catalog fills in only the course that carried no title (its name was
+    // its own code); a code in neither place keeps the placeholder.
+    expect(names).toEqual(['Applied AI', 'Web Design + Code 1', 'DESN 999']);
+    expect(vm.runInContext("getCanonicalCourseTitleByCode('DESN 374', 'Renamed in Course Management')", sandbox))
+        .toBe('Renamed in Course Management');
+    expect(vm.runInContext("getCanonicalCourseTitleByCode('DESN 368', '')", sandbox)).toBe('Web Design + Code 1');
 });
 
 test('a previously offered no-history course gets NO HISTORY instead of NEW', () => {

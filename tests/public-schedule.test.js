@@ -102,7 +102,11 @@ describe('public schedule page', () => {
         expect(PublicSchedulePage.getFallbackFacultyColor('M.Breen')).toBe(breen.color);
     });
 
-    test('uses canonical course titles instead of stale Supabase titles', () => {
+    test('shows the RPC course title and uses the catalog only when a row has none', () => {
+        const courseCatalogByCode = {
+            'DESN 368': { code: 'DESN 368', title: 'Web Design + Code 1', defaultCredits: 5 },
+            'DESN 379': { code: 'DESN 379', title: 'Web Development 2', defaultCredits: 5 }
+        };
         const scheduleData = PublicSchedulePage.buildScheduleFromPublicRows([
             {
                 academic_year: '2026-27',
@@ -124,20 +128,48 @@ describe('public schedule page', () => {
                 time_slot: '10:00-12:20',
                 section: '001',
                 course_code: 'DESN 379',
-                course_title: 'Advanced Data Visualization',
+                course_title: null,
                 credits: 5,
                 instructor_name: 'C.Manikoth',
                 room_code: '206',
                 projected_enrollment: 24
+            },
+            {
+                academic_year: '2026-27',
+                quarter: 'spring',
+                day_pattern: 'TR',
+                time_slot: '13:00-15:20',
+                section: '001',
+                course_code: 'DESN 999',
+                course_title: null,
+                credits: 5,
+                instructor_name: 'TBD',
+                room_code: '206',
+                projected_enrollment: 24
             }
-        ], { scheduleDataUtils: ScheduleDataUtils });
+        ], { scheduleDataUtils: ScheduleDataUtils, courseCatalogByCode });
 
-        expect(scheduleData.fall.MW['10:00-12:20'][0].name).toBe('Web Design + Code 1');
+        // The courses row is the authority: whatever Course Management saved is shown.
+        expect(scheduleData.fall.MW['10:00-12:20'][0].name).toBe('Interaction Design');
+        // The bundled catalog fills in only a row that carries no title.
         expect(scheduleData.spring.TR['10:00-12:20'][0].name).toBe('Web Development 2');
+        // A code in neither place keeps its code as the placeholder.
+        expect(scheduleData.spring.TR['13:00-15:20'][0].name).toBe('DESN 999');
     });
 
-    test('uses the canonical Applied AI title for DESN 374', () => {
-        expect(PublicSchedulePage.getCanonicalCourseTitleByCode('DESN 374', 'AI + Design', {})).toBe('Applied AI');
+    test('shows the RPC title for DESN 374 and falls back to the catalog title', () => {
+        const staleCatalog = { 'DESN 374': { title: 'Applied Design' } };
+        expect(PublicSchedulePage.getCanonicalCourseTitleByCode('DESN 374', 'Applied AI', staleCatalog)).toBe('Applied AI');
+        expect(PublicSchedulePage.getCanonicalCourseTitleByCode('DESN 374', '', { 'DESN 374': { title: 'Applied AI' } })).toBe('Applied AI');
+        expect(PublicSchedulePage.getCanonicalCourseTitleByCode('DESN 374', null, {})).toBe('');
+    });
+
+    test('shows RPC credits and uses the catalog credits only when a row has none', () => {
+        const catalog = { 'DESN 490': { title: 'Senior Capstone', defaultCredits: 5 } };
+        expect(PublicSchedulePage.getCanonicalCourseCreditsByCode('DESN 490', 2, catalog)).toBe(2);
+        expect(PublicSchedulePage.getCanonicalCourseCreditsByCode('DESN 490', null, catalog)).toBe(5);
+        expect(PublicSchedulePage.getCanonicalCourseCreditsByCode('DESN 490', 0, { 'DESN 490': { defaultCredits: 4 } })).toBe(4);
+        expect(PublicSchedulePage.getCanonicalCourseCreditsByCode('DESN 490', null, {})).toBe(5);
     });
 
     test('loads public schedule rows through the RPC and renders the Fall grid', async () => {
@@ -218,8 +250,8 @@ describe('public schedule page', () => {
         expect(document.getElementById('publicYearTabs').textContent).toContain('2025-26');
         expect(document.getElementById('publicYearTabs').textContent).not.toContain('2023-24');
         expect(document.getElementById('publicScheduleGrid').textContent).toContain('DESN 368');
-        expect(document.getElementById('publicScheduleGrid').textContent).toContain('Web Design + Code 1');
-        expect(document.getElementById('publicScheduleGrid').textContent).not.toContain('Interaction Design');
+        expect(document.getElementById('publicScheduleGrid').textContent).toContain('Interaction Design');
+        expect(document.getElementById('publicScheduleGrid').textContent).not.toContain('Web Design + Code 1');
         expect(document.getElementById('publicScheduleGrid').textContent).not.toContain('DESN 999');
         expect(document.getElementById('publicSpecialSections').textContent).toContain('DESN 216');
         expect(document.getElementById('publicSpecialSections').textContent).toContain('Cap 20');
@@ -244,8 +276,8 @@ describe('public schedule page', () => {
 
         expect(document.getElementById('publicScheduleTitle').textContent).toBe('Winter 2027');
         expect(document.getElementById('publicScheduleGrid').textContent).toContain('DESN 379');
-        expect(document.getElementById('publicScheduleGrid').textContent).toContain('Web Development 2');
-        expect(document.getElementById('publicScheduleGrid').textContent).not.toContain('Advanced Data Visualization');
+        expect(document.getElementById('publicScheduleGrid').textContent).toContain('Advanced Data Visualization');
+        expect(document.getElementById('publicScheduleGrid').textContent).not.toContain('Web Development 2');
         expect(document.querySelector('.public-course-block').className).toContain('faculty-manikoth');
         expect(document.getElementById('publicFacultyLegend').textContent).toContain('C.Manikoth');
         expect(document.getElementById('publicFacultyLegend').textContent).not.toMatch(/\bcr\b/i);
@@ -314,8 +346,8 @@ describe('public schedule page', () => {
         expect(document.getElementById('publicScheduleTitle').textContent).toBe('Fall 2025');
         expect(document.getElementById('publicYearSelect').value).toBe('2025-26');
         expect(document.getElementById('publicScheduleGrid').textContent).toContain('DESN 263');
-        expect(document.getElementById('publicScheduleGrid').textContent).toContain('Visual Communication Design');
-        expect(document.getElementById('publicScheduleGrid').textContent).not.toContain('User Experience Design I');
+        expect(document.getElementById('publicScheduleGrid').textContent).toContain('User Experience Design I');
+        expect(document.getElementById('publicScheduleGrid').textContent).not.toContain('Visual Communication Design');
         expect(document.getElementById('publicScheduleGrid').textContent).not.toContain('DESN 368');
         expect(Array.from(document.querySelectorAll('.public-grid-header')).map((header) => header.textContent)).toEqual([
             'Time',
