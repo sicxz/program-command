@@ -23,7 +23,7 @@ Returning cold, or arriving for the first time? Read the reorientation docs in o
 
 1. [`docs/ORIENT.html`](docs/ORIENT.html) — what is in production right now and the single next action.
 2. [`docs/decision-log.html`](docs/decision-log.html) — why current choices were made.
-3. [`docs/ONBOARDING.html`](docs/ONBOARDING.html) — architecture, data model, two-Supabase routing, deploy flow, branch protection, and autopilot forbidden paths.
+3. [`docs/ONBOARDING.html`](docs/ONBOARDING.html) — architecture, data model, the single Supabase database, deploy flow, branch protection, and autopilot forbidden paths.
 
 ## Project Overview
 
@@ -71,7 +71,7 @@ Do not convert these to ES module `import/export` — the frontend loads them as
 - **Data Processing Scripts** (`scripts/`) — Node.js CLI tools for CSV validation, enrollment processing, and workload calculation.
 
 ### Data Persistence
-1. **Supabase** — Primary persistence for courses, faculty, constraints, release time allocations
+1. **Supabase** — Primary persistence for courses, faculty, constraints, release time allocations. There is one project, production; every host, localhost included, reads and writes it.
 2. **localStorage** — Client-side persistence for schedule edits, placements, backup snapshots (prefix: `ewu_schedule_`)
 3. **Static JSON** — Fallback data files (`workload-data.json`, `enrollment-dashboard-data.json`, `data/*.json`)
 

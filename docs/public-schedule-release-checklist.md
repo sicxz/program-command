@@ -2,13 +2,20 @@
 
 Use this before sharing `public-schedule.html` outside the authenticated Program Command workflow.
 
-## Dev Validation
+## Database
 
-- Apply `scripts/supabase-public-schedule-read.sql` to the dev Supabase project.
-- Apply `scripts/supabase-sync-course-catalog.sql` if dev course titles/credits/caps have drifted from `data/course-catalog.json`.
+Program Command has one Supabase project, production. Every SQL step below runs there.
+
+- Apply `scripts/supabase-public-schedule-read.sql` before deploying the frontend.
+- Apply `scripts/supabase-sync-course-catalog.sql` if course titles, credits, or caps have drifted from `data/course-catalog.json`, or if the public schedule shows stale course titles.
 - Confirm the RPC exists: `public.get_public_schedule(text, text, text)`.
 - Confirm anon can execute the RPC for `2026-27`, `2025-26`, `2024-25`, and `2023-24` / `ewu-design`.
 - Confirm anon cannot insert, update, or delete `academic_years` or `scheduled_courses`.
+- Verify AY `2026-27`, `2025-26`, `2024-25`, and `2023-24` exist for `ewu-design`.
+- Verify Fall `scheduled_courses` rows exist for each public academic year that should show published history.
+
+## Validation
+
 - Open `public-schedule.html` signed out.
 - Confirm the default view is `AY 2026-27`, `Fall 2026`.
 - Confirm displayed course titles match the authenticated scheduler, including canonical catalog titles such as `DESN 368` -> `Code + Design 1`.
@@ -18,10 +25,6 @@ Use this before sharing `public-schedule.html` outside the authenticated Program
 
 ## Production Rollout
 
-- Apply `scripts/supabase-public-schedule-read.sql` to production before deploying the frontend.
-- Apply `scripts/supabase-sync-course-catalog.sql` to production if the public schedule shows stale course titles.
-- Verify AY `2026-27`, `2025-26`, `2024-25`, and `2023-24` exist for `ewu-design`.
-- Verify Fall `scheduled_courses` rows exist for each public academic year that should show published history.
 - Deploy the frontend containing `public-schedule.html`, `css/public-schedule.css`, and `pages/public-schedule.js`.
 - Open the public URL in a private browser window.
 - Confirm no Save, Add Course, import, dashboard, workload, or admin controls are visible.

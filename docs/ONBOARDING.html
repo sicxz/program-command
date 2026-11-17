@@ -117,9 +117,10 @@ npm run test:coverage</code></pre>
     rehost</strong> it for the static-Pages surface — see the
     <a href="./decision-log.html">decision log</a>. Do not delete it.</p>
 
-    <h2>Two-Supabase routing</h2>
-    <p>The frontend selects a Supabase project based on hostname and page,
-    via <code>js/supabase-config.js</code>:</p>
+    <h2>One Supabase database</h2>
+    <p>There is one Supabase project. Every host, localhost included, reads
+    and writes it, so a save from a local page is a production write. The
+    project is set in <code>js/supabase-config.js</code>:</p>
 
     <table>
       <thead>
@@ -130,12 +131,6 @@ npm run test:coverage</code></pre>
           <td>Production</td>
           <td><code>ohnrhjxcjkrdtudpzjgn</code></td>
           <td>Live data. Public anon key by design. Email signups disabled.</td>
-        </tr>
-        <tr>
-          <td>Develop</td>
-          <td>retired</td>
-          <td>Retired 2026-09-15 (#314). One database; localhost pages
-              default to production like every other host.</td>
         </tr>
       </tbody>
     </table>
@@ -149,7 +144,7 @@ npm run test:coverage</code></pre>
     <aside class="docs-callout docs-callout--danger">
       <p class="docs-callout-title">Forbidden path</p>
       <p><code>js/supabase-config.js</code> is on the agent forbidden-path
-      list. Project routing is a safety control; only humans edit it.</p>
+      list. The database target is a safety control; only humans edit it.</p>
     </aside>
 
     <h2>Row-level security and the editor allowlist</h2>

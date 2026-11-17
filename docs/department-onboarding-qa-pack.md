@@ -52,9 +52,7 @@ Expected pilot onboarding outcome:
 ### Preflight
 
 1. Run `npm test` and verify all suites pass.
-2. Run data drift check before carrying configuration between environments:
-   - `npm run check:data-freshness -- --department <CODE> --year <YYYY-YY>`
-3. Confirm backup/export of current active profile decisions (if any).
+2. Confirm backup/export of current active profile decisions (if any).
 
 ### Onboarding Execution
 
@@ -85,5 +83,4 @@ For each rollout, capture:
 
 - activated profile id and timestamp
 - health check output summary (errors/warnings/passes)
-- data freshness report output JSON (if environment compare was run)
 - smoke-test notes (scheduler/workload/CLSS)
